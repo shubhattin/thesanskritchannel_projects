@@ -1,0 +1,89 @@
+@use 'sass:list';
+@use 'sass:map';
+
+@base {
+  /* body {
+       font-family: 'Roboto', 'Nirmala UI', sans-serif;
+    } */
+  /* the above approach dos'nt work as Skeleton UI overrides these behaviours */
+}
+
+[data-theme='wintry'] {
+  --heading-font-family: 'Roboto', 'Nirmala UI', sans-serif;
+  --base-font-family: 'Roboto', 'Nirmala UI', sans-serif;
+  --anchor-font-family: 'inherit';
+}
+
+$fonts_multi: (
+  'Nirmala': (
+    'Nirmala UI',
+    'ttf'
+  ),
+  'AdobeDevanagari': (
+    'Adobe Devanagari',
+    'otf'
+  ),
+  'AdobeTelugu': (
+    'Adobe Telugu',
+    'otf'
+  ),
+  'IskoolaPota': (
+    'Iskoola Pota',
+    'ttf'
+  )
+);
+
+@each $file, $font in $fonts_multi {
+  @font-face {
+    font-family: list.nth($font, 1);
+    src:
+      url('./fonts/regular/woff2/#{$file}.woff2') format('woff2'),
+      url('./fonts/regular/#{$file}.#{list.nth($font, 2)}');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: list.nth($font, 1);
+    src:
+      url('./fonts/bold/woff2/#{$file}B.woff2') format('woff2'),
+      url('./fonts/bold/#{$file}B.#{list.nth($font, 2)}');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+  }
+}
+
+$fonts_variable: (
+  'NotoSerifTelugu': (
+    'Noto Serif Telugu',
+    'ttf'
+  ),
+  'NotoSerifKannada': (
+    'Noto Serif Kannada',
+    'ttf'
+  ),
+  'NotoSerifSinhala': (
+    'Noto Serif Sinhala',
+    'ttf'
+  )
+);
+
+@each $file, $font in $fonts_variable {
+  @font-face {
+    font-family: list.nth($font, 1);
+    src:
+      url('./fonts/variable/woff2/#{$file}.woff2') format('woff2'),
+      url('./fonts/variable/#{$file}.#{list.nth($font, 2)}');
+    // font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+}
+
+.indic-font {
+  font-family: map.get($fonts_multi, 'Nirmala');
+}
+.normal-font {
+  font-family: map.get($fonts_multi, 'AdobeDevanagari');
+}

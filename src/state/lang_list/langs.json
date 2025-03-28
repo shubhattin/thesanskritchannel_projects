@@ -1,0 +1,28 @@
+{
+  "script_list": {
+    "Devanagari": "",
+    "Telugu": "",
+    "Tamil": "",
+    "Tamil-Extended": "",
+    "Bengali": "",
+    "Kannada": "",
+    "Gujarati": "",
+    "Malayalam": "",
+    "Odia": "",
+    "Sinhala": "",
+    "Normal": "",
+    "Romanized": ""
+  },
+  "lang_list": {
+    "English": 1,
+    "Hindi": 3,
+    "Telugu": 4,
+    "Tamil": 5,
+    "Bengali": 6,
+    "Kannada": 7,
+    "Gujarati": 8,
+    "Malayalam": 9,
+    "Odia": 10,
+    "Sinhala": 11
+  }
+}

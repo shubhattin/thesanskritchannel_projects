@@ -1,0 +1,22 @@
+[project]
+name = "yojanam"
+version = "0.1.0"
+description = "etadyojanam"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "jinja2>=3.1.6",
+    "pydantic>=2.10.6",
+    "pyquery>=2.0.1",
+    "pyyaml>=6.0.2",
+    "requests>=2.32.3",
+    "rich>=13.9.4",
+    "typer>=0.15.2",
+    "watchdog>=6.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "shubhlipi>=0.0.0.182",
+]

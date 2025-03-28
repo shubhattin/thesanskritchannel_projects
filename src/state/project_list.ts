@@ -90,3 +90,8 @@ export const PROJECT_INFO: project_info_type[] = [
 export const get_project_info_from_key = (key: project_keys_type) => {
   return PROJECT_INFO[PROJECT_KEYS.indexOf(key)];
 };
+
+export const get_project_info_from_id = (id: number) => {
+  const project = PROJECT_LIST[id - 1];
+  return get_project_info_from_key(project.key);
+};

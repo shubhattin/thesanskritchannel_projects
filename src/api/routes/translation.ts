@@ -5,17 +5,56 @@ import { db } from '~/db/db';
 import { translation, user_project_language_join } from '~/db/schema';
 import type { shloka_list_type } from '~/state/data_types';
 import { delay } from '~/tools/delay';
+import { env } from '$env/dynamic/private';
+import { Buffer } from 'buffer';
+import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
+import {
+  get_project_from_key,
+  get_project_info_from_id,
+  type project_keys_type
+} from '~/state/project_list';
+import ms from 'ms';
+
+export const get_path_params = (
+  selected_text_levels: (number | null)[],
+  project_levels: number
+) => {
+  return selected_text_levels.slice(0, project_levels - 1).reverse();
+};
 
 /** first and second here are like the ones in url */
-export const get_text_data = async (key: string, first: number, second?: number) => {
+export const get_text_data_func = async (key: string, path_params: (number | null)[]) => {
   // Add Caching to load in PROD
-  let loc = `./data/${key}/data/${first}`;
-  if (second) {
-    loc += `/${second}`;
+  const loc = `data/${key}/data/${path_params.join('/')}.json`;
+  const project_id = get_project_from_key(key as project_keys_type).id;
+  if (import.meta.env.DEV) {
+    const fs = await import('fs');
+    return JSON.parse(fs.readFileSync('./' + loc, 'utf8')) as shloka_list_type;
   }
-  loc += '.json';
-  const fs = await import('fs');
-  return JSON.parse(fs.readFileSync(loc, 'utf8')) as shloka_list_type;
+
+  const cache = await redis.get<shloka_list_type>(
+    REDIS_CACHE_KEYS.text_data(project_id, path_params)
+  );
+  if (cache) return cache;
+  // raw.githubusercontent.com is faster but imposes a cache of 5 mins so currently using this
+  const req = await fetch(
+    `https://api.github.com/repos/shubhattin/thesanskritchannel_projects/contents/${loc}`,
+    {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${env.GITHUB_API_KEY}`,
+        'X-GitHub-Api-Version': '2022-11-28'
+      }
+    }
+  );
+  const base_64_data = (await req.json())['content'];
+  const buffer = Buffer.from(base_64_data, 'base64');
+  const decoded_content = buffer.toString('utf-8');
+  const data = JSON.parse(decoded_content) as shloka_list_type;
+  await redis.set(REDIS_CACHE_KEYS.text_data(project_id, path_params), data, {
+    ex: ms('30days') / 1000
+  });
+  return data;
 };
 
 const get_text_data_route = publicProcedure
@@ -26,8 +65,8 @@ const get_text_data_route = publicProcedure
     })
   )
   .query(async ({ input: { project_key, path_params } }) => {
-    await delay(400);
-    const data = await get_text_data(project_key, path_params[0]!, path_params[1]!);
+    await delay(350);
+    const data = await get_text_data_func(project_key, path_params);
     return data;
   });
 
@@ -40,23 +79,39 @@ const get_translation_route = publicProcedure
     })
   )
   .query(async ({ input: { project_id, lang_id, selected_text_levels } }) => {
-    await delay(400);
-    const first = selected_text_levels[0] ?? 0;
-    const second = selected_text_levels[1] ?? 0;
+    let data: {
+      index: number;
+      text: string;
+    }[] = [];
 
-    const data = await db.query.translation.findMany({
-      columns: {
-        index: true,
-        text: true
-      },
-      where: (tbl, { eq, and }) =>
-        and(
-          eq(tbl.project_id, project_id),
-          eq(tbl.lang_id, lang_id),
-          eq(tbl.first, first),
-          eq(tbl.second, second)
-        )
-    });
+    const path_params = get_path_params(
+      selected_text_levels,
+      get_project_info_from_id(project_id).levels
+    );
+    const cache = await redis.get<typeof data>(
+      REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params)
+    );
+    if (cache) data = cache;
+    else {
+      const first = selected_text_levels[0] ?? 0;
+      const second = selected_text_levels[1] ?? 0;
+      data = await db.query.translation.findMany({
+        columns: {
+          index: true,
+          text: true
+        },
+        where: (tbl, { eq, and }) =>
+          and(
+            eq(tbl.project_id, project_id),
+            eq(tbl.lang_id, lang_id),
+            eq(tbl.first, first),
+            eq(tbl.second, second)
+          )
+      });
+      await redis.set(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params), data, {
+        ex: ms('30days') / 1000
+      });
+    }
     const data_map = new Map<number, string>();
     for (let i = 0; i < data.length; i++) data_map.set(data[i].index, data[i].text);
     return data_map;
@@ -88,6 +143,10 @@ const edit_translation_route = protectedProcedure
     }) => {
       const first = selected_text_levels[0] ?? 0;
       const second = selected_text_levels[1] ?? 0;
+      const path_params = get_path_params(
+        selected_text_levels,
+        get_project_info_from_id(project_id).levels
+      );
 
       // authorization check to edit or add lang records
       if (user.role !== 'admin') {
@@ -121,11 +180,11 @@ const edit_translation_route = protectedProcedure
       }
 
       // update existing records
-      const update_promises: Promise<any>[] = [];
+      const promises: Promise<any>[] = [];
       for (let i = 0; i < to_edit_indexed.length; i++) {
         const index = to_edit_indexed[i];
         const text = edit_data[i];
-        update_promises.push(
+        promises.push(
           db
             .update(translation)
             .set({ text })
@@ -140,8 +199,10 @@ const edit_translation_route = protectedProcedure
             )
         );
       }
+      promises.push(redis.del(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params)));
+
       // resolving update promises
-      await Promise.all(update_promises);
+      await Promise.allSettled(promises);
 
       return {
         success: true

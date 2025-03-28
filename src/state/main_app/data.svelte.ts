@@ -17,21 +17,24 @@ import { delay } from '~/tools/delay';
 import { derived, get, writable } from 'svelte/store';
 import { lang_list_obj } from '../lang_list';
 import { get_map_type, get_project_info_from_key, type project_keys_type } from '../project_list';
+import { user_info } from '../user.svelte';
 
-export const user_project_info_q = get_derived_query([project_state], ([_prject_state]) =>
-  createQuery(
-    {
-      queryKey: ['user_project_info', _prject_state.project_id!],
-      queryFn: async () => {
-        const data = await client.project.user_project_info.query({
-          project_id: _prject_state.project_id!
-        });
-        return data;
+export const user_project_info_q = get_derived_query(
+  [project_state, user_info],
+  ([_prject_state, _user_info]) =>
+    createQuery(
+      {
+        queryKey: ['user_project_info', _prject_state.project_id!],
+        queryFn: async () => {
+          const data = await client.project.user_project_info.query({
+            project_id: _prject_state.project_id!
+          });
+          return data;
+        },
+        enabled: !!_user_info && !!_prject_state.project_id
       },
-      enabled: !!_prject_state.project_id
-    },
-    queryClient
-  )
+      queryClient
+    )
 );
 
 export const project_map_q = get_derived_query([project_state], ([_prject_state]) =>

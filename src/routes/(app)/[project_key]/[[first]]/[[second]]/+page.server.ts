@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { project_keys_enum_schema, get_project_info_from_key } from '~/state/project_list';
 import { z } from 'zod';
-import { get_text_data } from '~/api/routes/translation';
+import { get_text_data_func } from '~/api/routes/translation';
 import type { shloka_list_type } from '~/state/data_types';
 
 const params_schema = z.object({
@@ -41,7 +41,7 @@ export const load: PageServerLoad = async (opts) => {
         error(404, `${level_names[1]} Not found`);
       }
       first_name = text_map[first - 1].name_dev;
-      if (!isDataRequest) text = await get_text_data(project_key, first);
+      if (!isDataRequest) text = await get_text_data_func(project_key, [first]);
       list_count = text_map.length;
     }
   } else if (levels === 3) {
@@ -57,7 +57,7 @@ export const load: PageServerLoad = async (opts) => {
           error(404, `${level_names[1]} Not found`);
         }
         second_name = second_list[second - 1].name_dev;
-        if (!isDataRequest) text = await get_text_data(project_key, first, second);
+        if (!isDataRequest) text = await get_text_data_func(project_key, [first, second]);
         list_count = second_list.length;
       }
     }

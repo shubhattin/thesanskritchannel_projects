@@ -7,7 +7,7 @@
   import { page } from '$app/state';
   import { PAGE_TITLES } from '~/state/page_titles';
   import type { Snippet } from 'svelte';
-  import { ContributeIcon, SiConvertio } from './icons';
+  import { ContributeIcon, SiConvertio, YoutubeIcon } from './icons';
   import { cl_join } from '~/tools/cl_join';
   import { BiArrowBack } from 'svelte-icons-pack/bi';
 
@@ -91,6 +91,26 @@
       {/snippet}
       {#snippet content()}
         <a
+          href="/convert"
+          class="group flex space-x-2 rounded-md px-2 py-1 text-sm font-bold hover:bg-gray-200 sm:text-base dark:hover:bg-gray-700"
+        >
+          <Icon
+            src={SiConvertio}
+            class="text-2xl group-hover:fill-emerald-600 dark:group-hover:fill-zinc-400"
+          />
+          <span>Lipi Parivartak</span>
+        </a>
+        <a
+          href="https://www.youtube.com/c/thesanskritchannel"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex space-x-1 rounded-md px-2 py-1 text-sm hover:bg-gray-200 sm:text-base dark:hover:bg-gray-700"
+          onclick={() => (app_bar_popover_status = false)}
+        >
+          <Icon src={YoutubeIcon} class="mt-0 text-2xl text-[red]" />
+          <span>The Sanskrit Channel</span>
+        </a>
+        <a
           href="https://github.com/shubhattin/thesanskritchannel_projects"
           target="_blank"
           rel="noopener noreferrer"
@@ -101,7 +121,7 @@
             src={SiGithub}
             class="-mt-1 mr-1 text-xl group-hover:fill-indigo-700 dark:group-hover:fill-zinc-400"
           />
-          <span>Github</span>
+          <span>Projects's Github Page</span>
         </a>
         <div class="wont-close flex space-x-3 rounded-md px-2 py-1">
           <span class="mt-1">Set Theme</span>

@@ -1,0 +1,38 @@
+name: Data Backup
+
+on:
+  schedule:
+    - cron: '30 17 */2 * *' # Run every days at 11:00 PM IST every 2 days
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  backup_db_data:
+    runs-on: ubuntu-latest
+    env:
+      PG_DATABASE_URL: ${{ secrets.PG_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          run_install: true
+      - name: Setup PostgreSQL
+        uses: tj-actions/install-postgresql@v3
+        with:
+          postgresql-version: 16
+
+      - name: Load Translations and DB Dump
+        run: |
+          cd src/db/scripts/
+          npx tsx backup_db_data.ts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db_backup
+          path: src/db/scripts/backup/
+          retention-days: 60

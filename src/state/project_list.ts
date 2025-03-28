@@ -83,7 +83,7 @@ export const PROJECT_INFO: project_info_type[] = [
     key: 'bhagavadgita',
     levels: 2,
     level_names: ['Shloka', 'Chapter'],
-    map_info: async () => (await import('@data/bhagavadgita/gita_map.json')).default
+    map_info: async () => (await import('@data/bhagavadgita/bhagavadgita_map.json')).default
   }
 ];
 

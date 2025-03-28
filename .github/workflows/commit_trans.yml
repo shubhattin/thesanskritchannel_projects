@@ -1,0 +1,47 @@
+name: Commit Translation to Main Repo
+
+on:
+  schedule:
+    - cron: '0 0 1,16 * *' # Run every 15days at midnight(UTC)
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+permissions:
+  contents: write
+
+jobs:
+  commit_changes:
+    runs-on: ubuntu-latest
+
+    env:
+      PG_DATABASE_URL: ${{ secrets.PG_DATABASE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          run_install: true
+          version: 10
+      - name: Load Translations
+        run: |
+          cd src/db/scripts/
+          npx tsx backup_db_data.ts
+      - name: Organize Translations
+        run: |
+          npx tsx data/gita/organize_translation_folder.ts
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and Push Changes
+        run: |
+          git add .
+          git commit -m "Updating Translation Files from Database" || echo "No changes to commit"
+          git push
+        continue-on-error: true

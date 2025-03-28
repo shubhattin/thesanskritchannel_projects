@@ -18,12 +18,11 @@ async function main() {
     return;
   }
 
-  const trans_data = {
-    translation: await db.query.translation.findMany()
-  };
-  const JSON_TRANS_DATA_FILE = `${OUT_FOLDER}/translations.json`;
+  const trans_data = await db.query.translation.findMany();
+
+  const JSON_TRANS_DATA_FILE = `${OUT_FOLDER}/translation.json`;
   fs.writeFileSync(JSON_TRANS_DATA_FILE, JSON.stringify(trans_data, null, 2));
-  const csv = json2csv(trans_data.translation);
+  const csv = json2csv(trans_data);
   fs.writeFileSync(`${OUT_FOLDER}/translation.csv`, csv);
 }
 

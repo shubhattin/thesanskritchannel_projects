@@ -38,7 +38,7 @@
     {#if start}
       {@render start()}
     {/if}
-    {#if pathname === '/convert' || page.error}
+    {#if pathname === '/parivartak' || page.error}
       <a class="mr-2 text-xl" href="/" title="श्रीरामायणम्">
         <Icon
           src={BiArrowBack}
@@ -70,8 +70,8 @@
       <Icon src={ContributeIcon} class="text-3xl" />
       <span class="hidden text-sm sm:inline">Support Our Projects</span>
     </button>
-    {#if pathname !== '/convert'}
-      <a class="text-xl" href="/convert" title="Lipi Parivartak">
+    {#if pathname !== '/parivartak'}
+      <a class="text-xl" href="/parivartak" title="Lipi Parivartak">
         <Icon src={SiConvertio} class="text-2xl hover:fill-emerald-600 dark:hover:fill-zinc-400" />
       </a>
     {/if}
@@ -91,7 +91,7 @@
       {/snippet}
       {#snippet content()}
         <a
-          href="/convert"
+          href="/parivartak"
           class="group flex space-x-2 rounded-md px-2 py-1 text-sm font-bold hover:bg-gray-200 sm:text-base dark:hover:bg-gray-700"
         >
           <Icon

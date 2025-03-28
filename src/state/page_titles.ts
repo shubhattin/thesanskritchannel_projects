@@ -14,7 +14,7 @@ export const PAGE_TITLES: Record<
     title: 'User Profile',
     classes: 'text-lg font-semibold mt-1'
   },
-  '/convert': {
+  '/parivartak': {
     title: 'Lipi Parivartak',
     classes: 'text-xl font-bold'
   },

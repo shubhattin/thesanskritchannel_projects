@@ -44,7 +44,7 @@
     navigator.clipboard.writeText(text);
   };
 
-  const { title } = PAGE_TITLES['/convert'];
+  const { title } = PAGE_TITLES['/parivartak'];
   const PAGE_INFO = {
     title: title,
     description: 'A Indian Script Transliteration Utility'

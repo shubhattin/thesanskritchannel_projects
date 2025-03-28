@@ -191,7 +191,7 @@
   backdropBackground="backdrop-blur-xs"
 >
   {#snippet content()}
-    {#await import('../image_tool/ImageTool.svelte') then ImageTool}
+    {#await import('../../image_tool/ImageTool.svelte') then ImageTool}
       <div class="flex w-[98%] justify-end">
         <button
           aria-label="Close"

@@ -21,6 +21,7 @@
   import { goto } from '$app/navigation';
   import { BsChevronDown, BsChevronUp } from 'svelte-icons-pack/bs';
   import Icon from '~/tools/Icon.svelte';
+  import ProjectUtility from '~/components/pages/main_app/display/project_utility/ProjectUtility.svelte';
 
   let { data }: { data: PageData } = $props();
 
@@ -120,9 +121,7 @@
         </li>
       </ol>
       {#if $text_data_present}
-        {#await import('~/components/pages/main_app/display/ProjectUtility.svelte') then ProjectUtility}
-          <ProjectUtility.default />
-        {/await}
+        <ProjectUtility />
       {/if}
     </div>
 

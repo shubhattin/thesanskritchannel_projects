@@ -11,7 +11,7 @@ auth.configure({
   secretKey: env.TRIGGER_SECRET_KEY
 });
 
-const translate_chapter_route = protectedProcedure
+const translate_route = protectedProcedure
   .input(chapter_translate_schema.input)
   .mutation(async ({ ctx: { user }, input: { lang_id, messages, model, project_id } }) => {
     if (user.role !== 'admin') {
@@ -69,6 +69,6 @@ const retrive_run_info_route = protectedProcedure
   });
 
 export const trigger_funcs_router = t.router({
-  translate_chapter: translate_chapter_route,
+  translate: translate_route,
   retrive_run_info: retrive_run_info_route
 });

@@ -10,7 +10,6 @@
   import TopAppBar from '~/components/TopAppBar.svelte';
   import CookieCacheRefresh from '$lib/CookieCacheRefresh.svelte';
   import PostHogInit from '~/components/tags/PostHogInit.svelte';
-  import InitUserState from './InitUserState.svelte';
 
   let { children }: { children: Snippet } = $props();
 </script>
@@ -25,6 +24,5 @@
   </div>
   <SvelteQueryDevtools initialIsOpen={false} />
   <CookieCacheRefresh />
-  <InitUserState />
 </QueryClientProvider>
 <PostHogInit />

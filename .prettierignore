@@ -3,11 +3,11 @@ build
 .netlify
 .vercel
 .svelte-kit
+.venv
+.trigger
 
 # Ignore files for PNPM, NPM and YARN
 pnpm-lock.yaml
 
 src/db/migrations
 src/db/scripts/out/
-
-.trigger

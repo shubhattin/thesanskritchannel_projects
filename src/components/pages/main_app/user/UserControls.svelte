@@ -55,7 +55,7 @@
   {#snippet trigger()}
     <span class="btn p-0">
       <Icon
-        class="text-2xl hover:text-gray-600 sm:text-[1.65rem] dark:hover:text-gray-400"
+        class="text-2xl hover:text-gray-600 sm:text-[1.78rem] dark:hover:text-gray-400"
         src={VscAccount}
       />
     </span>

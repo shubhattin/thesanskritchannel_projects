@@ -19,9 +19,9 @@
   import { Popover } from '@skeletonlabs/skeleton-svelte';
   import { cl_join } from '~/tools/cl_join';
   import { goto } from '$app/navigation';
-  import { BsChevronDown, BsChevronUp } from 'svelte-icons-pack/bs';
+  import { BsChevronDown, BsChevronUp, BsThreeDots } from 'svelte-icons-pack/bs';
   import Icon from '~/tools/Icon.svelte';
-  import ProjectUtility from '~/components/pages/main_app/display/project_utility/ProjectUtility.svelte';
+  import { fade } from 'svelte/transition';
 
   let { data }: { data: PageData } = $props();
 
@@ -121,7 +121,15 @@
         </li>
       </ol>
       {#if $text_data_present}
-        <ProjectUtility />
+        <div transition:fade>
+          {#await import('~/components/pages/main_app/display/project_utility/ProjectUtility.svelte')}
+            <button class="btn outline-hidden select-none" title="Extra Options">
+              <Icon class="mx-[0.17rem] text-lg sm:mx-0 sm:text-2xl" src={BsThreeDots} />
+            </button>
+          {:then ProjectUtility}
+            <ProjectUtility.default />
+          {/await}
+        </div>
       {/if}
     </div>
 

@@ -124,10 +124,9 @@
   contentBase={cl_join(
     'card z-70 space-y-1 p-1 rounded-lg shadow-xl dark:bg-surface-900 bg-slate-200 text-sm'
   )}
-  triggerBase="outline-hidden select-none"
 >
   {#snippet trigger()}
-    <span class="btn" title="Extra Options" transition:fade>
+    <span class="btn outline-hidden select-none" title="Extra Options">
       <Icon class="mx-[0.17rem] text-lg sm:mx-0 sm:text-2xl" src={BsThreeDots} />
     </span>
   {/snippet}

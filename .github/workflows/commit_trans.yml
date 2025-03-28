@@ -32,7 +32,7 @@ jobs:
           npx tsx backup_db_data.ts
       - name: Organize Translations
         run: |
-          npx tsx data/gita/organize_translation_folder.ts
+          npx tsx src/tests/organize_translation_folder.ts
 
       - name: Configure Git
         run: |

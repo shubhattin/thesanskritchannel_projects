@@ -60,19 +60,9 @@ async function main() {
               ? `./data/translations/${project_key}/${lang}/${first}.yaml`
               : `./data/translations/${project_key}/${lang}/${second}/${first}.yaml`;
 
-          fs.writeFileSync(
-            file_path,
-            js_yaml.dump(Object.fromEntries(trans_data), {
-              indent: 2,
-              styles: {
-                '!!str': '|-' // Force string values to use the block scalar style
-              },
-              lineWidth: -1 // Prevent line wrapping
-            }),
-            {
-              encoding: 'utf-8'
-            }
-          );
+          fs.writeFileSync(file_path, js_yaml.dump(Object.fromEntries(trans_data), { indent: 2 }), {
+            encoding: 'utf-8'
+          });
         }
       }
     }

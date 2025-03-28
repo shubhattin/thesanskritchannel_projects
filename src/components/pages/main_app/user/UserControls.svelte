@@ -120,7 +120,7 @@
             </div>
           {/if}
         {/if}
-        {#if user_info.role === 'admin'}
+        <!-- {#if user_info.role === 'admin'}
           <ConfirmModal
             popup_state={false}
             close_on_confirm={true}
@@ -137,7 +137,7 @@
               <span class="text-sm">Sync Translations from DB</span>
             </button>
           </ConfirmModal>
-        {/if}
+        {/if} -->
       </div>
     {:else}
       <div class="space-y-1 sm:space-y-2">

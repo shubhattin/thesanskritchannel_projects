@@ -11,3 +11,14 @@ pnpm-lock.yaml
 
 src/db/migrations
 src/db/scripts/out/
+
+data/*/data
+data/*/raw_data
+data/*/out
+data/*/text_data
+data/*/zipped
+data/*/translations/\
+data/*/summary/summaries
+
+kAraH
+src/tools/converter/resources

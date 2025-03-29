@@ -138,7 +138,7 @@
   positioning={{ placement: 'bottom' }}
   arrow={false}
   contentBase={cl_join(
-    'card z-70 space-y-1 p-1 rounded-lg shadow-xl dark:bg-surface-900 bg-slate-200 text-sm'
+    'card z-70 space-y-1 p-1 rounded-lg shadow-xl dark:bg-surface-900 bg-zinc-100 text-sm'
   )}
 >
   {#snippet trigger()}
@@ -204,7 +204,7 @@
         }}
         class="btn block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-gray-200 dark:hover:bg-gray-700"
       >
-        <Icon src={OiCache16} class="-mt-1 mr-1 text-xl" />
+        <Icon src={OiCache16} class="-mt-1 mr-1 text-xl text-yellow-600 dark:text-yellow-400" />
         Invalidate Text Cache
       </button>
     {/if}

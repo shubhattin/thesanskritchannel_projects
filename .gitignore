@@ -11,6 +11,7 @@ vite.config.ts.timestamp-*
 
 .vercel
 .netlify
+.venv
 
 src/db/scripts/out/
 src/db/scripts/backup/

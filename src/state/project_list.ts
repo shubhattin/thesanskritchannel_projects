@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { tyoe_2_map_type, type_1_map_type, type_3_map_type } from './data_types';
 
-const PROJECT_KEYS = ['ramayanam', 'bhagavadgita'] as const;
+const PROJECT_KEYS = ['ramayanam', 'bhagavadgita', 'narayaneeyam'] as const;
 export const project_keys_enum_schema = z.enum(PROJECT_KEYS);
 export type project_keys_type = z.infer<typeof project_keys_enum_schema>;
 
@@ -28,6 +28,12 @@ export const PROJECT_LIST: project_type[] = [
     name: 'Bhagavad Gita',
     name_dev: 'श्रीमद्भगवद्गीता',
     key: 'bhagavadgita'
+  },
+  {
+    id: 3,
+    name: 'Narayaneeyam',
+    name_dev: 'नारायणीयम्',
+    key: 'narayaneeyam'
   }
 ];
 
@@ -84,6 +90,12 @@ export const PROJECT_INFO: project_info_type[] = [
     levels: 2,
     level_names: ['Shloka', 'Chapter'],
     map_info: async () => (await import('@data/bhagavadgita/bhagavadgita_map.json')).default
+  },
+  {
+    key: 'narayaneeyam',
+    levels: 2,
+    level_names: ['Shloka', 'Chapter'],
+    map_info: async () => (await import('@data/narayaneeyam/narayaneeyam_map.json')).default
   }
 ];
 

@@ -11,6 +11,7 @@ vite.config.ts.timestamp-*
 
 .vercel
 .netlify
+.venv
 
 src/db/scripts/out/
 src/db/scripts/backup/
@@ -18,6 +19,7 @@ src/db/scripts/backup/
 **/a.ts
 **/a.js
 **/a.json
+**/a.py
 
 __pycache__
 *~$*.xlsx
@@ -32,3 +34,4 @@ data/*/zipped
 data/*/test_output.md
 
 .trigger
+

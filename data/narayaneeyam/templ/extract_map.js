@@ -10,7 +10,7 @@ const main = async () => {
   const list = [];
   for (let i = 1; i <= 100; i++) {
     const name_dev = sheet.getCell(1 + i, 4).value;
-    const name_nor = await lipi_parivartak(name_dev, 'Hindi', 'Normal');
+    const name_nor = await lipi_parivartak(name_dev, 'Sanskrit', 'Normal');
     list.push({
       name_dev,
       name_nor,

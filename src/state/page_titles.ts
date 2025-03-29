@@ -31,5 +31,10 @@ export const PAGE_TITLES: Record<
     title: 'श्रीमद्भगवद्गीता',
     startsWith: true,
     classes: 'text-xl font-bold'
+  },
+  '/narayaneeyam': {
+    title: 'नारायणीयम्',
+    startsWith: true,
+    classes: 'text-xl font-bold'
   }
 };

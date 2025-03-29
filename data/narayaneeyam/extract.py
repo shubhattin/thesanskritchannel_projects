@@ -40,10 +40,6 @@ def extract_data_from_text(text: str, file_index: int):
                         prev_line = ""
                         prev_shloka = False
 
-    shloka_list[-1]["shloka_num"] = None
-    if file_index == 18:
-        shloka_list[-2]["shloka_num"] = None
-
     return {"text": shloka_list}
 
 

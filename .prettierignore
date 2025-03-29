@@ -18,8 +18,9 @@ data/*/raw_data
 data/*/out
 data/*/text_data
 data/*/zipped
-data/*/translations/\
+data/*/*_map.json
 data/*/summary/summaries
+data/translations
 
 kAraH
 src/tools/converter/resources

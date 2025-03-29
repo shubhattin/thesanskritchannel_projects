@@ -55,7 +55,7 @@ def extract_data_from_text(text: str, file_index: int):
 
 
 def update_gita_map():
-    g_map = sh.load_json(sh.read("gita_map.json"))
+    g_map = sh.load_json(sh.read("bhagavadgita_map.json"))
     for i in range(1, 19):
         data = sh.load_json(sh.read(f"data/{i}.json"))
         g_map[i - 1]["total"] = len(data)
@@ -64,7 +64,7 @@ def update_gita_map():
             if shloka["shloka_num"]:
                 shloka_count = shloka["shloka_num"]
         g_map[i - 1]["shloka_count"] = shloka_count
-    sh.write("gita_map.json", sh.dump_json(g_map, 2))
+    sh.write("bhagavadgita_map.json", sh.dump_json(g_map, 2))
 
 
 if os.path.exists("data"):

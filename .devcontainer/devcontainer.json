@@ -1,0 +1,16 @@
+{
+  "name": "Sanskrit Transliteration",
+  "initializeCommand": "echo 'Skipping default npm install'",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/postgres:1": {
+      "version": "16"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    }
+  },
+  "postCreateCommand": "git config --global pull.rebase false && npm i -g pnpm && pnpm install"
+}

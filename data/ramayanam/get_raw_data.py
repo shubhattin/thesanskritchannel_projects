@@ -28,12 +28,6 @@ RAW_DATA_FOLDER = "raw_data"
 DATA_OUTPUT_FOLDER = "data"
 
 
-def from_dev_numbers(text: str):
-    for i, num in enumerate(NUMBERS):
-        text = text.replace(num, str(i))
-    return text
-
-
 @app.command()
 def main(
     url: str = None,
@@ -135,12 +129,12 @@ def main(
         update_func: Callable[[], None],
     ):
         req = requests.get(sarga_link, headers=USER_AGENT_HEADER, timeout=5)
+        sarga_numb = urllib.parse.unquote(sarga_link.split("/")[-1].split("_")[-1])
         if not req.ok:
             FAILED_SARGA.append([kANDa_index + 1, sarga_numb + 1])
             update_func()
             return
         out_folder = f"{RAW_DATA_FOLDER}/{kANDa_index + 1}"
-        sarga_numb = urllib.parse.unquote(sarga_link.split("/")[-1].split("_")[-1])
         sarga_numb = from_dev_numbers(sarga_numb)
         sh.write(f"{out_folder}/{sarga_numb}.html", req.text)
         update_func()

@@ -54,7 +54,7 @@ def get_shloka_json(path: str):
         return False
 
     kANDa_info = DATA[int(kANDa_num) - 1]
-    sarga_info = kANDa_info.sarga_data[int(sarga_num) - 1]
+    sarga_info = kANDa_info.list[int(sarga_num) - 1]
 
     shlokAni: str = sh.read(f"{TEXT_DATA_FOLDER}/{kANDa_num}/{sarga_num}.txt")
 
@@ -65,8 +65,8 @@ def get_shloka_json(path: str):
             lambda kANDa_dev_name, sarga_dev_name, sanskrit_number_sarga: f"अथ श्रीमद्वाल्मीकीयरामायणे {kANDa_dev_name} {sarga_dev_name} नाम {sanskrit_number_sarga} सर्गः ॥{to_dev_numbers(kANDa_num)}-{to_dev_numbers(sarga_num)}॥"
         )
         e_mAtrA = "े"  # from 1st to 7nd vibhakti
-        kANDa_name = kANDa_info.name_devanagari[:-1] + e_mAtrA
-        sarga_name = sarga_info.name_devanagari.splitlines()[0]
+        kANDa_name = kANDa_info.name_dev[:-1] + e_mAtrA
+        sarga_name = sarga_info.name_dev.splitlines()[0]
         line = template(
             kANDa_name,
             sarga_name,
@@ -79,8 +79,8 @@ def get_shloka_json(path: str):
             lambda kANDa_dev_name, sanskrit_number_sarga, sarga_dev_name: f"इत्यार्षे श्रीमद्रामायणे वाल्मीकीये आदिकाव्ये {kANDa_dev_name} {sarga_dev_name} नाम {sanskrit_number_sarga} सर्गः ॥{to_dev_numbers(kANDa_num)}-{to_dev_numbers(sarga_num)}॥"
         )
         e_mAtrA = "े"
-        sarga_name = sarga_info.name_devanagari.splitlines()[0]
-        kANda_name = kANDa_info.name_devanagari[:-1] + e_mAtrA
+        sarga_name = sarga_info.name_dev.splitlines()[0]
+        kANda_name = kANDa_info.name_dev[:-1] + e_mAtrA
         line = template(
             kANda_name, SANSKRIT_NUMBER_NAMES[int(sarga_num) - 1][1], sarga_name
         )
@@ -159,7 +159,7 @@ def get_shloka_json(path: str):
     shloka_list.append(get_last_line())
 
     # Updating the shloka count of the sarga
-    sarga_info.shloka_count_extracted = len(shloka_list) - 2
+    sarga_info.shloka_count = len(shloka_list) - 2
 
     out_folder = f"{OUTPUT_DATA_FOLDER}/{kANDa_num}/{sarga_num}.json"
     sh.write(out_folder, sh.dump_json(shloka_list, 2))

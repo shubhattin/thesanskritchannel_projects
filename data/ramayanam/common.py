@@ -69,7 +69,7 @@ class SargaInfo(BaseModel):
     name_nor: str
     pos: int
     shloka_count: int
-    shloka_count_expected: int
+    shloka_count_expected: int | None = None
 
 
 class KAndaInfo(BaseModel):
@@ -77,7 +77,7 @@ class KAndaInfo(BaseModel):
     name_nor: str
     pos: int
     list_count: int
-    list_count_expected: int
+    list_count_expected: int | None = None
     list: list[SargaInfo]
 
 

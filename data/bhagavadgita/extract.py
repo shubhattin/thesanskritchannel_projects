@@ -72,9 +72,9 @@ if os.path.exists("data"):
 sh.makedir("data")
 
 for i in range(1, 19):
-    text_data = sh.read(f"raw_data/{i}.txt")
-    data = extract_data_from_text(sh.read(f"raw_data/{i}.txt"), i)
-    sh.write(f"raw_data/{i}.txt", text_data.replace("\r\n", "\n"))
+    text_data = sh.read(f"text_data/{i}.txt")
+    data = extract_data_from_text(sh.read(f"text_data/{i}.txt"), i)
+    sh.write(f"text_data/{i}.txt", text_data.replace("\r\n", "\n"))
     sh.write(
         f"data/{i}.json",
         sh.dump_json(data["text"]),

@@ -1,0 +1,32 @@
+{%- if all_tests_passed -%}
+# ✅ All Tests passed
+{%- else -%}
+# ❌ Some Tests failed
+{% endif %}
+
+{%- for report_fail_type in [True, False] %}
+{%- if not report_fail_type %}
+# ⚠️ Checks that need Manual Attention
+{%- endif %}
+{%- for i in range(test_info|length) %}
+{%- set test_case = get_test_with_index(i) %}
+{%- if test_case.report_test_fail_if_found == report_fail_type %}
+## {% if report_fail_type %}{% if test_case.failed_cases|length == 0 %}✔{% else %}✗{% endif %}{% endif %} {{ test_case.test_title|safe }}
+{% if test_case.failed_cases|length > 0 -%}
+{{test_case.test_info|safe}}
+
+Total: {{test_case.failed_cases|length}}
+
+{# We have to segment results into sarga 1 to 7 #}
+{%- for kanda_num in range(1, 8) %}
+{%- set starting_with_sarga = filter_function(test_case.failed_cases, kanda_num) -%}
+{%- if starting_with_sarga|length > 0 %}
+{%- set variance = get_variance_sum_for_kANDa(kanda_num, test_case) %}
+- **_kANDa {{kanda_num}}_**, Σ={{starting_with_sarga|length}}{% if variance != None %}, **Δ={{variance}}**{% endif %} : `{{"`, `".join(starting_with_sarga)|safe}}`
+{%- endif -%}
+{% endfor %}
+{%- endif %}
+
+{%- endif %}
+{%- endfor %}
+{%- endfor %}

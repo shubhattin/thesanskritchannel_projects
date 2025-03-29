@@ -121,12 +121,12 @@ def _run_tests(data: list[str], kANDa_num: str, sarga_num: str):
                 )
 
     SARGA_SHLOKA_COUNT_TEST = TEST_INFO[4]
-    sarga_info = DATA[int(kANDa_num) - 1].sarga_data[int(sarga_num) - 1]
-    if sarga_info.shloka_count != sarga_info.shloka_count_extracted:
-        diff = sarga_info.shloka_count_extracted - sarga_info.shloka_count
+    sarga_info = DATA[int(kANDa_num) - 1].list[int(sarga_num) - 1]
+    if sarga_info.shloka_count != sarga_info.shloka_count_expected:
+        diff = sarga_info.shloka_count_expected - sarga_info.shloka_count
         SARGA_SHLOKA_COUNT_TEST.variance.append(diff)
         SARGA_SHLOKA_COUNT_TEST.failed_cases.append(
-            f"{kANDa_num}-{sarga_num} → {sarga_info.shloka_count_extracted}|{sarga_info.shloka_count}| "
+            f"{kANDa_num}-{sarga_num} → {sarga_info.shloka_count_expected}|{sarga_info.shloka_count}| "
             + ("+" if diff > 0 else "-")
             + f"{abs(diff)}"
         )
@@ -141,11 +141,11 @@ def run_tests(log: bool = True):
         console.print("[bold red]Raw Data folder not found![/]")
         exit(-1)
     for kANDa_info in DATA:
-        for sarga in kANDa_info.sarga_data:
+        for sarga in kANDa_info.list:
             data = sh.load_json(
-                sh.read(f"{DATA_FOLDER}/{kANDa_info.index}/{sarga.index}.json")
+                sh.read(f"{DATA_FOLDER}/{kANDa_info.pos}/{sarga.pos}.json")
             )
-            _run_tests(data, str(kANDa_info.index), str(sarga.index))
+            _run_tests(data, str(kANDa_info.pos), str(sarga.pos))
 
     all_tests_passed = (
         reduce(

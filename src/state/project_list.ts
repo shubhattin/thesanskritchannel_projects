@@ -94,7 +94,7 @@ export const PROJECT_INFO: project_info_type[] = [
   {
     key: 'narayaneeyam',
     levels: 2,
-    level_names: ['Shloka', 'Chapter'],
+    level_names: ['Shloka', 'Dashaka'],
     map_info: async () => (await import('@data/narayaneeyam/narayaneeyam_map.json')).default
   }
 ];

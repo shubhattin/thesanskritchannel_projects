@@ -53,7 +53,7 @@ def main(
 
     option = Prompt.ask("Select option", choices=["1", "2"], default="1")
     if option == "1":
-        ZIP_FILE_LINK = "https://github.com/shubhattin/valmiki_ramayanam/releases/download/raw_data/raw_data.7z"
+        ZIP_FILE_LINK = "https://github.com/shubhattin/thesanskritchannel_projects/releases/download/raw_data/ramayanam_raw_data.7z"
         if not os.path.isdir("zipped"):
             sh.makedir("zipped")
         req = requests.get(ZIP_FILE_LINK, allow_redirects=True)

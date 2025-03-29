@@ -18,6 +18,7 @@ src/db/scripts/backup/
 **/a.ts
 **/a.js
 **/a.json
+**/a.py
 
 __pycache__
 *~$*.xlsx
@@ -33,6 +34,3 @@ data/*/test_output.md
 
 .trigger
 
-**/a.py
-**/a.ts
-**/a.js

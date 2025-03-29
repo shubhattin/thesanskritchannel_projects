@@ -1,6 +1,11 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import { get_last_level_name, get_total_count, text_data_q } from '~/state/main_app/data.svelte';
+  import {
+    get_last_level_name,
+    get_path_params,
+    get_total_count,
+    text_data_q
+  } from '~/state/main_app/data.svelte';
   import {
     selected_text_levels,
     BASE_SCRIPT,
@@ -13,7 +18,7 @@
   import { createMutation } from '@tanstack/svelte-query';
   import { RiDocumentFileExcel2Line } from 'svelte-icons-pack/ri';
   import { transliterate_xlxs_file } from '~/tools/excel/transliterate_xlsx_file';
-  import { client } from '~/api/client';
+  import { client, client_q } from '~/api/client';
   import Icon from '~/tools/Icon.svelte';
   import { BiImage } from 'svelte-icons-pack/bi';
   import type { Workbook } from 'exceljs';
@@ -25,8 +30,9 @@
   import { Modal, Popover } from '@skeletonlabs/skeleton-svelte';
   import { cl_join } from '~/tools/cl_join';
   import { BsThreeDots } from 'svelte-icons-pack/bs';
-  import { fade } from 'svelte/transition';
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
+  import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
+  import { OiCache16 } from 'svelte-icons-pack/oi';
 
   const session = useSession();
   let user_info = $derived($session.data?.user);
@@ -113,12 +119,22 @@
     }
   });
 
-  let file_preview_opened = $state(false);
+  let utility_popover_state = $state(false);
+
+  const invalidate_cache_mut = client_q.translation.invalidate_text_data_cache.mutation({
+    onSuccess() {
+      setTimeout(() => {
+        window.location.reload();
+      }, 600);
+    }
+  });
+
+  let invalidate_cache_confirm_modal_state = $state(false);
 </script>
 
 <Popover
-  open={file_preview_opened}
-  onOpenChange={(e) => (file_preview_opened = e.open)}
+  open={utility_popover_state}
+  onOpenChange={(e) => (utility_popover_state = e.open)}
   positioning={{ placement: 'bottom' }}
   arrow={false}
   contentBase={cl_join(
@@ -134,7 +150,7 @@
     <button
       onclick={() => {
         $download_excel_file.mutate();
-        file_preview_opened = false;
+        utility_popover_state = false;
       }}
       class="btn block w-full rounded-md px-2 py-1 pt-0 hover:bg-gray-200 dark:hover:bg-gray-700"
     >
@@ -146,7 +162,7 @@
     </button>
     <button
       onclick={() => {
-        file_preview_opened = false;
+        utility_popover_state = false;
         image_tool_opened.set(true);
       }}
       class="btn block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -157,7 +173,7 @@
     {#if user_info && user_info.role === 'admin'}
       <button
         onclick={() => {
-          file_preview_opened = false;
+          utility_popover_state = false;
           $ai_tool_opened = true;
           $view_translation_status = true;
         }}
@@ -173,13 +189,25 @@
     <button
       class="btn block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-gray-200 dark:hover:bg-gray-700"
       onclick={() => {
-        file_preview_opened = false;
+        utility_popover_state = false;
         $download_text_file.mutate();
       }}
     >
       <Icon src={TrOutlineFileTypeTxt} class=" mr-1 text-2xl" />
       Download Text File
     </button>
+    {#if user_info && user_info.role === 'admin'}
+      <button
+        onclick={() => {
+          invalidate_cache_confirm_modal_state = true;
+          utility_popover_state = false;
+        }}
+        class="btn block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-gray-200 dark:hover:bg-gray-700"
+      >
+        <Icon src={OiCache16} class="-mt-1 mr-1 text-xl" />
+        Invalidate Text Cache
+      </button>
+    {/if}
   {/snippet}
 </Popover>
 <Modal
@@ -212,3 +240,18 @@
     />
   {/await}
 {/if}
+<ConfirmModal
+  bind:popup_state={invalidate_cache_confirm_modal_state}
+  close_on_confirm={true}
+  title="Sure to Invalidate Cache ?"
+  body_text={() => {
+    const path_params = get_path_params($selected_text_levels, $project_state.levels).join('.');
+    return `This will invalidate the text data cache for ${path_params}`;
+  }}
+  confirm_func={async () => {
+    await $invalidate_cache_mut.mutateAsync({
+      project_id: $project_state.project_id!,
+      path_params: get_path_params($selected_text_levels, $project_state.levels)
+    });
+  }}
+></ConfirmModal>

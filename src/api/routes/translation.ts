@@ -16,7 +16,7 @@ import {
 import ms from 'ms';
 import { fetch_post } from '~/tools/fetch';
 
-export const get_path_params = (
+export const server_get_path_params = (
   selected_text_levels: (number | null)[],
   project_levels: number
 ) => {
@@ -58,6 +58,15 @@ export const get_text_data_func = async (key: string, path_params: (number | nul
   return data;
 };
 
+const get_levels = (selected_text_levels: (number | null)[]) => {
+  const first = selected_text_levels[0] ?? 0;
+  const second = selected_text_levels[1] ?? 0;
+  return {
+    first,
+    second
+  };
+};
+
 const get_text_data_route = publicProcedure
   .input(
     z.object({
@@ -85,7 +94,7 @@ const get_translation_route = publicProcedure
       text: string;
     }[] = [];
 
-    const path_params = get_path_params(
+    const path_params = server_get_path_params(
       selected_text_levels,
       get_project_info_from_id(project_id).levels
     );
@@ -94,8 +103,7 @@ const get_translation_route = publicProcedure
     );
     if (cache) data = cache;
     else {
-      const first = selected_text_levels[0] ?? 0;
-      const second = selected_text_levels[1] ?? 0;
+      const { first, second } = get_levels(selected_text_levels);
       data = await db.query.translation.findMany({
         columns: {
           index: true,
@@ -142,9 +150,8 @@ const edit_translation_route = protectedProcedure
         data: { add_data, edit_data, to_add_indexed, to_edit_indexed }
       }
     }) => {
-      const first = selected_text_levels[0] ?? 0;
-      const second = selected_text_levels[1] ?? 0;
-      const path_params = get_path_params(
+      const { first, second } = get_levels(selected_text_levels);
+      const path_params = server_get_path_params(
         selected_text_levels,
         get_project_info_from_id(project_id).levels
       );
@@ -220,8 +227,8 @@ const get_all_langs_translation_route = publicProcedure
   )
   .query(async ({ input: { project_id, selected_text_levels } }) => {
     await delay(400);
-    const first = selected_text_levels[0] ?? 0;
-    const second = selected_text_levels[1] ?? 0;
+
+    const { first, second } = get_levels(selected_text_levels);
 
     const data = await db.query.translation.findMany({
       columns: {
@@ -258,10 +265,23 @@ const trigger_translation_commit_route = protectedAdminProcedure.mutation(async 
   return req.ok;
 });
 
+const invalidate_text_data_cache_route = protectedAdminProcedure
+  .input(
+    z.object({
+      project_id: z.number().int(),
+      path_params: z.number().int().nullable().array()
+    })
+  )
+  .mutation(async ({ input: { project_id, path_params } }) => {
+    await redis.del(REDIS_CACHE_KEYS.text_data(project_id, path_params));
+    return { success: true };
+  });
+
 export const translation_router = t.router({
   get_text_data: get_text_data_route,
   get_translation: get_translation_route,
   edit_translation: edit_translation_route,
   get_all_langs_translation: get_all_langs_translation_route,
-  trigger_translation_commit: trigger_translation_commit_route
+  trigger_translation_commit: trigger_translation_commit_route,
+  invalidate_text_data_cache: invalidate_text_data_cache_route
 });

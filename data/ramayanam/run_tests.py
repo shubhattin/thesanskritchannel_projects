@@ -97,7 +97,8 @@ def _run_tests(data: list[str], kANDa_num: str, sarga_num: str):
     MORE_THAN_3_TEST = TEST_INFO[3]
     THREE_LINE_TEST = TEST_INFO[6]
     DOUBLE_VIRAMA_TEST = TEST_INFO[5]
-    for ln_ind, lines in enumerate(data):
+    for ln_ind, lines_ in enumerate(data):
+        lines = lines_["text"]
         # ln_ind will act as shloka number as first line in start
         if lines.count(DOUBLE_VIRAMA) != 2 and lines[-1] != DOUBLE_VIRAMA:
             DOUBLE_VIRAMA_TEST.failed_cases.append(f"{kANDa_num}-{sarga_num}-{ln_ind}")

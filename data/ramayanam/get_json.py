@@ -23,6 +23,7 @@ from common import (
     SPACE,
     NEW_LINE,
     is_permitted_dev_char,
+    ShlokaInfo,
 )
 import get_text
 
@@ -58,7 +59,7 @@ def get_shloka_json(path: str):
 
     shlokAni: str = sh.read(f"{TEXT_DATA_FOLDER}/{kANDa_num}/{sarga_num}.txt")
 
-    shloka_list: list[str] = []
+    shloka_list: list[ShlokaInfo] = []
 
     def get_first_line():
         template = (
@@ -74,6 +75,8 @@ def get_shloka_json(path: str):
         )
         return line
 
+    index = 0
+
     def get_last_line():
         template = (
             lambda kANDa_dev_name, sanskrit_number_sarga, sarga_dev_name: f"इत्यार्षे श्रीमद्रामायणे वाल्मीकीये आदिकाव्ये {kANDa_dev_name} {sarga_dev_name} नाम {sanskrit_number_sarga} सर्गः ॥{to_dev_numbers(kANDa_num)}-{to_dev_numbers(sarga_num)}॥"
@@ -86,7 +89,8 @@ def get_shloka_json(path: str):
         )
         return line
 
-    shloka_list.append(get_first_line())
+    shloka_list.append(ShlokaInfo(text=get_first_line(), index=0, shloka_num=None))
+    index += 1
 
     # Analysing the main shlokas
     current_shloka: str = ""
@@ -129,9 +133,14 @@ def get_shloka_json(path: str):
                         + to_dev_numbers(f"{kANDa_num}-{sarga_num}-{shloka_numb}")
                         + DOUBLE_VIRAMA
                     )
-                    shloka_list.append(current_shloka)
-                    current_shloka = ""
+                    shloka_list.append(
+                        ShlokaInfo(
+                            text=current_shloka, index=index, shloka_num=shloka_numb
+                        )
+                    )
                     shloka_numb += 1
+                    index += 1
+                    current_shloka = ""
                     line_ended = False
                 elif current_shloka != "" and char == SINGLE_VIRAMA:
                     if current_shloka[-1] != SPACE:
@@ -156,13 +165,14 @@ def get_shloka_json(path: str):
                     current_shloka += char
                     line_ended = False
 
-    shloka_list.append(get_last_line())
+    shloka_list.append(ShlokaInfo(text=get_last_line(), index=index, shloka_num=None))
 
     # Updating the shloka count of the sarga
     sarga_info.shloka_count = len(shloka_list) - 2
 
     out_folder = f"{OUTPUT_DATA_FOLDER}/{kANDa_num}/{sarga_num}.json"
-    sh.write(out_folder, sh.dump_json(shloka_list, 2))
+    serializable_list = [shloka.model_dump() for shloka in shloka_list]
+    sh.write(out_folder, sh.dump_json(serializable_list))
 
 
 class ChangeHandler(FileSystemEventHandler):

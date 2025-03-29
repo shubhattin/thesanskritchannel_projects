@@ -1,0 +1,4601 @@
+[
+  {
+    "name_dev": "बालकाण्डः",
+    "name_nor": "bAlakANDaH",
+    "pos": 1,
+    "list_count": 77,
+    "list_count_expected": null,
+    "list": [
+      {
+        "name_dev": "नारदवाक्यम्",
+        "name_nor": "nAradavAkyam",
+        "pos": 1,
+        "shloka_count": 100,
+        "shloka_count_expected": 100
+      },
+      {
+        "name_dev": "ब्रह्मागमनम्",
+        "name_nor": "brahmAgamanam",
+        "pos": 2,
+        "shloka_count": 43,
+        "shloka_count_expected": 43
+      },
+      {
+        "name_dev": "काव्यसङ्क्षेपः",
+        "name_nor": "kAvyasankShEpaH",
+        "pos": 3,
+        "shloka_count": 39,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "अनुक्रमणिका",
+        "name_nor": "anukramaNikA",
+        "pos": 4,
+        "shloka_count": 36,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "अयोध्यावर्णनम्",
+        "name_nor": "ayOdhyAvarNanam",
+        "pos": 5,
+        "shloka_count": 23,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "राजवर्णनम्",
+        "name_nor": "rAjavarNanam",
+        "pos": 6,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "अमात्यवर्णनम्",
+        "name_nor": "amAtyavarNanam",
+        "pos": 7,
+        "shloka_count": 24,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "सुमन्त्रवाक्यम्",
+        "name_nor": "sumantravAkyam",
+        "pos": 8,
+        "shloka_count": 24,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "ऋष्यशृङ्गोपाख्यानम्",
+        "name_nor": "RShyashRngOpAkhyAnam",
+        "pos": 9,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "ऋष्यशृङ्गस्याङ्गदेशानयनप्रकारः",
+        "name_nor": "RShyashRngasyAngadEshAnayanaprakAraH",
+        "pos": 10,
+        "shloka_count": 33,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "ऋष्यशृङ्गस्यायोध्याप्रवेशः",
+        "name_nor": "RShyashRngasyAyOdhyApravEshaH",
+        "pos": 11,
+        "shloka_count": 31,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "अश्वमेधसंभारः",
+        "name_nor": "ashvamEdhasambhAraH",
+        "pos": 12,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "यज्ञशालाप्रवेशः",
+        "name_nor": "yajnashAlApravEshaH",
+        "pos": 13,
+        "shloka_count": 41,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "अश्वमेधः",
+        "name_nor": "ashvamEdhaH",
+        "pos": 14,
+        "shloka_count": 60,
+        "shloka_count_expected": 59
+      },
+      {
+        "name_dev": "रावणवधोपायः",
+        "name_nor": "rAvaNavadhOpAyaH",
+        "pos": 15,
+        "shloka_count": 34,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "पायसोत्पत्तिः",
+        "name_nor": "pAyasOtpattiH",
+        "pos": 16,
+        "shloka_count": 32,
+        "shloka_count_expected": 31
+      },
+      {
+        "name_dev": "ऋक्षवानरोत्पत्तिः",
+        "name_nor": "RkShavAnarOtpattiH",
+        "pos": 17,
+        "shloka_count": 37,
+        "shloka_count_expected": 37
+      },
+      {
+        "name_dev": "श्रीरामाद्यवतारः",
+        "name_nor": "shrIrAmAdyavatAraH",
+        "pos": 18,
+        "shloka_count": 59,
+        "shloka_count_expected": 58
+      },
+      {
+        "name_dev": "विश्वामित्रवाक्यम्",
+        "name_nor": "vishvAmitravAkyam",
+        "pos": 19,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "दशरथवाक्यम्",
+        "name_nor": "dasharathavAkyam",
+        "pos": 20,
+        "shloka_count": 28,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "वसिष्ठवाक्यम्",
+        "name_nor": "vasiShThavAkyam",
+        "pos": 21,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "विद्याप्रदानम्",
+        "name_nor": "vidyApradAnam",
+        "pos": 22,
+        "shloka_count": 24,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "कामाश्रमवासः",
+        "name_nor": "kAmAshramavAsaH",
+        "pos": 23,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "ताटकावनप्रवेशः",
+        "name_nor": "tATakAvanapravEshaH",
+        "pos": 24,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "ताटकावृत्तान्तः",
+        "name_nor": "tATakAvRttAntaH",
+        "pos": 25,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "ताटकावधः",
+        "name_nor": "tATakAvadhaH",
+        "pos": 26,
+        "shloka_count": 36,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "अस्त्रग्रामप्रदानम्",
+        "name_nor": "astragrAmapradAnam",
+        "pos": 27,
+        "shloka_count": 28,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "अस्त्रसंहारग्रहणम्",
+        "name_nor": "astrasaMhAragrahaNam",
+        "pos": 28,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "सिद्धाश्रमः",
+        "name_nor": "siddhAshramaH",
+        "pos": 29,
+        "shloka_count": 32,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "यज्ञरक्षणम्",
+        "name_nor": "yajnarakShaNam",
+        "pos": 30,
+        "shloka_count": 26,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "मिथिलाप्रस्थानम्",
+        "name_nor": "mithilAprasthAnam",
+        "pos": 31,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "कुशनाभकन्योपाख्यानम्",
+        "name_nor": "kushanAbhakanyOpAkhyAnam",
+        "pos": 32,
+        "shloka_count": 26,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "ब्रह्मदत्तविवाहः",
+        "name_nor": "brahmadattavivAhaH",
+        "pos": 33,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "विश्वामित्रवंशवर्णनम्",
+        "name_nor": "vishvAmitravaMshavarNanam",
+        "pos": 34,
+        "shloka_count": 23,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "उमागङ्गावृत्तान्तसंक्षेपः",
+        "name_nor": "umAgangAvRttAntasaMkShEpaH",
+        "pos": 35,
+        "shloka_count": 24,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "उमामाहात्म्यम्",
+        "name_nor": "umAmAhAtmyam",
+        "pos": 36,
+        "shloka_count": 27,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "कुमारोत्पत्तिः",
+        "name_nor": "kumArOtpattiH",
+        "pos": 37,
+        "shloka_count": 32,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "सगरपुत्रजन्म",
+        "name_nor": "sagaraputrajanma",
+        "pos": 38,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "पृथिवीविदारणम्",
+        "name_nor": "pRthivIvidAraNam",
+        "pos": 39,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "कपिलदर्शनम्",
+        "name_nor": "kapiladarshanam",
+        "pos": 40,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "सगरयज्ञसमाप्तिः",
+        "name_nor": "sagarayajnasamAptiH",
+        "pos": 41,
+        "shloka_count": 26,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "भगीरथवरप्रदानम्",
+        "name_nor": "bhagIrathavarapradAnam",
+        "pos": 42,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "गङ्गावतरणम्",
+        "name_nor": "gangAvataraNam",
+        "pos": 43,
+        "shloka_count": 41,
+        "shloka_count_expected": 43
+      },
+      {
+        "name_dev": "सागरोद्धारः",
+        "name_nor": "sAgarOddhAraH",
+        "pos": 44,
+        "shloka_count": 23,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "अमृतोत्पत्तिः",
+        "name_nor": "amRtOtpattiH",
+        "pos": 45,
+        "shloka_count": 45,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "दितिगर्भभेदः",
+        "name_nor": "ditigarbhabhEdaH",
+        "pos": 46,
+        "shloka_count": 23,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "विशालागमनम्",
+        "name_nor": "vishAlAgamanam",
+        "pos": 47,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "शक्राहल्याशापः",
+        "name_nor": "shakrAhalyAshApaH",
+        "pos": 48,
+        "shloka_count": 33,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "अहल्याशापमोक्षः",
+        "name_nor": "ahalyAshApamOkShaH",
+        "pos": 49,
+        "shloka_count": 22,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "जनकसमागमः",
+        "name_nor": "janakasamAgamaH",
+        "pos": 50,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "विश्वामित्रवृत्तम्",
+        "name_nor": "vishvAmitravRttam",
+        "pos": 51,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "वसिष्ठातिथ्यम्",
+        "name_nor": "vasiShThAtithyam",
+        "pos": 52,
+        "shloka_count": 23,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "शबलानिष्क्रयः",
+        "name_nor": "shabalAniShkrayaH",
+        "pos": 53,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "पप्लवादिसृष्टिः",
+        "name_nor": "paplavAdisRShTiH",
+        "pos": 54,
+        "shloka_count": 23,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "विश्वामित्रधनुर्वेदाधिगमः",
+        "name_nor": "vishvAmitradhanurvedAdhigamaH",
+        "pos": 55,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "ब्रह्मतेजोबलम्",
+        "name_nor": "brahmatEjObalam",
+        "pos": 56,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "त्रिशंकुयाजनप्रार्थना",
+        "name_nor": "trishankuyAjanaprArthanA",
+        "pos": 57,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "त्रिशंकुशापः",
+        "name_nor": "trishankushApaH",
+        "pos": 58,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "वासिष्ठशापः",
+        "name_nor": "vAsiShThashApaH",
+        "pos": 59,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "त्रिशंकुस्वर्गः",
+        "name_nor": "trishankusvargaH",
+        "pos": 60,
+        "shloka_count": 34,
+        "shloka_count_expected": 34
+      },
+      {
+        "name_dev": "शुनःशेपविक्रयः",
+        "name_nor": "shunaHshEpavikrayaH",
+        "pos": 61,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "अम्बरीशयज्ञः",
+        "name_nor": "ambarIshayajnaH",
+        "pos": 62,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "मेनकानिर्वासः",
+        "name_nor": "mEnakAnirvAsaH",
+        "pos": 63,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "रम्भाशापः",
+        "name_nor": "rambhAshApaH",
+        "pos": 64,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "ब्रह्मर्षित्वप्राप्तिः",
+        "name_nor": "brahmarShitvaprAptiH",
+        "pos": 65,
+        "shloka_count": 40,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "धनुःप्रसङ्गः",
+        "name_nor": "dhanuHprasangaH",
+        "pos": 66,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "धनुर्भङ्गः",
+        "name_nor": "dhanurbhangaH",
+        "pos": 67,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "दशरथाह्वानम्",
+        "name_nor": "dasharathAhvAnam",
+        "pos": 68,
+        "shloka_count": 19,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "दशरथजनकसमागमः",
+        "name_nor": "dasharathajanakasamAgamaH",
+        "pos": 69,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "कन्यावरणम्",
+        "name_nor": "kanyAvaraNam",
+        "pos": 70,
+        "shloka_count": 45,
+        "shloka_count_expected": 46
+      },
+      {
+        "name_dev": "कन्यादानप्रतिश्रवः",
+        "name_nor": "kanyAdAnapratishravaH",
+        "pos": 71,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "गोदानमङ्गलम्",
+        "name_nor": "gOdAnamangalam",
+        "pos": 72,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "दशरथपुत्रोद्वाहः",
+        "name_nor": "dasharathaputrOdvAhaH",
+        "pos": 73,
+        "shloka_count": 40,
+        "shloka_count_expected": 41
+      },
+      {
+        "name_dev": "जामदग्न्याभियोगः",
+        "name_nor": "jAmadagnyAbhiyOgaH",
+        "pos": 74,
+        "shloka_count": 24,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "वैष्णवधनुःप्रशंसा",
+        "name_nor": "vaiShNavadhanuHprashaMsA",
+        "pos": 75,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "जामदग्न्यप्रतिष्टम्भः",
+        "name_nor": "jAmadagnyapratiShTambhaH",
+        "pos": 76,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "अयोध्याप्रवेशः",
+        "name_nor": "ayOdhyApravEshaH",
+        "pos": 77,
+        "shloka_count": 29,
+        "shloka_count_expected": 31
+      }
+    ]
+  },
+  {
+    "name_dev": "अयोध्याकाण्डः",
+    "name_nor": "ayOdhyAkANDaH",
+    "pos": 2,
+    "list_count": 119,
+    "list_count_expected": null,
+    "list": [
+      {
+        "name_dev": "रामाभिषेकव्यवसायः",
+        "name_nor": "rAmAbhiShEkavyavasAyaH",
+        "pos": 1,
+        "shloka_count": 51,
+        "shloka_count_expected": 51
+      },
+      {
+        "name_dev": "परिषदनुमोदनम्",
+        "name_nor": "pariShadanumOdanam",
+        "pos": 2,
+        "shloka_count": 54,
+        "shloka_count_expected": 54
+      },
+      {
+        "name_dev": "पुत्रानुशासनम्",
+        "name_nor": "putrAnushAsanam",
+        "pos": 3,
+        "shloka_count": 49,
+        "shloka_count_expected": 49
+      },
+      {
+        "name_dev": "मात्राशीः परिग्रहः",
+        "name_nor": "mAtrAshIH parigrahaH",
+        "pos": 4,
+        "shloka_count": 45,
+        "shloka_count_expected": 45
+      },
+      {
+        "name_dev": "व्रतचर्याविधानम्",
+        "name_nor": "vratacharyAvidhAnam",
+        "pos": 5,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "पौरोत्सेकः",
+        "name_nor": "paurOtsEkaH",
+        "pos": 6,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "मन्थरापरिदेवनम्",
+        "name_nor": "mantharAparidEvanam",
+        "pos": 7,
+        "shloka_count": 36,
+        "shloka_count_expected": 16
+      },
+      {
+        "name_dev": "मन्थरोपजापः",
+        "name_nor": "mantharOpajApaH",
+        "pos": 8,
+        "shloka_count": 39,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "रामप्रवासनोपायचिन्ता",
+        "name_nor": "rAmapravAsanOpAyachintA",
+        "pos": 9,
+        "shloka_count": 66,
+        "shloka_count_expected": 66
+      },
+      {
+        "name_dev": "कैकेय्यनुनयः",
+        "name_nor": "kaikEyyanunayaH",
+        "pos": 10,
+        "shloka_count": 40,
+        "shloka_count_expected": 40
+      },
+      {
+        "name_dev": "वरद्वयनिर्बन्धः",
+        "name_nor": "varadvayanirbandhaH",
+        "pos": 11,
+        "shloka_count": 29,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "कैकेयीनिवर्तनप्रयासः",
+        "name_nor": "kaikEyInivartanaprayAsaH",
+        "pos": 12,
+        "shloka_count": 112,
+        "shloka_count_expected": 113
+      },
+      {
+        "name_dev": "दशरथविलापः",
+        "name_nor": "dasharathavilApaH",
+        "pos": 13,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "कैकेय्युपालम्भः",
+        "name_nor": "kaikEyyupAlambhaH",
+        "pos": 14,
+        "shloka_count": 69,
+        "shloka_count_expected": 68
+      },
+      {
+        "name_dev": "सुमन्त्रप्रेषणम्",
+        "name_nor": "sumantraprEShaNam",
+        "pos": 15,
+        "shloka_count": 48,
+        "shloka_count_expected": 49
+      },
+      {
+        "name_dev": "रामप्रस्थानम्",
+        "name_nor": "rAmaprasthAnam",
+        "pos": 16,
+        "shloka_count": 47,
+        "shloka_count_expected": 48
+      },
+      {
+        "name_dev": "रामागमनम्",
+        "name_nor": "rAmAgamanam",
+        "pos": 17,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "वनवासनिर्देशः",
+        "name_nor": "vanavAsanirdEshaH",
+        "pos": 18,
+        "shloka_count": 41,
+        "shloka_count_expected": 41
+      },
+      {
+        "name_dev": "रामप्रतिज्ञा",
+        "name_nor": "rAmapratijnA",
+        "pos": 19,
+        "shloka_count": 40,
+        "shloka_count_expected": 40
+      },
+      {
+        "name_dev": "कौसल्याक्रन्दः",
+        "name_nor": "kausalyAkrandaH",
+        "pos": 20,
+        "shloka_count": 55,
+        "shloka_count_expected": 55
+      },
+      {
+        "name_dev": "कौसल्यालक्ष्मणप्रतिबोधनम्",
+        "name_nor": "kausalyAlakShmaNapratibOdhanam",
+        "pos": 21,
+        "shloka_count": 64,
+        "shloka_count_expected": 64
+      },
+      {
+        "name_dev": "दैवप्राबल्यम्",
+        "name_nor": "daivaprAbalyam",
+        "pos": 22,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "लक्ष्मणक्रोधः",
+        "name_nor": "lakShmaNakrOdhaH",
+        "pos": 23,
+        "shloka_count": 41,
+        "shloka_count_expected": 42
+      },
+      {
+        "name_dev": "कौसल्यार्तिसमाश्वासनम्",
+        "name_nor": "kausalyArtisamAshvAsanam",
+        "pos": 24,
+        "shloka_count": 37,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "मातृस्वस्त्ययनम्",
+        "name_nor": "mAtRsvastyayanam",
+        "pos": 25,
+        "shloka_count": 47,
+        "shloka_count_expected": 47
+      },
+      {
+        "name_dev": "सीताप्रत्यवस्थापनम्",
+        "name_nor": "sItApratyavasthApanam",
+        "pos": 26,
+        "shloka_count": 38,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "पतिव्रताध्यवसायः",
+        "name_nor": "pativratAdhyavasAyaH",
+        "pos": 27,
+        "shloka_count": 24,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "वनदुःखप्रतिबोधनम्",
+        "name_nor": "vanaduHkhapratibOdhanam",
+        "pos": 28,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "वनानुगमनयाच्ञानिर्बन्धः",
+        "name_nor": "vanAnugamanayAchnAnirbandhaH",
+        "pos": 29,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "वनगमनाभ्युपपत्तिः",
+        "name_nor": "vanagamanAbhyupapattiH",
+        "pos": 30,
+        "shloka_count": 47,
+        "shloka_count_expected": 47
+      },
+      {
+        "name_dev": "लक्ष्मणवनानुगमनाभ्यनुज्ञा",
+        "name_nor": "lakShmaNavanAnugamanAbhyanujnA",
+        "pos": 31,
+        "shloka_count": 37,
+        "shloka_count_expected": 37
+      },
+      {
+        "name_dev": "वित्तविश्राणनम्",
+        "name_nor": "vittavishrANanam",
+        "pos": 32,
+        "shloka_count": 44,
+        "shloka_count_expected": 45
+      },
+      {
+        "name_dev": "पौरवाक्यम्",
+        "name_nor": "pauravAkyam",
+        "pos": 33,
+        "shloka_count": 31,
+        "shloka_count_expected": 31
+      },
+      {
+        "name_dev": "दशरथसमाश्वासनम्",
+        "name_nor": "dasharathasamAshvAsanam",
+        "pos": 34,
+        "shloka_count": 61,
+        "shloka_count_expected": 61
+      },
+      {
+        "name_dev": "सुमन्त्रगर्हणम्",
+        "name_nor": "sumantragarhaNam",
+        "pos": 35,
+        "shloka_count": 37,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "सिद्धार्थप्रतिबोधनम्",
+        "name_nor": "siddhArthapratibOdhanam",
+        "pos": 36,
+        "shloka_count": 33,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "चीरपरिग्रहनिमित्तवसिष्ठक्रोधः",
+        "name_nor": "chIraparigrahanimittavasiShThakrOdhaH",
+        "pos": 37,
+        "shloka_count": 37,
+        "shloka_count_expected": 37
+      },
+      {
+        "name_dev": "जनाक्रोशः",
+        "name_nor": "janAkrOshaH",
+        "pos": 38,
+        "shloka_count": 17,
+        "shloka_count_expected": 18
+      },
+      {
+        "name_dev": "वनगमनापृच्छा",
+        "name_nor": "vanagamanApRchChA",
+        "pos": 39,
+        "shloka_count": 41,
+        "shloka_count_expected": 41
+      },
+      {
+        "name_dev": "पौरद्यनुव्रज्या",
+        "name_nor": "pauradyanuvrajyA",
+        "pos": 40,
+        "shloka_count": 51,
+        "shloka_count_expected": 51
+      },
+      {
+        "name_dev": "नगरसंक्षोभः",
+        "name_nor": "nagarasaMkShObhaH",
+        "pos": 41,
+        "shloka_count": 21,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "दशरथाक्रन्दः",
+        "name_nor": "dasharathAkrandaH",
+        "pos": 42,
+        "shloka_count": 35,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "कौसल्यापरिदेवितम्",
+        "name_nor": "kausalyAparidEvitam",
+        "pos": 43,
+        "shloka_count": 21,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "सुमित्राश्वासनम्",
+        "name_nor": "sumitrAshvAsanam",
+        "pos": 44,
+        "shloka_count": 31,
+        "shloka_count_expected": 31
+      },
+      {
+        "name_dev": "पौरयाचनम्",
+        "name_nor": "paurayAchanam",
+        "pos": 45,
+        "shloka_count": 33,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "पौरमोहनम्",
+        "name_nor": "pauramOhanam",
+        "pos": 46,
+        "shloka_count": 34,
+        "shloka_count_expected": 34
+      },
+      {
+        "name_dev": "पौरनिवृत्तिः",
+        "name_nor": "pauranivRttiH",
+        "pos": 47,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "पौराङ्गनाविलापः",
+        "name_nor": "paurAnganAvilApaH",
+        "pos": 48,
+        "shloka_count": 37,
+        "shloka_count_expected": 37
+      },
+      {
+        "name_dev": "जानपदाक्रोशः",
+        "name_nor": "jAnapadAkrOshaH",
+        "pos": 49,
+        "shloka_count": 18,
+        "shloka_count_expected": 18
+      },
+      {
+        "name_dev": "गुहसङ्गतम्",
+        "name_nor": "guhasaMgatam",
+        "pos": 50,
+        "shloka_count": 51,
+        "shloka_count_expected": 51
+      },
+      {
+        "name_dev": "गुहलक्ष्मणजागरणम्",
+        "name_nor": "guhalakShmaNajAgaraNam",
+        "pos": 51,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "गङ्गातरणम्",
+        "name_nor": "gangAtaraNam",
+        "pos": 52,
+        "shloka_count": 102,
+        "shloka_count_expected": 101
+      },
+      {
+        "name_dev": "रामसंक्षोभः",
+        "name_nor": "rAmasaMkShObhaH",
+        "pos": 53,
+        "shloka_count": 35,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "भरद्वाजाश्रमाभिगमनम्",
+        "name_nor": "bharadvAjAshramAbhigamanam",
+        "pos": 54,
+        "shloka_count": 43,
+        "shloka_count_expected": 43
+      },
+      {
+        "name_dev": "यमुनातरणम्",
+        "name_nor": "yamunAtaraNam",
+        "pos": 55,
+        "shloka_count": 34,
+        "shloka_count_expected": 34
+      },
+      {
+        "name_dev": "चित्रकूटनिवासः",
+        "name_nor": "chitrakUTanivAsaH",
+        "pos": 56,
+        "shloka_count": 38,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "सुमन्त्रोपावर्तनम्",
+        "name_nor": "sumantrOpAvartanam",
+        "pos": 57,
+        "shloka_count": 34,
+        "shloka_count_expected": 34
+      },
+      {
+        "name_dev": "रामसंदेशाख्यानम्",
+        "name_nor": "rAmasandEshAkhyAnam",
+        "pos": 58,
+        "shloka_count": 37,
+        "shloka_count_expected": 37
+      },
+      {
+        "name_dev": "दशरथविलापः",
+        "name_nor": "dasharathavilApaH",
+        "pos": 59,
+        "shloka_count": 34,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "कौसल्यासमाश्वसनम्",
+        "name_nor": "kausalyAsamAshvasanam",
+        "pos": 60,
+        "shloka_count": 23,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "कौसल्योपालम्भः",
+        "name_nor": "kausalyOpAlambaH",
+        "pos": 61,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "कौसल्याप्रसादनम्",
+        "name_nor": "kausalyAprasAdanam",
+        "pos": 62,
+        "shloka_count": 21,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "ऋषिकुमारवधाख्यानम्",
+        "name_nor": "RShikumAravadhAkhyAnam",
+        "pos": 63,
+        "shloka_count": 56,
+        "shloka_count_expected": 53
+      },
+      {
+        "name_dev": "दशरथदिष्टान्तः",
+        "name_nor": "dasharathadiShTAntaH",
+        "pos": 64,
+        "shloka_count": 79,
+        "shloka_count_expected": 78
+      },
+      {
+        "name_dev": "अन्तःपुराक्रन्दः",
+        "name_nor": "antaHpurAkrandaH",
+        "pos": 65,
+        "shloka_count": 29,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "तैलद्रोण्यधिशयनम्",
+        "name_nor": "tailadrONyadhishayanam",
+        "pos": 66,
+        "shloka_count": 29,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "अराजकदुरवस्थावर्णनम्",
+        "name_nor": "arAjakaduravasthAvarNanam",
+        "pos": 67,
+        "shloka_count": 38,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "दूतप्रेषणम्",
+        "name_nor": "dUtaprEShaNam",
+        "pos": 68,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "भरतदुःस्वप्नः",
+        "name_nor": "bharataduHsvapnaH",
+        "pos": 69,
+        "shloka_count": 21,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "भरतप्रस्थानम्",
+        "name_nor": "bharataprasthAnam",
+        "pos": 70,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "अयोध्यागमनम्",
+        "name_nor": "ayOdhyAgamanam",
+        "pos": 71,
+        "shloka_count": 47,
+        "shloka_count_expected": 46
+      },
+      {
+        "name_dev": "भरतसन्तापः",
+        "name_nor": "bharatasantApaH",
+        "pos": 72,
+        "shloka_count": 54,
+        "shloka_count_expected": 54
+      },
+      {
+        "name_dev": "कैकेयीविगर्हणम्",
+        "name_nor": "kaikEyIvigarhaNam",
+        "pos": 73,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "कैकेय्याक्रोशः",
+        "name_nor": "kaikEyyAkrOshaH",
+        "pos": 74,
+        "shloka_count": 36,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "भरतशपथः",
+        "name_nor": "bharatashapathaH",
+        "pos": 75,
+        "shloka_count": 65,
+        "shloka_count_expected": 65
+      },
+      {
+        "name_dev": "दशरथौर्ध्वदैहिकम्",
+        "name_nor": "dasharathaurdhvadaihikam",
+        "pos": 76,
+        "shloka_count": 23,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "भरतशत्रुघ्नविलापः",
+        "name_nor": "bharatashatrughnavilApaH",
+        "pos": 77,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "कुब्जाविक्षेपः",
+        "name_nor": "kubjAvikShEpaH",
+        "pos": 78,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "सचिवप्रार्थनाप्रतिषेधः",
+        "name_nor": "sachivaprArthanApratiShEdhaH",
+        "pos": 79,
+        "shloka_count": 17,
+        "shloka_count_expected": 17
+      },
+      {
+        "name_dev": "मार्गसंस्कारः",
+        "name_nor": "mArgasaMskAraH",
+        "pos": 80,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "सभास्थानम्",
+        "name_nor": "sabhAsthAnam",
+        "pos": 81,
+        "shloka_count": 16,
+        "shloka_count_expected": 16
+      },
+      {
+        "name_dev": "सेनाप्रस्थापनम्",
+        "name_nor": "sEnAprasthApanam",
+        "pos": 82,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "भरतवनप्रस्थानम्",
+        "name_nor": "bharatavanaprasthAnam",
+        "pos": 83,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "गुहागमनम्",
+        "name_nor": "guhAgamanam",
+        "pos": 84,
+        "shloka_count": 18,
+        "shloka_count_expected": 18
+      },
+      {
+        "name_dev": "गुहसमागमः",
+        "name_nor": "guhasamAgamaH",
+        "pos": 85,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "गुहवाक्यम्",
+        "name_nor": "guhavAkyam",
+        "pos": 86,
+        "shloka_count": 26,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "रामशयनादिप्रश्नः",
+        "name_nor": "rAmashayanAdiprashnaH",
+        "pos": 87,
+        "shloka_count": 24,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "शय्यानुवीक्षणम्",
+        "name_nor": "shayyAnuvIkShaNam",
+        "pos": 88,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "गङ्गातरणम्",
+        "name_nor": "gangAtaraNam",
+        "pos": 89,
+        "shloka_count": 22,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "भरद्वाजाश्रमनिवासः",
+        "name_nor": "bharadvAjAshramanivAsaH",
+        "pos": 90,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "भरद्वाजातिथ्यम्",
+        "name_nor": "bharadvAjAtithyam",
+        "pos": 91,
+        "shloka_count": 83,
+        "shloka_count_expected": 83
+      },
+      {
+        "name_dev": "भरद्वाजामन्त्रणम्",
+        "name_nor": "bharadvAjAmantraNam",
+        "pos": 92,
+        "shloka_count": 39,
+        "shloka_count_expected": 40
+      },
+      {
+        "name_dev": "चित्रकूटवनप्रेक्षणम्",
+        "name_nor": "chitrakUTavanaprEkShaNam",
+        "pos": 93,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "चित्रकूटवर्णनम्",
+        "name_nor": "chitrakUTavarNanam",
+        "pos": 94,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "मन्दाकिनीवर्णनम्",
+        "name_nor": "mandAkinIvarNanam",
+        "pos": 95,
+        "shloka_count": 19,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "लक्ष्मणक्रोधः",
+        "name_nor": "lakShmaNakrOdhaH",
+        "pos": 96,
+        "shloka_count": 31,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "भरतगुणप्रशंसा",
+        "name_nor": "bharataguNaprashaMsA",
+        "pos": 97,
+        "shloka_count": 31,
+        "shloka_count_expected": 31
+      },
+      {
+        "name_dev": "रामान्वेषणम्",
+        "name_nor": "rAmAnvEShaNam",
+        "pos": 98,
+        "shloka_count": 18,
+        "shloka_count_expected": 18
+      },
+      {
+        "name_dev": "रामसमागमः",
+        "name_nor": "rAmasamAgamaH",
+        "pos": 99,
+        "shloka_count": 42,
+        "shloka_count_expected": 42
+      },
+      {
+        "name_dev": "कच्चित्सर्गः",
+        "name_nor": "kachchitsargaH",
+        "pos": 100,
+        "shloka_count": 77,
+        "shloka_count_expected": 76
+      },
+      {
+        "name_dev": "पितृदिष्टान्तश्रवणम्",
+        "name_nor": "pitRdiShTAntashravaNam",
+        "pos": 101,
+        "shloka_count": 9,
+        "shloka_count_expected": 9
+      },
+      {
+        "name_dev": "निवापदानम्",
+        "name_nor": "nivApadAnam",
+        "pos": 102,
+        "shloka_count": 49,
+        "shloka_count_expected": 49
+      },
+      {
+        "name_dev": "मातृदर्शनम्",
+        "name_nor": "mAtRdarshanam",
+        "pos": 103,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "रामभरतसंवादः",
+        "name_nor": "rAmabharatasaMvAdaH",
+        "pos": 104,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "रामवाक्यम्",
+        "name_nor": "rAmavAkyam",
+        "pos": 105,
+        "shloka_count": 46,
+        "shloka_count_expected": 46
+      },
+      {
+        "name_dev": "भरतवचनम्",
+        "name_nor": "bharatavachanam",
+        "pos": 106,
+        "shloka_count": 35,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "रामप्रतिवचनम्",
+        "name_nor": "rAmaprativachanam",
+        "pos": 107,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "जाबालिवाक्यम्",
+        "name_nor": "jAbAlivAkyam",
+        "pos": 108,
+        "shloka_count": 18,
+        "shloka_count_expected": 18
+      },
+      {
+        "name_dev": "सत्यप्रशंसा",
+        "name_nor": "satyaprashaMsA",
+        "pos": 109,
+        "shloka_count": 39,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "इक्ष्वाकुवंशकीर्तनम्",
+        "name_nor": "ikShvAkuvaMshakIrtanam",
+        "pos": 110,
+        "shloka_count": 34,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "भरतानुशासनम्",
+        "name_nor": "bharatAnushAsanam",
+        "pos": 111,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "पादुकाप्रदानम्",
+        "name_nor": "pAdukApradAnam",
+        "pos": 112,
+        "shloka_count": 31,
+        "shloka_count_expected": 31
+      },
+      {
+        "name_dev": "पादुकाग्रहणम्",
+        "name_nor": "pAdukAgrahaNam",
+        "pos": 113,
+        "shloka_count": 25,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "अयोध्याप्रवेशः",
+        "name_nor": "ayOdhyApravEshaH",
+        "pos": 114,
+        "shloka_count": 31,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "नन्दिग्रामनिवासः",
+        "name_nor": "nandigrAmanivAsaH",
+        "pos": 115,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "खरविप्रकरणकथनम्",
+        "name_nor": "kharaviprakaraNakathanam",
+        "pos": 116,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "सीतापातिव्रत्यप्रशंसा",
+        "name_nor": "sItApAtivratyaprashamsA",
+        "pos": 117,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "दिव्यालङ्कारग्रहणम्",
+        "name_nor": "divyAlankaraNagrahaNam",
+        "pos": 118,
+        "shloka_count": 54,
+        "shloka_count_expected": 54
+      },
+      {
+        "name_dev": "दण्डकारण्यप्रवेशः",
+        "name_nor": "daNDakAraNyapravEshaH",
+        "pos": 119,
+        "shloka_count": 21,
+        "shloka_count_expected": 22
+      }
+    ]
+  },
+  {
+    "name_dev": "अरण्यकाण्डः",
+    "name_nor": "araNyakANDaH",
+    "pos": 3,
+    "list_count": 75,
+    "list_count_expected": null,
+    "list": [
+      {
+        "name_dev": "महर्षिसङ्गः",
+        "name_nor": "maharShisangaH",
+        "pos": 1,
+        "shloka_count": 23,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "विराधसंरोधः",
+        "name_nor": "virAdhasaMrOdhaH",
+        "pos": 2,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "विराधप्रहारः",
+        "name_nor": "virAdhaprahAraH",
+        "pos": 3,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "विराधनिखननम्",
+        "name_nor": "virAdhanikhananam",
+        "pos": 4,
+        "shloka_count": 34,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "शरभङ्गब्रह्मलोकप्रस्थानम्",
+        "name_nor": "sharabhangabrahmalOkaprasthAnam",
+        "pos": 5,
+        "shloka_count": 43,
+        "shloka_count_expected": 43
+      },
+      {
+        "name_dev": "रक्षोवधप्रतिज्ञानम्",
+        "name_nor": "rakShOvadhapratijnAnam",
+        "pos": 6,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "सुतीक्ष्णाश्रमः",
+        "name_nor": "sutIkShNAshramaH",
+        "pos": 7,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "सुतीक्ष्णाभ्यनुज्ञा",
+        "name_nor": "sutIkShNAbhyanujnA",
+        "pos": 8,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "सीताधर्मावेदनम्",
+        "name_nor": "sItAdharmAvEdanam",
+        "pos": 9,
+        "shloka_count": 33,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "रक्षोवधसमर्थनम्",
+        "name_nor": "rakShOvadhasamarthanam",
+        "pos": 10,
+        "shloka_count": 22,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "अगस्त्याश्रमः",
+        "name_nor": "agastyAshramaH",
+        "pos": 11,
+        "shloka_count": 94,
+        "shloka_count_expected": 95
+      },
+      {
+        "name_dev": "अगस्त्यदर्शनम्",
+        "name_nor": "agastyadarshanam",
+        "pos": 12,
+        "shloka_count": 37,
+        "shloka_count_expected": 37
+      },
+      {
+        "name_dev": "पञ्चवटीगमनम्",
+        "name_nor": "panchavaTIgamanam",
+        "pos": 13,
+        "shloka_count": 25,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "जटायुस्सङ्गमः",
+        "name_nor": "jaTAyussangamaH",
+        "pos": 14,
+        "shloka_count": 36,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "पञ्चवटीपर्णशाला",
+        "name_nor": "panchavaTIparNashAlA",
+        "pos": 15,
+        "shloka_count": 31,
+        "shloka_count_expected": 31
+      },
+      {
+        "name_dev": "हेमन्तवर्णनम्",
+        "name_nor": "hEmantavarNanam",
+        "pos": 16,
+        "shloka_count": 36,
+        "shloka_count_expected": 46
+      },
+      {
+        "name_dev": "शूर्पनखाभावाविष्करणम्",
+        "name_nor": "shUrpanakhAbhAvAviShkaraNam",
+        "pos": 17,
+        "shloka_count": 29,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "शूर्पनखाविरूपणम्",
+        "name_nor": "shUrpanakhAvirUpaNam",
+        "pos": 18,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "खरक्रोधः",
+        "name_nor": "kharakrOdhaH",
+        "pos": 19,
+        "shloka_count": 26,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "चतुर्दशरक्षोवधः",
+        "name_nor": "chaturdasharakShovadhaH",
+        "pos": 20,
+        "shloka_count": 25,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "खरसन्धुक्षणम्",
+        "name_nor": "kharasandhukShaNam",
+        "pos": 21,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "खरसन्नाहः",
+        "name_nor": "kharasannAhaH",
+        "pos": 22,
+        "shloka_count": 24,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "उत्पातदर्शनम्",
+        "name_nor": "utpAtadarshanam",
+        "pos": 23,
+        "shloka_count": 34,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "रामखरबलसन्निकर्षः",
+        "name_nor": "rAmakharabalasannikarShaH",
+        "pos": 24,
+        "shloka_count": 36,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "खरसैन्यावमर्दः",
+        "name_nor": "kharasainyAvamardaH",
+        "pos": 25,
+        "shloka_count": 47,
+        "shloka_count_expected": 45
+      },
+      {
+        "name_dev": "दूषणादिवधः",
+        "name_nor": "dUShaNAdivadhaH",
+        "pos": 26,
+        "shloka_count": 38,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "त्रिशिरोवधः",
+        "name_nor": "trishirOvadhaH",
+        "pos": 27,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "खररामसंप्रहारः",
+        "name_nor": "khararAmasaMprahAraH",
+        "pos": 28,
+        "shloka_count": 33,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "खरगदाभेदनम्",
+        "name_nor": "kharagadAbhEdanam",
+        "pos": 29,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "खरसंहारः",
+        "name_nor": "kharasaMhAraH",
+        "pos": 30,
+        "shloka_count": 41,
+        "shloka_count_expected": 41
+      },
+      {
+        "name_dev": "रावणखरवृत्तोपलम्भः",
+        "name_nor": "rAvaNakharavRttOpalambhaH",
+        "pos": 31,
+        "shloka_count": 50,
+        "shloka_count_expected": 49
+      },
+      {
+        "name_dev": "शूर्पनखोद्यमः",
+        "name_nor": "shUrpanakhOdyamaH",
+        "pos": 32,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "रावणनिन्दा",
+        "name_nor": "rAvaNanindA",
+        "pos": 33,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "सीताहरणोपदेशः",
+        "name_nor": "sItAharaNOpadEshaH",
+        "pos": 34,
+        "shloka_count": 26,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "मारिचाश्रमपुनर्गमनम्",
+        "name_nor": "mArichAshramapunargamanam",
+        "pos": 35,
+        "shloka_count": 42,
+        "shloka_count_expected": 42
+      },
+      {
+        "name_dev": "सहायैषणा",
+        "name_nor": "sahAyaiShaNA",
+        "pos": 36,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "अप्रियपथ्यवचनम्",
+        "name_nor": "apriyapathyavachanam",
+        "pos": 37,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "रामास्त्रमहिमा",
+        "name_nor": "rAmAstramahimA",
+        "pos": 38,
+        "shloka_count": 33,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "साहाय्यकानभ्युपगमः",
+        "name_nor": "sAhAyyakAnabhyupagamaH",
+        "pos": 39,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "मायामृगरूपपरिग्रहनिर्बन्धः",
+        "name_nor": "mAyAmRgarUpaparigrahanirbandhaH",
+        "pos": 40,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "रावणनिन्दा",
+        "name_nor": "rAvaNanindA",
+        "pos": 41,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "स्वर्णमृगप्रेक्षणम्",
+        "name_nor": "svarNamRgaprEkShaNam",
+        "pos": 42,
+        "shloka_count": 35,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "लक्ष्मणशङ्काप्रतिसमाधानम्",
+        "name_nor": "lakShmaNashankApratisamAdhAnam",
+        "pos": 43,
+        "shloka_count": 51,
+        "shloka_count_expected": 50
+      },
+      {
+        "name_dev": "मारीचवञ्चना",
+        "name_nor": "mArIchavanchanA",
+        "pos": 44,
+        "shloka_count": 27,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "सीतापारुष्यम्",
+        "name_nor": "sItApAruShyam",
+        "pos": 45,
+        "shloka_count": 40,
+        "shloka_count_expected": 40
+      },
+      {
+        "name_dev": "रावणभिक्षुसत्कारः",
+        "name_nor": "rAvaNabhikShusatkAraH",
+        "pos": 46,
+        "shloka_count": 38,
+        "shloka_count_expected": 37
+      },
+      {
+        "name_dev": "रावणाधिक्षेपः",
+        "name_nor": "rAvaNAdhikShEpaH",
+        "pos": 47,
+        "shloka_count": 50,
+        "shloka_count_expected": 50
+      },
+      {
+        "name_dev": "रवणविकत्थनम्",
+        "name_nor": "ravaNavikatthanam",
+        "pos": 48,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "सीतापहरणम्",
+        "name_nor": "sItApaharaNam",
+        "pos": 49,
+        "shloka_count": 40,
+        "shloka_count_expected": 41
+      },
+      {
+        "name_dev": "जटायुरभियोगः",
+        "name_nor": "jaTAyurabhiyOgaH",
+        "pos": 50,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "जटायुरावणयुद्धम्",
+        "name_nor": "jaTAyurAvaNayuddham",
+        "pos": 51,
+        "shloka_count": 46,
+        "shloka_count_expected": 46
+      },
+      {
+        "name_dev": "सीताविक्रोशः",
+        "name_nor": "sItAvikrOshaH",
+        "pos": 52,
+        "shloka_count": 44,
+        "shloka_count_expected": 46
+      },
+      {
+        "name_dev": "रावणभर्त्सनम्",
+        "name_nor": "rAvaNabhartsanam",
+        "pos": 53,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "लङ्काप्रापणम्",
+        "name_nor": "lankAprApaNam",
+        "pos": 54,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "सीताविलोभनोद्यमः",
+        "name_nor": "sItAvilObhanOdyamaH",
+        "pos": 55,
+        "shloka_count": 37,
+        "shloka_count_expected": 37
+      },
+      {
+        "name_dev": "वत्सरावधिकरणम्",
+        "name_nor": "vatsarAvadhikaraNam",
+        "pos": 56,
+        "shloka_count": 26,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "रामप्रत्यागमनम्",
+        "name_nor": "rAmapratyAgamanam",
+        "pos": 57,
+        "shloka_count": 23,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "अनिमित्तदर्शनम्",
+        "name_nor": "animittadarshanam",
+        "pos": 58,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "लक्ष्मणागमनविगर्हणम्",
+        "name_nor": "lakShmaNAgamanavigarhaNam",
+        "pos": 59,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "रामोन्मादः",
+        "name_nor": "rAmOnmAdaH",
+        "pos": 60,
+        "shloka_count": 38,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "सीतान्वेषणम्",
+        "name_nor": "sItAnvEShaNam",
+        "pos": 61,
+        "shloka_count": 31,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "राघवविलापः",
+        "name_nor": "rAghavavilApaH",
+        "pos": 62,
+        "shloka_count": 20,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "दुःखानुचिन्तनम्",
+        "name_nor": "duHkhAnuchintanam",
+        "pos": 63,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "रामक्रोधः",
+        "name_nor": "rAmakrOdhaH",
+        "pos": 64,
+        "shloka_count": 77,
+        "shloka_count_expected": 78
+      },
+      {
+        "name_dev": "क्रोधसंहारप्रार्थना",
+        "name_nor": "krOdhasaMhAraprArthanA",
+        "pos": 65,
+        "shloka_count": 16,
+        "shloka_count_expected": 16
+      },
+      {
+        "name_dev": "औचित्यप्रबोधनम्",
+        "name_nor": "auchityaprabodhanam",
+        "pos": 66,
+        "shloka_count": 21,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "गृध्रराजदर्शनम्",
+        "name_nor": "gRdhrarAjadarshanam",
+        "pos": 67,
+        "shloka_count": 29,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "जटयुस्संस्कारः",
+        "name_nor": "jaTayussaMskAraH",
+        "pos": 68,
+        "shloka_count": 38,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "कबन्धग्राहः",
+        "name_nor": "kabandhagrAhaH",
+        "pos": 69,
+        "shloka_count": 51,
+        "shloka_count_expected": 51
+      },
+      {
+        "name_dev": "कबन्धबाहुच्छेदः",
+        "name_nor": "kabandhabAhuchChEdaH",
+        "pos": 70,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "कबन्धशापाख्यानम्",
+        "name_nor": "kabandhashApAkhyAnam",
+        "pos": 71,
+        "shloka_count": 34,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "सीताधिगमोपायः",
+        "name_nor": "sItAdhigamOpAyaH",
+        "pos": 72,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "ऋष्यमूकमार्गकथनम्",
+        "name_nor": "RshyamUkamArgakathanam",
+        "pos": 73,
+        "shloka_count": 45,
+        "shloka_count_expected": 46
+      },
+      {
+        "name_dev": "शबरीस्वर्गप्राप्तिः",
+        "name_nor": "shabarIsvargaprAptiH",
+        "pos": 74,
+        "shloka_count": 35,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "पम्पादर्शनम्",
+        "name_nor": "pampAdarshanam",
+        "pos": 75,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      }
+    ]
+  },
+  {
+    "name_dev": "किष्किन्धाकाण्डः",
+    "name_nor": "kiShkindhAkANDaH",
+    "pos": 4,
+    "list_count": 67,
+    "list_count_expected": null,
+    "list": [
+      {
+        "name_dev": "रामविप्रलम्भावेशः",
+        "name_nor": "rAmavipralambhAvEshaH",
+        "pos": 1,
+        "shloka_count": 130,
+        "shloka_count_expected": 131
+      },
+      {
+        "name_dev": "सुग्रीवमन्त्रः",
+        "name_nor": "sugrIvamantraH",
+        "pos": 2,
+        "shloka_count": 29,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "हनुमत्प्रेषणम्",
+        "name_nor": "hanumatprEShaNam",
+        "pos": 3,
+        "shloka_count": 39,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "सुग्रीवसमीपगमनम्",
+        "name_nor": "sugrIvasamIpagamanam",
+        "pos": 4,
+        "shloka_count": 35,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "सुग्रीवसख्यम्",
+        "name_nor": "sugrIvasakhyam",
+        "pos": 5,
+        "shloka_count": 31,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "भूषणप्रत्यभिज्ञानम्",
+        "name_nor": "bhUShaNapratyabhijnAnam",
+        "pos": 6,
+        "shloka_count": 27,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "रामसमाश्वासनम्",
+        "name_nor": "rAmasamAshvAsanam",
+        "pos": 7,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "वालिवधप्रतिज्ञा",
+        "name_nor": "vAlivadhapratijnA",
+        "pos": 8,
+        "shloka_count": 46,
+        "shloka_count_expected": 46
+      },
+      {
+        "name_dev": "वैरवृत्तान्तानुक्रमः",
+        "name_nor": "vairavRttAntAnukramaH",
+        "pos": 9,
+        "shloka_count": 26,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "राज्यनिर्वासकथनम्",
+        "name_nor": "rAjyanirvAsakathanam",
+        "pos": 10,
+        "shloka_count": 35,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "वालिबलाविष्करणम्",
+        "name_nor": "vAlibalAviShkaraNam",
+        "pos": 11,
+        "shloka_count": 93,
+        "shloka_count_expected": 93
+      },
+      {
+        "name_dev": "सुग्रीवप्रत्ययदानम्",
+        "name_nor": "sugrIvapratyayadAnam",
+        "pos": 12,
+        "shloka_count": 42,
+        "shloka_count_expected": 42
+      },
+      {
+        "name_dev": "सप्तजनाश्रमप्रणामः",
+        "name_nor": "saptajanAshramapraNAmaH",
+        "pos": 13,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "सुग्रीवगर्जनम्",
+        "name_nor": "sugrIvagarjanam",
+        "pos": 14,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "ताराहितोक्तिः",
+        "name_nor": "tArAhitOktiH",
+        "pos": 15,
+        "shloka_count": 31,
+        "shloka_count_expected": 31
+      },
+      {
+        "name_dev": "वालिसंहारः",
+        "name_nor": "vAlisamhAraH",
+        "pos": 16,
+        "shloka_count": 39,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "रामाधिक्षेपः",
+        "name_nor": "rAmAdhikShEpaH",
+        "pos": 17,
+        "shloka_count": 54,
+        "shloka_count_expected": 52
+      },
+      {
+        "name_dev": "वालिवधसमर्थनम्",
+        "name_nor": "vAlivadhasamarthanam",
+        "pos": 18,
+        "shloka_count": 66,
+        "shloka_count_expected": 67
+      },
+      {
+        "name_dev": "तारागमनम्",
+        "name_nor": "tArAgamanam",
+        "pos": 19,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "ताराविलापः",
+        "name_nor": "tArAvilApaH",
+        "pos": 20,
+        "shloka_count": 26,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "हनुमदाश्वासनम्",
+        "name_nor": "hanumadAshvAsanam",
+        "pos": 21,
+        "shloka_count": 16,
+        "shloka_count_expected": 16
+      },
+      {
+        "name_dev": "वाल्यनुशासनम्",
+        "name_nor": "vAlyanushAsanam",
+        "pos": 22,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "अङ्गदाभिवादनम्",
+        "name_nor": "angadAbhivAdanam",
+        "pos": 23,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "सुग्रीवताराश्वासनम्",
+        "name_nor": "sugrIvatArAshvAsanam",
+        "pos": 24,
+        "shloka_count": 44,
+        "shloka_count_expected": 44
+      },
+      {
+        "name_dev": "वालिसंस्कारः",
+        "name_nor": "vAlisaMskAraH",
+        "pos": 25,
+        "shloka_count": 54,
+        "shloka_count_expected": 53
+      },
+      {
+        "name_dev": "सुग्रीवाभिषेकः",
+        "name_nor": "sugrIvAbhiShEkaH",
+        "pos": 26,
+        "shloka_count": 42,
+        "shloka_count_expected": 41
+      },
+      {
+        "name_dev": "माल्यवन्निवासः",
+        "name_nor": "mAlyavannivAsaH",
+        "pos": 27,
+        "shloka_count": 48,
+        "shloka_count_expected": 48
+      },
+      {
+        "name_dev": "प्रावृडुज्जृम्भणम्",
+        "name_nor": "prAvRDujjRmbhaNam",
+        "pos": 28,
+        "shloka_count": 66,
+        "shloka_count_expected": 66
+      },
+      {
+        "name_dev": "हनुमत्प्रतिबोधनम्",
+        "name_nor": "hanumatpratibodhanam",
+        "pos": 29,
+        "shloka_count": 33,
+        "shloka_count_expected": 34
+      },
+      {
+        "name_dev": "शरद्वर्णनम्",
+        "name_nor": "sharadvarNanam",
+        "pos": 30,
+        "shloka_count": 85,
+        "shloka_count_expected": 75
+      },
+      {
+        "name_dev": "लक्ष्मणक्रोधः",
+        "name_nor": "lakShmaNakrOdhaH",
+        "pos": 31,
+        "shloka_count": 51,
+        "shloka_count_expected": 51
+      },
+      {
+        "name_dev": "हनुमन्मन्त्रः",
+        "name_nor": "hanumanmantraH",
+        "pos": 32,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "तारासान्त्ववचनम्",
+        "name_nor": "tArAsAntvavachanam",
+        "pos": 33,
+        "shloka_count": 66,
+        "shloka_count_expected": 66
+      },
+      {
+        "name_dev": "सुग्रीवतर्जनम्",
+        "name_nor": "sugrIvatarjanam",
+        "pos": 34,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "तारासमाधानम्",
+        "name_nor": "tArAsamAdhAnam",
+        "pos": 35,
+        "shloka_count": 23,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "सुग्रीवलक्ष्मणानुरोधः",
+        "name_nor": "sugrIvalakShmaNAnurOdhaH",
+        "pos": 36,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "कपिसेनासमानयनम्",
+        "name_nor": "kapisEnAsamAnayanam",
+        "pos": 37,
+        "shloka_count": 37,
+        "shloka_count_expected": 37
+      },
+      {
+        "name_dev": "रामसमीपगमनम्",
+        "name_nor": "rAmasamIpagamanam",
+        "pos": 38,
+        "shloka_count": 34,
+        "shloka_count_expected": 34
+      },
+      {
+        "name_dev": "सेनानिवेशः",
+        "name_nor": "sEnAnivEshaH",
+        "pos": 39,
+        "shloka_count": 44,
+        "shloka_count_expected": 44
+      },
+      {
+        "name_dev": "प्राचीप्रेषणम्",
+        "name_nor": "prAchIprEShaNam",
+        "pos": 40,
+        "shloka_count": 71,
+        "shloka_count_expected": 71
+      },
+      {
+        "name_dev": "दक्षिणाप्रेषणम्",
+        "name_nor": "dakShiNAprEShaNam",
+        "pos": 41,
+        "shloka_count": 49,
+        "shloka_count_expected": 50
+      },
+      {
+        "name_dev": "प्रतीचीप्रेषणम्",
+        "name_nor": "pratIchIprEShaNam",
+        "pos": 42,
+        "shloka_count": 58,
+        "shloka_count_expected": 57
+      },
+      {
+        "name_dev": "उदीचीप्रेषणम्",
+        "name_nor": "udIchIprEShaNam",
+        "pos": 43,
+        "shloka_count": 62,
+        "shloka_count_expected": 64
+      },
+      {
+        "name_dev": "हनुमत्संदेशः",
+        "name_nor": "hanumatsandEshaH",
+        "pos": 44,
+        "shloka_count": 17,
+        "shloka_count_expected": 17
+      },
+      {
+        "name_dev": "वानरबलप्रतिष्ठा",
+        "name_nor": "vAnarabalapratiShThA",
+        "pos": 45,
+        "shloka_count": 17,
+        "shloka_count_expected": 16
+      },
+      {
+        "name_dev": "भूमण्डलभ्रमणकथनम्",
+        "name_nor": "bhUmaNDalabhramaNakathanam",
+        "pos": 46,
+        "shloka_count": 24,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "कपिसेनाप्रत्यागमनम्",
+        "name_nor": "kapisEnApratyAgamanam",
+        "pos": 47,
+        "shloka_count": 14,
+        "shloka_count_expected": 14
+      },
+      {
+        "name_dev": "कण्डूवनादिविचयः",
+        "name_nor": "kaNDUvanAdivichayaH",
+        "pos": 48,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "रजतपर्वतविचयः",
+        "name_nor": "rajataparvatavichayaH",
+        "pos": 49,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "ऋक्षबिलप्रवेशः",
+        "name_nor": "RkShabilapravEshaH",
+        "pos": 50,
+        "shloka_count": 41,
+        "shloka_count_expected": 41
+      },
+      {
+        "name_dev": "स्वयम्प्रभातिथ्यम्",
+        "name_nor": "svayamprabhAtithyam",
+        "pos": 51,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "बिलप्रवेशकारणकथनम्",
+        "name_nor": "bilapravEshakAraNakathanam",
+        "pos": 52,
+        "shloka_count": 32,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "अङ्गदादिनिर्वेदः",
+        "name_nor": "angadAdinirvEdaH",
+        "pos": 53,
+        "shloka_count": 27,
+        "shloka_count_expected": 40
+      },
+      {
+        "name_dev": "हनूमद्भेदनम्",
+        "name_nor": "hanUmadbhEdanam",
+        "pos": 54,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "प्रायोपवेशः",
+        "name_nor": "prAyOpavEshaH",
+        "pos": 55,
+        "shloka_count": 23,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "संपातिप्रश्नः",
+        "name_nor": "sampAtiprashnaH",
+        "pos": 56,
+        "shloka_count": 24,
+        "shloka_count_expected": 16
+      },
+      {
+        "name_dev": "जटायुर्दिष्टकथनम्",
+        "name_nor": "jaTAyurdiShTakathanam",
+        "pos": 57,
+        "shloka_count": 19,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "सीताप्रवृच्युपलम्भः",
+        "name_nor": "sItApravRchyupalambhaH",
+        "pos": 58,
+        "shloka_count": 37,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "सुपार्श्ववचनानुवादः",
+        "name_nor": "supArshvavachanAnuvAdaH",
+        "pos": 59,
+        "shloka_count": 28,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "संपातिपुरावृत्तवर्णनम्",
+        "name_nor": "sampAtipurAvRttavarNanam",
+        "pos": 60,
+        "shloka_count": 21,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "सूर्यानुगमनाख्यानम्",
+        "name_nor": "sUryAnugamanAkhyAnam",
+        "pos": 61,
+        "shloka_count": 17,
+        "shloka_count_expected": 17
+      },
+      {
+        "name_dev": "निशाकरभविष्याख्यानम्",
+        "name_nor": "nishAkarabhaviShyAkhyAnam",
+        "pos": 62,
+        "shloka_count": 15,
+        "shloka_count_expected": 16
+      },
+      {
+        "name_dev": "संपातिपक्षप्ररोहः",
+        "name_nor": "sampAtipakShaprarOhaH",
+        "pos": 63,
+        "shloka_count": 15,
+        "shloka_count_expected": 14
+      },
+      {
+        "name_dev": "समुद्रलङ्घनमन्त्रणम्",
+        "name_nor": "samudralanghanamantraNam",
+        "pos": 64,
+        "shloka_count": 22,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "बलेयत्ताविष्करणम्",
+        "name_nor": "balEyattAviShkaraNam",
+        "pos": 65,
+        "shloka_count": 35,
+        "shloka_count_expected": 34
+      },
+      {
+        "name_dev": "हनुमद्बलसंधुक्षणम्",
+        "name_nor": "hanumadbalasandhukShaNam",
+        "pos": 66,
+        "shloka_count": 38,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "लङ्घनावष्टम्भः",
+        "name_nor": "langhanAvaShTambhaH",
+        "pos": 67,
+        "shloka_count": 49,
+        "shloka_count_expected": 49
+      }
+    ]
+  },
+  {
+    "name_dev": "सुन्दरकाण्डः",
+    "name_nor": "sundarakANDaH",
+    "pos": 5,
+    "list_count": 68,
+    "list_count_expected": null,
+    "list": [
+      {
+        "name_dev": "सागरलङ्घनम्",
+        "name_nor": "sAgaralanghanam",
+        "pos": 1,
+        "shloka_count": 213,
+        "shloka_count_expected": 210
+      },
+      {
+        "name_dev": "निशागमप्रतीक्षा",
+        "name_nor": "nishAgamapratIkShA",
+        "pos": 2,
+        "shloka_count": 58,
+        "shloka_count_expected": 58
+      },
+      {
+        "name_dev": "लङ्काधिदेवताविजयः",
+        "name_nor": "lankAdhidEvatAvijayaH",
+        "pos": 3,
+        "shloka_count": 51,
+        "shloka_count_expected": 51
+      },
+      {
+        "name_dev": "लङ्कापुरीप्रवेशः",
+        "name_nor": "lankApurIpravEshaH",
+        "pos": 4,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "भवनविचयः",
+        "name_nor": "bhavanavichayaH",
+        "pos": 5,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "रावणगृहावेक्षणम्",
+        "name_nor": "rAvaNagRhAvEkShaNam",
+        "pos": 6,
+        "shloka_count": 44,
+        "shloka_count_expected": 44
+      },
+      {
+        "name_dev": "पुष्पकदर्शनम्",
+        "name_nor": "puShpakadarshanam",
+        "pos": 7,
+        "shloka_count": 17,
+        "shloka_count_expected": 17
+      },
+      {
+        "name_dev": "पुष्पकानुवर्णनम्",
+        "name_nor": "puShpakAnuvarNanam",
+        "pos": 8,
+        "shloka_count": 8,
+        "shloka_count_expected": 8
+      },
+      {
+        "name_dev": "संकुलान्तःपुरम्",
+        "name_nor": "sankulAntaHpuram",
+        "pos": 9,
+        "shloka_count": 73,
+        "shloka_count_expected": 43
+      },
+      {
+        "name_dev": "मन्दोदरीदर्शनम्",
+        "name_nor": "mandOdarIdarshanam",
+        "pos": 10,
+        "shloka_count": 54,
+        "shloka_count_expected": 53
+      },
+      {
+        "name_dev": "पानभूमिविचयः",
+        "name_nor": "pAnabhUmivichayaH",
+        "pos": 11,
+        "shloka_count": 48,
+        "shloka_count_expected": 49
+      },
+      {
+        "name_dev": "हनूमद्विषादः",
+        "name_nor": "hanUmadviShAdaH",
+        "pos": 12,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "हनूमन्निर्वेदः",
+        "name_nor": "hanUmannirvEdaH",
+        "pos": 13,
+        "shloka_count": 69,
+        "shloka_count_expected": 70
+      },
+      {
+        "name_dev": "अशोकवनिकाविचयः",
+        "name_nor": "ashOkavanikAvichayaH",
+        "pos": 14,
+        "shloka_count": 52,
+        "shloka_count_expected": 53
+      },
+      {
+        "name_dev": "सीतोपलम्भः",
+        "name_nor": "sItOpalambhaH",
+        "pos": 15,
+        "shloka_count": 54,
+        "shloka_count_expected": 54
+      },
+      {
+        "name_dev": "हनूमत्परीतापः",
+        "name_nor": "hanUmatparItApaH",
+        "pos": 16,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "राक्षसीपरिवारः",
+        "name_nor": "rAkShasIparivAraH",
+        "pos": 17,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "रावणागमनम्",
+        "name_nor": "rAvaNAgamanam",
+        "pos": 18,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "कृच्छ्रगतसीतोपमाः",
+        "name_nor": "kRchChragatasItOpamAH",
+        "pos": 19,
+        "shloka_count": 22,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "प्रणयप्रार्थना",
+        "name_nor": "praNayaprArthanA",
+        "pos": 20,
+        "shloka_count": 36,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "रावणतृणीकरणम्",
+        "name_nor": "rAvaNatRNIkaraNam",
+        "pos": 21,
+        "shloka_count": 34,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "मासद्वयावधिकरणम्",
+        "name_nor": "mAsadvayAvadhikaraNam",
+        "pos": 22,
+        "shloka_count": 46,
+        "shloka_count_expected": 45
+      },
+      {
+        "name_dev": "राक्षसीप्ररोचनम्",
+        "name_nor": "rAkShasIprarOchanam",
+        "pos": 23,
+        "shloka_count": 19,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "राक्षसीनिर्भर्त्सनम्",
+        "name_nor": "rAkShasInirbhartsanam",
+        "pos": 24,
+        "shloka_count": 47,
+        "shloka_count_expected": 45
+      },
+      {
+        "name_dev": "सीतानिर्वेदः",
+        "name_nor": "sItAnirvEdaH",
+        "pos": 25,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "प्राणत्यागसंप्रधारणम्",
+        "name_nor": "prANatyAgasaMpradhAraNam",
+        "pos": 26,
+        "shloka_count": 49,
+        "shloka_count_expected": 51
+      },
+      {
+        "name_dev": "त्रिजटास्वप्नः",
+        "name_nor": "trijaTAsvapnaH",
+        "pos": 27,
+        "shloka_count": 54,
+        "shloka_count_expected": 53
+      },
+      {
+        "name_dev": "उद्बन्धनव्यवसायः",
+        "name_nor": "udbandhanavyavasAyaH",
+        "pos": 28,
+        "shloka_count": 19,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "शुभनिमित्तानि",
+        "name_nor": "shubhanimittAni",
+        "pos": 29,
+        "shloka_count": 8,
+        "shloka_count_expected": 8
+      },
+      {
+        "name_dev": "हनुमत्कृत्याकृत्यविचिन्तनम्",
+        "name_nor": "hanumatkRtyAkRtyavichintanam",
+        "pos": 30,
+        "shloka_count": 44,
+        "shloka_count_expected": 44
+      },
+      {
+        "name_dev": "रामवृत्तसंश्रवः",
+        "name_nor": "rAmavRttasaMshravaH",
+        "pos": 31,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "सीतवितर्कः",
+        "name_nor": "sItavitarkaH",
+        "pos": 32,
+        "shloka_count": 14,
+        "shloka_count_expected": 14
+      },
+      {
+        "name_dev": "हनूमञ्जानकीसंवादोपक्रमः",
+        "name_nor": "hanUmanjAnakIsaMvAdOpakramaH",
+        "pos": 33,
+        "shloka_count": 31,
+        "shloka_count_expected": 31
+      },
+      {
+        "name_dev": "रावणशङ्कानिवारणम्",
+        "name_nor": "rAvaNashankAnivAraNam",
+        "pos": 34,
+        "shloka_count": 40,
+        "shloka_count_expected": 41
+      },
+      {
+        "name_dev": "विश्वासोत्पादनम्",
+        "name_nor": "vishvAsOtpAdanam",
+        "pos": 35,
+        "shloka_count": 90,
+        "shloka_count_expected": 88
+      },
+      {
+        "name_dev": "अङ्गुलीयकप्रदानम्",
+        "name_nor": "angulIyakapradAnam",
+        "pos": 36,
+        "shloka_count": 47,
+        "shloka_count_expected": 47
+      },
+      {
+        "name_dev": "सीताप्रत्यानयनानौचित्यम्",
+        "name_nor": "sItApratyAnayanAnauchityam",
+        "pos": 37,
+        "shloka_count": 68,
+        "shloka_count_expected": 66
+      },
+      {
+        "name_dev": "वायसवृत्तान्तकथनम्",
+        "name_nor": "vAyasavRttAntakathanam",
+        "pos": 38,
+        "shloka_count": 70,
+        "shloka_count_expected": 73
+      },
+      {
+        "name_dev": "हनूमत्सन्देशः",
+        "name_nor": "hanUmatsandEshaH",
+        "pos": 39,
+        "shloka_count": 54,
+        "shloka_count_expected": 54
+      },
+      {
+        "name_dev": "हनूमत्प्रेषणम्",
+        "name_nor": "hanUmatprEShaNam",
+        "pos": 40,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "प्रमदावनभञ्जनम्",
+        "name_nor": "pramadAvanabhanjanam",
+        "pos": 41,
+        "shloka_count": 21,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "किंकरनिषूदनम्",
+        "name_nor": "kinkaraniShUdanam",
+        "pos": 42,
+        "shloka_count": 44,
+        "shloka_count_expected": 43
+      },
+      {
+        "name_dev": "चैत्यप्रासाददाहः",
+        "name_nor": "chaityaprAsAdadAhaH",
+        "pos": 43,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "जम्बुमालिवधः",
+        "name_nor": "jambumAlivadhaH",
+        "pos": 44,
+        "shloka_count": 20,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "अमात्यपुत्रवधः",
+        "name_nor": "amAtyaputravadhaH",
+        "pos": 45,
+        "shloka_count": 17,
+        "shloka_count_expected": 16
+      },
+      {
+        "name_dev": "सेनापतिपञ्चकवधः",
+        "name_nor": "sEnApatipanchakavadhaH",
+        "pos": 46,
+        "shloka_count": 41,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "अक्षकुमारवधः",
+        "name_nor": "akShakumAravadhaH",
+        "pos": 47,
+        "shloka_count": 38,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "इन्द्रजिदभियोगः",
+        "name_nor": "indrajidabhiyOgaH",
+        "pos": 48,
+        "shloka_count": 61,
+        "shloka_count_expected": 61
+      },
+      {
+        "name_dev": "रावणप्रभावदर्शनम्",
+        "name_nor": "rAvaNaprabhAvadarshanam",
+        "pos": 49,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "प्रहस्तप्रश्नः",
+        "name_nor": "prahastaprashnaH",
+        "pos": 50,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "हनुमदुपदेशः",
+        "name_nor": "hanumadupadeshaH",
+        "pos": 51,
+        "shloka_count": 45,
+        "shloka_count_expected": 46
+      },
+      {
+        "name_dev": "दूतवधनिवारणम्",
+        "name_nor": "dUtavadhanivAraNam",
+        "pos": 52,
+        "shloka_count": 28,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "पावकशैत्यम्",
+        "name_nor": "pAvakashaityam",
+        "pos": 53,
+        "shloka_count": 44,
+        "shloka_count_expected": 44
+      },
+      {
+        "name_dev": "लङ्कादाहः",
+        "name_nor": "lankAdAhaH",
+        "pos": 54,
+        "shloka_count": 51,
+        "shloka_count_expected": 51
+      },
+      {
+        "name_dev": "हनूमद्विभ्रमः",
+        "name_nor": "hanUmadvibhramaH",
+        "pos": 55,
+        "shloka_count": 35,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "प्रतिप्रयाणोत्पतनम्",
+        "name_nor": "pratiprayANOtpatanam",
+        "pos": 56,
+        "shloka_count": 51,
+        "shloka_count_expected": 34
+      },
+      {
+        "name_dev": "हनूमत्प्रत्यागमनम्",
+        "name_nor": "hanUmatpratyAgamanam",
+        "pos": 57,
+        "shloka_count": 53,
+        "shloka_count_expected": 52
+      },
+      {
+        "name_dev": "हनूमद्वृत्तानुकथनम्",
+        "name_nor": "hanUmadvRttAnukathanam",
+        "pos": 58,
+        "shloka_count": 169,
+        "shloka_count_expected": 167
+      },
+      {
+        "name_dev": "अनन्तरकार्यप्ररोचनम्",
+        "name_nor": "anantarakAryaprarOchanam",
+        "pos": 59,
+        "shloka_count": 32,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "अङ्गदजाम्बवत्संवादः",
+        "name_nor": "angadajAmbavatsaMvAdaH",
+        "pos": 60,
+        "shloka_count": 20,
+        "shloka_count_expected": 14
+      },
+      {
+        "name_dev": "मधुवनप्रवेशः",
+        "name_nor": "madhuvanapravEshaH",
+        "pos": 61,
+        "shloka_count": 24,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "दधिमुखखिलीकारः",
+        "name_nor": "dadhimukhakhilIkAraH",
+        "pos": 62,
+        "shloka_count": 38,
+        "shloka_count_expected": 40
+      },
+      {
+        "name_dev": "सुग्रीवहर्षः",
+        "name_nor": "sugrIvaharShaH",
+        "pos": 63,
+        "shloka_count": 33,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "हनूमदाद्यागमनम्",
+        "name_nor": "hanUmadAdyAgamanam",
+        "pos": 64,
+        "shloka_count": 45,
+        "shloka_count_expected": 40
+      },
+      {
+        "name_dev": "चूडामणिप्रदानम्",
+        "name_nor": "chUDAmaNipradAnam",
+        "pos": 65,
+        "shloka_count": 28,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "सीताभाषितप्रश्नः",
+        "name_nor": "sItAbhAShitaprashnaH",
+        "pos": 66,
+        "shloka_count": 15,
+        "shloka_count_expected": 15
+      },
+      {
+        "name_dev": "सीताभाषितानुवचनम्",
+        "name_nor": "sItAbhAShitAnuvachanam",
+        "pos": 67,
+        "shloka_count": 44,
+        "shloka_count_expected": 44
+      },
+      {
+        "name_dev": "हनूमत्समाश्वासवचनानुवादः",
+        "name_nor": "hanUmatsamAshvAsavachanAnuvAdaH",
+        "pos": 68,
+        "shloka_count": 29,
+        "shloka_count_expected": 29
+      }
+    ]
+  },
+  {
+    "name_dev": "युद्धकाण्डः",
+    "name_nor": "yuddhakANDaH",
+    "pos": 6,
+    "list_count": 131,
+    "list_count_expected": null,
+    "list": [
+      {
+        "name_dev": "हनूमत्प्रशंसनम्",
+        "name_nor": "hanUmatprashaMsanam",
+        "pos": 1,
+        "shloka_count": 19,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "रामप्रोत्साहनम्",
+        "name_nor": "rAmaprOtsAhanam",
+        "pos": 2,
+        "shloka_count": 24,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "लङ्कादुर्गादिकथनम्",
+        "name_nor": "lankAdurgAdikathanam",
+        "pos": 3,
+        "shloka_count": 33,
+        "shloka_count_expected": 34
+      },
+      {
+        "name_dev": "रामाभिषेणनम्",
+        "name_nor": "rAmAbhiSheNanam",
+        "pos": 4,
+        "shloka_count": 121,
+        "shloka_count_expected": 126
+      },
+      {
+        "name_dev": "रामविप्रलम्भः",
+        "name_nor": "rAmavipralambhaH",
+        "pos": 5,
+        "shloka_count": 23,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "रावणमन्त्रणम्",
+        "name_nor": "rAvaNamantraNam",
+        "pos": 6,
+        "shloka_count": 18,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "सचिवोक्तिः",
+        "name_nor": "sachivOktiH",
+        "pos": 7,
+        "shloka_count": 25,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "प्रहस्तादिवचनम्",
+        "name_nor": "prahastAdivachanam",
+        "pos": 8,
+        "shloka_count": 24,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "विभीषणसमालोचनम्",
+        "name_nor": "vibhIShaNasamAlOchanam",
+        "pos": 9,
+        "shloka_count": 23,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "विभीषणपथ्योपदेशः",
+        "name_nor": "vibhIShaNapathyOpadEshaH",
+        "pos": 10,
+        "shloka_count": 29,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "द्वितीयमन्त्राधिवेषः",
+        "name_nor": "dvitIyamantrAdhivEShaH",
+        "pos": 11,
+        "shloka_count": 31,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "कुम्भकर्णमतिः",
+        "name_nor": "kumbhakarNamatiH",
+        "pos": 12,
+        "shloka_count": 40,
+        "shloka_count_expected": 40
+      },
+      {
+        "name_dev": "महापार्श्ववचोऽभिनन्दनम्",
+        "name_nor": "mahApArshvavachOabhinandanam",
+        "pos": 13,
+        "shloka_count": 21,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "प्रहस्तविभीषणविवादः",
+        "name_nor": "prahastavibhIShaNavivAdaH",
+        "pos": 14,
+        "shloka_count": 22,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "इन्द्रजिद्विभीषणविवादः",
+        "name_nor": "indrajidvibhIShaNavivAdaH",
+        "pos": 15,
+        "shloka_count": 14,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "विभीषणाक्रोशः",
+        "name_nor": "vibhIShaNAkroshaH",
+        "pos": 16,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "विभीषणशरणागतिनिवेदनम्",
+        "name_nor": "vibhIShaNasharaNAgatinivEdanam",
+        "pos": 17,
+        "shloka_count": 68,
+        "shloka_count_expected": 68
+      },
+      {
+        "name_dev": "विभीषणसंग्रहनिर्णयः",
+        "name_nor": "vibhIShaNasangrahanirNayaH",
+        "pos": 18,
+        "shloka_count": 39,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "शरतल्पसंवेशः",
+        "name_nor": "sharatalpasaMvEshaH",
+        "pos": 19,
+        "shloka_count": 41,
+        "shloka_count_expected": 42
+      },
+      {
+        "name_dev": "सुग्रीवभेदनोपायः",
+        "name_nor": "sugrIvabhedanOpAyaH",
+        "pos": 20,
+        "shloka_count": 34,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "समुद्रसंक्षोभः",
+        "name_nor": "samudrasaMkShObhaH",
+        "pos": 21,
+        "shloka_count": 35,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "सेतुबन्धः",
+        "name_nor": "sEtubandhaH",
+        "pos": 22,
+        "shloka_count": 89,
+        "shloka_count_expected": 89
+      },
+      {
+        "name_dev": "लङ्काभिषेणनम्",
+        "name_nor": "lankAbhiShENanam",
+        "pos": 23,
+        "shloka_count": 16,
+        "shloka_count_expected": 16
+      },
+      {
+        "name_dev": "रावणप्रतिज्ञा",
+        "name_nor": "rAvaNapratijnA",
+        "pos": 24,
+        "shloka_count": 44,
+        "shloka_count_expected": 45
+      },
+      {
+        "name_dev": "शुकसारणप्रषेणादिकम्",
+        "name_nor": "shukasAraNapraShENAdikam",
+        "pos": 25,
+        "shloka_count": 33,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "कपिबलावेक्षणम्",
+        "name_nor": "kapibalAvEkShaNam",
+        "pos": 26,
+        "shloka_count": 47,
+        "shloka_count_expected": 48
+      },
+      {
+        "name_dev": "हरादिवानरपराक्रमाख्यानम्",
+        "name_nor": "harAdivAnaraparAkramAkhyAnam",
+        "pos": 27,
+        "shloka_count": 48,
+        "shloka_count_expected": 49
+      },
+      {
+        "name_dev": "मैन्दादिपराक्रमाख्यानम्",
+        "name_nor": "maindAdiparAkramAkhyAnam",
+        "pos": 28,
+        "shloka_count": 42,
+        "shloka_count_expected": 44
+      },
+      {
+        "name_dev": "शार्दूलादिचारप्रेषणम्",
+        "name_nor": "shArdUlAdichAraprEShaNam",
+        "pos": 29,
+        "shloka_count": 29,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "वानरबलसंख्यानम्",
+        "name_nor": "vAnarabalasankhyAnam",
+        "pos": 30,
+        "shloka_count": 35,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "विद्युद्जिह्वमायाप्रयोगः",
+        "name_nor": "vidyudjihvamAyAprayOgaH",
+        "pos": 31,
+        "shloka_count": 45,
+        "shloka_count_expected": 45
+      },
+      {
+        "name_dev": "सीताविलापः",
+        "name_nor": "sItAvilApaH",
+        "pos": 32,
+        "shloka_count": 44,
+        "shloka_count_expected": 44
+      },
+      {
+        "name_dev": "सरमासमाश्वासनम्",
+        "name_nor": "saramAsamAshvAsanam",
+        "pos": 33,
+        "shloka_count": 38,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "रावणनिश्चयकथनम्",
+        "name_nor": "rAvaNanishchayakathanam",
+        "pos": 34,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "माल्यवदुपदेशः",
+        "name_nor": "mAlyavadupadEshaH",
+        "pos": 35,
+        "shloka_count": 37,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "पुरद्वाररक्षा",
+        "name_nor": "puradvArarakShA",
+        "pos": 36,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "रामगुल्मविभागः",
+        "name_nor": "rAmagulmavibhAgaH",
+        "pos": 37,
+        "shloka_count": 37,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "सुवेलारोहणम्",
+        "name_nor": "suvElArOhaNam",
+        "pos": 38,
+        "shloka_count": 20,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "लङ्कादर्शनम्",
+        "name_nor": "lankAdarshanam",
+        "pos": 39,
+        "shloka_count": 28,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "रावणसुग्रीवनियुद्धम्",
+        "name_nor": "rAvaNasugrIvaniyuddham",
+        "pos": 40,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "अङ्गददूत्यम्",
+        "name_nor": "angadadUtyam",
+        "pos": 41,
+        "shloka_count": 99,
+        "shloka_count_expected": 100
+      },
+      {
+        "name_dev": "युद्धारम्भः",
+        "name_nor": "yuddhArambhaH",
+        "pos": 42,
+        "shloka_count": 47,
+        "shloka_count_expected": 48
+      },
+      {
+        "name_dev": "द्वन्द्वयुद्धम्",
+        "name_nor": "dvandvayuddham",
+        "pos": 43,
+        "shloka_count": 46,
+        "shloka_count_expected": 48
+      },
+      {
+        "name_dev": "निशायुद्धम्",
+        "name_nor": "nishAyuddham",
+        "pos": 44,
+        "shloka_count": 39,
+        "shloka_count_expected": 41
+      },
+      {
+        "name_dev": "नागपाशबन्धः",
+        "name_nor": "nAgapAshabandhaH",
+        "pos": 45,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "सुग्रीवाद्यनुशोकः",
+        "name_nor": "sugriIvAdyanushOkaH",
+        "pos": 46,
+        "shloka_count": 50,
+        "shloka_count_expected": 50
+      },
+      {
+        "name_dev": "नागबद्धरामलक्ष्मणप्रदर्शनम्",
+        "name_nor": "nAgabaddharAmalakShmaNapradarshanam",
+        "pos": 47,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "सीताश्वासनम्",
+        "name_nor": "sItAshvAsanam",
+        "pos": 48,
+        "shloka_count": 37,
+        "shloka_count_expected": 37
+      },
+      {
+        "name_dev": "रामनिर्वेदः",
+        "name_nor": "rAmanirvEdaH",
+        "pos": 49,
+        "shloka_count": 33,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "नागपाशविमोक्षणम्",
+        "name_nor": "nAgapAshavimOkShaNam",
+        "pos": 50,
+        "shloka_count": 65,
+        "shloka_count_expected": 65
+      },
+      {
+        "name_dev": "धूम्राक्षाभिषेणनम्",
+        "name_nor": "dhUmrAkShAbhiShENanam",
+        "pos": 51,
+        "shloka_count": 36,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "धूम्राक्षवधः",
+        "name_nor": "dhUmrAkShavadhaH",
+        "pos": 52,
+        "shloka_count": 38,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "वज्रदंष्ट्रयुद्धम्",
+        "name_nor": "vajradaMShTrayuddham",
+        "pos": 53,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "वज्रदंष्ट्रवधः",
+        "name_nor": "vajradaMShTravadhaH",
+        "pos": 54,
+        "shloka_count": 37,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "अकम्पनयुद्धम्",
+        "name_nor": "akampanayuddham",
+        "pos": 55,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "अकम्पनवधः",
+        "name_nor": "akampanavadhaH",
+        "pos": 56,
+        "shloka_count": 39,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "प्रहस्तयुद्धम्",
+        "name_nor": "prahastayuddham",
+        "pos": 57,
+        "shloka_count": 44,
+        "shloka_count_expected": 46
+      },
+      {
+        "name_dev": "प्रहस्तवधः",
+        "name_nor": "prahastavadhaH",
+        "pos": 58,
+        "shloka_count": 61,
+        "shloka_count_expected": 61
+      },
+      {
+        "name_dev": "रावणाभिषेणनम्",
+        "name_nor": "rAvaNAbhiShENanam",
+        "pos": 59,
+        "shloka_count": 146,
+        "shloka_count_expected": 146
+      },
+      {
+        "name_dev": "कुम्भकर्णप्रबोधः",
+        "name_nor": "kumbhakarNaprabOdhaH",
+        "pos": 60,
+        "shloka_count": 98,
+        "shloka_count_expected": 98
+      },
+      {
+        "name_dev": "कुम्भकर्णवृत्तकथनम्",
+        "name_nor": "kumbhakarNavRttakathanam",
+        "pos": 61,
+        "shloka_count": 40,
+        "shloka_count_expected": 40
+      },
+      {
+        "name_dev": "रावणाभ्यर्थना",
+        "name_nor": "rAvaNAbhyarthanA",
+        "pos": 62,
+        "shloka_count": 24,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "कुम्भकर्णानुशोकः",
+        "name_nor": "kumbhakarNAnushOkaH",
+        "pos": 63,
+        "shloka_count": 58,
+        "shloka_count_expected": 57
+      },
+      {
+        "name_dev": "सीताप्रलोभनोपायः",
+        "name_nor": "sItApralObhanOpAyaH",
+        "pos": 64,
+        "shloka_count": 36,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "कुम्भकर्णाभिषेणनम्",
+        "name_nor": "kumbhakarNAbhiShENanam",
+        "pos": 65,
+        "shloka_count": 57,
+        "shloka_count_expected": 57
+      },
+      {
+        "name_dev": "वानरपर्यवस्थापनम्",
+        "name_nor": "vAnaraparyavasthApanam",
+        "pos": 66,
+        "shloka_count": 33,
+        "shloka_count_expected": 34
+      },
+      {
+        "name_dev": "कुम्भकर्णवधः",
+        "name_nor": "kumbhakarNavadhaH",
+        "pos": 67,
+        "shloka_count": 177,
+        "shloka_count_expected": 191
+      },
+      {
+        "name_dev": "रावणानुशोकः",
+        "name_nor": "rAvaNAnushOkaH",
+        "pos": 68,
+        "shloka_count": 24,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "नरान्तकवधः",
+        "name_nor": "narAntakavadhaH",
+        "pos": 69,
+        "shloka_count": 96,
+        "shloka_count_expected": 99
+      },
+      {
+        "name_dev": "देवान्तकादिवधः",
+        "name_nor": "dEvAntakAdivadhaH",
+        "pos": 70,
+        "shloka_count": 67,
+        "shloka_count_expected": 85
+      },
+      {
+        "name_dev": "अतिकायवधः",
+        "name_nor": "atikAyavadhaH",
+        "pos": 71,
+        "shloka_count": 116,
+        "shloka_count_expected": 116
+      },
+      {
+        "name_dev": "रावणमन्युशल्याविष्कारः",
+        "name_nor": "rAvaNamanyushalyAviShkAraH",
+        "pos": 72,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "इन्द्रजिन्मायायुद्धम्",
+        "name_nor": "indrajinmAyAyuddham",
+        "pos": 73,
+        "shloka_count": 74,
+        "shloka_count_expected": 74
+      },
+      {
+        "name_dev": "ओषधिपर्वतानयनम्",
+        "name_nor": "OShadhiparvatAnayanam",
+        "pos": 74,
+        "shloka_count": 77,
+        "shloka_count_expected": 77
+      },
+      {
+        "name_dev": "लङ्कादाहः",
+        "name_nor": "lankAdAhaH",
+        "pos": 75,
+        "shloka_count": 69,
+        "shloka_count_expected": 71
+      },
+      {
+        "name_dev": "कम्पनादिवधः",
+        "name_nor": "kampanAdivadhaH",
+        "pos": 76,
+        "shloka_count": 94,
+        "shloka_count_expected": 94
+      },
+      {
+        "name_dev": "निकुम्भवधः",
+        "name_nor": "nikumbhavadhaH",
+        "pos": 77,
+        "shloka_count": 24,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "मकराक्षाभिषेणनम्",
+        "name_nor": "makarAkShAbhiShENanam",
+        "pos": 78,
+        "shloka_count": 21,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "मकराक्षवधः",
+        "name_nor": "makarAkShavadhaH",
+        "pos": 79,
+        "shloka_count": 41,
+        "shloka_count_expected": 48
+      },
+      {
+        "name_dev": "तिरोहितरावणियुद्धम्",
+        "name_nor": "tirOhitarAvaNiyuddham",
+        "pos": 80,
+        "shloka_count": 43,
+        "shloka_count_expected": 43
+      },
+      {
+        "name_dev": "मायासीतावधः",
+        "name_nor": "mAyAsItAvadhaH",
+        "pos": 81,
+        "shloka_count": 34,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "हनूमदादिनिर्वेदः",
+        "name_nor": "hanUmadAdinirvEdaH",
+        "pos": 82,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "रामाश्वासनम्",
+        "name_nor": "rAmAshvAsanam",
+        "pos": 83,
+        "shloka_count": 44,
+        "shloka_count_expected": 44
+      },
+      {
+        "name_dev": "इन्द्रजिन्मायाविवरणम्",
+        "name_nor": "indrajinmAyAvivaraNam",
+        "pos": 84,
+        "shloka_count": 23,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "निकुम्भिलाभियानम्",
+        "name_nor": "nikumbhilAbhiyAnam",
+        "pos": 85,
+        "shloka_count": 36,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "रावणिबलकदनम्",
+        "name_nor": "rAvaNibalakadanam",
+        "pos": 86,
+        "shloka_count": 35,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "विभीषणरावणिपरस्परनिन्दा",
+        "name_nor": "vibhIShaNarAvaNiparasparanindA",
+        "pos": 87,
+        "shloka_count": 30,
+        "shloka_count_expected": 31
+      },
+      {
+        "name_dev": "सौमित्रिरावणियुद्धम्",
+        "name_nor": "saumitrirAvaNiyuddham",
+        "pos": 88,
+        "shloka_count": 36,
+        "shloka_count_expected": 40
+      },
+      {
+        "name_dev": "सौमित्रिसंधुक्षणम्",
+        "name_nor": "saumitrisandhukShaNam",
+        "pos": 89,
+        "shloka_count": 41,
+        "shloka_count_expected": 42
+      },
+      {
+        "name_dev": "सौमित्रिरावणियुद्धम्",
+        "name_nor": "saumitrirAvaNiyuddham",
+        "pos": 90,
+        "shloka_count": 53,
+        "shloka_count_expected": 54
+      },
+      {
+        "name_dev": "रावणिवधः",
+        "name_nor": "rAvaNivadhaH",
+        "pos": 91,
+        "shloka_count": 94,
+        "shloka_count_expected": 98
+      },
+      {
+        "name_dev": "रावणिशस्त्रहतचिकित्सा",
+        "name_nor": "rAvaNishastrahatachikitsA",
+        "pos": 92,
+        "shloka_count": 29,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "सीताहननोद्यमनिवृत्तिः",
+        "name_nor": "sItAhananOdyamanivRttiH",
+        "pos": 93,
+        "shloka_count": 68,
+        "shloka_count_expected": 67
+      },
+      {
+        "name_dev": "गन्धर्वास्त्रमोहनम्",
+        "name_nor": "gandharvAstramOhanam",
+        "pos": 94,
+        "shloka_count": 39,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "राक्षसीविलापः",
+        "name_nor": "rAkShasIvilApaH",
+        "pos": 95,
+        "shloka_count": 41,
+        "shloka_count_expected": 43
+      },
+      {
+        "name_dev": "रावणाभिषेणनम्",
+        "name_nor": "rAvaNAbhiShENanam",
+        "pos": 96,
+        "shloka_count": 54,
+        "shloka_count_expected": 51
+      },
+      {
+        "name_dev": "विरूपाक्षवधः",
+        "name_nor": "virUpAkShavadhaH",
+        "pos": 97,
+        "shloka_count": 36,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "महोदरवधः",
+        "name_nor": "mahOdaravadhaH",
+        "pos": 98,
+        "shloka_count": 38,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "महापार्श्ववधः",
+        "name_nor": "mahApArshvavadhaH",
+        "pos": 99,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "रामरावणास्त्रपरम्परा",
+        "name_nor": "rAmarAvaNAstraparamparA",
+        "pos": 100,
+        "shloka_count": 51,
+        "shloka_count_expected": 51
+      },
+      {
+        "name_dev": "लक्ष्मणशक्तिक्षेपः",
+        "name_nor": "lakShmaNashaktikShEpaH",
+        "pos": 101,
+        "shloka_count": 62,
+        "shloka_count_expected": 63
+      },
+      {
+        "name_dev": "लक्ष्मणसंजीवनम्",
+        "name_nor": "lakShmaNasanjIvanam",
+        "pos": 102,
+        "shloka_count": 56,
+        "shloka_count_expected": 55
+      },
+      {
+        "name_dev": "ऐन्द्ररथकेतुपातनम्",
+        "name_nor": "aindrarathakEtupAtanam",
+        "pos": 103,
+        "shloka_count": 38,
+        "shloka_count_expected": 40
+      },
+      {
+        "name_dev": "रावणशूलभङ्गः",
+        "name_nor": "rAvaNashUlabhangaH",
+        "pos": 104,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "दशग्रीवविघूर्णनम्",
+        "name_nor": "dashagrIvavighUrNanam",
+        "pos": 105,
+        "shloka_count": 31,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "सारथिविज्ञेयम्",
+        "name_nor": "sArathivijnEyam",
+        "pos": 106,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "आदित्यहृदयम्",
+        "name_nor": "AdityahRdayam",
+        "pos": 107,
+        "shloka_count": 31,
+        "shloka_count_expected": 31
+      },
+      {
+        "name_dev": "शुभाशुभनिमित्तदर्शनम्",
+        "name_nor": "shubhAshubhanimittadarshanam",
+        "pos": 108,
+        "shloka_count": 36,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "रावणध्वजोन्मथनम्",
+        "name_nor": "rAvaNadhvajOnmathanam",
+        "pos": 109,
+        "shloka_count": 28,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "रावणैकशतशिरश्छेदनम्",
+        "name_nor": "rAvaNaikashatashirashChEdanam",
+        "pos": 110,
+        "shloka_count": 39,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "पौलस्त्यवधः",
+        "name_nor": "paulastyavadhaH",
+        "pos": 111,
+        "shloka_count": 34,
+        "shloka_count_expected": 34
+      },
+      {
+        "name_dev": "विभीषणविलापः",
+        "name_nor": "vibhIShaNavilApaH",
+        "pos": 112,
+        "shloka_count": 25,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "रावाणान्तःपुरपरिदेवनम्",
+        "name_nor": "rAvANAntaHpuraparidEvanam",
+        "pos": 113,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "मन्दोदरीविलापः",
+        "name_nor": "mandOdarIvilApaH",
+        "pos": 114,
+        "shloka_count": 124,
+        "shloka_count_expected": 116
+      },
+      {
+        "name_dev": "विभीषणाभिषेकः",
+        "name_nor": "vibhIShaNAbhiShEkaH",
+        "pos": 115,
+        "shloka_count": 26,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "मैथिलीप्रियनिवेदनम्",
+        "name_nor": "maithilIpriyanivEdanam",
+        "pos": 116,
+        "shloka_count": 53,
+        "shloka_count_expected": 51
+      },
+      {
+        "name_dev": "सीताभर्तृमुखोदीक्षणम्",
+        "name_nor": "sItAbhartRmukhOdIkShaNam",
+        "pos": 117,
+        "shloka_count": 36,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "सीताप्रत्यादेशः",
+        "name_nor": "sItApratyAdEshaH",
+        "pos": 118,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "हुताशनप्रवेशः",
+        "name_nor": "hutAshanapravEshaH",
+        "pos": 119,
+        "shloka_count": 36,
+        "shloka_count_expected": 34
+      },
+      {
+        "name_dev": "ब्रह्मकृतरामस्तवः",
+        "name_nor": "brahmakRtarAmastavaH",
+        "pos": 120,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "सीताप्रतिग्रहः",
+        "name_nor": "sItApratigrahaH",
+        "pos": 121,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "दशरथप्रतिसमादेशः",
+        "name_nor": "dasharathapratisamAdEshaH",
+        "pos": 122,
+        "shloka_count": 39,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "इन्द्रवरदानम्",
+        "name_nor": "indravaradAnam",
+        "pos": 123,
+        "shloka_count": 24,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "पुष्पकोपस्थापनम्",
+        "name_nor": "puShpakOpasthApanam",
+        "pos": 124,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "पुष्पकोत्पतनम्",
+        "name_nor": "puShpakOtpatanam",
+        "pos": 125,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "प्रत्यवृत्तिपथवर्णनम्",
+        "name_nor": "pratyavRttipathavarNanam",
+        "pos": 126,
+        "shloka_count": 57,
+        "shloka_count_expected": 52
+      },
+      {
+        "name_dev": "भरद्वाजामन्त्रणम्",
+        "name_nor": "bharadvAjAmantraNam",
+        "pos": 127,
+        "shloka_count": 23,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "भरतप्रियाख्यानम्",
+        "name_nor": "bharatapriyAkhyAnam",
+        "pos": 128,
+        "shloka_count": 46,
+        "shloka_count_expected": 45
+      },
+      {
+        "name_dev": "हनूमद्भरतसंभाषणम्",
+        "name_nor": "hanUmadbharatasambhAShaNam",
+        "pos": 129,
+        "shloka_count": 55,
+        "shloka_count_expected": 54
+      },
+      {
+        "name_dev": "भरतसमागमः",
+        "name_nor": "bharatasamAgamaH",
+        "pos": 130,
+        "shloka_count": 64,
+        "shloka_count_expected": 61
+      },
+      {
+        "name_dev": "श्रीरामपट्टाभिषेकः",
+        "name_nor": "shrIrAmapaTTAbhiShEkaH",
+        "pos": 131,
+        "shloka_count": 125,
+        "shloka_count_expected": 124
+      }
+    ]
+  },
+  {
+    "name_dev": "उत्तरकाण्डः",
+    "name_nor": "uttaralANDaH",
+    "pos": 7,
+    "list_count": 111,
+    "list_count_expected": null,
+    "list": [
+      {
+        "name_dev": "रामप्रश्नः",
+        "name_nor": "rAmaprashnaH",
+        "pos": 1,
+        "shloka_count": 41,
+        "shloka_count_expected": 41
+      },
+      {
+        "name_dev": "पौलस्योत्पत्तिः",
+        "name_nor": "paulasyOtpattiH",
+        "pos": 2,
+        "shloka_count": 34,
+        "shloka_count_expected": 34
+      },
+      {
+        "name_dev": "वैश्रवणलोकपालपदलङ्कादिप्राप्तिः",
+        "name_nor": "vaishravaNalOkapAlapadalankAdiprAptiH",
+        "pos": 3,
+        "shloka_count": 36,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "रावणादिपूर्वतनराक्षसोत्पत्तिकथनम्",
+        "name_nor": "rAvaNAdipUrvatanarAkShasOtpattikathanam",
+        "pos": 4,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "माल्यवदाद्यपत्योत्पत्तिः",
+        "name_nor": "mAlyavadAdyapatyOtpattiH",
+        "pos": 5,
+        "shloka_count": 46,
+        "shloka_count_expected": 46
+      },
+      {
+        "name_dev": "विष्णुमाल्यवदादियुद्धम्",
+        "name_nor": "viShNumAlyavadAdiyuddham",
+        "pos": 6,
+        "shloka_count": 69,
+        "shloka_count_expected": 66
+      },
+      {
+        "name_dev": "मालिवधः",
+        "name_nor": "mAlivadhaH",
+        "pos": 7,
+        "shloka_count": 55,
+        "shloka_count_expected": 55
+      },
+      {
+        "name_dev": "सुमाल्यादिनिग्रहः",
+        "name_nor": "sumAlyAdinigrahaH",
+        "pos": 8,
+        "shloka_count": 29,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "रावणाद्युत्पत्तिः",
+        "name_nor": "rAvaNAdyutpattiH",
+        "pos": 9,
+        "shloka_count": 48,
+        "shloka_count_expected": 48
+      },
+      {
+        "name_dev": "रावणादिवरदानम्",
+        "name_nor": "rAvaNAdivaradAnam",
+        "pos": 10,
+        "shloka_count": 49,
+        "shloka_count_expected": 49
+      },
+      {
+        "name_dev": "रावणलङ्काप्राप्तिः",
+        "name_nor": "rAvaNalankAprAptiH",
+        "pos": 11,
+        "shloka_count": 52,
+        "shloka_count_expected": 51
+      },
+      {
+        "name_dev": "रावणादिविवाहः",
+        "name_nor": "rAvaNAdivivAhaH",
+        "pos": 12,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "धनददूतहननम्",
+        "name_nor": "dhanadadUtahananam",
+        "pos": 13,
+        "shloka_count": 42,
+        "shloka_count_expected": 41
+      },
+      {
+        "name_dev": "यक्षरक्षोयुद्धम्",
+        "name_nor": "yakSharakShOyuddham",
+        "pos": 14,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "पुष्पकहरणम्",
+        "name_nor": "puShpakaharaNam",
+        "pos": 15,
+        "shloka_count": 45,
+        "shloka_count_expected": 45
+      },
+      {
+        "name_dev": "रावणनामप्राप्तिः",
+        "name_nor": "rAvaNanAmaprAptiH",
+        "pos": 16,
+        "shloka_count": 50,
+        "shloka_count_expected": 50
+      },
+      {
+        "name_dev": "वेदवतीशापः",
+        "name_nor": "vEdavatIshApaH",
+        "pos": 17,
+        "shloka_count": 43,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "मरुत्तविजयः",
+        "name_nor": "maruttavijayaH",
+        "pos": 18,
+        "shloka_count": 36,
+        "shloka_count_expected": 35
+      },
+      {
+        "name_dev": "अनरण्यशापः",
+        "name_nor": "anaraNyashApaH",
+        "pos": 19,
+        "shloka_count": 32,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "रावणसंधुक्षणम्",
+        "name_nor": "rAvaNasandhukShaNam",
+        "pos": 20,
+        "shloka_count": 33,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "यमरावणयुद्धम्",
+        "name_nor": "yamarAvaNayuddham",
+        "pos": 21,
+        "shloka_count": 46,
+        "shloka_count_expected": 46
+      },
+      {
+        "name_dev": "यमजयः",
+        "name_nor": "yamajayaH",
+        "pos": 22,
+        "shloka_count": 51,
+        "shloka_count_expected": 52
+      },
+      {
+        "name_dev": "वरुणजयः\nबलिदर्शनम्\nसूर्यजयघोषणा\nरावणमान्धातृयुद्धम्\nरावणमन्त्रेश्वरदानम्\nकपिलदर्शनम्",
+        "name_nor": "varuNajayaH\nbalidarshanam\nsUryajayaghOShaNA\nrAvaNamAndhAtRyuddham\nrAvaNamantrEshvaradAnam\nkapiladarshanam",
+        "pos": 23,
+        "shloka_count": 54,
+        "shloka_count_expected": 54
+      },
+      {
+        "name_dev": "खरशूर्पनखादण्डकानिवासादेशः",
+        "name_nor": "kharashUrpanakhAdaNDakAnivAsAdEshaH",
+        "pos": 24,
+        "shloka_count": 42,
+        "shloka_count_expected": 42
+      },
+      {
+        "name_dev": "मधुवधवारणम्",
+        "name_nor": "madhuvadhavAraNam",
+        "pos": 25,
+        "shloka_count": 52,
+        "shloka_count_expected": 52
+      },
+      {
+        "name_dev": "नलकूबरशापः",
+        "name_nor": "nalakUbarashApaH",
+        "pos": 26,
+        "shloka_count": 61,
+        "shloka_count_expected": 60
+      },
+      {
+        "name_dev": "सुमालिवधः",
+        "name_nor": "sumAlivadhaH",
+        "pos": 27,
+        "shloka_count": 50,
+        "shloka_count_expected": 52
+      },
+      {
+        "name_dev": "जयन्तापवाहनम्",
+        "name_nor": "jayantApavAhanam",
+        "pos": 28,
+        "shloka_count": 48,
+        "shloka_count_expected": 49
+      },
+      {
+        "name_dev": "वासवग्रहणम्",
+        "name_nor": "vAsavagrahaNam",
+        "pos": 29,
+        "shloka_count": 42,
+        "shloka_count_expected": 42
+      },
+      {
+        "name_dev": "इन्द्रपराजयकारणकथनम्",
+        "name_nor": "indraparAjayakAraNakathanam",
+        "pos": 30,
+        "shloka_count": 55,
+        "shloka_count_expected": 56
+      },
+      {
+        "name_dev": "रावणनर्मदावगाहः",
+        "name_nor": "rAvaNanarmadAvagAhaH",
+        "pos": 31,
+        "shloka_count": 43,
+        "shloka_count_expected": 44
+      },
+      {
+        "name_dev": "रावणग्रहणम्",
+        "name_nor": "rAvaNagrahaNam",
+        "pos": 32,
+        "shloka_count": 73,
+        "shloka_count_expected": 73
+      },
+      {
+        "name_dev": "रावणविमोक्षः",
+        "name_nor": "rAvaNavimOkShaH",
+        "pos": 33,
+        "shloka_count": 23,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "वालिरावणसख्यम्",
+        "name_nor": "vAlirAvaNasakhyam",
+        "pos": 34,
+        "shloka_count": 46,
+        "shloka_count_expected": 46
+      },
+      {
+        "name_dev": "हनूमदुत्पत्तिः",
+        "name_nor": "hanUmadutpattiH",
+        "pos": 35,
+        "shloka_count": 65,
+        "shloka_count_expected": 65
+      },
+      {
+        "name_dev": "हनूमद्वरप्राप्त्यादि",
+        "name_nor": "hanUmadvaraprAptyAdi",
+        "pos": 36,
+        "shloka_count": 63,
+        "shloka_count_expected": 62
+      },
+      {
+        "name_dev": "पौरोपस्थानम्\nवालिसुग्रीवोत्पत्तिः\nनारायणहतगतिकथनम्\nरामावतारकथनम्\nसीतारामकथाश्रवणफलम्\nश्वेतद्वीपवासप्राप्त्युपायकथनम्",
+        "name_nor": "paurOpasthAnam\nvAlisugrIvOtpattiH\nnArAyaNahatagatikathanam\nrAmAvatArakathanam\nsItArAmakathAshravaNaphalam\nshvEtadvIpavAsaprAptyupAyakathanam\n",
+        "pos": 37,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "जनकादिप्रतिप्रयाणम्",
+        "name_nor": "janakAdipratiprayANam",
+        "pos": 38,
+        "shloka_count": 33,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "वानरप्रीणनम्",
+        "name_nor": "vAnaraprINanam",
+        "pos": 39,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "हनूमत्प्रार्थना",
+        "name_nor": "hanUmatprArthanA",
+        "pos": 40,
+        "shloka_count": 29,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "पुष्पकपुनरभ्यनुज्ञा",
+        "name_nor": "puShpakapunarabhyanujnA",
+        "pos": 41,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "रामसीताविहारः",
+        "name_nor": "rAmasItAvihAraH",
+        "pos": 42,
+        "shloka_count": 36,
+        "shloka_count_expected": 36
+      },
+      {
+        "name_dev": "भद्रवाक्यश्रवणम्",
+        "name_nor": "bhadravAkyashravaNam",
+        "pos": 43,
+        "shloka_count": 23,
+        "shloka_count_expected": 23
+      },
+      {
+        "name_dev": "लक्ष्मणाद्यानयनम्",
+        "name_nor": "lakShmaNAdyAnayanam",
+        "pos": 44,
+        "shloka_count": 21,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "सीतासमुत्सर्गादेशः",
+        "name_nor": "sItAsamutsargAdEshaH",
+        "pos": 45,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "सीतागङ्गातीरनयनम्",
+        "name_nor": "sItAgangAtIranayanam",
+        "pos": 46,
+        "shloka_count": 34,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "रामशासनकथनम्",
+        "name_nor": "rAmashAsanakathanam",
+        "pos": 47,
+        "shloka_count": 18,
+        "shloka_count_expected": 18
+      },
+      {
+        "name_dev": "सीतापरित्यागः",
+        "name_nor": "sItAparityAgaH",
+        "pos": 48,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "वाल्मीक्याश्रमप्रवेशः",
+        "name_nor": "vAlmIkyAshramapravEshaH",
+        "pos": 49,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "सुमन्त्ररहस्यकथनम्",
+        "name_nor": "sumantrarahasyakathanam",
+        "pos": 50,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "दुर्वासोवाक्यकथनम्",
+        "name_nor": "durvAsOvAkyakathanam",
+        "pos": 51,
+        "shloka_count": 31,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "रामसमाधानम्",
+        "name_nor": "rAmasamAdhAnam",
+        "pos": 52,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "नृगशापकथनम्",
+        "name_nor": "nRgashApakathanam",
+        "pos": 53,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "नृगश्वभ्रप्रवेशः",
+        "name_nor": "nRgashvabhrapravEshaH",
+        "pos": 54,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "निमिवसिष्ठशापः",
+        "name_nor": "nimivasiShThashApaH",
+        "pos": 55,
+        "shloka_count": 21,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "मैत्रावरुणित्वप्राप्तिः",
+        "name_nor": "maitrAvaruNitvaprAptiH",
+        "pos": 56,
+        "shloka_count": 29,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "निमिनिमीषीकरणम्",
+        "name_nor": "niminimIShIkaraNam",
+        "pos": 57,
+        "shloka_count": 20,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "ययातिशापः",
+        "name_nor": "yayAtishApaH",
+        "pos": 58,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "पूरुराज्याभिषेकः\nसारमेयावस्थानम्\nसर्वार्थसिद्धकौलपत्यदानम्\nगृध्रोलूकविवादः",
+        "name_nor": "pUrurAjyAbhiShEkaH\nsAramEyAvasthAnam\nsarvArthasiddhakaulapatyadAnam\ngRdhrOlUkavivAdaH",
+        "pos": 59,
+        "shloka_count": 23,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "भार्गवच्यवनाध्यागमनम्",
+        "name_nor": "bhArgavachyavanAdhyAgamanam",
+        "pos": 60,
+        "shloka_count": 18,
+        "shloka_count_expected": 18
+      },
+      {
+        "name_dev": "लवणत्राणप्रार्थना",
+        "name_nor": "lavaNatrANaprArthanA",
+        "pos": 61,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "शत्रुघ्नप्रार्थना",
+        "name_nor": "shatrughnaprArthanA",
+        "pos": 62,
+        "shloka_count": 21,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "लवणवधोपायकथनम्",
+        "name_nor": "lavaNavadhOpAyakathanam",
+        "pos": 63,
+        "shloka_count": 31,
+        "shloka_count_expected": 31
+      },
+      {
+        "name_dev": "शत्रुघ्नप्रस्थानम्",
+        "name_nor": "shatrughnaprasthAnam",
+        "pos": 64,
+        "shloka_count": 18,
+        "shloka_count_expected": 18
+      },
+      {
+        "name_dev": "सौदासकथा",
+        "name_nor": "saudAsakathA",
+        "pos": 65,
+        "shloka_count": 39,
+        "shloka_count_expected": 39
+      },
+      {
+        "name_dev": "कुशलवजननम्",
+        "name_nor": "kushalavajananam",
+        "pos": 66,
+        "shloka_count": 17,
+        "shloka_count_expected": 17
+      },
+      {
+        "name_dev": "मान्धातृवधः",
+        "name_nor": "mAndhAtRvadhaH",
+        "pos": 67,
+        "shloka_count": 26,
+        "shloka_count_expected": 26
+      },
+      {
+        "name_dev": "लवणशत्रुघ्नविवादः",
+        "name_nor": "lavaNashatrughnavivAdaH",
+        "pos": 68,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "लवणवधः",
+        "name_nor": "lavaNavadhaH",
+        "pos": 69,
+        "shloka_count": 40,
+        "shloka_count_expected": 40
+      },
+      {
+        "name_dev": "मधुपुरीनिवेशः",
+        "name_nor": "madhupurInivEshaH",
+        "pos": 70,
+        "shloka_count": 17,
+        "shloka_count_expected": 17
+      },
+      {
+        "name_dev": "शत्रुघ्नप्रशंसा",
+        "name_nor": "shatrughnaprashamsA",
+        "pos": 71,
+        "shloka_count": 24,
+        "shloka_count_expected": 14
+      },
+      {
+        "name_dev": "शत्रुघ्नरामसमागमः",
+        "name_nor": "shatrughnarAmasamAgamaH",
+        "pos": 72,
+        "shloka_count": 21,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "ब्राह्मणपरिदेवनम्",
+        "name_nor": "brAhmaNaparidEvanam",
+        "pos": 73,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "नारदवचनम्",
+        "name_nor": "nAradavachanam",
+        "pos": 74,
+        "shloka_count": 33,
+        "shloka_count_expected": 33
+      },
+      {
+        "name_dev": "शम्बूकविचयः",
+        "name_nor": "shambUkavichayaH",
+        "pos": 75,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "शम्बूकवधः",
+        "name_nor": "shambUkavadhaH",
+        "pos": 76,
+        "shloka_count": 52,
+        "shloka_count_expected": 52
+      },
+      {
+        "name_dev": "स्वर्गिप्रश्नः",
+        "name_nor": "svargiprashnaH",
+        "pos": 77,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "आभरणागमः",
+        "name_nor": "AbharaNAgamaH",
+        "pos": 78,
+        "shloka_count": 30,
+        "shloka_count_expected": 30
+      },
+      {
+        "name_dev": "दण्डराज्यनिवेशः",
+        "name_nor": "daNDarAjyanivEshaH",
+        "pos": 79,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "अरजासङ्गमः",
+        "name_nor": "arajAsangamaH",
+        "pos": 80,
+        "shloka_count": 18,
+        "shloka_count_expected": 18
+      },
+      {
+        "name_dev": "दण्डशापः",
+        "name_nor": "daNDashApaH",
+        "pos": 81,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "रामनिवर्तनम्",
+        "name_nor": "rAmanivartanam",
+        "pos": 82,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "राजसूयाजिहीर्षा",
+        "name_nor": "rAjasUyAjihIrShA",
+        "pos": 83,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "वृत्रतपोवर्णनम्",
+        "name_nor": "vRtratapOvarNanam",
+        "pos": 84,
+        "shloka_count": 18,
+        "shloka_count_expected": 18
+      },
+      {
+        "name_dev": "वृत्रवधः",
+        "name_nor": "vRtravadhaH",
+        "pos": 85,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "ब्रह्महत्यातरणम्",
+        "name_nor": "brahmahatyAtaraNam",
+        "pos": 86,
+        "shloka_count": 21,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "इलस्त्रीत्वप्राप्तिः",
+        "name_nor": "ilastrItvaprAptiH",
+        "pos": 87,
+        "shloka_count": 29,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "बुधसमागमः",
+        "name_nor": "budhasamAgamaH",
+        "pos": 88,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "पुरूरवोजननम्",
+        "name_nor": "purUravOjananam",
+        "pos": 89,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "इलापुरुषत्वप्राप्तिः",
+        "name_nor": "ilApuruShatvaprAptiH",
+        "pos": 90,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "यज्ञसंविधानम्",
+        "name_nor": "yajnasaMvidhAnam",
+        "pos": 91,
+        "shloka_count": 26,
+        "shloka_count_expected": 29
+      },
+      {
+        "name_dev": "हयचर्या",
+        "name_nor": "hayacharyA",
+        "pos": 92,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "वाल्मीकिसंदेशः",
+        "name_nor": "vAlmIkisandEshaH",
+        "pos": 93,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "रामायणगानम्",
+        "name_nor": "rAmAyaNagAnam",
+        "pos": 94,
+        "shloka_count": 32,
+        "shloka_count_expected": 32
+      },
+      {
+        "name_dev": "वाल्मीकिदूतप्रेषणम्",
+        "name_nor": "vAlmIkidUtaprEShaNam",
+        "pos": 95,
+        "shloka_count": 17,
+        "shloka_count_expected": 17
+      },
+      {
+        "name_dev": "वाल्मीकिप्रत्ययदानम्",
+        "name_nor": "vAlmIkipratyayadAnam",
+        "pos": 96,
+        "shloka_count": 24,
+        "shloka_count_expected": 24
+      },
+      {
+        "name_dev": "सीतारसातलप्रवेशः",
+        "name_nor": "sItArasAtalapravEshaH",
+        "pos": 97,
+        "shloka_count": 27,
+        "shloka_count_expected": 27
+      },
+      {
+        "name_dev": "रामकोपोपशमः",
+        "name_nor": "rAmakOpOpashamaH",
+        "pos": 98,
+        "shloka_count": 27,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "कौसल्यादिकालधर्मः",
+        "name_nor": "kausalyAdikAladharmaH",
+        "pos": 99,
+        "shloka_count": 20,
+        "shloka_count_expected": 20
+      },
+      {
+        "name_dev": "गन्धर्वविषयविजययात्रा",
+        "name_nor": "gandharvaviShayavijayayAtrA",
+        "pos": 100,
+        "shloka_count": 25,
+        "shloka_count_expected": 25
+      },
+      {
+        "name_dev": "तक्षपुष्कलनिवेशः",
+        "name_nor": "takShapuShkalanivEshaH",
+        "pos": 101,
+        "shloka_count": 18,
+        "shloka_count_expected": 18
+      },
+      {
+        "name_dev": "अङ्गदचन्द्रकेतुनिवेशः",
+        "name_nor": "angadachandrakEtunivEshaH",
+        "pos": 102,
+        "shloka_count": 17,
+        "shloka_count_expected": 17
+      },
+      {
+        "name_dev": "कालागमनम्",
+        "name_nor": "kAlAgamanam",
+        "pos": 103,
+        "shloka_count": 17,
+        "shloka_count_expected": 17
+      },
+      {
+        "name_dev": "पितामहवाक्यकथनम्",
+        "name_nor": "pitAmahavAkyakathanam",
+        "pos": 104,
+        "shloka_count": 19,
+        "shloka_count_expected": 19
+      },
+      {
+        "name_dev": "दुर्वासोऽभिगमः",
+        "name_nor": "durvAsOabhigamaH",
+        "pos": 105,
+        "shloka_count": 18,
+        "shloka_count_expected": 18
+      },
+      {
+        "name_dev": "लक्ष्मणपरित्यागः",
+        "name_nor": "lakShmaNaparityAgaH",
+        "pos": 106,
+        "shloka_count": 18,
+        "shloka_count_expected": 18
+      },
+      {
+        "name_dev": "कुशलवाभिषेकः",
+        "name_nor": "kushalavAbhiShEkaH",
+        "pos": 107,
+        "shloka_count": 21,
+        "shloka_count_expected": 21
+      },
+      {
+        "name_dev": "विभीषणाद्यादेशः",
+        "name_nor": "vibhIShaNAdyAdEshaH",
+        "pos": 108,
+        "shloka_count": 38,
+        "shloka_count_expected": 38
+      },
+      {
+        "name_dev": "श्रीराममहाप्रस्थानम्",
+        "name_nor": "shrIrAmamahAprasthAnam",
+        "pos": 109,
+        "shloka_count": 22,
+        "shloka_count_expected": 22
+      },
+      {
+        "name_dev": "सहानुगश्रीरामस्वर्गारोहः",
+        "name_nor": "sahAnugashrIrAmasvargArOhaH",
+        "pos": 110,
+        "shloka_count": 28,
+        "shloka_count_expected": 28
+      },
+      {
+        "name_dev": "श्रीमद्रामायणफलश्रुतिः",
+        "name_nor": "shrImadrAmAyaNaphalashrutiH",
+        "pos": 111,
+        "shloka_count": 25,
+        "shloka_count_expected": 26
+      }
+    ]
+  }
+]

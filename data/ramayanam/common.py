@@ -81,6 +81,12 @@ class KAndaInfo(BaseModel):
     list: list[SargaInfo]
 
 
+class ShlokaInfo(BaseModel):
+    text: str
+    index: int
+    shloka_num: int | None = None
+
+
 DATA = [KAndaInfo(**data) for data in sh.load_json(sh.read("ramayanam_map.json"))]
 SANSKRIT_NUMBER_NAMES: list[list[int, str]] = yaml.safe_load(sh.read("numbers.yaml"))
 

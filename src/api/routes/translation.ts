@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { protectedProcedure, publicProcedure, t } from '~/api/trpc_init';
+import { protectedAdminProcedure, protectedProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { translation, user_project_language_join } from '~/db/schema';
 import type { shloka_list_type } from '~/state/data_types';
@@ -14,6 +14,7 @@ import {
   type project_keys_type
 } from '~/state/project_list';
 import ms from 'ms';
+import { fetch_post } from '~/tools/fetch';
 
 export const get_path_params = (
   selected_text_levels: (number | null)[],
@@ -239,9 +240,28 @@ const get_all_langs_translation_route = publicProcedure
     return data_map;
   });
 
+const trigger_translation_commit_route = protectedAdminProcedure.mutation(async () => {
+  const owner = 'shubhattin';
+  const repo = 'thesanskritchannel_projects';
+  const workflow_id = 'commit_trans.yml';
+  const req = await fetch_post(
+    `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflow_id}/dispatches`,
+    {
+      headers: {
+        Authorization: `Bearer ${env.GITHUB_API_KEY}`
+      },
+      json: {
+        ref: 'main'
+      }
+    }
+  );
+  return req.ok;
+});
+
 export const translation_router = t.router({
   get_text_data: get_text_data_route,
   get_translation: get_translation_route,
   edit_translation: edit_translation_route,
-  get_all_langs_translation: get_all_langs_translation_route
+  get_all_langs_translation: get_all_langs_translation_route,
+  trigger_translation_commit: trigger_translation_commit_route
 });

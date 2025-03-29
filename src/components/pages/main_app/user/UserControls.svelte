@@ -17,6 +17,7 @@
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { Modal, Popover } from '@skeletonlabs/skeleton-svelte';
   import { get_lang_from_id } from '~/state/lang_list';
+  import { client } from '~/api/client';
 
   const session = useSession();
 
@@ -31,15 +32,15 @@
   };
 
   const trigger_translations_update = async () => {
-    // client.translations.trigger_translations_update.mutate().then((success) => {
-    //   success &&
-    //     setTimeout(() => {
-    //       window.open(
-    //         'https://github.com/shubhattin/valmiki_ramayanam/actions/workflows/commit_trans.yml',
-    //         '_blank'
-    //       );
-    //     }, 1500);
-    // });
+    client.translation.trigger_translation_commit.mutate().then((success) => {
+      success &&
+        setTimeout(() => {
+          window.open(
+            'https://github.com/shubhattin/thesanskritchannel_projects/actions/workflows/commit_trans.yml',
+            '_blank'
+          );
+        }, 1500);
+    });
   };
 
   let user_popover_status = $state(false);
@@ -120,7 +121,7 @@
             </div>
           {/if}
         {/if}
-        <!-- {#if user_info.role === 'admin'}
+        {#if user_info.role === 'admin'}
           <ConfirmModal
             popup_state={false}
             close_on_confirm={true}
@@ -133,11 +134,11 @@
               disabled={$editing_status_on}
               class="btn block rounded-md bg-primary-800 px-1.5 py-0 font-bold text-white dark:bg-primary-900"
             >
-              <Icon src={OiSync16} class="my-1 mb-1 text-xl" />
-              <span class="text-sm">Sync Translations from DB</span>
+              <Icon src={OiSync16} class="my-1 mb-1 text-lg" />
+              <span class="text-xs">Sync Translations from DB</span>
             </button>
           </ConfirmModal>
-        {/if} -->
+        {/if}
       </div>
     {:else}
       <div class="space-y-1 sm:space-y-2">

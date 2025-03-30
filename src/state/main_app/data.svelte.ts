@@ -195,7 +195,7 @@ export let get_total_count = (selected_text_levels: (number | null)[]) => {
     total_count = get_map_type(project_map, 3)[selected_text_levels[1]! - 1].list[
       selected_text_levels[0]! - 1
     ].total;
-  } else if (levels === 2) {
+  } else if (levels === 1) {
     total_count = get_map_type(project_map, 1).total;
   }
   return total_count;
@@ -223,6 +223,9 @@ export const get_last_level_name = (selected_text_levels: (number | null)[]) => 
     nor = get_map_type(project_map, 3)[selected_text_levels[1]! - 1].list[
       selected_text_levels[0]! - 1
     ].name_nor;
+  } else if (levels === 1) {
+    dev = get_map_type(project_map, 1).name_dev;
+    nor = get_map_type(project_map, 1).name_nor;
   }
 
   return {

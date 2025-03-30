@@ -7,7 +7,6 @@
   } from '~/state/main_app/data.svelte';
   import {
     ai_tool_opened,
-    BASE_SCRIPT,
     project_state,
     selected_text_levels,
     TEXT_MODEL_LIST
@@ -18,7 +17,6 @@
   import image_tool_prompts from './image_tool_prompts.yaml';
   import { Switch, ProgressRing } from '@skeletonlabs/skeleton-svelte';
   import { client } from '~/api/client';
-  import { lipi_parivartak } from '~/tools/converter';
   import { copy_text_to_clipboard, format_string_text, get_permutations } from '~/tools/kry';
   import { onDestroy, onMount, untrack } from 'svelte';
   import { loadLocalConfig } from '../load_local_config';
@@ -126,8 +124,7 @@
       $text_data_q.isSuccess &&
       (async () => {
         const shloka_text = $text_data_q.data![$index].text;
-        const shloka_text_normal = await lipi_parivartak(shloka_text, BASE_SCRIPT, 'Normal');
-        let prompt = shloka_text + '\n' + shloka_text_normal;
+        let prompt = shloka_text;
         const trans_en_all = $trans_en_data_q.data!;
         if (trans_en_all.has($index)) prompt += '\n\n' + trans_en_all.get($index);
         $shloka_text_prompt = prompt;
@@ -380,7 +377,7 @@
   >
     {#each $shloka_text_prompt.split('\n') as line}
       <div>
-        {line}
+        {line.length !== 0 ? line : '\u200c'}
       </div>
     {/each}
   </div>

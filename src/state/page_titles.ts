@@ -36,5 +36,9 @@ export const PAGE_TITLES: Record<
     title: 'नारायणीयम्',
     startsWith: true,
     classes: 'text-xl font-bold'
+  },
+  '/shivatandava': {
+    title: 'शिवताण्डवस्तोत्रम्',
+    classes: 'text-xl font-bold'
   }
 };

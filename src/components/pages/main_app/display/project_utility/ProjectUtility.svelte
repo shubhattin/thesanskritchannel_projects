@@ -85,7 +85,9 @@
       });
       const name = get_last_level_name($selected_text_levels).nor.split('\n')[0];
       current_dowbload_link = URL.createObjectURL(blob);
-      current_file_name = `${$selected_text_levels[0]}. ${name}.xlsx`;
+      current_file_name = $selected_text_levels[0]
+        ? `${$selected_text_levels[0]}. ${name}.xlsx`
+        : `${name}.xlsx`;
       current_workbook = workbook;
       excel_preview_opened = true;
     }
@@ -114,7 +116,8 @@
       const is_not_brahmic_script = ['Normal', 'Romanized'].includes($viewing_script);
       download_file_in_browser(
         url,
-        `${$selected_text_levels[0]} ${sarga_name_script}${is_not_brahmic_script ? '' : ` (${sarga_name_normal})`}.txt`
+        ($selected_text_levels[0] ? `${$selected_text_levels[0]} ` : '') +
+          `${sarga_name_script}${is_not_brahmic_script ? '' : ` (${sarga_name_normal})`}.txt`
       );
     }
   });

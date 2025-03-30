@@ -98,6 +98,11 @@
     mounted = true;
   });
 
+  $effect(() => {
+    // loading project map
+    $project_map_q;
+  });
+
   const project_info = $derived(get_project_info_from_key($project_state.project_key!));
 
   type option_type = { text?: string; value?: number };

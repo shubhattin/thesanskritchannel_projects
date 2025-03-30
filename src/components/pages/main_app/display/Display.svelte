@@ -252,16 +252,19 @@
     {#if !$text_data_q.isFetching && $text_data_q.isSuccess}
       <div transition:fade={{ duration: 250 }} class="space-y-[0.15rem]">
         {#each transliterated_data as shloka_lines, i (i)}
-          {@const is_bh_gita = ['bhagavadgita'].includes($project_state.project_key!)}
+          {@const is_spacing_allowed =
+            ['bhagavadgita'].includes($project_state.project_key!) &&
+            i > 2 &&
+            i < transliterated_data.length - 2}
           <div class="rounded-lg px-2 py-0.5 hover:bg-gray-200 dark:hover:bg-gray-800">
             <div class="flex space-x-2">
-              {#if $text_data_q.data[i]?.shloka_num || (is_bh_gita && i > 2 && i < transliterated_data.length - 2)}
+              {#if $text_data_q.data[i]?.shloka_num || is_spacing_allowed}
                 <div
                   class="flex items-center align-top text-[0.75rem] leading-[1.5rem] text-gray-500 select-none dark:text-gray-300"
                 >
                   {#if $text_data_q.data[i]?.shloka_num}
                     {$text_data_q.data[i].shloka_num}
-                  {:else if is_bh_gita}
+                  {:else if is_spacing_allowed}
                     <span class="inline-block w-11"></span>
                   {/if}
                 </div>

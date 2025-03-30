@@ -227,8 +227,15 @@ export const get_last_level_name = (selected_text_levels: (number | null)[]) => 
   };
 };
 
-export const get_starting_shloka = (key: project_keys_type) => {
+export const get_starting_shloka = (
+  key: project_keys_type,
+  selected_text_levels?: (number | null)[]
+) => {
   let starting = 1;
   if (key === 'bhagavadgita') starting = 4;
+  else if (key === 'narayaneeyam') {
+    starting = 4;
+    if (selected_text_levels && selected_text_levels[0] === 1) starting = 5;
+  }
   return starting;
 };

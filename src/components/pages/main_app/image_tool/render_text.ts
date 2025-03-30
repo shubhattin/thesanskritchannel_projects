@@ -303,6 +303,7 @@ export const render_all_texts = async (
   const $SPACE_ABOVE_REFERENCE_LINE = get(SPACE_ABOVE_REFERENCE_LINE);
   const $image_trans_data = get(image_trans_data_q);
   const $project_key = get(project_state).project_key!;
+  const $project_levels = get(project_state).levels;
 
   if (!browser) return $shloka_configs[2]; // just like has no meaning
 
@@ -395,10 +396,7 @@ export const render_all_texts = async (
     });
     canvasObjects.push(text_main_group.group);
     canvasObjects.push(text_norm_group.group);
-    if (
-      line_i === shloka_lines.length - 1 &&
-      (shloka_data.shloka_num || $project_key === 'ramayanam')
-    ) {
+    if (line_i === shloka_lines.length - 1 && (shloka_data.shloka_num || $project_levels >= 3)) {
       const number_main_text = main_text.split(' ').at(-1)!;
       const number_indicator_main = await render_text({
         text: number_main_text.substring(1, number_main_text.length - 1),

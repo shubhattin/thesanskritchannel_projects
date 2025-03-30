@@ -11,6 +11,15 @@ def extract_data_from_text(text: str, file_index: int):
     prev_line = ""
     index = 0
     shloka_index = 1
+    if file_index == 1:
+        shloka_list.append(
+            {
+                "text": "कायेन वाचा मनसेन्द्रियैर्वा बुद्ध्यात्मना वा प्रकृते: स्वभावात् ।\nकरोमि यद्यत् सकलं परस्मै नारायणायेति समर्पयामि ॥",
+                "index": 0,
+                "shloka_num": None,
+            }
+        )
+        index += 1
 
     """This will help us ignore repetitions"""
     prev_shloka = False
@@ -19,7 +28,7 @@ def extract_data_from_text(text: str, file_index: int):
         if len(line) == 0:
             continue
         if in_dev_range(line[0]):
-            if index <= 3:
+            if index <= 3 or (file_index == 1 and index == 4):
                 shloka_list.append({"text": line, "index": index, "shloka_num": None})
                 index += 1
             else:

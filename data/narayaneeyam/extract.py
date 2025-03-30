@@ -7,7 +7,6 @@ from common import in_dev_range, DOUBLE_VIRAMA, SINGLE_VIRAMA
 
 def extract_data_from_text(text: str, file_index: int):
     shloka_list = []
-    lines: list[str] = text.splitlines()
     prev_line = ""
     index = 0
     shloka_index = 1
@@ -25,6 +24,10 @@ def extract_data_from_text(text: str, file_index: int):
     prev_shloka = False
 
     for line in text.splitlines():
+        line = re.sub(r"(?<={0}) (?=\d)".format(DOUBLE_VIRAMA), "", line)
+        line = re.sub(r"(?<=\d) (?={0})".format(DOUBLE_VIRAMA), "", line)
+        line = re.sub(r"(?<=\S)(?={0}\d{0})".format(DOUBLE_VIRAMA), " ", line)
+        line = re.sub(r"(?<=\S)(?={0}\d\d{0})".format(DOUBLE_VIRAMA), " ", line)
         if len(line) == 0:
             continue
         if in_dev_range(line[0]):

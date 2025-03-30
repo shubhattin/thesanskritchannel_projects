@@ -8,7 +8,6 @@
   import { queryClient } from '~/state/queryClient';
   import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools';
   import TopAppBar from '~/components/TopAppBar.svelte';
-  import CookieCacheRefresh from '$lib/CookieCacheRefresh.svelte';
   import PostHogInit from '~/components/tags/PostHogInit.svelte';
 
   let { children }: { children: Snippet } = $props();
@@ -23,6 +22,5 @@
     </div>
   </div>
   <SvelteQueryDevtools initialIsOpen={false} />
-  <CookieCacheRefresh />
 </QueryClientProvider>
 <PostHogInit />

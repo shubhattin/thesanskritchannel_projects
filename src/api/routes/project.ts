@@ -5,7 +5,7 @@ import { delay } from '~/tools/delay';
 import { user_project_join, user_project_language_join } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { t } from '../trpc_init';
-import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
+import { redis, REDIS_CACHE_KEYS, deleteKeysWithPattern } from '~/db/redis';
 import ms from 'ms';
 
 export const get_languages_for_ptoject_user = async (user_id: string, project_id: number) => {
@@ -73,7 +73,9 @@ const remove_from_project_route = protectedAdminProcedure
             eq(user_project_language_join.user_id, user_id),
             eq(user_project_language_join.project_id, project_id)
           )
-        )
+        ),
+      // delete any cached items
+      deleteKeysWithPattern(REDIS_CACHE_KEYS.user_project_info(user_id, '*'))
     ]);
 
     return { success: true };

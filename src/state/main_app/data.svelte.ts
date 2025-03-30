@@ -18,6 +18,7 @@ import { derived, get, writable } from 'svelte/store';
 import { lang_list_obj } from '../lang_list';
 import { get_map_type, get_project_info_from_key, type project_keys_type } from '../project_list';
 import { user_info } from '../user.svelte';
+import ms from 'ms';
 
 export const user_project_info_q = get_derived_query(
   [project_state, user_info],
@@ -31,7 +32,8 @@ export const user_project_info_q = get_derived_query(
           });
           return data;
         },
-        enabled: !!_user_info && !!_prject_state.project_id
+        enabled: !!_user_info && !!_prject_state.project_id,
+        staleTime: ms('15mins')
       },
       queryClient
     )

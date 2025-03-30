@@ -72,7 +72,7 @@
     </button>
     {#if pathname !== '/parivartak'}
       <a class="text-xl" href="/parivartak" title="Lipi Parivartak">
-        <Icon src={SiConvertio} class="text-2xl hover:fill-emerald-600 dark:hover:fill-zinc-400" />
+        <Icon src={SiConvertio} class="text-2xl hover:fill-cyan-700 dark:hover:fill-zinc-400" />
       </a>
     {/if}
     <Popover
@@ -96,7 +96,7 @@
         >
           <Icon
             src={SiConvertio}
-            class="text-2xl group-hover:fill-emerald-600 dark:group-hover:fill-zinc-400"
+            class="text-2xl group-hover:fill-cyan-600 dark:group-hover:fill-zinc-400"
           />
           <span>Lipi Parivartak</span>
         </a>

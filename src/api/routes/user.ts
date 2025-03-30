@@ -1,14 +1,13 @@
 import { z } from 'zod';
-import {
-  protectedProcedure,
-  protectedAdminProcedure,
-  protectedUnverifiedProcedure
-} from '../trpc_init';
+import { protectedAdminProcedure, protectedUnverifiedProcedure } from '../trpc_init';
 import { db } from '~/db/db';
 import { delay } from '~/tools/delay';
-import { user, user_project_join, user_project_language_join } from '~/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { user, user_project_join } from '~/db/schema';
+import { eq } from 'drizzle-orm';
 import { t } from '../trpc_init';
+import { auth } from '$lib/auth';
+import { redis } from '~/db/redis';
+import { get_languages_for_ptoject_user } from './project';
 
 const get_user_info_route = protectedUnverifiedProcedure
   .input(z.object({ user_id: z.string() }))
@@ -29,17 +28,7 @@ const get_user_info_route = protectedUnverifiedProcedure
 
     const projects = await Promise.all(
       projects_info.map(async (project_info) => {
-        const langugaes = await db
-          .select({
-            lang_id: user_project_language_join.language_id
-          })
-          .from(user_project_language_join)
-          .where(
-            and(
-              eq(user_project_language_join.user_id, user_id),
-              eq(user_project_language_join.project_id, project_info.project_id)
-            )
-          );
+        const langugaes = await get_languages_for_ptoject_user(user.id, project_info.project_id);
         return {
           ...project_info,
           langugae_ids: langugaes.map((lang) => lang.lang_id)
@@ -65,33 +54,28 @@ const list_users_route = protectedAdminProcedure.query(async ({ ctx: { user } })
   return users;
 });
 
-const approve_user_route = protectedAdminProcedure
-  .input(z.object({ user_id: z.string() }))
-  .mutation(async ({ input: { user_id } }) => {
-    await db.update(user).set({ is_approved: true }).where(eq(user.id, user_id));
-    return { success: true };
-  });
-
 const remove_user_route = protectedAdminProcedure
   .input(z.object({ user_id: z.string() }))
-  .mutation(async ({ input: { user_id } }) => {
-    await db.delete(user).where(eq(user.id, user_id));
-    return { success: true };
-  });
-
-const edit_name_route = protectedProcedure
-  .input(z.object({ name: z.string() }))
-  .mutation(async ({ input, ctx }) => {
-    const user_info = ctx.user;
-    const { name } = input;
-    await db.update(user).set({ name }).where(eq(user.id, user_info.id));
+  .mutation(async ({ input: { user_id }, ctx: { cookie } }) => {
+    const { sessions } = await auth.api.listUserSessions({
+      body: {
+        userId: user_id
+      },
+      headers: {
+        Cookie: cookie!
+      }
+    });
+    await Promise.allSettled([
+      ...sessions.map(async (session, i) => {
+        await redis.del(session.token);
+      }),
+      db.delete(user).where(eq(user.id, user_id))
+    ]);
     return { success: true };
   });
 
 export const user_router = t.router({
   user_info: get_user_info_route,
   list_users: list_users_route,
-  approve_user: approve_user_route,
-  remove_user: remove_user_route,
-  edit_name: edit_name_route
+  remove_user: remove_user_route
 });

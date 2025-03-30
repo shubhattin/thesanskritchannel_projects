@@ -6,6 +6,22 @@ import { user_project_join, user_project_language_join } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { t } from '../trpc_init';
 
+export const get_languages_for_ptoject_user = async (user_id: string, project_id: number) => {
+  const langugaes = await db
+    .select({
+      lang_id: user_project_language_join.language_id
+    })
+    .from(user_project_language_join)
+    .where(
+      and(
+        eq(user_project_language_join.user_id, user_id),
+        eq(user_project_language_join.project_id, project_id)
+      )
+    );
+
+  return langugaes;
+};
+
 const add_to_project_route = protectedAdminProcedure
   .input(
     z.object({
@@ -63,16 +79,11 @@ const update_project_languages_route = protectedAdminProcedure
   .mutation(async ({ input }) => {
     const { user_id, project_id, languages_id } = input;
     await delay(400);
-    const languages_current = await db.query.user_project_language_join.findMany({
-      where: (tbl, { and, eq }) => and(eq(tbl.user_id, user_id), eq(tbl.project_id, project_id)),
-      columns: {
-        language_id: true
-      }
-    });
+    const languages_current = await get_languages_for_ptoject_user(user_id, project_id);
     await Promise.allSettled([
       // deleting
       ...languages_current.map((lang) => {
-        const exists = languages_id.find((id) => id === lang.language_id);
+        const exists = languages_id.find((id) => id === lang.lang_id);
         if (!exists)
           return db
             .delete(user_project_language_join)
@@ -80,13 +91,13 @@ const update_project_languages_route = protectedAdminProcedure
               and(
                 eq(user_project_language_join.user_id, user_id),
                 eq(user_project_language_join.project_id, project_id),
-                eq(user_project_language_join.language_id, lang.language_id)
+                eq(user_project_language_join.language_id, lang.lang_id)
               )
             );
       }),
       // inserting
       ...languages_id.map((lang_id) => {
-        const exists = languages_current.find((lang) => lang.language_id === lang_id);
+        const exists = languages_current.find((lang) => lang.lang_id === lang_id);
         if (!exists)
           return db.insert(user_project_language_join).values({
             user_id,
@@ -113,19 +124,8 @@ export const user_project_info_route = protectedUnverifiedProcedure
       return { languages: [] };
     }
 
-    const langugaes = await db
-      .select({
-        lang_id: user_project_language_join.language_id
-      })
-      .from(user_project_language_join)
-      .where(
-        and(
-          eq(user_project_language_join.user_id, user.id),
-          eq(user_project_language_join.project_id, project_id)
-        )
-      );
-
-    return { langugaes };
+    const languages = await get_languages_for_ptoject_user(user.id, project_id);
+    return { languages };
   });
 
 export const project_router = t.router({

@@ -206,7 +206,7 @@
         ($user_project_info_q.isSuccess &&
           !!$user_info?.is_approved! &&
           $user_project_info_q.data
-            .langugaes!.map((l) => l.lang_id)
+            .languages!.map((l) => l.lang_id)
             .includes(lang_list_obj.English)));
   });
 
@@ -393,7 +393,7 @@
           {#if !$editing_status_on && $user_info && $user_info.is_approved}
             {@const languages =
               $user_info.role !== 'admin' && $user_project_info_q.isSuccess
-                ? $user_project_info_q.data.langugaes!.map((l) => l.lang_id)
+                ? $user_project_info_q.data.languages!.map((l) => l.lang_id)
                 : []}
             {#if $trans_lang !== 0 && ($user_info.role === 'admin' || languages.indexOf($trans_lang) !== -1)}
               <button

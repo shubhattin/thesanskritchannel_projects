@@ -10,9 +10,11 @@ export async function createContext(event: RequestEvent) {
   const session = await auth.api.getSession({
     headers: headers
   });
+  const cookie = headers.get('Cookie');
 
   return {
-    user: session?.user
+    user: session?.user,
+    cookie
   };
 }
 

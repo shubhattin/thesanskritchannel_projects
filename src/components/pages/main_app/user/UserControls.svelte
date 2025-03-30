@@ -102,7 +102,7 @@
         </div>
         {#if user_info.role !== 'admin' && $user_project_info_q.isSuccess}
           {#if user_info.is_approved}
-            {@const langs = $user_project_info_q.data.langugaes!}
+            {@const langs = $user_project_info_q.data.languages!}
             {#if langs && langs.length > 0}
               <div>
                 <Icon class="text-xl" src={LanguageIcon} /> :

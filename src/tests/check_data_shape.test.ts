@@ -51,20 +51,10 @@ describe('Checking correct shape of data', () => {
           }
         }
       };
-
-      processDirectory(data_folder);
+      if (project_info.levels > 1) processDirectory(data_folder);
+      else {
+        shloka_list_schema.parse(JSON.parse(fs.readFileSync(`${data_folder}.json`, 'utf-8')));
+      }
     }
   });
-  // for (let i = 1; i <= 18; i++) {
-  //   it(`Checking data for chapter ${i}`, () => {
-  //     const data = JSON.parse(fs.readFileSync(`./data/gita/data/${i}.json`, 'utf-8'));
-  //     z.object({
-  //       text: z.string(),
-  //       index: z.number().int(),
-  //       shloka_num: z.number().int().nullable()
-  //     })
-  //       .array()
-  //       .parse(data);
-  //   });
-  // }
 });

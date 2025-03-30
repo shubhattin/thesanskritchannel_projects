@@ -1,6 +1,6 @@
 <script lang="ts">
   import {
-    get_starting_shloka,
+    get_starting_index,
     get_total_count,
     text_data_q,
     trans_en_data_q
@@ -58,7 +58,7 @@
 
   $effect(() => {
     if ($selected_text_levels[0]) {
-      $index = get_starting_shloka($project_state.project_key!);
+      $index = get_starting_index($project_state.project_key!);
     }
   });
   let index = writable(1);

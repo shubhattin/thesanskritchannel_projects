@@ -338,29 +338,31 @@
 
 {#if $text_data_present}
   <div class="space-x-1 sm:space-x-3">
-    {#if $selected_text_levels[0] !== 1}
-      <button
-        onclick={() => $selected_text_levels[0]!--}
-        in:scale
-        out:slide
-        disabled={$editing_status_on}
-        class={'btn rounded-lg bg-tertiary-800 px-1 py-1 pt-1.5 text-sm font-bold text-white sm:px-2 sm:py-1 sm:text-sm'}
-      >
-        <Icon class="-mt-1 text-xl" src={TiArrowBackOutline} />
-        Previous
-      </button>
-    {/if}
-    {#if $selected_text_levels[0] !== $list_count}
-      <button
-        onclick={() => ($selected_text_levels[0]! += 1)}
-        in:scale
-        out:slide
-        disabled={$editing_status_on}
-        class={'btn rounded-lg bg-tertiary-800 px-1 py-1 pt-1.5 text-sm font-bold text-white sm:px-2 sm:py-1 sm:text-sm'}
-      >
-        Next
-        <Icon class="-mt-1 text-xl" src={TiArrowForwardOutline} />
-      </button>
+    {#if $project_state.levels > 1}
+      {#if $selected_text_levels[0] !== 1}
+        <button
+          onclick={() => $selected_text_levels[0]!--}
+          in:scale
+          out:slide
+          disabled={$editing_status_on}
+          class={'btn rounded-lg bg-tertiary-800 px-1 py-1 pt-1.5 text-sm font-bold text-white sm:px-2 sm:py-1 sm:text-sm'}
+        >
+          <Icon class="-mt-1 text-xl" src={TiArrowBackOutline} />
+          Previous
+        </button>
+      {/if}
+      {#if $selected_text_levels[0] !== $list_count}
+        <button
+          onclick={() => ($selected_text_levels[0]! += 1)}
+          in:scale
+          out:slide
+          disabled={$editing_status_on}
+          class={'btn rounded-lg bg-tertiary-800 px-1 py-1 pt-1.5 text-sm font-bold text-white sm:px-2 sm:py-1 sm:text-sm'}
+        >
+          Next
+          <Icon class="-mt-1 text-xl" src={TiArrowForwardOutline} />
+        </button>
+      {/if}
     {/if}
     {#if !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
       {#if !$view_translation_status}

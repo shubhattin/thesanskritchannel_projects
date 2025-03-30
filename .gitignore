@@ -20,6 +20,7 @@ src/db/scripts/backup/
 **/a.js
 **/a.json
 **/a.py
+**/a.txt
 
 __pycache__
 *~$*.xlsx

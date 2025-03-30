@@ -27,7 +27,10 @@ export const server_get_path_params = (
 /** first and second here are like the ones in url */
 export const get_text_data_func = async (key: string, path_params: (number | null)[]) => {
   // Add Caching to load in PROD
-  const loc = `data/${key}/data/${path_params.join('/')}.json`;
+  const loc =
+    path_params.length !== 0
+      ? `data/${key}/data/${path_params.join('/')}.json`
+      : `data/${key}/data.json`;
   const project_id = get_project_from_key(key as project_keys_type).id;
   if (import.meta.env.DEV) {
     const fs = await import('fs');

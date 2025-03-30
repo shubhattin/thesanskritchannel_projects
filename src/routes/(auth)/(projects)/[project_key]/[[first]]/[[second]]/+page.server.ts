@@ -30,6 +30,7 @@ export const load: PageServerLoad = async (opts) => {
     if (first || second) {
       error(404, `Not found`);
     }
+    text = await get_text_data_func(project_key, []);
   } else if (levels === 2) {
     if (first && second) {
       // if the first type is there then these arguments are not needed

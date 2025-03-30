@@ -195,6 +195,8 @@ export let get_total_count = (selected_text_levels: (number | null)[]) => {
     total_count = get_map_type(project_map, 3)[selected_text_levels[1]! - 1].list[
       selected_text_levels[0]! - 1
     ].total;
+  } else if (levels === 2) {
+    total_count = get_map_type(project_map, 1).total;
   }
   return total_count;
 };
@@ -229,7 +231,7 @@ export const get_last_level_name = (selected_text_levels: (number | null)[]) => 
   };
 };
 
-export const get_starting_shloka = (
+export const get_starting_index = (
   key: project_keys_type,
   selected_text_levels?: (number | null)[]
 ) => {

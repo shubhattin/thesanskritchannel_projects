@@ -28,6 +28,7 @@ def extract_data_from_text(text: str, file_index: int):
         line = re.sub(r"(?<=\d) (?={0})".format(DOUBLE_VIRAMA), "", line)
         line = re.sub(r"(?<=\S)(?={0}\d{0})".format(DOUBLE_VIRAMA), " ", line)
         line = re.sub(r"(?<=\S)(?={0}\d\d{0})".format(DOUBLE_VIRAMA), " ", line)
+        line = re.sub(r"(?<=\S)(?={0})".format(SINGLE_VIRAMA), " ", line)
         if len(line) == 0:
             continue
         if in_dev_range(line[0]):

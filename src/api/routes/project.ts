@@ -5,8 +5,15 @@ import { delay } from '~/tools/delay';
 import { user_project_join, user_project_language_join } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { t } from '../trpc_init';
+import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
+import ms from 'ms';
 
 export const get_languages_for_ptoject_user = async (user_id: string, project_id: number) => {
+  const cache = await redis.get<{ lang_id: number }[]>(
+    REDIS_CACHE_KEYS.user_project_info(user_id, project_id)
+  );
+  if (cache) return cache;
+
   const langugaes = await db
     .select({
       lang_id: user_project_language_join.language_id
@@ -18,6 +25,10 @@ export const get_languages_for_ptoject_user = async (user_id: string, project_id
         eq(user_project_language_join.project_id, project_id)
       )
     );
+
+  await redis.set(REDIS_CACHE_KEYS.user_project_info(user_id, project_id), langugaes, {
+    ex: ms('20days') / 1000
+  });
 
   return langugaes;
 };
@@ -80,7 +91,9 @@ const update_project_languages_route = protectedAdminProcedure
     const { user_id, project_id, languages_id } = input;
     await delay(400);
     const languages_current = await get_languages_for_ptoject_user(user_id, project_id);
+
     await Promise.allSettled([
+      redis.del(REDIS_CACHE_KEYS.user_project_info(user_id, project_id)),
       // deleting
       ...languages_current.map((lang) => {
         const exists = languages_id.find((id) => id === lang.lang_id);

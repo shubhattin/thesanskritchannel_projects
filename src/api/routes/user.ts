@@ -28,10 +28,10 @@ const get_user_info_route = protectedUnverifiedProcedure
 
     const projects = await Promise.all(
       projects_info.map(async (project_info) => {
-        const langugaes = await get_languages_for_ptoject_user(user.id, project_info.project_id);
+        const languages = await get_languages_for_ptoject_user(user_id, project_info.project_id);
         return {
           ...project_info,
-          langugae_ids: langugaes.map((lang) => lang.lang_id)
+          langugae_ids: languages.map((lang) => lang.lang_id)
         };
       })
     );

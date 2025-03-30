@@ -57,7 +57,16 @@ export const userInfoPlugin = () => {
           await Promise.allSettled(
             sessions.map(async (session, i) => {
               const data = await redis.get<typeof auth.$Infer.Session>(session.token);
-              await redis.set(session.token, JSON.stringify({ ...data, user: updatedUser }));
+              const ttl = await redis.ttl(session.token);
+              await redis.set(
+                session.token,
+                JSON.stringify({ ...data, user: updatedUser }),
+                ttl > 0
+                  ? {
+                      ex: ttl
+                    }
+                  : {}
+              );
             })
           );
 

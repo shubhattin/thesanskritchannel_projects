@@ -12,7 +12,7 @@
         callbackURL: window.location.href
       });
     }}
-    class="btn btn flex gap-2 rounded-lg preset-outlined-primary-700-300 font-semibold"
+    class="btn flex gap-2 rounded-lg preset-outlined-primary-700-300 font-semibold"
     ><Icon src={GoogleIcon} class="inline-block text-[1.25rem]" />Signin with Google</button
   >
 </div>

@@ -147,19 +147,21 @@
     </span>
   {/snippet}
   {#snippet content()}
-    <button
-      onclick={() => {
-        $download_excel_file.mutate();
-        utility_popover_state = false;
-      }}
-      class="btn block w-full rounded-md px-2 py-1 pt-0 hover:bg-gray-200 dark:hover:bg-gray-700"
-    >
-      <Icon
-        class="-mt-1 mr-1 text-2xl text-green-600 dark:text-green-400"
-        src={RiDocumentFileExcel2Line}
-      />
-      Download Excel File
-    </button>
+    {#if user_info && user_info.is_approved}
+      <button
+        onclick={() => {
+          $download_excel_file.mutate();
+          utility_popover_state = false;
+        }}
+        class="btn block w-full rounded-md px-2 py-1 pt-0 hover:bg-gray-200 dark:hover:bg-gray-700"
+      >
+        <Icon
+          class="-mt-1 mr-1 text-2xl text-green-600 dark:text-green-400"
+          src={RiDocumentFileExcel2Line}
+        />
+        Download Excel File
+      </button>
+    {/if}
     <button
       onclick={() => {
         utility_popover_state = false;

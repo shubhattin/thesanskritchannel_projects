@@ -218,7 +218,7 @@ const edit_translation_route = protectedProcedure
     }
   );
 
-const get_all_langs_translation_route = publicProcedure
+const get_all_langs_translation_route = protectedProcedure
   .input(
     z.object({
       project_id: z.number().int(),

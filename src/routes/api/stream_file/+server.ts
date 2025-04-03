@@ -2,16 +2,11 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { z } from 'zod';
 import ms from 'ms';
-import { auth } from '$lib/auth';
+import { protected_admin_route_check } from '~/api/api_init';
 
 export const GET: RequestHandler = async ({ url, request }) => {
-  const session = await auth.api.getSession({
-    headers: request.headers
-  });
-  const user = session?.user;
-  if (!user || user.role !== 'admin') {
-    throw error(401, 'UNAUTHORIZED');
-  }
+  const user = await protected_admin_route_check(request.headers);
+  if (!user) throw error(401, 'UNAUTHORIZED');
 
   const fileUrlParam = url.searchParams.get('file_url');
   if (!fileUrlParam) {

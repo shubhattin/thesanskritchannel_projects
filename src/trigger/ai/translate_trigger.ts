@@ -26,6 +26,15 @@ export const translate_sarga = task({
           'claude-3.7-sonnet': anthropic_text_model('claude-3-7-sonnet-latest'),
           'o3-mini': openai_text_model('o3-mini')
         }[model],
+        ...(model === 'o3-mini'
+          ? {
+              providerOptions: {
+                openai: {
+                  reasoningEffort: 'medium'
+                }
+              }
+            }
+          : {}),
         messages,
         output: 'array',
         schema: translation_out_schema,

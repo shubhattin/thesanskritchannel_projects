@@ -56,7 +56,7 @@
 
   $effect(() => {
     if ($selected_text_levels[0]) {
-      $index = get_starting_index($project_state.project_key!);
+      $index = get_starting_index($project_state.project_key!, $selected_text_levels);
     }
   });
   let index = writable(1);

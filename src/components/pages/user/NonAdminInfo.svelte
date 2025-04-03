@@ -14,6 +14,7 @@
   import { authClient } from '~/lib/auth-client';
   import { OiLinkExternal16 } from 'svelte-icons-pack/oi';
   import RevokeSessions from './RevokeSessions.svelte';
+  import ms from 'ms';
 
   const query_client = useQueryClient();
 
@@ -46,7 +47,8 @@
         } catch {
           return null;
         }
-      }
+      },
+      staleTime: ms('5mins')
     })
   );
 

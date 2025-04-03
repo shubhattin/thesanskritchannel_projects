@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '~/tools/Icon.svelte';
   import { TrOutlineLogin2 } from 'svelte-icons-pack/tr';
-  import { LuUserPlus } from 'svelte-icons-pack/lu';
+  import { LuRefreshCw, LuUserPlus } from 'svelte-icons-pack/lu';
   import { RiUserFacesAdminLine } from 'svelte-icons-pack/ri';
   import { BiLogOut } from 'svelte-icons-pack/bi';
   import { writable } from 'svelte/store';
@@ -18,6 +18,7 @@
   import { Modal, Popover } from '@skeletonlabs/skeleton-svelte';
   import { get_lang_from_id } from '~/state/lang_list';
   import { client } from '~/api/client';
+  import { cl_join } from '~/tools/cl_join';
 
   const session = useSession();
 
@@ -101,7 +102,21 @@
           </ConfirmModal>
         </div>
         {#if user_info.role !== 'admin' && $user_project_info_q.isSuccess}
-          {#if user_info.is_approved}
+          <button
+            class={cl_join(
+              'm-0 mb-1 btn block p-0 text-sm outline-hidden select-none hover:text-gray-500 dark:hover:text-gray-400',
+              $user_project_info_q.isFetching && 'animate-spin'
+            )}
+            onclick={() => {
+              $user_project_info_q.refetch();
+            }}
+            disabled={$user_project_info_q.isFetching}
+          >
+            <Icon src={LuRefreshCw} class="text-lg" />
+          </button>
+          {#if $user_project_info_q.isFetching}
+            <div class="h-5 placeholder w-full animate-pulse"></div>
+          {:else if user_info.is_approved}
             {@const langs = $user_project_info_q.data.languages!}
             {#if langs && langs.length > 0}
               <div>

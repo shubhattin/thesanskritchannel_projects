@@ -22,7 +22,9 @@ export const translation = pgTable(
   ]
 );
 
-export const media_type_enum = pgEnum('media_type_enum', ['pdf', 'text', 'video', 'audio']);
+export const MEDIA_TYPE_LIST = ['pdf', 'text', 'video', 'audio'] as const;
+export type media_list_type = (typeof MEDIA_TYPE_LIST)[number];
+export const media_type_enum = pgEnum('media_type_enum', MEDIA_TYPE_LIST);
 export const media_attachment = pgTable('media_attachment', {
   id: serial().primaryKey(),
   project_id: integer().notNull(),

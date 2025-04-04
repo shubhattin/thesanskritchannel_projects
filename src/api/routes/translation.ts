@@ -62,7 +62,7 @@ export const get_text_data_func = async (key: string, path_params: (number | nul
   return data;
 };
 
-const get_levels = (selected_text_levels: (number | null)[]) => {
+export const get_levels = (selected_text_levels: (number | null)[]) => {
   const first = selected_text_levels[0] ?? 0;
   const second = selected_text_levels[1] ?? 0;
   return {

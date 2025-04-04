@@ -8,9 +8,6 @@ import { auth, ALLOWRD_ORIGINS } from '$lib/auth';
 export const handle_trpc: Handle = createTRPCHandle({ router, createContext });
 
 export const handle: Handle = async ({ event, resolve }) => {
-  if (event.url.pathname.startsWith('/trpc')) {
-    return handle_trpc({ event, resolve });
-  }
   const origin = event.request.headers.get('origin');
   const isAllowedOrigin = !!origin && ALLOWRD_ORIGINS.includes(origin);
 
@@ -28,6 +25,9 @@ export const handle: Handle = async ({ event, resolve }) => {
         Vary: 'Origin'
       }
     });
+  }
+  if (event.url.pathname.startsWith('/trpc')) {
+    return handle_trpc({ event, resolve });
   }
   const res: Response = await svelteKitHandler({ event, resolve, auth });
   if (IS_CORS_ALLOWED_URL && isAllowedOrigin) {

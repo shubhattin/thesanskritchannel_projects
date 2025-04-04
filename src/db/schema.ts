@@ -1,6 +1,6 @@
 import { relations } from 'drizzle-orm';
 import { account, user } from './auth-schema';
-import { pgTable, text, integer, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, primaryKey, pgEnum, serial } from 'drizzle-orm/pg-core';
 export * from './auth-schema';
 
 export const translation = pgTable(
@@ -21,6 +21,17 @@ export const translation = pgTable(
     })
   ]
 );
+
+export const media_type_enum = pgEnum('media_type_enum', ['pdf', 'text', 'video', 'audio']);
+export const media_attachment = pgTable('media_attachment', {
+  id: serial().primaryKey(),
+  project_id: integer().notNull(),
+  lang_id: integer().notNull(),
+  second: integer().notNull(),
+  first: integer().notNull(),
+  type: media_type_enum().notNull(),
+  link: text().notNull()
+});
 
 /*
 first, second and such are in reverse order to facilitate addition of more layers at the top instead of bottom

@@ -1,5 +1,5 @@
 {
-  "id": "25e8e83f-da33-45e8-97fc-2e74566fc6f1",
+  "id": "1b6bff6d-5e03-4695-9a05-0fd689483de9",
   "prevId": "b7de2e0f-a905-4f1b-a4f6-17b9cc3dea71",
   "version": "7",
   "dialect": "postgresql",
@@ -52,7 +52,41 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "media_link_index": {
+          "name": "media_link_index",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lang_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "second",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "first",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

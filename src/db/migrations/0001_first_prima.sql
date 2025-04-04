@@ -8,3 +8,5 @@ CREATE TABLE "media_attachment" (
 	"type" "media_type_enum" NOT NULL,
 	"link" text NOT NULL
 );
+--> statement-breakpoint
+CREATE INDEX "media_link_index" ON "media_attachment" USING btree ("project_id","lang_id","second","first");

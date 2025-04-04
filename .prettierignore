@@ -25,3 +25,4 @@ data/translations
 
 kAraH
 src/tools/converter/resources
+src/db/migrations

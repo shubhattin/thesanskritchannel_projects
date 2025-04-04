@@ -11,7 +11,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (event.url.pathname.startsWith('/trpc')) {
     return handle_trpc({ event, resolve });
   }
-  return await svelteKitHandler({ event, resolve, auth });
+  return svelteKitHandler({ event, resolve, auth });
 };
 
 // buffer pollyfill for netlify

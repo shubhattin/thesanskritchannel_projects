@@ -5,7 +5,6 @@ from rich.prompt import Prompt
 import os
 
 OPTIONS = [
-    ["Check Data Integrity", ["pnpm vitest run src/tests/check_data_shape.test.ts"]],
     [
         "Ramayanam",
         [
@@ -20,6 +19,7 @@ OPTIONS = [
             "uv run extract.py",
         ],
     ],
+    ["Check Data Integrity", ["pnpm vitest run src/tests/check_data_shape.test.ts"]],
 ]
 
 

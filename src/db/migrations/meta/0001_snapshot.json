@@ -1,5 +1,5 @@
 {
-  "id": "1b6bff6d-5e03-4695-9a05-0fd689483de9",
+  "id": "a1cbb1cc-448a-401b-8a72-3c85cee5612b",
   "prevId": "b7de2e0f-a905-4f1b-a4f6-17b9cc3dea71",
   "version": "7",
   "dialect": "postgresql",
@@ -58,12 +58,6 @@
           "columns": [
             {
               "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "lang_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

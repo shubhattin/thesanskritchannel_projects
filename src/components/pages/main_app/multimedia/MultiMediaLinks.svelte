@@ -6,18 +6,24 @@
   import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
   import { user_info } from '~/state/user.svelte';
   import Icon from '~/tools/Icon.svelte';
-  import AddMediaLinks from './AddMediaLinks.svelte';
+  import AddMediaLinks from './AddMediaLink.svelte';
   import { type media_list_type } from './index';
   import MediaTypeIcon from './MediaTypeIcon.svelte';
+  import { FiEdit2 } from 'svelte-icons-pack/fi';
+  import EditMediaLink from './EditMediaLink.svelte';
 
-  const media_list_q = client_q.media.get_media_list.query({
-    project_id: $project_state.project_id!,
-    selected_text_levels: $selected_text_levels
-  });
+  const media_list_q = $derived(
+    client_q.media.get_media_list.query({
+      project_id: $project_state.project_id!,
+      selected_text_levels: $selected_text_levels
+    })
+  );
 
   let multimedia_popover_state = $state(false);
 
   let link_add_modal_opened = $state(false);
+  let link_edit_modal_opened = $state(false);
+  let selected_edit_item = $state<NonNullable<typeof $media_list_q.data>[0] | null>(null!);
 </script>
 
 <Popover
@@ -40,17 +46,28 @@
       {#if media_list.length === 0}
         <div class=" text-yellow-700 dark:text-amber-500">No multimedia links found</div>
       {:else}
-        <div class="space-y-1">
+        <div class="space-y-0">
           {#each media_list as media (media.id)}
-            <a
-              href={media.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="flex items-center space-x-2 rounded-md p-1 hover:bg-gray-200 dark:hover:bg-gray-700"
+            <span
+              class="group block space-x-1 rounded-md p-1 hover:bg-gray-200 dark:hover:bg-gray-700"
             >
-              <MediaTypeIcon media_type={media.media_type as media_list_type} />
-              <span>{media.name}</span>
-            </a>
+              <a href={media.link} target="_blank" rel="noopener noreferrer" class="space-x-2">
+                <MediaTypeIcon media_type={media.media_type as media_list_type} />
+                <span>{media.name}</span>
+              </a>
+              {#if $user_info && $user_info.role === 'admin'}
+                <button
+                  onclick={() => {
+                    multimedia_popover_state = false;
+                    selected_edit_item = media;
+                    link_edit_modal_opened = true;
+                  }}
+                  class="btn inline-block p-0"
+                >
+                  <Icon src={FiEdit2} class="text-xs" />
+                </button>
+              {/if}
+            </span>
           {/each}
         </div>
       {/if}
@@ -79,5 +96,17 @@
 >
   {#snippet content()}
     <AddMediaLinks bind:modal_open_state={link_add_modal_opened} />
+  {/snippet}
+</Modal>
+
+<Modal
+  contentBase="card z-40 space-y-2 rounded-lg px-4 py-3 shadow-xl dark:bg-surface-900 bg-stone-100"
+  triggerBase="btn p-0 outline-hidden select-none"
+  backdropBackground="backdrop-blur-md"
+  open={link_edit_modal_opened}
+  onOpenChange={(e) => (link_edit_modal_opened = e.open)}
+>
+  {#snippet content()}
+    <EditMediaLink bind:modal_open_state={link_edit_modal_opened} link_info={selected_edit_item!} />
   {/snippet}
 </Modal>

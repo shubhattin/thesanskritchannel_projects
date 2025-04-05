@@ -92,7 +92,41 @@ const add_media_link_route = protectedAdminProcedure
     }
   );
 
-export const delete_media_link_route = protectedAdminProcedure
+const update_media_link_route = protectedAdminProcedure
+  .input(
+    MediaAttachmentSchemaZod.omit({
+      first: true,
+      second: true
+    }).extend({
+      project_id: z.number().int(),
+      selected_text_levels: z.array(z.number().int().nullable())
+    })
+  )
+  .mutation(
+    async ({
+      input: { project_id, selected_text_levels, id, lang_id, link, media_type, name }
+    }) => {
+      const path_params = server_get_path_params(
+        selected_text_levels,
+        get_project_info_from_id(project_id).levels
+      );
+
+      const { first, second } = get_levels(selected_text_levels);
+
+      await Promise.all([
+        db
+          .update(media_attachment)
+          .set({ link, media_type, name, lang_id })
+          .where(eq(media_attachment.id, id)),
+        redis.del(REDIS_CACHE_KEYS.media_links(project_id, path_params))
+      ]);
+      return {
+        success: true
+      };
+    }
+  );
+
+const delete_media_link_route = protectedAdminProcedure
   .input(
     z.object({
       project_id: z.number().int(),
@@ -118,5 +152,7 @@ export const delete_media_link_route = protectedAdminProcedure
 
 export const media_router = t.router({
   get_media_list: get_media_list_route,
-  add_media_link: add_media_link_route
+  add_media_link: add_media_link_route,
+  delete_media_link: delete_media_link_route,
+  update_media_link: update_media_link_route
 });

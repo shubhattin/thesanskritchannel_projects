@@ -7,7 +7,8 @@ import {
   user_project_join,
   user_project_language_join,
   verification,
-  translation
+  translation,
+  media_attachment
 } from '~/db/schema';
 import {
   UserSchemaZod,
@@ -15,7 +16,8 @@ import {
   UserProjectJoinSchemaZod,
   UserProjectLanguageJoinSchemaZod,
   VerificationSchemaZod,
-  TranslationSchemaZod
+  TranslationSchemaZod,
+  MediaAttachmentSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -44,7 +46,8 @@ const main = async () => {
       user_project_join: UserProjectJoinSchemaZod.array(),
       user_project_language_join: UserProjectLanguageJoinSchemaZod.array(),
       verification: VerificationSchemaZod.array(),
-      translation: TranslationSchemaZod.array()
+      translation: TranslationSchemaZod.array(),
+      media_attachment: MediaAttachmentSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
@@ -57,6 +60,7 @@ const main = async () => {
     await db.delete(user_project_language_join);
     await db.delete(user_project_language_join);
     await db.delete(translation);
+    await db.delete(media_attachment);
     console.log(chalk.green('✓ Deleted All Tables Successfully'));
   } catch (e) {
     console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
@@ -119,9 +123,22 @@ const main = async () => {
     console.log(chalk.red('✗ Error while inserting translation:'), chalk.yellow(e));
   }
 
+  // resetting media_attachment
+  try {
+    await db.insert(media_attachment).values(data.media_attachment);
+    console.log(
+      chalk.green('✓ Successfully added values into table'),
+      chalk.blue('`media_attachment`')
+    );
+  } catch (e) {
+    console.log(chalk.red('✗ Error while inserting media_attachment:'), chalk.yellow(e));
+  }
+
   // resetting SERIAL
   try {
-    // await db.execute(sql`SELECT setval('"project_id_seq"', (select MAX(id) from "project"))`);
+    await db.execute(
+      sql`SELECT setval('"media_attachment_id_seq"', (select MAX(id) from "media_attachment"))`
+    );
     console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
   } catch (e) {
     console.log(chalk.red('✗ Error while resetting SERIAL:'), chalk.yellow(e));

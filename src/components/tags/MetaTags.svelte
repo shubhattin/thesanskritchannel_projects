@@ -8,10 +8,10 @@
 </script>
 
 <svelte:head>
-  <meta
+  <!-- <meta
     property="og:image"
     content="https://cdn.jsdelivr.net/gh/shubhattin/valmiki_ramayanam@latest/static/img/Project_Banner.jpg"
-  />
+  /> -->
   <meta property="og:image:width" content="501.4" />
   <meta property="og:image:height" content="229.32" />
   <title>{title}</title>

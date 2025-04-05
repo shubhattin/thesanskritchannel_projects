@@ -12,7 +12,9 @@ export const REDIS_CACHE_KEYS = {
   text_data: (project_id: number, path_params: (number | null)[]) =>
     `text_data:${project_id}:${path_params.join('.')}`,
   translation: (project_id: number, lang_id: number, path_params: (number | null)[]) =>
-    `trans_data:${project_id}:${lang_id}:${path_params.join('.')}`
+    `trans_data:${project_id}:${lang_id}:${path_params.join('.')}`,
+  media_links: (project_id: number, path_params: (number | null)[]) =>
+    `media_links:${project_id}:${path_params.join('.')}`
 };
 
 export async function deleteKeysWithPattern(pattern: string) {

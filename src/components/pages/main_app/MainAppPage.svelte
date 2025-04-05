@@ -429,11 +429,11 @@
       {/if}
     {/if}
     {#snippet btn_multi()}
-      {#await import('./MultiMediaLinks.svelte')}
-        <button class="m-0 btn p-0 outline-none select-none">
+      {#await import('./multimedia/MultiMediaLinks.svelte')}
+        <button class="btn p-0 outline-none select-none">
           <Icon
             src={MultimediaIcon}
-            class="text-2xl text-orange-500 sm:text-3xl dark:text-amber-200"
+            class="text-2xl text-orange-600 sm:text-3xl dark:text-amber-200"
           />
         </button>
       {:then MultiMediaLinks}

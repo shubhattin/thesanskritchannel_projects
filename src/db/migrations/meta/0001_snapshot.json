@@ -1,5 +1,5 @@
 {
-  "id": "a1cbb1cc-448a-401b-8a72-3c85cee5612b",
+  "id": "75b9cbcb-6b00-4d94-bc43-95e62faf9adb",
   "prevId": "b7de2e0f-a905-4f1b-a4f6-17b9cc3dea71",
   "version": "7",
   "dialect": "postgresql",
@@ -47,6 +47,12 @@
         },
         "link": {
           "name": "link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true

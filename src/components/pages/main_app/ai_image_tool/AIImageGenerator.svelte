@@ -356,10 +356,7 @@
       <option value={key} title={value[1]}>{value[0]}</option>
     {/each}
   </select>
-  <button
-    class="m-0 btn p-0 text-white hover:text-red-500"
-    onclick={() => ($ai_tool_opened = false)}
-  >
+  <button class="btn p-0 text-white hover:text-red-500" onclick={() => ($ai_tool_opened = false)}>
     <Icon src={CgClose} class="text-xl" />
   </button>
   {#if show_prompt_time_status && $image_prompt_q.isSuccess && $image_prompt_q.data.image_prompt}

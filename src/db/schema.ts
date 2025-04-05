@@ -34,7 +34,8 @@ export const media_attachment = pgTable(
     second: integer().notNull(),
     first: integer().notNull(),
     type: media_type_enum().notNull(),
-    link: text().notNull()
+    link: text().notNull(),
+    name: text().notNull()
   },
   ({ project_id, second, first }) => [index('media_link_index').on(project_id, second, first)]
 );

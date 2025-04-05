@@ -48,11 +48,10 @@
   } from '~/state/main_app/data.svelte';
   import { user_info } from '~/state/user.svelte';
   import { BiEdit, BiHelpCircle } from 'svelte-icons-pack/bi';
-  import { Popover, Switch } from '@skeletonlabs/skeleton-svelte';
+  import { Switch } from '@skeletonlabs/skeleton-svelte';
   import { BsKeyboard } from 'svelte-icons-pack/bs';
   import { loadLocalConfig } from './load_local_config';
   import AiImageGenerator from './ai_image_tool/AIImageGenerator.svelte';
-  import { cl_join } from '~/tools/cl_join';
 
   const query_client = useQueryClient();
 
@@ -430,29 +429,16 @@
       {/if}
     {/if}
     {#snippet btn_multi()}
-      <Popover
-        open={multimedia_popover_state}
-        onOpenChange={(e) => (multimedia_popover_state = e.open)}
-        positioning={{ placement: 'bottom' }}
-        arrow={false}
-        contentBase={cl_join(
-          'card z-70 space-y-1 p-1.5 rounded-lg shadow-xl dark:bg-surface-900 bg-zinc-100 text-sm'
-        )}
-      >
-        {#snippet trigger()}
-          <span class="m-0 btn p-0 outline-none select-none">
-            <Icon
-              src={MultimediaIcon}
-              class="text-2xl text-orange-500 sm:text-3xl dark:text-amber-200"
-            />
-          </span>
-        {/snippet}
-        {#snippet content()}
-          {#await import('./MultiMediaLinks.svelte') then MultiMediaLinks}
-            <MultiMediaLinks.default bind:multimedia_popover_state />
-          {/await}
-        {/snippet}
-      </Popover>
+      {#await import('./MultiMediaLinks.svelte')}
+        <button class="m-0 btn p-0 outline-none select-none">
+          <Icon
+            src={MultimediaIcon}
+            class="text-2xl text-orange-500 sm:text-3xl dark:text-amber-200"
+          />
+        </button>
+      {:then MultiMediaLinks}
+        <MultiMediaLinks.default />
+      {/await}
     {/snippet}
   </div>
 {/if}

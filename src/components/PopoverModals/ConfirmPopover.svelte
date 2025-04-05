@@ -14,7 +14,8 @@
     contentBase,
     placement,
     class: className,
-    triggerBase
+    triggerBase,
+    z_index = 100
   }: {
     children: Snippet;
     confirm_func?: () => void;
@@ -26,6 +27,7 @@
     placement: Placement;
     class?: string;
     triggerBase?: string;
+    z_index?: number;
   } = $props();
 </script>
 
@@ -41,6 +43,7 @@
     contentBase
   )}
   triggerBase={cl_join(triggerBase)}
+  zIndex={z_index!.toString()}
 >
   {#snippet trigger()}
     {@render children()}

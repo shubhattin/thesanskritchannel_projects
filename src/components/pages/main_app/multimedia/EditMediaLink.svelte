@@ -7,6 +7,8 @@
   import { useQueryClient } from '@tanstack/svelte-query';
   import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
   import MediaTypeIcon from './MediaTypeIcon.svelte';
+  import { AiOutlineDelete } from 'svelte-icons-pack/ai';
+  import ConfirmPopover from '~/components/PopoverModals/ConfirmPopover.svelte';
 
   type link_info_type = Awaited<ReturnType<typeof client.media.get_media_list.query>>[0];
 
@@ -63,8 +65,7 @@
   let url = $state(link_info.link);
   let name = $state(link_info.name);
 
-  const del_link_func = (e: Event) => {
-    e.preventDefault();
+  const del_link_func = () => {
     $del_media_link_mut.mutate({
       project_id: $project_state.project_id!,
       selected_text_levels: $selected_text_levels,
@@ -92,6 +93,25 @@
   Add Media Links
 </div>
 <form onsubmit={update_link_func} class="space-y-1.5">
+  <div>
+    <ConfirmPopover
+      description="Are you sere to delete this link ?"
+      popup_state={false}
+      placement="bottom"
+      close_on_confirm={true}
+      confirm_func={del_link_func}
+      z_index={999}
+    >
+      <button
+        type="button"
+        disabled={$del_media_link_mut.isPending}
+        class="btn flex gap-1 bg-rose-400 px-1 py-0.5 font-semibold"
+      >
+        <Icon src={AiOutlineDelete} class="text-xl" />
+        <span>Delete Link</span>
+      </button>
+    </ConfirmPopover>
+  </div>
   <label class="block">
     <span class="label-text block font-semibold">Type</span>
     <div class="space-x-1">

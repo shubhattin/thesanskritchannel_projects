@@ -5,7 +5,7 @@ CREATE TABLE "media_attachment" (
 	"lang_id" integer NOT NULL,
 	"second" integer NOT NULL,
 	"first" integer NOT NULL,
-	"type" "media_type_enum" NOT NULL,
+	"media_type" "media_type_enum" NOT NULL,
 	"link" text NOT NULL,
 	"name" text NOT NULL
 );

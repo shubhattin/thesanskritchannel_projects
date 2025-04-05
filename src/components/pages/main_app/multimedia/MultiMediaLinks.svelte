@@ -7,6 +7,8 @@
   import { user_info } from '~/state/user.svelte';
   import Icon from '~/tools/Icon.svelte';
   import AddMediaLinks from './AddMediaLinks.svelte';
+  import { type media_list_type } from './index';
+  import MediaTypeIcon from './MediaTypeIcon.svelte';
 
   const media_list_q = client_q.media.get_media_list.query({
     project_id: $project_state.project_id!,
@@ -16,12 +18,6 @@
   let multimedia_popover_state = $state(false);
 
   let link_add_modal_opened = $state(false);
-
-  const add_link_mut = client_q.media.add_media_link.mutation({
-    onSuccess: () => {
-      $media_list_q.refetch();
-    }
-  });
 </script>
 
 <Popover
@@ -29,7 +25,7 @@
   onOpenChange={(e) => (multimedia_popover_state = e.open)}
   positioning={{ placement: 'bottom' }}
   arrow={false}
-  contentBase={'card z-70 space-y-1 p-1.5 rounded-lg shadow-xl dark:bg-surface-900 bg-zinc-100 text-sm'}
+  contentBase={'card z-70 space-y-1 p-1.5 rounded-lg shadow-xl dark:bg-surface-900 bg-zinc-100 '}
 >
   {#snippet trigger()}
     <span class="btn p-0 outline-none select-none">
@@ -42,7 +38,21 @@
     {:else if !$media_list_q.isFetching && $media_list_q.isSuccess}
       {@const media_list = $media_list_q.data}
       {#if media_list.length === 0}
-        <div class="text-sm text-yellow-700 dark:text-amber-500">No multimedia links found</div>
+        <div class=" text-yellow-700 dark:text-amber-500">No multimedia links found</div>
+      {:else}
+        <div class="space-y-1">
+          {#each media_list as media (media.id)}
+            <a
+              href={media.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center space-x-2 rounded-md p-1 hover:bg-gray-200 dark:hover:bg-gray-700"
+            >
+              <MediaTypeIcon media_type={media.media_type as media_list_type} />
+              <span>{media.name}</span>
+            </a>
+          {/each}
+        </div>
       {/if}
       {#if $user_info && $user_info.role === 'admin'}
         <button
@@ -50,7 +60,7 @@
             multimedia_popover_state = false;
             link_add_modal_opened = true;
           }}
-          class="btn block rounded-md p-1 text-sm hover:bg-gray-200 dark:hover:bg-gray-700"
+          class="btn block rounded-md p-1 hover:bg-gray-200 dark:hover:bg-gray-700"
         >
           <Icon src={CgAdd} class="text-xl " />
           Add Links

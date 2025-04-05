@@ -1,5 +1,5 @@
 {
-  "id": "75b9cbcb-6b00-4d94-bc43-95e62faf9adb",
+  "id": "f133072f-966c-4bc3-971c-2b251187c53e",
   "prevId": "b7de2e0f-a905-4f1b-a4f6-17b9cc3dea71",
   "version": "7",
   "dialect": "postgresql",
@@ -38,8 +38,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "type": {
-          "name": "type",
+        "media_type": {
+          "name": "media_type",
           "type": "media_type_enum",
           "typeSchema": "public",
           "primaryKey": false,

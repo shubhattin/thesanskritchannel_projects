@@ -33,7 +33,7 @@ export const media_attachment = pgTable(
     lang_id: integer().notNull(),
     second: integer().notNull(),
     first: integer().notNull(),
-    type: media_type_enum().notNull(),
+    media_type: media_type_enum().notNull(),
     link: text().notNull(),
     name: text().notNull()
   },

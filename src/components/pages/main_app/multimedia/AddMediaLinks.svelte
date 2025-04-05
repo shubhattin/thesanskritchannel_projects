@@ -7,6 +7,7 @@
   import { RiSystemAddLargeFill } from 'svelte-icons-pack/ri';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
+  import MediaTypeIcon from './MediaTypeIcon.svelte';
 
   let { modal_open_state = $bindable() }: { modal_open_state: boolean } = $props();
 
@@ -31,7 +32,7 @@
     }
   });
 
-  let type = $state<media_list_type>('video');
+  let media_type = $state<media_list_type>('video');
   let lang_id = $state(1);
   let url = $state('');
   let name = $state('');
@@ -43,7 +44,7 @@
     $add_media_link_mut.mutate({
       project_id: $project_state.project_id!,
       selected_text_levels: $selected_text_levels,
-      type,
+      media_type,
       lang_id,
       link: url,
       name
@@ -57,22 +58,25 @@
 <form onsubmit={add_link_func} class="space-y-2">
   <label class="block">
     <span class="label-text block font-semibold">Type</span>
-    <select required bind:value={type} class="select w-28 ring-2">
-      {#each Object.entries(MEDIA_TYPE_LIST) as [key, value]}
-        <option value={key}>{value}</option>
-      {/each}
-    </select>
+    <div class="space-x-1">
+      <MediaTypeIcon {media_type} />
+      <select required bind:value={media_type} class="select inline-block w-28 ring-2">
+        {#each Object.entries(MEDIA_TYPE_LIST) as [key, value]}
+          <option value={key}>{value}</option>
+        {/each}
+      </select>
+    </div>
   </label>
   <label class="block">
-    <span class="label-text block font-semibold">Language</span>
+    <span class="label-text font-semibold">Language</span>
     <select required bind:value={lang_id} class="select w-36 ring-2">
       {#each Object.entries(lang_list_obj) as [lang, id]}
         <option value={id}>{lang}</option>
       {/each}
     </select>
   </label>
-  <label for="block">
-    <span class="label-text block font-semibold">Name</span>
+  <label class="block">
+    <span class="label-text font-semibold">Name</span>
     <input
       required
       minlength={4}
@@ -82,8 +86,8 @@
       class="input w-full ring-2"
     />
   </label>
-  <label for="block">
-    <span class="label-text block font-semibold">URL</span>
+  <label class="block">
+    <span class="label-text font-semibold">URL</span>
     <input
       required
       minlength={10}
@@ -96,7 +100,7 @@
   <button
     disabled={$add_media_link_mut.isPending}
     type="submit"
-    class="mt-2 btn block bg-primary-500 px-2 py-1 font-bold text-white"
+    class="btn block bg-primary-500 px-2 py-1 font-bold text-white"
   >
     <Icon src={RiSystemAddLargeFill} class="-mt-1 text-xl" />
     Add Link

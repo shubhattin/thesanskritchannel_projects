@@ -24,7 +24,7 @@ const get_media_list_route = publicProcedure
     type return_type = {
       id: number;
       lang_id: number;
-      type: string;
+      media_type: string;
       link: string;
       name: string;
     }[];
@@ -38,7 +38,7 @@ const get_media_list_route = publicProcedure
       columns: {
         id: true,
         link: true,
-        type: true,
+        media_type: true,
         lang_id: true,
         name: true
       },
@@ -62,33 +62,35 @@ const add_media_link_route = protectedAdminProcedure
       selected_text_levels: z.array(z.number().int().nullable())
     })
   )
-  .mutation(async ({ input: { project_id, lang_id, link, type, selected_text_levels, name } }) => {
-    const path_params = server_get_path_params(
-      selected_text_levels,
-      get_project_info_from_id(project_id).levels
-    );
+  .mutation(
+    async ({ input: { project_id, lang_id, link, media_type, selected_text_levels, name } }) => {
+      const path_params = server_get_path_params(
+        selected_text_levels,
+        get_project_info_from_id(project_id).levels
+      );
 
-    const { first, second } = get_levels(selected_text_levels);
-    const [inserted] = await Promise.all([
-      db
-        .insert(media_attachment)
-        .values({
-          project_id,
-          lang_id,
-          first,
-          second,
-          link,
-          type,
-          name
-        })
-        .returning(),
-      redis.del(REDIS_CACHE_KEYS.media_links(project_id, path_params))
-    ]);
+      const { first, second } = get_levels(selected_text_levels);
+      const [inserted] = await Promise.all([
+        db
+          .insert(media_attachment)
+          .values({
+            project_id,
+            lang_id,
+            first,
+            second,
+            link,
+            media_type,
+            name
+          })
+          .returning(),
+        redis.del(REDIS_CACHE_KEYS.media_links(project_id, path_params))
+      ]);
 
-    return {
-      id: inserted[0].id
-    };
-  });
+      return {
+        id: inserted[0].id
+      };
+    }
+  );
 
 export const delete_media_link_route = protectedAdminProcedure
   .input(

@@ -104,7 +104,7 @@
         {#if user_info.role !== 'admin' && $user_project_info_q.isSuccess}
           <button
             class={cl_join(
-              'm-0 mb-1 btn block p-0 text-sm outline-hidden select-none hover:text-gray-500 dark:hover:text-gray-400',
+              'mb-1 btn block p-0 text-sm outline-hidden select-none hover:text-gray-500 dark:hover:text-gray-400',
               $user_project_info_q.isFetching && 'animate-spin'
             )}
             onclick={() => {

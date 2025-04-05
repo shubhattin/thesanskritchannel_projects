@@ -1,6 +1,6 @@
 import { relations } from 'drizzle-orm';
 import { account, user } from './auth-schema';
-import { pgTable, text, integer, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, primaryKey, pgEnum, serial, index } from 'drizzle-orm/pg-core';
 export * from './auth-schema';
 
 export const translation = pgTable(
@@ -20,6 +20,24 @@ export const translation = pgTable(
       // so to indicate absense `0` will be used instead on NULL
     })
   ]
+);
+
+export const MEDIA_TYPE_LIST = ['pdf', 'text', 'video', 'audio'] as const;
+export type media_list_type = (typeof MEDIA_TYPE_LIST)[number];
+export const media_type_enum = pgEnum('media_type_enum', MEDIA_TYPE_LIST);
+export const media_attachment = pgTable(
+  'media_attachment',
+  {
+    id: serial().primaryKey(),
+    project_id: integer().notNull(),
+    lang_id: integer().notNull(),
+    second: integer().notNull(),
+    first: integer().notNull(),
+    media_type: media_type_enum().notNull(),
+    link: text().notNull(),
+    name: text().notNull()
+  },
+  ({ project_id, second, first }) => [index('media_link_index').on(project_id, second, first)]
 );
 
 /*

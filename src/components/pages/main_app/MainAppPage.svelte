@@ -5,7 +5,7 @@
   import { onMount, untrack } from 'svelte';
   import { writable } from 'svelte/store';
   import { z } from 'zod';
-  import { LanguageIcon } from '~/components/icons';
+  import { LanguageIcon, MultimediaIcon } from '~/components/icons';
   import {
     LANG_LIST,
     LANG_LIST_IDS,
@@ -239,6 +239,8 @@
       );
     })();
   });
+
+  let multimedia_popover_state = $state(false);
 </script>
 
 <label class="block space-x-2 text-sm sm:space-x-2 sm:text-base">
@@ -378,6 +380,7 @@
           class="btn rounded-lg bg-primary-800 px-2 py-1 text-sm font-bold text-white sm:text-sm dark:bg-primary-700"
           >View Translations</button
         >
+        {@render btn_multi()}
       {:else}
         <div class="mt-2 block space-x-1.5 sm:mt-0 sm:inline-block sm:space-x-0">
           <label class="mr-1 inline-block space-x-1.5 text-sm sm:mr-3 sm:space-x-4 sm:text-base">
@@ -421,9 +424,22 @@
               </button>
             {/if}
           {/if}
+          {@render btn_multi()}
         </div>
       {/if}
     {/if}
+    {#snippet btn_multi()}
+      {#await import('./multimedia/MultiMediaLinks.svelte')}
+        <button class="btn p-0 outline-none select-none">
+          <Icon
+            src={MultimediaIcon}
+            class="text-2xl text-orange-600 sm:text-3xl dark:text-amber-200"
+          />
+        </button>
+      {:then MultiMediaLinks}
+        <MultiMediaLinks.default />
+      {/await}
+    {/snippet}
   </div>
 {/if}
 {#if $trans_lang !== 0 && $editing_status_on && !($ai_tool_opened && $user_info && $user_info.role === 'admin')}

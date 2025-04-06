@@ -83,7 +83,7 @@
       bind:value={name}
       type="text"
       placeholder="Name"
-      class="input w-full ring-2"
+      class="input w-52 ring-2"
     />
   </label>
   <label class="block">

@@ -8,8 +8,8 @@ export const translation = pgTable(
   {
     project_id: integer().notNull(),
     lang_id: integer().notNull(),
-    second: integer().notNull(),
-    first: integer().notNull(),
+    second: integer().notNull().default(0),
+    first: integer().notNull().default(0),
     index: integer().notNull(),
     text: text().default('').notNull()
   },
@@ -31,8 +31,8 @@ export const media_attachment = pgTable(
     id: serial().primaryKey(),
     project_id: integer().notNull(),
     lang_id: integer().notNull(),
-    second: integer().notNull(),
-    first: integer().notNull(),
+    second: integer().notNull().default(0),
+    first: integer().notNull().default(0),
     media_type: media_type_enum().notNull(),
     link: text().notNull(),
     name: text().notNull()

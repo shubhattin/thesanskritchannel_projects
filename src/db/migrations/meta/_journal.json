@@ -15,6 +15,13 @@
       "when": 1743838904977,
       "tag": "0001_little_vulture",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1743954789324,
+      "tag": "0002_familiar_vulcan",
+      "breakpoints": true
     }
   ]
 }

@@ -135,24 +135,15 @@ const edit_translation_route = protectedProcedure
     z.object({
       project_id: z.number().int(),
       lang_id: z.number().int(),
-      data: z.object({
-        to_add_indexed: z.number().int().array(),
-        to_edit_indexed: z.number().int().array(),
-        add_data: z.string().array(),
-        edit_data: z.string().array()
-      }),
+      data: z.string().array(),
+      indexes: z.number().array(),
       selected_text_levels: z.array(z.number().int().nullable())
     })
   )
   .mutation(
     async ({
       ctx: { user },
-      input: {
-        project_id,
-        lang_id,
-        selected_text_levels,
-        data: { add_data, edit_data, to_add_indexed, to_edit_indexed }
-      }
+      input: { project_id, lang_id, selected_text_levels, data, indexes }
     }) => {
       const { first, second } = get_levels(selected_text_levels);
       const path_params = server_get_path_params(
@@ -168,7 +159,6 @@ const edit_translation_route = protectedProcedure
         if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
       }
 
-      const all_indexes = [...to_add_indexed, ...to_edit_indexed];
       const exists_q = (
         await db
           .select({ index: translation.index })
@@ -179,32 +169,33 @@ const edit_translation_route = protectedProcedure
               eq(translation.lang_id, lang_id),
               eq(translation.first, first!),
               eq(translation.second, second!),
-              inArray(translation.index, all_indexes)
+              inArray(translation.index, indexes)
             )
           )
       ).map((v) => v.index);
 
-      // return;
-      console.log(exists_q);
+      const indexes_i = indexes.map((v, i) => [v, i]);
+      const to_add_indexes = indexes_i.filter((index) => !exists_q.includes(index[0]));
+      const to_edit_indexes = indexes_i.filter((index) => exists_q.includes(index[0]));
 
       // add new records
-      if (to_add_indexed.length > 0) {
-        const data_to_add = to_add_indexed.map((index, i) => ({
+      if (to_add_indexes.length > 0) {
+        const data_to_add = to_add_indexes.map(([index, i]) => ({
           project_id,
           lang_id,
           first: first,
           second: second,
           index: index,
-          text: add_data[i]
+          text: data[i]
         }));
         await db.insert(translation).values(data_to_add);
       }
 
       // update existing records
       const promises: Promise<any>[] = [];
-      for (let i = 0; i < to_edit_indexed.length; i++) {
-        const index = to_edit_indexed[i];
-        const text = edit_data[i];
+      for (let _i = 0; _i < to_edit_indexes.length; _i++) {
+        const [index, i] = to_edit_indexes[_i];
+        const text = data[i];
         promises.push(
           db
             .update(translation)

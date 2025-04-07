@@ -38,15 +38,11 @@
         return;
       await delay(400);
       const data_source = $english_edit_status ? $trans_en_data_q : $trans_lang_data_q;
-      const added_texts = added_indexes.map((index) => data_source.data?.get(index)!);
-      const edited_texts = edited_indexes.map((index) => data_source.data?.get(index)!);
+      const indexes = added_indexes.concat(edited_indexes);
+      const data = indexes.map((index) => data_source.data?.get(index)!);
       const res = await client.translation.edit_translation.mutate({
-        data: {
-          add_data: added_texts,
-          edit_data: edited_texts,
-          to_add_indexed: added_indexes,
-          to_edit_indexed: edited_indexes
-        },
+        data,
+        indexes,
         selected_text_levels: $selected_text_levels,
         project_id: $project_state.project_id!,
         lang_id: $trans_lang !== 0 ? $trans_lang : 1
@@ -108,15 +104,12 @@
     {@const edited_indexes = Array.from($edited_translations_indexes).map((index) => index)}
     <div>
       <span class="font-semibold">Edits ➔ {edited_indexes.length}</span>
-      {#if edited_indexes.length > 0}
+      <!-- {#if edited_indexes.length > 0}
         <span>{`{ ${edited_indexes.join(', ')} }`}</span>
-      {/if}
+      {/if} -->
     </div>
     <div>
       <span class="font-semibold">Additions ➔ {added_indexes.length}</span>
-      <!-- {#if added_indexes.length > 0}
-        <span>{`{ ${added_indexes.join(', ')} }`}</span>
-      {/if} -->
     </div>
   {/snippet}
 </ConfirmModal>
@@ -143,15 +136,9 @@
     {@const edited_indexes = Array.from($edited_translations_indexes).map((index) => index)}
     <div>
       <span class="font-semibold">Edits ➔ {edited_indexes.length}</span>
-      {#if edited_indexes.length > 0}
-        <span>{`{ ${edited_indexes.join(', ')} }`}</span>
-      {/if}
     </div>
     <div>
       <span class="font-semibold">Additions ➔ {added_indexes.length}</span>
-      <!-- {#if added_indexes.length > 0}
-        <span>{`{ ${added_indexes.join(', ')} }`}</span>
-      {/if} -->
     </div>
   {/snippet}
 </ConfirmModal>

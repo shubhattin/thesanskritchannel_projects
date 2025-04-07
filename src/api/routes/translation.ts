@@ -159,7 +159,7 @@ const edit_translation_route = protectedProcedure
         if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
       }
 
-      const exists_q = (
+      const exists_indexes = (
         await db
           .select({ index: translation.index })
           .from(translation)
@@ -174,9 +174,9 @@ const edit_translation_route = protectedProcedure
           )
       ).map((v) => v.index);
 
-      const indexes_i = indexes.map((v, i) => [v, i]);
-      const to_add_indexes = indexes_i.filter((index) => !exists_q.includes(index[0]));
-      const to_edit_indexes = indexes_i.filter((index) => exists_q.includes(index[0]));
+      const indexed_indexes = indexes.map((v, i) => [v, i]);
+      const to_add_indexes = indexed_indexes.filter((index) => !exists_indexes.includes(index[0]));
+      const to_edit_indexes = indexed_indexes.filter((index) => exists_indexes.includes(index[0]));
 
       // add new records
       if (to_add_indexes.length > 0) {

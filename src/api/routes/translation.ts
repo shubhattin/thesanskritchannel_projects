@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, exists, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAdminProcedure, protectedProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
@@ -167,6 +167,25 @@ const edit_translation_route = protectedProcedure
         const allowed_langs = languages.map((lang) => lang.lang_id);
         if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
       }
+
+      const all_indexes = [...to_add_indexed, ...to_edit_indexed];
+      const exists_q = (
+        await db
+          .select({ index: translation.index })
+          .from(translation)
+          .where(
+            and(
+              eq(translation.project_id, project_id),
+              eq(translation.lang_id, lang_id),
+              eq(translation.first, first!),
+              eq(translation.second, second!),
+              inArray(translation.index, all_indexes)
+            )
+          )
+      ).map((v) => v.index);
+
+      // return;
+      console.log(exists_q);
 
       // add new records
       if (to_add_indexed.length > 0) {

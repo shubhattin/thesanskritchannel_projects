@@ -1,3 +1,5 @@
+import { PROJECT_LIST } from './project_list';
+
 export const PAGE_TITLES: Record<
   string,
   {
@@ -21,24 +23,13 @@ export const PAGE_TITLES: Record<
   '/': {
     title: '',
     classes: 'text-xl font-bold'
-  },
-  '/ramayanam': {
-    title: 'श्रीमद्रामायणम्',
-    startsWith: true,
-    classes: 'text-xl font-bold'
-  },
-  '/bhagavadgita': {
-    title: 'श्रीमद्भगवद्गीता',
-    startsWith: true,
-    classes: 'text-xl font-bold'
-  },
-  '/narayaneeyam': {
-    title: 'नारायणीयम्',
-    startsWith: true,
-    classes: 'text-xl font-bold'
-  },
-  '/shivatandava': {
-    title: 'शिवताण्डवस्तोत्रम्',
-    classes: 'text-xl font-bold'
   }
 };
+
+PROJECT_LIST.forEach((project) => {
+  PAGE_TITLES[`/${project.key}`] = {
+    title: project.name_dev,
+    startsWith: true,
+    classes: 'text-xl font-bold'
+  };
+});

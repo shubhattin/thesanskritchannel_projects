@@ -21,6 +21,7 @@ src/db/scripts/backup/
 **/a.json
 **/a.py
 **/a.txt
+**/tmp/
 
 __pycache__
 *~$*.xlsx

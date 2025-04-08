@@ -1,8 +1,3 @@
-import shubhlipi as sh
-from pydantic import BaseModel
-import yaml
-import jinja2
-
 NUMBERS = [
     "०",
     "१",

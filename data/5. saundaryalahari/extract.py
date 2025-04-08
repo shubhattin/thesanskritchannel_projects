@@ -1,6 +1,7 @@
 import shubhlipi as sh
 from common import in_dev_range, DOUBLE_VIRAMA, SINGLE_VIRAMA
 import re
+import os
 
 
 def main():
@@ -45,5 +46,34 @@ def main():
     sh.write("data.json", sh.dump_json(shloka_list))
 
 
+def extarct_trans():
+    if not os.path.exists("tmp"):
+        sh.makedir("tmp")
+
+    data = (
+        sh.read("text.txt")
+        .replace("\r\n", "\n")
+        .replace("\n\n\n", "\n\n")
+        .replace("||", DOUBLE_VIRAMA)
+        .replace("|", SINGLE_VIRAMA)
+    )
+    # data = re.sub(r"(?<=\n)\s+(?<=\n)", "", data)
+
+    liens = data.split("\n\n")
+    trans_list = []
+
+    for i in range(0, len(liens), 3):
+        if i + 2 >= len(liens):
+            break
+        trans_list.append(
+            {
+                "text": liens[i + 2],
+                "index": i // 3,
+            }
+        )
+    sh.write("tmp/trans.json", sh.dump_json(trans_list))
+
+
 if __name__ == "__main__":
     main()
+    extarct_trans()

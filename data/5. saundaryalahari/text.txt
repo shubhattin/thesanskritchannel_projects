@@ -1,10 +1,14 @@
 ॥ सौंदर्य लहरी ॥
 sOundarya laharI
 
+text
+
 The Waves of Beauty
 
 ॥ प्रथमः भागः - आनंदलहरी (१-४१) ॥
 prathamaH bhAgaH - AnandalaharI(shlOkas 1-41)
+
+text
 
 First Part - The Waves of Bliss!
 
@@ -91,6 +95,8 @@ jaDAnAM chaitanyastabakamakarandasrutijharI
 daridrANAM chintAmaNiguNanikA janmajaladhau
 nimagnAnAM daMShTrA muraripuvarAhasya bhavati  3
 
+text
+
 O Goddess! These particles are like an island from which arises the Sun, 
 who dispels the darkness of ignorance. They are like a delicious torrent of honey 
 which causes brightness and invigorates the dull ones! They are like a garland of precious jewels 
@@ -106,6 +112,8 @@ tvamEkA naivAsi prakaTitavarAbhItyabhinayA
 bhayAt trAtuM dAtuM phalamapi cha vAnChAsamadhikaM
 sharaNyE lOkAnAM tava hi charaNAvEva nipuNau  4
 
+text
+
 O Goddess, who is the refuge to the people of all worlds, Gods and Goddesses other than you 
 display abhaya:fear dispelling and varada:boon providing mudras with both their hands. 
 You alone never display these varada and abhaya mudras since your feet themselves 
@@ -119,6 +127,8 @@ haristvAmArAdhya praNatajanasaubhAgyajananIM
 purA nArI bhUtvA puraripumapi kShObhamanayat 
 smarOapi tvAM natvA ratinayanalEhyEna vapuShA
 munInAmapyantaH prabhavati hi mOhAya mahatAm  5
+
+text
 
 Worshipping you, who bestows prosperity upon all your devotees, hari(viShNu) 
 was able to become a charming female and stir waves of passion in the minds of no less a deity 
@@ -135,6 +145,8 @@ vasantaH sAmantO malayamarudAyOdhanarathaH
 tathApyEkaH sarvaM himagirisutE kAmapi kRpAm
 apAmgAttE labdhvA jagadidamanamgO vijayatE  6
 
+text
+
 His bow is made only of flowers; its bow-string is a line of honey-bees; he has only five arrows, 
 and these are made of flowers too! His minister is the(periodical and non-dependable) spring season; 
 his battle-chariot is the(shifting and formless) breeze; and above all, he is ananga, 
@@ -150,6 +162,8 @@ parikShINA madhyE pariNatasharachchandravadanA
 dhanurbANAn pAshaM sRNimapi dadhAnA karatalaiH
 purastAdAstAM naH puramathiturAhOpuruShikA  7
 
+text
+
 May the mother Goddess, who has a jingling waistband, whose breasts are curved 
 like the temples of a young elephant cub, whose waist is slender, whose face is as bright 
 as the fully formed moon of sharad Rtu, who holds a bow, arrows, a noose and a goad in her four hands, 
@@ -163,6 +177,8 @@ sudhAsindhOrmadhyE suraviTapivATIparivRtE
 maNidvIpE nIpOpavanavati chintAmaNigRhE 
 shivAkArE manchE paramashivaparyamkanilayAM
 bhajanti tvAM dhanyAH katichana chidAnandalaharIm  8
+
+text
 
 O Goddess! Situated in the middle of the milky ocean, surrounded by a garden of celestial trees, 
 within an island of jewels, containing an orchard of kadamba trees; 
@@ -178,6 +194,8 @@ mahIM mUlAdhArE kamapi maNipUrE hutavahaM
 sthitaM svAdhiShThAnE hRdi marutamAkAshamupari 
 manOapi bhrUmadhyE sakalamapi bhitvA kulapathaM
 sahasrArE padmE saha rahasi patyA viharasE  9
+
+text
 
 Having penetrated the pRthvI(Earth) element situated in the mUlAdhAra, 
 The jala(Water)  element in the maNipUraka, the agni(Fire) element in the svAdhiShThAna, 
@@ -195,16 +213,13 @@ prapanchaM sinchantI punarapi rasAmnAyamahasaH
 avApya svAm bhUmiM bhujaganibhamadhyuShTavalayaM
 svamAtmAnaM kRtvA svapiShi kulakuNDE kuhariNi  10
 
-sudhAdhArAsAraiH charaNayugalAntarvigalitaiH
-prapanchaM sinchantI punarapi rasAmnAyamahasaH 
-avApya svAm bhUmiM bhujaganibhamadhyuShTavalayaM
-svamAtmAnaM kRtvA svapiShi kulakuNDE kuhariNi
+text
 
 Drenching the whole creation, with the nectar flowing down from both your feet, 
 you descend from the exuberance of the Nectarine Radiance of the Moon. 
 You flow down into your own abode in the mUlAdhAra at the lower end of the suShumnA, 
 assuming your coiled serpentine form, and lie dormant there.
- 
+
 चतुर्भिः श्रीकण्ठैः शिवयुवतिभिः पञ्चभिरपि
 प्रभिन्नाभिः शम्भोर्नवभिरपि मूलप्रकृतिभिः ।
 चतुश्चत्वारिंशद्वसुदळकळाश्रत्रिवलय
@@ -730,7 +745,7 @@ tava-AjnAm-Alambya
 		(with the prefix sadA)
 		sarvam tadidam
 		(all of this creation)
-	
+
 brahmA gives birth to this existence, viShNu sustains it, and rudra destroys it. 
 Isha reverses the whole process absorbing all of it into his own self.
 sadAshiva conducts all this through the power of his grace!
@@ -750,14 +765,12 @@ yA pUjA virachitA
 (That worship which is performed)
 	tava charaNayoH
 	(to your pair of feet)
-
 pUjA bhavet
 (worship happens)
 	trayANAm devAnAm
 	(to the three Gods)
 		tri-guNa-janitAnAm
 		(born of the three qualities)
-
 tathA hi ete nikaTe sthitAH
 (It is so, since they are situated near)
 	tava shive
@@ -1006,8 +1019,8 @@ pashu-patiH
 		tE tantram
 		(your technique)
 			akhila-puruShArtha-eka-ghaTanA-svatantram
-			(the technique of the self, which alone can deliver all pursuits of humans)
-			
+			(the technique of the self, which alone can deliver all pursuits of humans)\
+
 By pervading the entire creation through his forty-four techniques of tantra, 
 lord pashupati, then established himself in each of those techniques, which bear fruit to a sAdhaka.
 And then again, upon your compulsion, he gave birth to all of the attainments of mankind!
@@ -1104,7 +1117,6 @@ tvaM sharIraM
 	(of the auspicious Lord Shiva)
 	shashi-mihira-vakShoruha-yugaM
 	(that has the Sun, and Moon as the Breasts)
-  
 bhagavati manye
 (O Goddess, I think)
 	tava-AtmAnaM
@@ -1221,6 +1233,8 @@ shivaM sEvE dEvIm api shivasamAnavyavasitAm
 yayOH kAntyA yAntyAH shashikiraNasArUpyasaraNE 
 vidhUtAntardhvAntA vilasati chakOrIva jagatI  37
 
+text
+
 In your vishuddhi-chakra, I offer my service to lord shiva, who shines like clear crystal, 
 and who is the creator of vyoma(space), and also to devI who is manifest as an equal to the lord,
 through the brilliance of whose moon-like shine, the entire creation, 
@@ -1234,6 +1248,8 @@ samunmIlat saMvit kamalamakarandaikarasikaM
 bhajE haMsadvandvaM kimapi mahatAM mAnasacharam 
 yadAlApAdaShTAdashaguNitavidyApariNatiH
 yadAdattE dOShAd guNamakhilamadbhyaH paya iva  38
+
+text
 
 Next, I worship the pair of haMsas that dwell in the hearts of great beings, 
 relishing the honey of the fully blossomed-lotuses of their wisdom!
@@ -1249,6 +1265,8 @@ tamIDE saMvartam janani mahatIM tAM cha samayAm
 yadAlOkE lOkAn dahati mahati krOdhakalitE
 dayArdrA yA dRShTiH shishiramupachAraM rachayati  39
 
+text
+
 O Mother, in your svAdhiShThAna chakra, I worship the pair of you as saMvarta 
 and the great samayA, established with fire as their base.
 The enraged sight of which ends up in the burning up of all worlds,
@@ -1263,6 +1281,8 @@ sphurannAnAratnAbharaNapariNaddhEndradhanuSham
 tava shyAmaM mEghaM kamapi maNipUraikasharaNaM
 niShEvE varShantaM haramihirataptaM tribhuvanam  40
 
+text
+
 In the maNipUraka-chakra, I worship the one who is like the darkness-dispelling lightning, 
 which is resplendent in the colours of a rainbow! I worship your dark raincloud-like manifestation 
 that brings its showers cooling down the three-worlds heated up by the Sun-like shiva!
@@ -1276,6 +1296,8 @@ navAtmAnaM manyE navarasamahAtANDavanaTam
 ubhAbhyAmEtAbhyAm udayavidhimuddishya dayayA
 sanAthAbhyAM jajnE janakajananImajjagadidam  41
 
+text
+
 In your mUlAdhAra chakra, I meditate upon the navAtman(lord shiva), 
 engaged in the maha-tANDava, with all the nava-rasas, in the company of samayA(devI shakti) 
 engaged in a pleasant-lAsya. I perceive that it is because of this mutual dance, 
@@ -1283,6 +1305,8 @@ graciously aimed towards the birth of creation, that this existence now has a fa
 
 सौन्दर्यलहरी
 saundaryalaharI
+
+text
 
 Second Part - The Waves of Beauty!
 
@@ -1314,8 +1338,7 @@ sa dhiShaNAm na nibadhnAti
 		chandra-shakalaM
 		(looking at the crescent of the moon)
 		nIDE-yat-ChAyA-churaNa-shabalaM
-		(studded there, shining multicoloured, with their rays)
-		
+		(studded there, shining multicoloured, with their rays)	
 
 O Daughter of the Snowy Mountain! Whoever describes your golden crown, 
 set densely with the Twelve Suns made into jewels – will such a person not be of the impression 
@@ -1343,7 +1366,6 @@ naH dhunOtu
 		(dense, oily, and soft)
 		tulita-dalita-indIvara-vanaM
 		(like a playful blooming dark-lily pond)
- 
 manyE asmin vasanti
 (I think, in this reside)
 	sumanasaH
@@ -1387,7 +1409,6 @@ naH kShEmaM tanOtu
 					(by the groups of dark enemies)
 						prabala-kabarI-bhAra
 						(which are the heavy, tough plaits of hair)
- 
 
 O Goddess! The partition of hair on your head, which looks like the path of a flowing stream, 
 that carries the waves of beauty emanating from your face, 
@@ -1425,7 +1446,6 @@ yasmin sugandhau mAdyanti
 		dashana-ruchi-kinjalka-ruchirE
 		(which is beautified by pollen, which are your shining teeth)
 
-
 O Goddess! The beauty of your face covered in naturally curly and thick locks of hair, 
 resembling shining bumblebees, mocks at the famed beauty of a lotus,
 since compared to a mere lotus, your lotus-like face, with its fragrance being emanated 
@@ -1461,7 +1481,7 @@ rAkA-hima-karaH pariNamati
 		(the union of those two parts)
 		viparyA-sa-nyAsAt
 		(one mirrored into the other)
-	
+
 O Goddess! Your forehead which shines with enormous beauty, 
 I think it is the second half of crescent moon that has been studded into your crown!
 When conjoined with the twisted crescent moon on top of your crown, 
@@ -1475,7 +1495,7 @@ bhruvau bhugnE kinchidbhuvanabhayabhangavyasanini
 tvadIyE nEtrAbhyAM madhukararuchibhyAM dhRtaguNam 
 dhanurmanyE savyEtarakaragRhItaM ratipatEH
 prakOShThE muShTau cha sthagayati nigUDhAntaramumE  47
- 
+
 umE dhanuH manyE
 (O Uma! I believe it is a bow)
 	bhruvau kinchit bhugnE
@@ -1498,7 +1518,6 @@ umE dhanuH manyE
 		(as it is held)
 			prakOShThE muShTau cha
 			(tight inside the fist)
-	 
 
 O Goddess umA, whose eyebrows are slightly curved, as you are ever immersed 
 in destroying the fears of existence, your curved-eyebrows along with your thick 
@@ -1534,7 +1553,7 @@ sandhyAM samAdhattE
 	(your third sight)
 		dara-dalita-hEma-Ambuja-ruchiH
 		(which is of the beauty of freshly blossomed golden lotus)
-	
+
 Your right-eye, which is of the nature of the Sun, gives birth to the Day;
 and your left eye, which is of the nature of the lord of the night, 
 the Moon, creates Night-Time! Your third-eye, which shines like a golden-lotus, 
@@ -1577,7 +1596,7 @@ dhruvaM vijayatE
 			  (filled with pleasure - subterranean capital of Nagas)
 			7)avantI
 			  (protective - ancient name for ujjain)
-			
+
 The glory of your glance, wins over the glory of all the major cities, 
 because of its many qualities of being all-pervasive(vishAlA), bestowing-prosperity(kaLyANI), 
 being invincible(ayodhyA), being a stream of compassion(dhArA), being utterly sweet(madhurA), 
@@ -1696,7 +1715,7 @@ kalayataH
 	gOtrA-dhara-pati-kulOttaMsa-kalikE
 	(O flower bud beautifying the crown of the lineage
 	   of the lord of the earth, carrying all populations)
-	
+
 O Goddess, who is the crown-jewel of the lineage of the King of Mountains!
 these two eyes of yours adorned with eyelashes that extend until your ears, 
 looking like the wings of garuDa himself, are capable of disturbing the profound stillness 
@@ -1732,7 +1751,7 @@ vibhAti
 			(like Brahma, Vishnu, and Shiva)
 	IshAna-dayitE
 	(O Consort of Lord Shiva!)
- 
+
 O Consort of lord IshAna! These three eyes of yours marked with the darkness 
 of kAjal(coryllium), radiate with the nature of three distinct colours,
 as if they have undertaken the task of creating the cosmic trinity of brahmA, 
@@ -1800,7 +1819,7 @@ shankE
 		(all of this creation)
 		pralayataH
 		(from the deluge of dissolution)
-   
+
 O Daughter of the King of Mountains! The pious ones say 
 that the world is dissolved and created by the closing and opening of your eyes!
 With the opening of your eyes, this entire creation sprang forth from nothingness, 
@@ -1917,7 +1936,6 @@ yatra dishati
 	(the thought of arrows being nocked)
 	shravaNa-patham-ullanghya vilasan
 	(as they shoot past along the path to your ears)
- 
 
 O Daughter of the King of Mountains! Who is not reminded of the playfulness of manmatha's bow, 
 on seeing your pair of arched ridges between the eyes and the ears(pALI-yugaLam)!?
@@ -1954,8 +1972,6 @@ manyE
 		pramathapatayE sajjitavatE
 		(which has been prepared for Lord Shiva)
 
-	
-
 I feel, that your face, adorned with a pair of ear-rings and their reflection 
 in your glistening cheeks, resemble the very chariot of manmatha!
 Mounted on that chariot which is verily this earth, with the Sun and the Moon as its wheels, 
@@ -1989,7 +2005,7 @@ prati-vachanam-AchaShTa iva
 				(of Goddess Sarasvati)
 	sharvANi
 	(O Consort of Sharva, Lord Shiva)
-			
+
 O Consort of lord sharva! As you relish with your ears, the hymns chanted 
 by Goddess sarasvatI, which outshine the sweetness of even a torrent of elixir, 
 as you nod your head in appreciation, the tinkling sounds made by your ear-rings 
@@ -2004,7 +2020,7 @@ tvadIyO nEdIyaH phalatu phalamasmAkamuchitam
 vahannantarmuktAH shishirataranishvAsagalitaM
 samRddhyA yattAsAM bahirapi sa muktAmaNidharaH  61
 
-  
+
 nEdIyaH phalatu
 (May it yield in abundance)
 	asmAkam-uchitam phalam
@@ -2025,7 +2041,7 @@ nEdIyaH phalatu
 			(a jewelled pearl)
 	tuhina-giri-vaMsha-dhvaja-paTi
 	(O flying banner of the lineage of the Snowy Mountain)
-	
+
 O Banner of the lineage of the Snowy-Mountain! May your nose, 
 resembling a tender-bamboo staff, make our desires fruitful! 
 As it carries within it the coolest free breeze of inhalation and exhalation, 
@@ -2089,7 +2105,6 @@ chanchu-jaDimA AsIt
 			(of your moon-like face)
 	ati-rasatayA
 	(with intense sweetness)
-
 ataH tE pibanti
 (Therefore they drink)
 	nishi nishi bhRshaM
@@ -2104,7 +2119,6 @@ ataH tE pibanti
 			(the waves of nectar from the moon)
 
 
-  
 Constantly relishing the sweet-bright-light of your smiling moon-like face, 
 the tongues of the chakora birds grew numb! That is why to regain their taste buds, 
 they occasionally relish the sour-tasting moon-light during the nights, 
@@ -2131,7 +2145,6 @@ sA jayati
 		(which of the colour of japA-flower)
 	janani
 	(O Mother!)
-
 yat pariNamati
 (Since a transformation happens)
 	sarasvatyA mUrtiH
@@ -2142,7 +2155,6 @@ yat pariNamati
 	(into an emerald form)
 	agra-AsInAyAH 
 	(as she is sitting at the tip)
-  
 
 Incessantly praising the glory of your husband, 
 your tongue which has acquired the reddish tinge of a japA-flower, may it be victorious!
@@ -2263,7 +2275,7 @@ katham kAraM brUmaH
 				(like the handle of the mirror of his face)
 	giri-sutE
 	(O daughter of the mountain)
-	
+
 Touched by the tips of the fingers of himavAn, the Snowy-Mountain, due to his affection for his child;
 lifted up by girIsha, the lord of the mountain, with an intention to drink repeatedly from your lips;
 held by shambhu, like one would hold a mirror to one's face!
@@ -2297,7 +2309,6 @@ tava grIvA dhattE
 		(since the part below which is as tender as a creeper)
 			mRNALI-lAlityam vahati
 			(bears the tenderness to a lotus stalk)
-			
 
 Due to being in the constant embrace of the arms of lord shiva, 
 your neck with its hairs risen, resembles the beauty of a thorny tender-stalk of a lotus! 
@@ -2404,7 +2415,6 @@ hanta kayAchit-vA sAmyaM bhajatu
 		(If it is smeared by the red dye)
 				krIDat-lakShmI-charaNa-tala
 				(from the soles of a playful Lakshmi)
-		
 
 O Goddess umA! Pray tell us, how we can ever describe the splendour of your hands, 
 which, being lit up with the radiance of your nails, laugh at the meagre beauty 
@@ -2432,7 +2442,6 @@ satataM naH khEdaM haratu
 		(which produce milk from their tips)
 	dEvi  
 	(O Goddess!)
-	
 yat-AlOkya 
 (Looking at which)
     hErambaH
@@ -2450,7 +2459,7 @@ yat-AlOkya
 			jhaTiti 
 			(immediately)
 
-		
+
 O Goddess! May your lactating pair of breasts which feed both lord skanda 
 and lord gaNesha at once, remove all our miseries!
 At the sight of them, the amusing child-gaNesha, with his baby-elephant face, 
@@ -2479,7 +2488,7 @@ yasmAt pibantau adya api kumArau
 	(that Ganesha, and Kartikeya)
 		avidita-vadhU-sanga-rasikau
 		(unaware of the pleasures of union with women)
- 
+
 O Banner of the King of Mountains! There is no doubt in our minds 
 that these pair of breasts of yours are two jewel-encrusted vessels that are filled 
 to the brim with the elixir of immortality, drinking from which, both gaNesha and skanda, 
@@ -2514,7 +2523,7 @@ tE kucha-AbhOgaH vahati
 			(like the glory of Shiva, the destroyer of Tripura)
 	amba 
     (O Mother!)
-	
+
 O Mother! The place between your breasts carries a beautiful necklace of pure white pearls, 
 which resemble the bulges on the forehead of the mighty gajAsura, 
 and which reflect within them the reddish hue of your lower-lip, making it shine 
@@ -2585,7 +2594,7 @@ janaH-tAM jAnItE
 	(as the streak of hair above your navel)
 	janani
 	(O Mother!)
-	 
+
 With his body covered in the encircling flames of lord hara's rage, 
 manmatha dove into the deep-lake of your navel!
 Out of this arose gentle columns of smoke, and O Mother! Your children came to know this 
@@ -2610,7 +2619,6 @@ yat kinchit sudhiyAm bhAti
 	(O auspicious one!)
 	janani 
 	(O Mother!)
-
 tanUbhUtaM vyOma pravishat-iva
 (as if space, that has been refined, is entering)
 	kucha-kalashayOH-antara-gataM
@@ -2729,7 +2737,7 @@ tava valagnaM tridhA naddhaM
 	(as if by three rounds of a cardamom creeper)
 	dEvi
 	(O Goddess!)
-	
+
 
 O Goddess! As manmatha was creating your form, when your pair of golden vessel-like breasts 
 started to sweat, rubbing against your arms, drenching the drapes that cover you, 
@@ -2767,7 +2775,7 @@ ataH sthagayati cha laghutvaM nayati
 		(which is broad)
 		guruH  
 		(and heavy)
-		
+
 O pArvati! Your father, the Mountain-King, took properties of heaviness and expansiveness 
 from his own being, and granted them to you as a parting-sum during marriage!
 And hence, your heavy hips, carry upon them this endless expanse of creation, as a tiny child!
@@ -2830,7 +2838,6 @@ viShama-vishikhaH bADham niShangau akRta
 	(in order to defeat Lord Rudra)
 	giri-sutE
 	(O Daughter of the Mountain)
-
 yat agrE dRshyantE
 (Since at their tips are visible)
 	dasha-shara-phalAH
@@ -2845,7 +2852,6 @@ five arrows, made both your shins into his quiver, doubling his arrows into ten!
 This is so because, at the base of your shins, one can see your feet, 
 with ten arrow-heads like toe-nails, which seem to be sharpened 
 by the very crowns of the suras who bow down to you!
-
 Glory of Her Feet
 
 श्रुतीनां मूर्धानो दधति तव यौ शेखरतया
@@ -2881,7 +2887,6 @@ wear as a crown, please place them upon my head as well, out of your compassion!
 It is the water that washes these feet, which flows along the matted hairs 
 of lord pashupati, as river gangA; and it is the red-dye that decorates these feet, 
 which is the brightness of the ruby adorning lord hari's chest!
-
 Charm of Her Feet
 
 नमोवाकं ब्रूमो नयनरमणीयाय पदयोः
@@ -2914,7 +2919,6 @@ We sing the prayers of these charmingly beautiful pair of feet of yours,
 which are smeared with shining red-dye! It is desiring the touch of these feet, 
 that the lord of creatures, IshAna, feels jealous of the ashoka trees 
 that you tread upon in your graden!
-
 Impact of Her Feet
 
 मृषा कृत्वा गोत्रस्खलनमथ वैलक्ष्यनमितं
@@ -2946,14 +2950,12 @@ kilikilitam
 			(the long-standing internal suffering caused by the burning)
 	tulA-kOTi-kvANaiH
 	(through the sounds of the series of anklet bells)
-	 
-  
+
 When your husband made an error and referred to you by the name of gangA, 
 and bowed his head in shame, and when you struck him on his forehead with your lotus-like feet, 
 immediately, manmatha, who resides in your feet, and who was once reduced to ashes 
 by his enemy, lord shiva, let out a burst of laughter, 
 in the form of the tinkling of the series of bells on your anklets! 
-
 Uniqueness of Her Feet
 
 हिमानीहन्तव्यं हिमगिरिनिवासैकचतुरौ
@@ -2984,7 +2986,6 @@ and there are your feet which shine even in the darkest of the night! There's th
 by the grace of the Goddess of wealth, lakShmI, and there are your feet 
 which grant even the utmost of riches to your devotees! O Mother! What is surprising in the fact 
 that the pair of your feet win over the splendour of a lotus!?
-
 Tenderness of Her Feet
 
 पदं ते कीर्तीनां प्रपदमपदं देवि विपदां
@@ -3020,14 +3021,12 @@ kathaM vA dRShadi nyastaM
 	(at the time of Marriage)
 	pura-bhidA
 	(by the destroyer of Tripurasura, Shiva)
-   
 
 O Goddess! How is it that your feet, which are worthy of utmost-praise, 
 which grant ultimate abode, and which remove all obstacles, 
 are compared by the pious ones with something as hard as a tortoise-shell in their poetry!
 How is it that these gentle pair of feet have been placed on top of the hard 
 grinding stone during marriage ritual by the cruel-hearted lord shiva!
-
 Benevolence of Her Feet
 
 नखैर्नाकस्त्रीणां करकमलसंकोचशशिभिः
@@ -3039,7 +3038,6 @@ tarUNAM divyAnAM hasata iva tE chaNDi charaNau
 phalAni svaHsthEbhyaH kisalayakarAgrENa dadatAM
 daridrEbhyO bhadrAM shriyamanishamahnAya dadatau  89
 
-  
 tE charaNau hasata iva
 (It is as if your feet laugh)
 	divyAnAM tarUNAM
@@ -3058,7 +3056,6 @@ tE charaNau hasata iva
 		    (secured wealth endlessly, and abundantly to beings who are destitute!)
 	chaNDi
 	(O Fierce One!)
-   
 
 O chaNDi! Your pair of feet, with their crescent moon-shaped toe-nails,
 which makes the lotus-like palms of the celestial women fold in prayer;
@@ -3066,7 +3063,6 @@ and which grant utmost of riches immediately to even the most destitute of being
 seem to be mocking in laugher, at the celestial tree, kalpavRkSha,
 which has the tender leaves as the tips of its hands, and
 which grants the fruits of well-being to those who are already well-to-do!
-
 Becoming a Bee at Her Feet
 
 ददाने दीनेभ्यः श्रियमनिशमाशानुसदृशीम्
@@ -3178,7 +3174,7 @@ arAlA kEshEShu prakRtisaralA mandahasitE
 shirIShAbhA chittE dRShadupalashObhA kuchataTE 
 bhRshaM tanvI madhyE pRthururasijArOhaviShayE
 jagattrAtum shambhOrjayati karuNA kAchidaruNA  93
- 
+
 shambhOH karuNA jagat-trAtum jayati
 (The compassion of Shambhu is victorious in protecting the world)
 	kAchit-aruNA
@@ -3273,7 +3269,7 @@ kalatraM vaidhAtraM katikati bhajantE na kavayaH
 shriyO dEvyAH kO vA na bhavati patiH kairapi dhanaiH 
 mahAdEvaM hitvA tava sati satInAmacharamE
 kuchAbhyAmAsangaH kuravakatarOrapyasulabhaH  96
- 
+
 kati-kati kavayaH na bhajantE
 (How many poets do not adore)
 	kalatraM vaidhAtraM
@@ -3294,7 +3290,7 @@ tava kuchAbhyAm-AsangaH asulabhaH
 	(O True One!)
 	satInAm-acharamE
 	(O greatest of Consorts!)
- 
+
 Have countless poets not had the fortune of being the lords of knowledge, 
 in the form of sarasvatI, the consort of brahmA!? Who would not become the lord of riches, 
 even with little wealth, in the form of lakShmI, the consort of viShNu!?
@@ -3358,7 +3354,7 @@ kathaya mAtaH
 		(the sweetness of the betel-juice from the lotus-mouth of Sarasvati)
 		prakRtyA kavitA-kAraNatayA
 		(due to its nature of being the cause of poetic speech)
-	
+
 The waters that have washed your feet smeared with red-dye and turned into a reddish-hue, 
 O Mother! Tell me when I, your ardent seeker, shall get to relish them!
 With its natural property of even turning a mute into an accomplished poet, 
@@ -3394,7 +3390,7 @@ tvat-bhajanavAn
 	(roams / delights)
 		sarasvatyA lakShmyA vidhi-hari-sapatnaH 
 		(as the rival of Brahma and Vishu in enjoying Sarasvati and Lakshmi)
-	
+
 O Goddess! The one who worships you, 
 shall sport with the very wives of brahmA and viShNu, Goddesses sarasvatI and lakShmI!
 Such a person with an enticing form, shall even slacken the chastity 

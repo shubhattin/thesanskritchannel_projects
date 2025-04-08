@@ -27,11 +27,10 @@ export const server_get_path_params = (
 /** first and second here are like the ones in url */
 export const get_text_data_func = async (key: string, path_params: (number | null)[]) => {
   // Add Caching to load in PROD
-  const loc =
-    path_params.length !== 0
-      ? `data/${key}/data/${path_params.join('/')}.json`
-      : `data/${key}/data.json`;
   const project_id = get_project_from_key(key as project_keys_type).id;
+  const loc =
+    `data/${project_id}. ${key}/data` +
+    (path_params.length !== 0 ? `/${path_params.join('/')}.json` : `.json`);
   if (import.meta.env.DEV) {
     const fs = await import('fs');
     return JSON.parse(fs.readFileSync('./' + loc, 'utf8')) as shloka_list_type;

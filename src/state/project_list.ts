@@ -5,7 +5,7 @@ const PROJECT_KEYS = [
   'ramayanam',
   'bhagavadgita',
   'narayaneeyam',
-  'shivatandava',
+  'shivatandavastotram',
   'saundaryalahari'
 ] as const;
 export const project_keys_enum_schema = z.enum(PROJECT_KEYS);
@@ -45,7 +45,7 @@ export const PROJECT_LIST: project_type[] = [
     id: 4,
     name: 'Shiva Tandava Stotra',
     name_dev: 'शिवताण्डवस्तोत्रम्',
-    key: 'shivatandava'
+    key: 'shivatandavastotram'
   },
   {
     id: 5,
@@ -101,31 +101,33 @@ export const PROJECT_INFO: project_info_type[] = [
     key: 'ramayanam',
     levels: 3,
     level_names: ['Shloka', 'Sarga', 'Kanda'],
-    map_info: async () => (await import('@data/ramayanam/ramayanam_map.json')).default
+    map_info: async () => (await import('@data/1. ramayanam/ramayanam_map.json')).default
   },
   {
     key: 'bhagavadgita',
     levels: 2,
     level_names: ['Shloka', 'Chapter'],
-    map_info: async () => (await import('@data/bhagavadgita/bhagavadgita_map.json')).default
+    map_info: async () => (await import('@data/2. bhagavadgita/bhagavadgita_map.json')).default
   },
   {
     key: 'narayaneeyam',
     levels: 2,
     level_names: ['Shloka', 'Dashaka'],
-    map_info: async () => (await import('@data/narayaneeyam/narayaneeyam_map.json')).default
+    map_info: async () => (await import('@data/3. narayaneeyam/narayaneeyam_map.json')).default
   },
   {
-    key: 'shivatandava',
+    key: 'shivatandavastotram',
     levels: 1,
     level_names: ['Shloka'],
-    map_info: async () => (await import('@data/shivatandava/shivatandava_map.json')).default
+    map_info: async () =>
+      (await import('@data/4. shivatandavastotram/shivatandavastotram_map.json')).default
   },
   {
     key: 'saundaryalahari',
     levels: 1,
     level_names: ['Shloka'],
-    map_info: async () => (await import('@data/saundaryalahari/saundaryalahari_map.json')).default
+    map_info: async () =>
+      (await import('@data/5. saundaryalahari/saundaryalahari_map.json')).default
   }
 ];
 

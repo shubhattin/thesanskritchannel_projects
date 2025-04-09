@@ -382,7 +382,7 @@
         >
         {@render btn_multi()}
       {:else}
-        <div class="mt-2 block space-x-1.5 sm:mt-0 sm:inline-block sm:space-x-0">
+        <div class="mt-2 block space-x-1.5 sm:mt-0 sm:inline-block sm:space-x-2">
           <label class="mr-1 inline-block space-x-1.5 text-sm sm:mr-3 sm:space-x-4 sm:text-base">
             Translation
             <Icon src={LanguageIcon} class="text-xl sm:text-2xl" />

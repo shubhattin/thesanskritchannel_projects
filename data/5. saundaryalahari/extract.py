@@ -26,11 +26,16 @@ def main():
         if in_dev_range(line[0]) or (in_dev_range(line[2]) and index < 3):
             prev_line += ("\n" if prev_line != "" else "") + line
             if DOUBLE_VIRAMA in line:
+                if index == 104 and "\n" not in prev_line:
+                    continue
+                shloka_num_null_condition = "भागः - " in prev_line
                 shloka_list.append(
                     {
                         "text": prev_line,
                         "index": index,
-                        "shloka_num": shloka_num,
+                        "shloka_num": (
+                            shloka_num if not shloka_num_null_condition else None
+                        ),
                     }
                 )
                 prev_line = ""
@@ -38,9 +43,9 @@ def main():
                 if index > 2 and not shloka_num:
                     shloka_num = 1
                 elif shloka_num:
-                    shloka_num += 1
+                    if not shloka_num_null_condition:
+                        shloka_num += 1
 
-    shloka_list[-2]["shloka_num"] = None
     shloka_list[-1]["shloka_num"] = None
 
     sh.write("data.json", sh.dump_json(shloka_list))
@@ -59,15 +64,19 @@ def extarct_trans():
     )
     # data = re.sub(r"(?<=\n)\s+(?<=\n)", "", data)
 
-    liens = data.split("\n\n")
+    lines = data.split("\n\n")
     trans_list = []
 
-    for i in range(0, len(liens), 3):
-        if i + 2 >= len(liens):
+    for i in range(0, len(lines), 3):
+        if i + 2 >= len(lines):
             break
         trans_list.append(
             {
-                "text": liens[i + 2],
+                "project_id": 5,
+                "lang_id": 1,
+                "second": 0,
+                "first": 0,
+                "text": lines[i + 2],
                 "index": i // 3,
             }
         )

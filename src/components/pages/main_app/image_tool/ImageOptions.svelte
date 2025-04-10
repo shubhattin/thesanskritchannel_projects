@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { get_total_count } from '~/state/main_app/data.svelte';
+  import { get_total_count, project_map_q } from '~/state/main_app/data.svelte';
   import {
     DEFAULT_MAIN_TEXT_FONT_CONFIGS,
     DEFAULT_TRANS_TEXT_FONT_CONFIGS,
@@ -31,7 +31,9 @@
   } from './settings';
   import { copy_plain_object } from '~/tools/kry';
 
-  let total_count = $derived(get_total_count($image_selected_levels));
+  let total_count = $derived(
+    $project_map_q.isSuccess ? get_total_count($image_selected_levels) : 0
+  );
 
   let settings_tab: 'depend' | 'non-depend' = $state('non-depend');
 

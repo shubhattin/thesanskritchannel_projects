@@ -2,6 +2,7 @@
   import {
     get_starting_index,
     get_total_count,
+    project_map_q,
     text_data_q,
     trans_en_data_q
   } from '~/state/main_app/data.svelte';
@@ -43,7 +44,7 @@
     additional_prompt_info: string;
   };
 
-  let total_count = $derived(get_total_count($selected_text_levels));
+  let total_count = $derived($project_map_q.isSuccess ? get_total_count($selected_text_levels) : 0);
 
   let selected_text_model: keyof typeof TEXT_MODEL_LIST = $state('gpt-4o');
 

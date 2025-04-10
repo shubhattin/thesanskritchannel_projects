@@ -14,7 +14,8 @@
     text_data_q,
     trans_en_data_q,
     trans_lang_data_query_key,
-    get_total_count
+    get_total_count,
+    project_map_q
   } from '~/state/main_app/data.svelte';
   import { createMutation, useQueryClient } from '@tanstack/svelte-query';
   import { format_string_text } from '~/tools/kry';
@@ -31,7 +32,7 @@
 
   const query_client = useQueryClient();
 
-  let total_count = $derived(get_total_count($selected_text_levels));
+  let total_count = $derived($project_map_q.isSuccess ? get_total_count($selected_text_levels) : 0);
 
   let show_time_status = $state(false);
 
@@ -117,11 +118,15 @@
 
   let other_lang_allow_translate = $derived(
     $trans_lang !== 0 &&
+      $trans_lang_data_q.isSuccess &&
+      $trans_en_data_q.isSuccess &&
       ($trans_lang_data_q.data?.size ?? 0) < total_count && // atleast 1 untranslated shlokas should be there
       ($trans_en_data_q.data?.size ?? 0) >= total_count * 0.7 // atleast 70% of the translations should be there
   );
   let english_allow_translate = $derived(
-    $trans_lang === 0 && ($trans_en_data_q.data?.size ?? 0) !== total_count
+    $trans_lang === 0 &&
+      $trans_en_data_q.isSuccess &&
+      ($trans_en_data_q.data?.size ?? 0) !== total_count
     // all english translations should not be there, anyway we wont be sending it as context to the API anyway
   );
 </script>

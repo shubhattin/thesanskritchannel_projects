@@ -100,7 +100,7 @@
 
   $effect(() => {
     // loading project map
-    $project_map_q;
+    $project_map_q.data;
   });
 
   const project_info = $derived(get_project_info_from_key($project_state.project_key!));

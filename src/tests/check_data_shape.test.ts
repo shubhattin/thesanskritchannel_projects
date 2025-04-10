@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
 import { z } from 'zod';
-import { PROJECT_INFO } from '~/state/project_list';
+import { get_project_from_key, PROJECT_INFO, type project_keys_type } from '~/state/project_list';
 import {
   type_1_map_schema,
   type_2_map_schema,
@@ -11,9 +11,11 @@ import {
 
 describe('Checking correct shape of data', () => {
   it('Checking correct Map Structure', () => {
-    for (let project_info of PROJECT_INFO) {
-      const { key, levels } = project_info;
-      const map_loc = `./data/${key}/${key}_map.json`;
+    for (let key in PROJECT_INFO) {
+      const id = get_project_from_key(key as project_keys_type).id;
+      const project_info = PROJECT_INFO[key as project_keys_type];
+      const { levels } = project_info;
+      const map_loc = `./data/${id}. ${key}/${key}_map.json`;
       const data = JSON.parse(fs.readFileSync(map_loc, 'utf-8'));
       if (levels === 1) {
         type_1_map_schema.parse(data);
@@ -25,8 +27,10 @@ describe('Checking correct shape of data', () => {
     }
   });
   it('Checking Shloka Text Data', () => {
-    for (let project_info of PROJECT_INFO) {
-      const data_folder = `./data/${project_info.key}/data`;
+    for (let key in PROJECT_INFO) {
+      const project_info = PROJECT_INFO[key as project_keys_type];
+      const id = get_project_from_key(key as project_keys_type).id;
+      const data_folder = `./data/${id}. ${key}/data`;
 
       // Function to recursively process all JSON files in a directory
       const processDirectory = (dir: string) => {

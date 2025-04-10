@@ -89,50 +89,46 @@ export const get_map_type = <T extends extendted_map_type['levels']>(
       : never => {
   return map_info as any;
 };
-
 type project_info_type = {
-  key: project_keys_type;
-  /** The project level here also includes shloka */
-  level_names: string[];
-} & extendted_map_type;
+  [K in project_keys_type]: {
+    // key: K;
+    /** The project level here also includes shloka */
+    level_names: string[];
+  } & extendted_map_type;
+};
 
-export const PROJECT_INFO: project_info_type[] = [
-  {
-    key: 'ramayanam',
+export const PROJECT_INFO: project_info_type = {
+  ramayanam: {
     levels: 3,
     level_names: ['Shloka', 'Sarga', 'Kanda'],
     map_info: async () => (await import('@data/1. ramayanam/ramayanam_map.json')).default
   },
-  {
-    key: 'bhagavadgita',
+  bhagavadgita: {
     levels: 2,
     level_names: ['Shloka', 'Chapter'],
     map_info: async () => (await import('@data/2. bhagavadgita/bhagavadgita_map.json')).default
   },
-  {
-    key: 'narayaneeyam',
+  narayaneeyam: {
     levels: 2,
     level_names: ['Shloka', 'Dashaka'],
     map_info: async () => (await import('@data/3. narayaneeyam/narayaneeyam_map.json')).default
   },
-  {
-    key: 'shivatandavastotram',
+  shivatandavastotram: {
     levels: 1,
     level_names: ['Shloka'],
     map_info: async () =>
       (await import('@data/4. shivatandavastotram/shivatandavastotram_map.json')).default
   },
-  {
-    key: 'saundaryalahari',
+  saundaryalahari: {
     levels: 1,
     level_names: ['Shloka'],
     map_info: async () =>
       (await import('@data/5. saundaryalahari/saundaryalahari_map.json')).default
   }
-];
+};
 
 export const get_project_info_from_key = (key: project_keys_type) => {
-  return PROJECT_INFO[PROJECT_KEYS.indexOf(key)];
+  return { ...PROJECT_INFO[key], key };
 };
 
 export const get_project_info_from_id = (id: number) => {

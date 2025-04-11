@@ -66,6 +66,7 @@
     "@trpc/server": "^10.45.2",
     "@upstash/redis": "^1.34.6",
     "ai": "^4.3.0",
+    "arktype": "^2.1.19",
     "better-auth": "^1.2.5",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",

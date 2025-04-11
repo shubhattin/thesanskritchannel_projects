@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
-import { z } from 'zod';
 import { get_project_from_key, PROJECT_INFO, type project_keys_type } from '~/state/project_list';
-import {
-  type_1_map_schema,
-  type_2_map_schema,
-  type_3_map_schema,
-  shloka_list_schema
-} from '~/state/data_types';
+import { type_1_map_schema, type_2_map_schema, type_3_map_schema } from '~/state/data_types';
+import { type } from 'arktype';
+
+const ShlokaList = type({
+  text: 'string',
+  index: 'number.integer',
+  shloka_number: 'number.integer?'
+}).array();
 
 describe('Checking correct shape of data', () => {
   it('Checking correct Map Structure', () => {
@@ -46,18 +47,19 @@ describe('Checking correct shape of data', () => {
             // Process JSON files
             const data = JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
 
-            try {
-              shloka_list_schema.parse(data);
-            } catch (error) {
-              console.error(error);
-              throw new Error(`Validation failed for file: ${fullPath}`);
+            const out = ShlokaList(data);
+            if (out instanceof type.errors) {
+              throw new Error(`Validation failed for ${fullPath}`);
             }
           }
         }
       };
       if (project_info.levels > 1) processDirectory(data_folder);
       else {
-        shloka_list_schema.parse(JSON.parse(fs.readFileSync(`${data_folder}.json`, 'utf-8')));
+        const out = ShlokaList(JSON.parse(fs.readFileSync(`${data_folder}.json`, 'utf-8')));
+        if (out instanceof type.errors) {
+          throw new Error(`Validation failed for ${key}`);
+        }
       }
     }
   });

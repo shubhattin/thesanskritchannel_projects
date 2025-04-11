@@ -3,5 +3,10 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "scss.lint.unknownAtRules": "ignore",
   "workbench.localHistory.enabled": false,
-  "pylint.args": ["--disable=C,W"]
+  "pylint.args": ["--disable=C,W"],
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+  // prioritize ArkType's "type" for autoimports
+  "typescript.preferences.autoImportSpecifierExcludeRegexes": ["^(node:)?os$"]
 }

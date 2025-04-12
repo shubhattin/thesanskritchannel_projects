@@ -101,9 +101,12 @@ const get_translation_route = publicProcedure
       selected_text_levels,
       get_project_info_from_id(project_id).levels
     );
-    const cache = await redis.get<typeof data>(
-      REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params)
-    );
+    let cache = null;
+    if (!import.meta.env.DEV) {
+      cache = await redis.get<typeof data>(
+        REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params)
+      );
+    }
     if (cache) data = cache;
     else {
       const { first, second } = get_levels(selected_text_levels);

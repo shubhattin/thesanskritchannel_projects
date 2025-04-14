@@ -102,7 +102,7 @@ const get_translation_route = publicProcedure
       get_project_info_from_id(project_id).levels
     );
     let cache = null;
-    if (!import.meta.env.DEV) {
+    if (import.meta.env.PROD) {
       cache = await redis.get<typeof data>(
         REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params)
       );
@@ -123,9 +123,11 @@ const get_translation_route = publicProcedure
             eq(tbl.second, second)
           )
       });
-      await redis.set(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params), data, {
-        ex: ms('30days') / 1000
-      });
+      if (import.meta.env.PROD) {
+        await redis.set(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params), data, {
+          ex: ms('30days') / 1000
+        });
+      }
     }
     const data_map = new Map<number, string>();
     for (let i = 0; i < data.length; i++) data_map.set(data[i].index, data[i].text);

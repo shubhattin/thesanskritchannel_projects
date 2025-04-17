@@ -8,14 +8,13 @@ export const translation = pgTable(
   {
     project_id: integer().notNull(),
     lang_id: integer().notNull(),
-    second: integer().notNull().default(0),
-    first: integer().notNull().default(0),
+    path: text().notNull(),
     index: integer().notNull(),
     text: text().default('').notNull()
   },
-  ({ project_id, lang_id, second, first, index }) => [
+  ({ project_id, lang_id, path, index }) => [
     primaryKey({
-      columns: [project_id, lang_id, second, first, index]
+      columns: [project_id, lang_id, path, index]
       // caannot have first and second as primary keys if they are null
       // so to indicate absense `0` will be used instead on NULL
     })
@@ -31,13 +30,12 @@ export const media_attachment = pgTable(
     id: serial().primaryKey(),
     project_id: integer().notNull(),
     lang_id: integer().notNull(),
-    second: integer().notNull().default(0),
-    first: integer().notNull().default(0),
+    path: text().notNull(),
     media_type: media_type_enum().notNull(),
     link: text().notNull(),
     name: text().notNull()
   },
-  ({ project_id, second, first }) => [index('media_link_index').on(project_id, second, first)]
+  ({ project_id, path }) => [index('media_link_index').on(project_id, path)]
 );
 
 /*

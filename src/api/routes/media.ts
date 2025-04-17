@@ -54,7 +54,8 @@ const get_media_list_route = publicProcedure
 const add_media_link_route = protectedAdminProcedure
   .input(
     MediaAttachmentSchemaZod.omit({
-      id: true
+      id: true,
+      path: true
     }).extend({
       selected_text_levels: z.array(z.number().int().nullable())
     })
@@ -89,7 +90,7 @@ const add_media_link_route = protectedAdminProcedure
 
 const update_media_link_route = protectedAdminProcedure
   .input(
-    MediaAttachmentSchemaZod.extend({
+    MediaAttachmentSchemaZod.omit({ path: true }).extend({
       project_id: z.number().int(),
       selected_text_levels: z.array(z.number().int().nullable())
     })

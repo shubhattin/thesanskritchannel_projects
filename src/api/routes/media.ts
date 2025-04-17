@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { t, publicProcedure, protectedAdminProcedure } from '../trpc_init';
-import { get_levels, server_get_path_params } from './translation';
 import { get_project_info_from_id } from '~/state/project_list';
 import { db } from '~/db/db';
 import { MediaAttachmentSchemaZod } from '~/db/schema_zod';
@@ -8,6 +7,7 @@ import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { media_attachment } from '~/db/schema';
 import ms from 'ms';
 import { eq } from 'drizzle-orm';
+import { get_path_params } from '~/state/project_list';
 
 const get_media_list_route = publicProcedure
   .input(
@@ -17,7 +17,7 @@ const get_media_list_route = publicProcedure
     })
   )
   .query(async ({ input: { project_id, selected_text_levels } }) => {
-    const path_params = server_get_path_params(
+    const path_params = get_path_params(
       selected_text_levels,
       get_project_info_from_id(project_id).levels
     );
@@ -33,7 +33,7 @@ const get_media_list_route = publicProcedure
     );
     if (cache) return cache;
 
-    const { first, second } = get_levels(selected_text_levels);
+    const path = path_params.join(':');
     const media_list = await db.query.media_attachment.findMany({
       columns: {
         id: true,
@@ -42,8 +42,7 @@ const get_media_list_route = publicProcedure
         lang_id: true,
         name: true
       },
-      where: (tbl, { eq, and }) =>
-        and(eq(tbl.project_id, project_id), eq(tbl.first, first), eq(tbl.second, second))
+      where: (tbl, { eq, and }) => and(eq(tbl.project_id, project_id), eq(tbl.path, path))
     });
     await redis.set(REDIS_CACHE_KEYS.media_links(project_id, path_params), media_list, {
       ex: ms('30days') / 1000
@@ -55,29 +54,25 @@ const get_media_list_route = publicProcedure
 const add_media_link_route = protectedAdminProcedure
   .input(
     MediaAttachmentSchemaZod.omit({
-      id: true,
-      first: true,
-      second: true
+      id: true
     }).extend({
       selected_text_levels: z.array(z.number().int().nullable())
     })
   )
   .mutation(
     async ({ input: { project_id, lang_id, link, media_type, selected_text_levels, name } }) => {
-      const path_params = server_get_path_params(
+      const path_params = get_path_params(
         selected_text_levels,
         get_project_info_from_id(project_id).levels
       );
-
-      const { first, second } = get_levels(selected_text_levels);
+      const path = path_params.join(':');
       const [inserted] = await Promise.all([
         db
           .insert(media_attachment)
           .values({
             project_id,
             lang_id,
-            first,
-            second,
+            path,
             link,
             media_type,
             name
@@ -94,10 +89,7 @@ const add_media_link_route = protectedAdminProcedure
 
 const update_media_link_route = protectedAdminProcedure
   .input(
-    MediaAttachmentSchemaZod.omit({
-      first: true,
-      second: true
-    }).extend({
+    MediaAttachmentSchemaZod.extend({
       project_id: z.number().int(),
       selected_text_levels: z.array(z.number().int().nullable())
     })
@@ -106,12 +98,11 @@ const update_media_link_route = protectedAdminProcedure
     async ({
       input: { project_id, selected_text_levels, id, lang_id, link, media_type, name }
     }) => {
-      const path_params = server_get_path_params(
+      const path_params = get_path_params(
         selected_text_levels,
         get_project_info_from_id(project_id).levels
       );
-
-      const { first, second } = get_levels(selected_text_levels);
+      // const path = path_params.join(':');
 
       await Promise.all([
         db
@@ -135,7 +126,7 @@ const delete_media_link_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { link_id, project_id, selected_text_levels } }) => {
-    const path_params = server_get_path_params(
+    const path_params = get_path_params(
       selected_text_levels,
       get_project_info_from_id(project_id).levels
     );

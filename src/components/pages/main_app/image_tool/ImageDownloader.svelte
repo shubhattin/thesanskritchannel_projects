@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { get_path_params, get_total_count, project_map_q } from '~/state/main_app/data.svelte';
+  import { get_total_count, project_map_q } from '~/state/main_app/data.svelte';
   import {
     image_selected_levels,
     image_script,
@@ -24,6 +24,7 @@
   import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte';
   import { cl_join } from '~/tools/cl_join';
   import { project_state } from '~/state/main_app/state.svelte';
+  import { get_path_params } from '~/state/project_list';
 
   let total_count = $derived(
     $project_map_q.isSuccess ? get_total_count($image_selected_levels) : 0

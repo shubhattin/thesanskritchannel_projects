@@ -15,11 +15,10 @@ export const translation = pgTable(
   ({ project_id, lang_id, path, index }) => [
     primaryKey({
       columns: [project_id, lang_id, path, index]
-      // caannot have first and second as primary keys if they are null
-      // so to indicate absense `0` will be used instead on NULL
     })
   ]
 );
+// path here is in descending order of hierarchy
 
 export const MEDIA_TYPE_LIST = ['pdf', 'text', 'video', 'audio'] as const;
 export type media_list_type = (typeof MEDIA_TYPE_LIST)[number];
@@ -37,12 +36,6 @@ export const media_attachment = pgTable(
   },
   ({ project_id, path }) => [index('media_link_index').on(project_id, path)]
 );
-
-/*
-first, second and such are in reverse order to facilitate addition of more layers at the top instead of bottom
-first is foe lower, second is higher level of classification
-Like for Ramayana, first is sarga, second is kanda
-*/
 
 // join tables
 

@@ -135,3 +135,10 @@ export const get_project_info_from_id = (id: number) => {
   const project = PROJECT_LIST[id - 1];
   return get_project_info_from_key(project.key);
 };
+
+export const get_path_params = (
+  selected_text_levels: (number | null)[],
+  project_levels: number
+) => {
+  return selected_text_levels.slice(0, project_levels - 1).reverse() as number[];
+};

@@ -16,7 +16,12 @@ import { browser } from '$app/environment';
 import { delay } from '~/tools/delay';
 import { derived, get, writable } from 'svelte/store';
 import { lang_list_obj } from '../lang_list';
-import { get_map_type, get_project_info_from_key, type project_keys_type } from '../project_list';
+import {
+  get_map_type,
+  get_path_params,
+  get_project_info_from_key,
+  type project_keys_type
+} from '../project_list';
 import { user_info } from '../user.svelte';
 
 export const user_project_info_q = get_derived_query(
@@ -63,13 +68,6 @@ export const QUERY_KEYS = {
 };
 
 let one_time_page_text_data_use_done = false;
-
-export const get_path_params = (
-  selected_text_levels: (number | null)[],
-  project_levels: number
-) => {
-  return selected_text_levels.slice(0, project_levels - 1).reverse();
-};
 
 export const text_data_q = get_derived_query(
   [project_state, selected_text_levels, text_data_present],

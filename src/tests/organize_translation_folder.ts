@@ -45,13 +45,23 @@ async function main() {
       data[project_key][lang_nm] = {};
       if (levels > 1) fs.mkdirSync(`./data/translations/${project_id}. ${project_key}/${lang_nm}`);
     }
-    const second = trans.second;
+
+    const path_params = trans.path.split(':').map((v) => parseInt(v));
+    let second = 0;
+    let first = 0;
+
+    if (levels === 3) {
+      second = path_params[0];
+      first = path_params[1];
+    } else if (levels === 2) {
+      first = path_params[0];
+    }
+
     if (!data[project_key][lang_nm][second]) {
       data[project_key][lang_nm][second] = {};
       if (second !== 0)
         fs.mkdirSync(`./data/translations/${project_id}. ${project_key}/${lang_nm}/${second}`);
     }
-    const first = trans.first;
     if (!data[project_key][lang_nm][second][first]) {
       data[project_key][lang_nm][second][first] = new Map();
     }

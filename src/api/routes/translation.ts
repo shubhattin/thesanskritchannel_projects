@@ -16,16 +16,10 @@ import {
 import ms from 'ms';
 import { fetch_post } from '~/tools/fetch';
 import { get_languages_for_ptoject_user } from './project';
-
-export const server_get_path_params = (
-  selected_text_levels: (number | null)[],
-  project_levels: number
-) => {
-  return selected_text_levels.slice(0, project_levels - 1).reverse();
-};
+import { get_path_params } from '~/state/project_list';
 
 /** first and second here are like the ones in url */
-export const get_text_data_func = async (key: string, path_params: (number | null)[]) => {
+export const get_text_data_func = async (key: string, path_params: number[]) => {
   // Add Caching to load in PROD
   const project_id = get_project_from_key(key as project_keys_type).id;
   const loc =
@@ -61,20 +55,11 @@ export const get_text_data_func = async (key: string, path_params: (number | nul
   return data;
 };
 
-export const get_levels = (selected_text_levels: (number | null)[]) => {
-  const first = selected_text_levels[0] ?? 0;
-  const second = selected_text_levels[1] ?? 0;
-  return {
-    first,
-    second
-  };
-};
-
 const get_text_data_route = publicProcedure
   .input(
     z.object({
       project_key: z.string(),
-      path_params: z.number().int().nullable().array()
+      path_params: z.number().int().array()
     })
   )
   .query(async ({ input: { project_key, path_params } }) => {
@@ -97,10 +82,11 @@ const get_translation_route = publicProcedure
       text: string;
     }[] = [];
 
-    const path_params = server_get_path_params(
+    const path_params = get_path_params(
       selected_text_levels,
       get_project_info_from_id(project_id).levels
     );
+    const path = path_params.join(':');
     let cache = null;
     if (import.meta.env.PROD) {
       cache = await redis.get<typeof data>(
@@ -109,19 +95,13 @@ const get_translation_route = publicProcedure
     }
     if (cache) data = cache;
     else {
-      const { first, second } = get_levels(selected_text_levels);
       data = await db.query.translation.findMany({
         columns: {
           index: true,
           text: true
         },
         where: (tbl, { eq, and }) =>
-          and(
-            eq(tbl.project_id, project_id),
-            eq(tbl.lang_id, lang_id),
-            eq(tbl.first, first),
-            eq(tbl.second, second)
-          )
+          and(eq(tbl.project_id, project_id), eq(tbl.lang_id, lang_id), eq(tbl.path, path))
       });
       if (import.meta.env.PROD) {
         await redis.set(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params), data, {
@@ -149,11 +129,11 @@ const edit_translation_route = protectedProcedure
       ctx: { user },
       input: { project_id, lang_id, selected_text_levels, data, indexes }
     }) => {
-      const { first, second } = get_levels(selected_text_levels);
-      const path_params = server_get_path_params(
+      const path_params = get_path_params(
         selected_text_levels,
         get_project_info_from_id(project_id).levels
       );
+      const path = path_params.join(':');
 
       // authorization check to edit or add lang records
       if (user.role !== 'admin') {
@@ -171,8 +151,7 @@ const edit_translation_route = protectedProcedure
             and(
               eq(translation.project_id, project_id),
               eq(translation.lang_id, lang_id),
-              eq(translation.first, first!),
-              eq(translation.second, second!),
+              eq(translation.path, path),
               inArray(translation.index, indexes)
             )
           )
@@ -187,8 +166,7 @@ const edit_translation_route = protectedProcedure
         const data_to_add = to_add_indexes.map(([index, i]) => ({
           project_id,
           lang_id,
-          first: first,
-          second: second,
+          path,
           index: index,
           text: data[i]
         }));
@@ -208,8 +186,7 @@ const edit_translation_route = protectedProcedure
               and(
                 eq(translation.project_id, project_id),
                 eq(translation.lang_id, lang_id),
-                eq(translation.first, first!),
-                eq(translation.second, second!),
+                eq(translation.path, path),
                 eq(translation.index, index)
               )
             )
@@ -230,22 +207,24 @@ const get_all_langs_translation_route = protectedProcedure
   .input(
     z.object({
       project_id: z.number().int(),
-      selected_text_levels: z.array(z.number().int().nullable())
+      selected_text_levels: z.number().int().nullable().array()
     })
   )
   .query(async ({ input: { project_id, selected_text_levels } }) => {
     await delay(400);
 
-    const { first, second } = get_levels(selected_text_levels);
-
+    const path_params = get_path_params(
+      selected_text_levels,
+      get_project_info_from_id(project_id).levels
+    );
+    const path = path_params.join(':');
     const data = await db.query.translation.findMany({
       columns: {
         index: true,
         text: true,
         lang_id: true
       },
-      where: (tbl, { eq, and }) =>
-        and(eq(tbl.project_id, project_id), eq(tbl.first, first), eq(tbl.second, second))
+      where: (tbl, { eq, and }) => and(eq(tbl.project_id, project_id), eq(tbl.path, path))
     });
     const data_map = new Map<number, Map<number, string>>();
     for (let i = 0; i < data.length; i++) {

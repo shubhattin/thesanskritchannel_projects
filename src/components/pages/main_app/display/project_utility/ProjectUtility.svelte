@@ -1,11 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import {
-    get_last_level_name,
-    get_path_params,
-    get_total_count,
-    text_data_q
-  } from '~/state/main_app/data.svelte';
+  import { get_last_level_name, get_total_count, text_data_q } from '~/state/main_app/data.svelte';
   import {
     selected_text_levels,
     BASE_SCRIPT,
@@ -33,6 +28,7 @@
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { OiCache16 } from 'svelte-icons-pack/oi';
+  import { get_path_params } from '~/state/project_list';
 
   const session = useSession();
   let user_info = $derived($session.data?.user);

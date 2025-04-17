@@ -2,7 +2,7 @@ import { get, writable } from 'svelte/store';
 import type * as fabric from 'fabric';
 import { get_derived_query } from '~/tools/query';
 import { browser } from '$app/environment';
-import { get_path_params, get_translations, QUERY_KEYS } from '~/state/main_app/data.svelte';
+import { get_translations, QUERY_KEYS } from '~/state/main_app/data.svelte';
 import { createQuery } from '@tanstack/svelte-query';
 import { queryClient } from '~/state/queryClient';
 import background_image_url from './img/background_vr.png';
@@ -18,6 +18,7 @@ import { copy_plain_object } from '~/tools/kry';
 import { get_image_font_info } from './settings';
 import { client } from '~/api/client';
 import { project_state, text_data_present } from '~/state/main_app/state.svelte';
+import { get_path_params } from '~/state/project_list';
 
 export let canvas = writable<fabric.Canvas>();
 export let background_image = writable<fabric.FabricImage>();

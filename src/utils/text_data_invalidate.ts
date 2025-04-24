@@ -5,6 +5,8 @@ import {
 } from '~/state/project_list';
 import { REDIS_CACHE_KEYS } from '~/db/redis_shared';
 import simpleGit from 'simple-git';
+import { z } from 'zod';
+import chalk from 'chalk';
 
 async function main() {
   const git = simpleGit({ baseDir: process.cwd() });
@@ -40,7 +42,22 @@ async function main() {
       .map((v) => Number(v));
     invalidation_keys.push(REDIS_CACHE_KEYS.text_data(project_id, path_params));
   });
-  console.log('Files changed:', invalidation_keys);
+  if (invalidation_keys.length === 0) return;
+  const credential_schema = z.object({
+    url: z.string().url(),
+    key: z.string()
+  });
+  let credential: z.infer<typeof credential_schema> = null!;
+  try {
+    const cache_url_key = process.env.CACHE_URL_KEY!;
+    credential = credential_schema.parse({
+      url: cache_url_key.split(';')[0],
+      key: cache_url_key.split(';')[1]
+    });
+  } catch {
+    console.error(chalk.bold(`⚠️  Missing ${chalk.blue('CACHE_URL_KEY')} env not defined`));
+    console.error(`ℹ️  There are ${chalk.bold(invalidation_keys.length)} files to be invalidated`);
+  }
 }
 
 main().catch(console.error);

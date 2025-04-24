@@ -1,45 +1,30 @@
-import { error } from '@sveltejs/kit';
+import { redis } from '~/db/redis';
 import type { RequestHandler } from './$types';
 import { z } from 'zod';
-import ms from 'ms';
-import { protected_admin_route_check } from '~/api/api_init';
+import { db } from '~/db/db';
+import { error } from '@sveltejs/kit';
 
-export const GET: RequestHandler = async ({ url, request }) => {
-  const user = await protected_admin_route_check(request.headers);
-  if (!user) throw error(401, 'UNAUTHORIZED');
+const CACHE_KEY_DB_NAME = 'cache_verify_key';
 
-  const fileUrlParam = url.searchParams.get('file_url');
-  if (!fileUrlParam) {
-    throw error(400, 'Missing "file_url" query parameter');
-  }
-  let file_url: string;
-  try {
-    file_url = z.string().url().parse(fileUrlParam);
-  } catch (e) {
-    throw error(400, 'Invalid "file_url" provided');
+export const POST: RequestHandler = async ({ url, request }) => {
+  const key = z.string().uuid().parse(request.headers.get('X-Cache-Verify-Key'));
+  const KEY = await db.query.other.findFirst({
+    where: (tbl, { eq }) => eq(tbl.key, CACHE_KEY_DB_NAME)
+  });
+  console.log(KEY, key);
+  if (!KEY || key !== KEY.value) {
+    throw error(401, 'UNAUTHORIZED');
   }
 
-  try {
-    const fetchResponse = await fetch(file_url);
-    if (!fetchResponse.ok) {
-      throw error(fetchResponse.status, `Failed to fetch the file: ${fetchResponse.statusText}`);
-    }
-    const contentType = fetchResponse.headers.get('content-type') || 'application/octet-stream';
+  const { keys } = z
+    .object({
+      keys: z.array(z.string())
+    })
+    .parse(await request.json());
 
-    let filename = 'file';
+  await redis.del(...keys);
 
-    const headers = new Headers({
-      'Content-Type': contentType,
-      'Content-Disposition': `attachment; filename="${filename}"`,
-      'Cache-Control': `public, max-age=${ms('100mins')}`
-    });
-
-    // Stream the fetched file back to the client
-    return new Response(fetchResponse.body!, {
-      status: 200,
-      headers
-    });
-  } catch (err) {
-    throw error(500, 'Internal Server Error while fetching the file.');
-  }
+  return new Response(JSON.stringify({ success: true }), {
+    status: 200
+  });
 };

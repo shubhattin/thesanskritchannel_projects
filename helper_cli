@@ -5,21 +5,22 @@ from rich.prompt import Prompt
 import os
 
 OPTIONS = [
-    [
-        "Ramayanam",
-        [
-            "cd data/ramayanam/",
-            "uv run get_json.py",
-        ],
-    ],
-    [
-        "Bhagvad Gita",
-        [
-            "cd data/bhagavadgita",
-            "uv run extract.py",
-        ],
-    ],
+    # [
+    #     "Ramayanam",
+    #     [
+    #         "cd data/ramayanam/",
+    #         "uv run get_json.py",
+    #     ],
+    # ],
+    # [
+    #     "Bhagvad Gita",
+    #     [
+    #         "cd data/bhagavadgita",
+    #         "uv run extract.py",
+    #     ],
+    # ],
     ["Check Data Integrity", ["pnpm vitest run src/tests/check_data_shape.test.ts"]],
+    ["Update Dependencies", ["pnpm i && uv sync "]],
 ]
 
 

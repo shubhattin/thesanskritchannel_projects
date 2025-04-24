@@ -8,7 +8,8 @@ import {
   user_project_language_join,
   verification,
   translation,
-  media_attachment
+  media_attachment,
+  other
 } from '~/db/schema';
 import {
   UserSchemaZod,
@@ -17,7 +18,8 @@ import {
   UserProjectLanguageJoinSchemaZod,
   VerificationSchemaZod,
   TranslationSchemaZod,
-  MediaAttachmentSchemaZod
+  MediaAttachmentSchemaZod,
+  OtherSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -47,6 +49,7 @@ const main = async () => {
       user_project_language_join: UserProjectLanguageJoinSchemaZod.array(),
       verification: VerificationSchemaZod.array(),
       translation: TranslationSchemaZod.array(),
+      other: OtherSchemaZod.array(),
       media_attachment: MediaAttachmentSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
@@ -60,6 +63,7 @@ const main = async () => {
     await db.delete(user_project_language_join);
     await db.delete(user_project_language_join);
     await db.delete(translation);
+    await db.delete(other);
     await db.delete(media_attachment);
     console.log(chalk.green('✓ Deleted All Tables Successfully'));
   } catch (e) {
@@ -121,6 +125,14 @@ const main = async () => {
     console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`translation`'));
   } catch (e) {
     console.log(chalk.red('✗ Error while inserting translation:'), chalk.yellow(e));
+  }
+
+  // resetting other
+  try {
+    await db.insert(other).values(data.other);
+    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`other`'));
+  } catch (e) {
+    console.log(chalk.red('✗ Error while inserting other:'), chalk.yellow(e));
   }
 
   // resetting media_attachment

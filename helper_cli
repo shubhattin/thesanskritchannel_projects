@@ -6,21 +6,38 @@ import os
 
 OPTIONS = [
     [
-        "Ramayanam",
-        [
-            "cd data/ramayanam/",
-            "uv run get_json.py",
-        ],
+        "Generate Text JSON",
+        [],
     ],
-    [
-        "Bhagvad Gita",
-        [
-            "cd data/bhagavadgita",
-            "uv run extract.py",
-        ],
-    ],
+    ["Invalidate Text Data Cache", ["npx vite-node src/utils/text_data_invalidate.ts"]],
     ["Check Data Integrity", ["pnpm vitest run src/tests/check_data_shape.test.ts"]],
+    ["Update Dependencies", ["pnpm i && uv sync "]],
 ]
+
+TEXT_LIST = [
+    ["Ramayanam", "ramayanam", 1, "get_json.py"],
+    ["Bhagavad Gita", "bhagavadgita", 2, "extract.py"],
+    ["Narayaneeyam", "narayaneeyam", 3, "extract.py"],
+    ["Shiva Tandava Stotram", "shivatandavastotram", 4, "extract.py"],
+    ["Saundarya Lahari", "saundaryalahari", 5, "extract.py"],
+]
+
+
+def generate_text_json():
+    for i, option in enumerate(TEXT_LIST):
+        print(f"[blue]{i+1}. {option[0]}[/]")
+    print(f"[blue]e. Exit[/]")
+    CHOICES = [str(i + 1) for i in range(len(TEXT_LIST))]
+    CHOICES.append("e")
+    choice = Prompt.ask("Choose Text", choices=CHOICES)
+    if choice == "e":
+        return
+    command_info = TEXT_LIST[int(choice) - 1]
+    command = (
+        f'cd "data/{command_info[2]}. {command_info[1]}" && uv run {command_info[3]}'
+    )
+    os.system(command)
+    os.system("npx vite-node src/utils/text_data_invalidate.ts --only-check")
 
 
 def main():
@@ -32,6 +49,9 @@ def main():
     CHOICES.append("e")
     choice = Prompt.ask("Choose an option", choices=CHOICES)
     if choice == "e":
+        return
+    elif choice == "1":
+        generate_text_json()
         return
     command_info = OPTIONS[int(choice) - 1]
     command = " && ".join(command_info[1])

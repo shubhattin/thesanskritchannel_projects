@@ -1,6 +1,15 @@
 import { relations } from 'drizzle-orm';
 import { account, user } from './auth-schema';
-import { pgTable, text, integer, primaryKey, pgEnum, serial, index } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  integer,
+  primaryKey,
+  pgEnum,
+  serial,
+  index,
+  jsonb
+} from 'drizzle-orm/pg-core';
 export * from './auth-schema';
 
 export const translation = pgTable(
@@ -19,6 +28,12 @@ export const translation = pgTable(
   ]
 );
 // path here is in descending order of hierarchy
+
+export const other = pgTable('other', {
+  key: text().notNull().primaryKey(),
+  value: jsonb().notNull()
+});
+// other unstructured data and values
 
 export const MEDIA_TYPE_LIST = ['pdf', 'text', 'video', 'audio'] as const;
 export type media_list_type = (typeof MEDIA_TYPE_LIST)[number];

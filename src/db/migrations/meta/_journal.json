@@ -29,6 +29,13 @@
       "when": 1744909219866,
       "tag": "0003_outstanding_captain_cross",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1745521053907,
+      "tag": "0004_right_kree",
+      "breakpoints": true
     }
   ]
 }

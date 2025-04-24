@@ -252,7 +252,7 @@
   confirm_func={async () => {
     await $invalidate_cache_mut.mutateAsync({
       project_id: $project_state.project_id!,
-      path_params: get_path_params($selected_text_levels, $project_state.levels)
+      path_params_list: [get_path_params($selected_text_levels, $project_state.levels)]
     });
   }}
 ></ConfirmModal>

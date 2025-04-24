@@ -5,17 +5,7 @@ export const redis = new Redis({
   url: env.UPSTASH_REDIS_REST_URL,
   token: env.UPSTASH_REDIS_REST_TOKEN
 });
-
-export const REDIS_CACHE_KEYS = {
-  user_project_info: (user_id: string, project_id: number | '*') =>
-    `user_project_info:${user_id}:${project_id}`,
-  text_data: (project_id: number, path_params: (number | null)[]) =>
-    `text_data:${project_id}:${path_params.join('/')}`,
-  translation: (project_id: number, lang_id: number, path_params: (number | null)[]) =>
-    `trans_data:${project_id}:${lang_id}:${path_params.join('/')}`,
-  media_links: (project_id: number, path_params: (number | null)[]) =>
-    `media_links:${project_id}:${path_params.join('/')}`
-};
+export { REDIS_CACHE_KEYS } from './redis_shared';
 
 export async function deleteKeysWithPattern(pattern: string) {
   const script = `
@@ -33,4 +23,23 @@ export async function deleteKeysWithPattern(pattern: string) {
     `;
 
   return redis.eval(script, [], [pattern]);
+}
+
+export async function getKeysWithPattern(pattern: string): Promise<string[]> {
+  const script = `
+    local cursor = "0"
+    local matched = {}
+    repeat
+      local result = redis.call("SCAN", cursor, "MATCH", ARGV[1], "COUNT", 100)
+      cursor = result[1]
+      local keys = result[2]
+      for _, key in ipairs(keys) do
+        table.insert(matched, key)
+      end
+    until cursor == "0"
+    return matched
+  `;
+
+  const keys = (await redis.eval(script, [], [pattern])) as string[];
+  return keys;
 }

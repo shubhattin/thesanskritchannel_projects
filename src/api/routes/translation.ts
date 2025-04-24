@@ -256,11 +256,14 @@ const invalidate_text_data_cache_route = protectedAdminProcedure
   .input(
     z.object({
       project_id: z.number().int(),
-      path_params: z.number().int().nullable().array()
+      path_params_list: z.array(z.number().int().nullable().array())
     })
   )
-  .mutation(async ({ input: { project_id, path_params } }) => {
-    await redis.del(REDIS_CACHE_KEYS.text_data(project_id, path_params));
+  .mutation(async ({ input: { project_id, path_params_list } }) => {
+    const path_params_keys = path_params_list.map((path_params) =>
+      REDIS_CACHE_KEYS.text_data(project_id, path_params)
+    );
+    await redis.del(...path_params_keys);
     return { success: true };
   });
 

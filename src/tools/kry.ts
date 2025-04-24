@@ -134,3 +134,16 @@ export function mask_email(
 
   return `${maskedLocalPart}@${maskedDomain}.${tld}`;
 }
+
+export function get_argument_names(func: Function): string[] {
+  const funcString: string = func.toString();
+  const match: RegExpMatchArray | null = funcString.match(/^[^{]*?\(([^)]*)\)/);
+  if (!match) {
+    return [];
+  }
+  const argString: string = match[1];
+  return argString
+    .split(',')
+    .map((arg: string) => arg.trim())
+    .filter((arg: string) => arg);
+}

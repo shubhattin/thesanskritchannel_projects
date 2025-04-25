@@ -3,7 +3,7 @@ import {
   get_project_info_from_key,
   type project_keys_type
 } from '~/state/project_list';
-import { REDIS_CACHE_KEYS } from '~/db/redis_shared';
+import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import simpleGit from 'simple-git';
 import { z } from 'zod';
 import chalk from 'chalk';
@@ -32,7 +32,7 @@ async function main() {
     const { levels } = project_info;
     if (levels === 1) {
       if (file.endsWith('data.json')) {
-        invalidation_keys.push(REDIS_CACHE_KEYS.text_data(project_id, []));
+        invalidation_keys.push(REDIS_CACHE_KEYS_CLIENT.text_data(project_id, []));
       }
       return;
     }
@@ -43,7 +43,7 @@ async function main() {
       .split('/')
       .splice(3)
       .map((v) => Number(v));
-    invalidation_keys.push(REDIS_CACHE_KEYS.text_data(project_id, path_params));
+    invalidation_keys.push(REDIS_CACHE_KEYS_CLIENT.text_data(project_id, path_params));
   });
   if (invalidation_keys.length === 0) return;
   if (process.argv.slice(2)[0] === '--only-check') {

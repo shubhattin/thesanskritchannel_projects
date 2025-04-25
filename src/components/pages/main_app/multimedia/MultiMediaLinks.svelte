@@ -90,7 +90,7 @@
 <Modal
   contentBase="card z-40 space-y-2 rounded-lg px-4 py-3 shadow-xl dark:bg-surface-900 bg-stone-100"
   triggerBase="btn p-0 outline-hidden select-none"
-  backdropBackground="backdrop-blur-md"
+  backdropBackground="backdrop-blur-sm"
   open={link_add_modal_opened}
   onOpenChange={(e) => (link_add_modal_opened = e.open)}
 >

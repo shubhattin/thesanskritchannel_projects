@@ -1,11 +1,12 @@
 import { env } from '$env/dynamic/private';
 import { Redis } from '@upstash/redis/cloudflare';
+import { REDIS_CACHE_KEYS_CLIENT } from './redis_shared';
 
+export const REDIS_CACHE_KEYS = REDIS_CACHE_KEYS_CLIENT;
 export const redis = new Redis({
   url: env.UPSTASH_REDIS_REST_URL,
   token: env.UPSTASH_REDIS_REST_TOKEN
 });
-export { REDIS_CACHE_KEYS } from './redis_shared';
 
 export async function deleteKeysWithPattern(pattern: string) {
   const script = `

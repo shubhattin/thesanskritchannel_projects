@@ -29,6 +29,7 @@
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { OiCache16 } from 'svelte-icons-pack/oi';
   import { get_path_params } from '~/state/project_list';
+  import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 
   const session = useSession();
   let user_info = $derived($session.data?.user);
@@ -120,7 +121,7 @@
 
   let utility_popover_state = $state(false);
 
-  const invalidate_cache_mut = client_q.cache.invalidate_text_data_cache.mutation({
+  const invalidate_cache_mut = client_q.cache.invalidate_cache.mutation({
     onSuccess() {
       setTimeout(() => {
         window.location.reload();
@@ -251,8 +252,12 @@
   }}
   confirm_func={async () => {
     await $invalidate_cache_mut.mutateAsync({
-      project_id: $project_state.project_id!,
-      path_params_list: [get_path_params($selected_text_levels, $project_state.levels)]
+      cache_keys: [
+        REDIS_CACHE_KEYS_CLIENT.text_data(
+          $project_state.project_id!,
+          get_path_params($selected_text_levels, $project_state.levels)
+        )
+      ]
     });
   }}
 ></ConfirmModal>

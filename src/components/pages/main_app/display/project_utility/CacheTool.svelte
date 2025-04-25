@@ -65,6 +65,12 @@
       $selected_cache_keys = [];
     }
   });
+
+  const invalidate_cache_mut = client_q.cache.invalidate_cache.mutation({
+    onSuccess() {
+      $list_cache_q.refetch();
+    }
+  });
 </script>
 
 <div class="text-center text-lg font-bold text-amber-700 dark:text-warning-500">
@@ -163,8 +169,14 @@
             </label>
           {/each}
           <button
+            ondblclick={() => {
+              $invalidate_cache_mut.mutate({
+                cache_keys: $selected_cache_keys
+              });
+            }}
             class="mt-1.5 btn bg-primary-600 px-1.5 py-0.5 text-sm font-semibold text-white dark:bg-primary-500"
-            disabled={$selected_cache_keys.length === 0}>Invalidate Selected Cache</button
+            disabled={$selected_cache_keys.length === 0 || $invalidate_cache_mut.isPending}
+            >Invalidate Selected Cache</button
           >
         </div>
       {:else}

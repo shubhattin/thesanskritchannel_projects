@@ -13,7 +13,8 @@
     normal_text_font_config,
     shaded_background_image_status,
     trans_text_font_configs,
-    image_text_data_q
+    image_text_data_q,
+    image_shloka_data
   } from './state';
   import { LANG_LIST, LANG_LIST_IDS, type lang_list_type } from '~/state/lang_list';
   import Icon from '~/tools/Icon.svelte';
@@ -30,6 +31,9 @@
     DEFAULT_SHLOKA_CONFIG
   } from './settings';
   import { copy_plain_object } from '~/tools/kry';
+  import { FiEdit, FiSave } from 'svelte-icons-pack/fi';
+  import { CgClose } from 'svelte-icons-pack/cg';
+  import { render_all_texts } from './render_text';
 
   let total_count = $derived(
     $project_map_q.isSuccess ? get_total_count($image_selected_levels) : 0
@@ -46,6 +50,16 @@
     $main_text_font_configs = copy_plain_object(DEFAULT_MAIN_TEXT_FONT_CONFIGS);
     $trans_text_font_configs = copy_plain_object(DEFAULT_TRANS_TEXT_FONT_CONFIGS);
   };
+
+  let text_data = $state('');
+  let textarea_disabled = $state(true);
+
+  $effect(() => {
+    if ($image_shloka_data) {
+      text_data = $image_shloka_data.text;
+      textarea_disabled = true;
+    }
+  });
 </script>
 
 <div class="flex space-x-2 text-sm">
@@ -313,6 +327,42 @@
             {/if}
           {/snippet}
         </Tabs>
+      </div>
+      <div class="mt-2 block">
+        <div class="space-x-2.5">
+          <span class="text-sm font-semibold">Text</span>
+          {#if textarea_disabled}
+            <button class="btn px-1 py-0.5" onclick={() => (textarea_disabled = false)}
+              ><Icon src={FiEdit} class="text-base" /></button
+            >
+          {:else}
+            <span class="space-x-0.5">
+              <button
+                class="btn inline-block px-0 py-0.5"
+                onclick={() => {
+                  $image_shloka_data.text = text_data;
+                  textarea_disabled = true;
+                  $image_rendering_state = true;
+                  render_all_texts($image_shloka, $image_script, $image_lang).then(() => {
+                    $image_rendering_state = false;
+                  });
+                }}><Icon src={FiSave} class="text-base" /></button
+              >
+              <button
+                class="btn inline-block px-0 py-0.5"
+                onclick={() => {
+                  text_data = $image_shloka_data.text;
+                  textarea_disabled = true;
+                }}><Icon src={CgClose} class="text-base" /></button
+              >
+            </span>
+          {/if}
+        </div>
+        <textarea
+          class="indic-font textarea h-24 w-2/3 text-sm ring-2"
+          bind:value={text_data}
+          disabled={textarea_disabled}
+        ></textarea>
       </div>
     {/snippet}
   </Accordion.Item>

@@ -121,15 +121,7 @@
 
   let utility_popover_state = $state(false);
 
-  const invalidate_cache_mut = client_q.cache.invalidate_cache.mutation({
-    onSuccess() {
-      setTimeout(() => {
-        window.location.reload();
-      }, 600);
-    }
-  });
-
-  let invalidate_cache_confirm_modal_state = $state(false);
+  let cache_tool_modal_opened = $state(false);
 </script>
 
 <Popover
@@ -201,13 +193,13 @@
     {#if user_info && user_info.role === 'admin'}
       <button
         onclick={() => {
-          invalidate_cache_confirm_modal_state = true;
+          cache_tool_modal_opened = true;
           utility_popover_state = false;
         }}
         class="btn block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-gray-200 dark:hover:bg-gray-700"
       >
         <Icon src={OiCache16} class="-mt-1 mr-1 text-xl text-yellow-600 dark:text-yellow-400" />
-        Invalidate Text Cache
+        Cache Tool
       </button>
     {/if}
   {/snippet}
@@ -242,22 +234,17 @@
     />
   {/await}
 {/if}
-<ConfirmModal
-  bind:popup_state={invalidate_cache_confirm_modal_state}
-  close_on_confirm={true}
-  title="Sure to Invalidate Cache ?"
-  body_text={() => {
-    const path_params = get_path_params($selected_text_levels, $project_state.levels).join('.');
-    return `This will invalidate the text data cache for ${path_params}`;
-  }}
-  confirm_func={async () => {
-    await $invalidate_cache_mut.mutateAsync({
-      cache_keys: [
-        REDIS_CACHE_KEYS_CLIENT.text_data(
-          $project_state.project_id!,
-          get_path_params($selected_text_levels, $project_state.levels)
-        )
-      ]
-    });
-  }}
-></ConfirmModal>
+
+<Modal
+  contentBase="card z-40 space-y-1.5 rounded-lg px-2 py-1 shadow-xl dark:bg-surface-900 bg-stone-100"
+  triggerBase="btn p-0 outline-hidden select-none"
+  backdropBackground="backdrop-blur-md"
+  open={cache_tool_modal_opened}
+  onOpenChange={(e) => (cache_tool_modal_opened = e.open)}
+>
+  {#snippet content()}
+    {#await import("./CacheTool.svelte") then CacheTool}
+      <CacheTool.default />
+    {/await}
+  {/snippet}
+</Modal>

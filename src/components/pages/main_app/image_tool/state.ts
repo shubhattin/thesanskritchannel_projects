@@ -14,6 +14,7 @@ import {
   type lang_list_type,
   type script_list_type
 } from '~/state/lang_list';
+import { type shloka_list_type } from '~/state/data_types';
 import { copy_plain_object } from '~/tools/kry';
 import { get_image_font_info } from './settings';
 import { client } from '~/api/client';
@@ -46,8 +47,9 @@ export let image_lang = writable<number>(lang_list_obj.English);
 export let image_selected_levels = writable<(number | null)[]>([null, null]);
 
 // ^ chapter will be inherited from the main during mount
-export let image_shloka = writable<number>(1);
-export let image_rendering_state = writable<boolean>(false);
+export let image_shloka = writable(1);
+export let image_rendering_state = writable(false);
+export let image_shloka_data = writable<shloka_list_type[0]>(null!);
 
 export let zip_download_state = writable<[number, number] | null>(null);
 

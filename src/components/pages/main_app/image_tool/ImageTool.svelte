@@ -18,7 +18,8 @@
     trans_text_font_configs,
     main_text_font_configs,
     normal_text_font_config,
-    image_rendering_state
+    image_rendering_state,
+    image_shloka_data
   } from './state';
   import {
     selected_text_levels,
@@ -202,6 +203,12 @@
   //   }, 600);
   // });
   // ^ This is to try to fix the issue of text not rendering after opening the image tool second time
+
+  $effect(() => {
+    if (mounted && !$image_text_data_q.isFetching && $image_text_data_q.isSuccess) {
+      $image_shloka_data = $image_text_data_q.data![$image_shloka];
+    }
+  });
 
   $effect(() => {
     if (

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   get_units,
+  image_shloka_data,
   image_text_data_q,
   image_trans_data_q,
   main_text_font_configs,
@@ -322,7 +323,7 @@ export const render_all_texts = async (
   ]);
 
   // fetch shloka config
-  const shloka_data = $image_sarga_data.data![$image_shloka];
+  const shloka_data = get(image_shloka_data);
 
   const shloka_lines = (() => {
     if ($project_key === 'ramayanam')

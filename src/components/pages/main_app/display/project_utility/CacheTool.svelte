@@ -1,10 +1,9 @@
 <script lang="ts">
   import { client_q } from '~/api/client';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
-  import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
+  import { REDIS_CACHE_KEYS_CLIENT, REDIS_CACHES_ARGUMENTS_LIST } from '~/db/redis_shared';
   import { get_path_params } from '~/state/project_list';
   import { selected_text_levels, project_state } from '~/state/main_app/state.svelte';
-  import { get_argument_names } from '~/tools/kry';
   import { writable } from 'svelte/store';
   import Icon from '~/tools/Icon.svelte';
   import { BiSearchAlt } from 'svelte-icons-pack/bi';
@@ -32,7 +31,7 @@
   $effect(() => {
     selected_cache_name;
     $cache_arguments = Array.from(
-      { length: get_argument_names(REDIS_CACHE_KEYS_CLIENT[selected_cache_name]).length },
+      { length: REDIS_CACHES_ARGUMENTS_LIST[selected_cache_name].length },
       () => null
     );
   });
@@ -115,7 +114,7 @@
 </ConfirmModal>
 
 {#snippet cache_tool(cache_name: typeof selected_cache_name)}
-  {@const function_args = get_argument_names(REDIS_CACHE_KEYS_CLIENT[cache_name])}
+  {@const function_args = REDIS_CACHES_ARGUMENTS_LIST[cache_name]}
   <div class="space-y-1">
     {#each function_args as arg, i}
       <div class="flex items-center space-x-2">

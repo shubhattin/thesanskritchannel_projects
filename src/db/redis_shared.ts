@@ -17,3 +17,10 @@ export const REDIS_CACHE_KEYS_CLIENT = {
     return key + path_params;
   }
 };
+
+export const REDIS_CACHES_ARGUMENTS_LIST: Record<keyof typeof REDIS_CACHE_KEYS_CLIENT, string[]> = {
+  user_project_info: ['user_id', 'project_id'],
+  text_data: ['project_id', 'path_params'],
+  translation: ['project_id', 'lang_id', 'path_params'],
+  media_links: ['project_id', 'path_params']
+};

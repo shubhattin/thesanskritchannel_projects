@@ -238,7 +238,7 @@
 <Modal
   contentBase="card z-40 space-y-1.5 rounded-lg px-2 py-1 shadow-xl dark:bg-surface-900 bg-stone-100"
   triggerBase="btn p-0 outline-hidden select-none"
-  backdropBackground="backdrop-blur-md"
+  backdropBackground="backdrop-blur-sm"
   open={cache_tool_modal_opened}
   onOpenChange={(e) => (cache_tool_modal_opened = e.open)}
 >

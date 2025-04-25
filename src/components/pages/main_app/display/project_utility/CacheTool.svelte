@@ -6,6 +6,8 @@
   import { selected_text_levels, project_state } from '~/state/main_app/state.svelte';
   import { get_argument_names } from '~/tools/kry';
   import { writable } from 'svelte/store';
+  import Icon from '~/tools/Icon.svelte';
+  import { BiSearchAlt } from 'svelte-icons-pack/bi';
 
   const current_text_cache_invalidate_mut = client_q.cache.invalidate_cache.mutation({
     onSuccess() {
@@ -39,6 +41,30 @@
     // @ts-ignore
     return REDIS_CACHE_KEYS_CLIENT[cache_name](...$cache_arguments);
   };
+
+  let cache_arguments_valid_status = $derived(
+    $cache_arguments.length > 0 &&
+      $cache_arguments.every((arg) => arg !== null && arg.trim() !== '')
+  );
+
+  const list_cache_q = $derived(
+    client_q.cache.list_cache_keys.query(
+      {
+        pattern: cache_arguments_valid_status ? get_cache_key(selected_cache_name) : ''
+      },
+      {
+        enabled: false
+      }
+    )
+  );
+
+  const selected_cache_keys = writable<string[]>([]);
+  $effect(() => {
+    selected_cache_name;
+    if (!$list_cache_q.isFetching && $list_cache_q.isSuccess) {
+      $selected_cache_keys = [];
+    }
+  });
 </script>
 
 <div class="text-center text-lg font-bold text-amber-700 dark:text-warning-500">
@@ -100,12 +126,50 @@
       </div>
     {/each}
   </div>
-  {#if $cache_arguments.length > 0 && $cache_arguments.every((arg) => arg !== null && arg.trim() !== '')}
+  {#if cache_arguments_valid_status}
     {@const cache_key = get_cache_key(cache_name)}
     <div class="mt-2">
-      <span class="text-sm">
-        Key: <code class="font-semibold">{cache_key}</code>
-      </span>
+      <div>
+        <div class="text-sm">
+          Key: <code class="font-semibold">{cache_key}</code>
+          <button
+            class="btn block gap-1 px-1.5 py-0.5 text-lg"
+            disabled={$list_cache_q.isFetching}
+            onclick={() => {
+              $list_cache_q.refetch();
+            }}><Icon src={BiSearchAlt} /> Search</button
+          >
+        </div>
+      </div>
     </div>
   {/if}
+  <div class="mt-2">
+    {#if $list_cache_q.isFetching}
+      <div class="h-36 placeholder w-full animate-pulse"></div>
+    {:else if $list_cache_q.isSuccess}
+      {@const cache_list = $list_cache_q.data.sort()}
+      {#if cache_list.length > 0}
+        <div class="max-h-[60%] space-y-1 overflow-scroll px-0.5 text-sm">
+          {#each cache_list as cache_key (cache_key)}
+            <label class="flex items-center space-x-2">
+              <input
+                class="checkbox"
+                type="checkbox"
+                name="cache_keys"
+                value={cache_key}
+                bind:group={$selected_cache_keys}
+              />
+              <span>{cache_key}</span>
+            </label>
+          {/each}
+          <button
+            class="mt-1.5 btn bg-primary-600 px-1.5 py-0.5 text-sm font-semibold text-white dark:bg-primary-500"
+            disabled={$selected_cache_keys.length === 0}>Invalidate Selected Cache</button
+          >
+        </div>
+      {:else}
+        <div class="text-sm text-gray-500 dark:text-gray-400">No Cache Found</div>
+      {/if}
+    {/if}
+  </div>
 {/snippet}

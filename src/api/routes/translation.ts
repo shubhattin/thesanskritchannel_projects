@@ -252,26 +252,10 @@ const trigger_translation_commit_route = protectedAdminProcedure.mutation(async 
   return req.ok;
 });
 
-const invalidate_text_data_cache_route = protectedAdminProcedure
-  .input(
-    z.object({
-      project_id: z.number().int(),
-      path_params_list: z.array(z.number().int().nullable().array())
-    })
-  )
-  .mutation(async ({ input: { project_id, path_params_list } }) => {
-    const path_params_keys = path_params_list.map((path_params) =>
-      REDIS_CACHE_KEYS.text_data(project_id, path_params)
-    );
-    await redis.del(...path_params_keys);
-    return { success: true };
-  });
-
 export const translation_router = t.router({
   get_text_data: get_text_data_route,
   get_translation: get_translation_route,
   edit_translation: edit_translation_route,
   get_all_langs_translation: get_all_langs_translation_route,
-  trigger_translation_commit: trigger_translation_commit_route,
-  invalidate_text_data_cache: invalidate_text_data_cache_route
+  trigger_translation_commit: trigger_translation_commit_route
 });

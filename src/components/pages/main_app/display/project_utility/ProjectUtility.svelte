@@ -120,7 +120,7 @@
 
   let utility_popover_state = $state(false);
 
-  const invalidate_cache_mut = client_q.translation.invalidate_text_data_cache.mutation({
+  const invalidate_cache_mut = client_q.cache.invalidate_text_data_cache.mutation({
     onSuccess() {
       setTimeout(() => {
         window.location.reload();

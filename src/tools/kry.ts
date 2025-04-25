@@ -136,14 +136,29 @@ export function mask_email(
 }
 
 export function get_argument_names(func: Function): string[] {
-  const funcString: string = func.toString();
-  const match: RegExpMatchArray | null = funcString.match(/^[^{]*?\(([^)]*)\)/);
+  const funcString = func.toString();
+
+  // Match the parameter list for various function types
+  // 1. function foo(a, b) {}
+  // 2. (a, b) => {}
+  // 3. a => {}
+  const match =
+    funcString.match(/^[\s\(]*function[^(]*\(([^)]*)\)/) || // normal function
+    funcString.match(/^\s*\(([^)]*)\)\s*=>/) || // arrow with parens
+    funcString.match(/^\s*([^=()]+?)\s*=>/); // arrow without parens
+
   if (!match) {
     return [];
   }
-  const argString: string = match[1];
+
+  const argString = match[1] || match[0];
   return argString
     .split(',')
-    .map((arg: string) => arg.trim())
-    .filter((arg: string) => arg);
+    .map((arg) =>
+      arg
+        .replace(/\/\*.*?\*\//g, '') // remove inline comments
+        .replace(/=[^,]+/g, '') // remove default values
+        .trim()
+    )
+    .filter((arg) => arg);
 }

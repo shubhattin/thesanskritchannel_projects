@@ -11,7 +11,6 @@ export const POST: RequestHandler = async ({ url, request }) => {
   const KEY = await db.query.other.findFirst({
     where: (tbl, { eq }) => eq(tbl.key, CACHE_KEY_DB_NAME)
   });
-  console.log(KEY, key);
   if (!KEY || key !== KEY.value) {
     throw error(401, 'UNAUTHORIZED');
   }

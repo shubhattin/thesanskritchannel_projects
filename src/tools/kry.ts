@@ -134,3 +134,55 @@ export function mask_email(
 
   return `${maskedLocalPart}@${maskedDomain}.${tld}`;
 }
+
+/**
+ * Deeply clones a value of type T.
+ * - Primitives are returned as-is.
+ * - Arrays and plain objects are recursively cloned.
+ * - Date, Map, Set are specially handled.
+ * - Other objects (e.g. functions, class instances) are returned by reference.
+ */
+export function deepCopy<T>(value: T): T {
+  // Primitives (and functions) are returned directly
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  // Date
+  if (value instanceof Date) {
+    return new Date(value.getTime()) as any;
+  }
+  // Array
+  if (Array.isArray(value)) {
+    const arrCopy = [] as unknown[];
+    for (const item of value) {
+      arrCopy.push(deepCopy(item));
+    }
+    return arrCopy as any;
+  }
+  // Map
+  if (value instanceof Map) {
+    const mapCopy = new Map();
+    for (const [k, v] of value.entries()) {
+      mapCopy.set(deepCopy(k), deepCopy(v));
+    }
+    return mapCopy as any;
+  }
+  // Set
+  if (value instanceof Set) {
+    const setCopy = new Set();
+    for (const v of value.values()) {
+      setCopy.add(deepCopy(v));
+    }
+    return setCopy as any;
+  }
+  // Plain Object
+  if (Object.getPrototypeOf(value) === Object.prototype) {
+    const objCopy: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      objCopy[k] = deepCopy(v);
+    }
+    return objCopy as T;
+  }
+  // Fallback: other object types (class instances, functions, etc.)
+  return value;
+}

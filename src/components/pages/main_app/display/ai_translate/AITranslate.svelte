@@ -48,7 +48,7 @@
     }
   });
 
-  let selected_model: keyof typeof TEXT_MODEL_LIST = $state('o4-mini');
+  let selected_model: keyof typeof TEXT_MODEL_LIST = $state('o3-mini');
 
   const translate_sarga_mut = createMutation({
     mutationFn: async (input: Parameters<typeof client.ai.trigger_funcs.translate.mutate>[0]) => {

@@ -46,7 +46,7 @@
 
   let total_count = $derived($project_map_q.isSuccess ? get_total_count($selected_text_levels) : 0);
 
-  let selected_text_model: keyof typeof TEXT_MODEL_LIST = $state('gpt-4o');
+  let selected_text_model: keyof typeof TEXT_MODEL_LIST = $state('gpt-4.1');
 
   onMount(async () => {
     if (import.meta.env.DEV) {

@@ -22,11 +22,11 @@ export const translate_sarga = task({
     try {
       const response = await generateObject({
         model: {
-          'gpt-4o': openai_text_model('o3-mini'),
+          'gpt-4.1': openai_text_model('gpt-4.1'),
           'claude-3.7-sonnet': anthropic_text_model('claude-3-7-sonnet-latest'),
-          'o3-mini': openai_text_model('o3-mini')
+          'o4-mini': openai_text_model('o4-mini')
         }[model],
-        ...(model === 'o3-mini'
+        ...(model === 'o4-mini'
           ? {
               providerOptions: {
                 openai: {

@@ -53,9 +53,9 @@ export let ai_tool_opened = writable(false);
 
 // some values
 export const TEXT_MODEL_LIST = {
-  'gpt-4o': ['gpt 4o', '128K token context window\n$2.5/1M Input tokens & $10/1M Output tokens'],
-  'o3-mini': [
-    'o3 mini',
+  'gpt-4.1': ['gpt 4.1', '1M token context window\n$2.0/1M Input tokens & $8/1M Output tokens'],
+  'o4-mini': [
+    'o4 mini',
     '200K token context window\n$1.10/1M Input tokens & $4.40/1M Output tokens'
   ],
   'claude-3.7-sonnet': [

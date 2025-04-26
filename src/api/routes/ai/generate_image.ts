@@ -105,7 +105,10 @@ const make_image_gpt_1_image = async (image_prompt: string, number_of_images: nu
           Authorization: `Bearer ${env.OPENAI_API_KEY}`
         }
       });
-      if (!req.ok) throw new Error('Failed to fetch image');
+      if (!req.ok) {
+        console.error('Error:', await req.text());
+        throw new Error('Failed to fetch image');
+      }
       const raw_resp = (await req.json()) as OpenAI.Images.ImagesResponse;
       // when returned as plain URL
       const resp = z

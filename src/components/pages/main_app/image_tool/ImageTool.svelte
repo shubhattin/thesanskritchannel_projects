@@ -38,6 +38,7 @@
   import { get_map_type, get_project_info_from_key } from '~/state/project_list';
   import { get_starting_index, project_map_q } from '~/state/main_app/data.svelte';
   import { lipi_parivartak } from '~/tools/converter';
+  import { deepCopy } from '~/tools/kry';
 
   let mounted = $state(false);
 
@@ -206,7 +207,7 @@
 
   $effect(() => {
     if (mounted && !$image_text_data_q.isFetching && $image_text_data_q.isSuccess) {
-      $image_shloka_data = $image_text_data_q.data![$image_shloka];
+      $image_shloka_data = deepCopy($image_text_data_q.data![$image_shloka]);
     }
   });
 

@@ -30,7 +30,7 @@
     SPACE_ABOVE_REFERENCE_LINE,
     DEFAULT_SHLOKA_CONFIG
   } from './settings';
-  import { copy_plain_object } from '~/tools/kry';
+  import { copy_plain_object, deepCopy } from '~/tools/kry';
   import { FiEdit, FiSave } from 'svelte-icons-pack/fi';
   import { CgClose } from 'svelte-icons-pack/cg';
   import { render_all_texts } from './render_text';
@@ -49,6 +49,7 @@
     $normal_text_font_config = copy_plain_object(get_image_font_info('Normal'));
     $main_text_font_configs = copy_plain_object(DEFAULT_MAIN_TEXT_FONT_CONFIGS);
     $trans_text_font_configs = copy_plain_object(DEFAULT_TRANS_TEXT_FONT_CONFIGS);
+    $image_shloka_data = deepCopy($image_text_data_q.data![$image_shloka]);
   };
 
   let text_data = $state('');
@@ -339,12 +340,14 @@
             <span class="space-x-0.5">
               <button
                 class="btn inline-block px-0 py-0.5"
+                disabled={$image_rendering_state}
                 onclick={() => {
                   $image_shloka_data.text = text_data;
-                  textarea_disabled = true;
+                  $image_shloka_data = $image_shloka_data;
                   $image_rendering_state = true;
                   render_all_texts($image_shloka, $image_script, $image_lang).then(() => {
                     $image_rendering_state = false;
+                    textarea_disabled = true;
                   });
                 }}><Icon src={FiSave} class="text-base" /></button
               >

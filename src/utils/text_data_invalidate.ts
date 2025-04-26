@@ -45,7 +45,10 @@ async function main() {
       .map((v) => Number(v));
     invalidation_keys.push(REDIS_CACHE_KEYS_CLIENT.text_data(project_id, path_params));
   });
-  if (invalidation_keys.length === 0) return;
+  if (invalidation_keys.length === 0) {
+    console.log(chalk.bold(`✅ No cache to invalidate`));
+    return;
+  }
   if (process.argv.slice(2)[0] === '--only-check') {
     console.log(
       chalk.bold(
@@ -53,6 +56,13 @@ async function main() {
       )
     );
     return;
+  }
+
+  if (process.argv.slice(2)[0] === '--verbose') {
+    console.log(chalk.blue.bold('Keys to be Invalidated: '));
+    invalidation_keys.forEach((key) => {
+      console.log(key);
+    });
   }
 
   const credential_schema = z.object({

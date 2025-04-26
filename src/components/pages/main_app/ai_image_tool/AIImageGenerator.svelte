@@ -46,7 +46,7 @@
 
   let total_count = $derived($project_map_q.isSuccess ? get_total_count($selected_text_levels) : 0);
 
-  let selected_text_model: keyof typeof TEXT_MODEL_LIST = $state('gpt-4o');
+  let selected_text_model: keyof typeof TEXT_MODEL_LIST = $state('gpt-4.1');
 
   onMount(async () => {
     if (import.meta.env.DEV) {
@@ -92,8 +92,9 @@
   type image_models_type = Parameters<
     typeof client.ai.get_generated_images.query
   >[0]['image_model'];
-  let image_model: image_models_type = $state('dall-e-3');
+  let image_model: image_models_type = $state('gpt-image-1');
   const IMAGE_MODELS: Record<image_models_type, [string, string, number]> = {
+    'gpt-image-1': ['GPT', '$0.042 (₹3.5) / image', 15],
     'dall-e-3': ['DALL-E 3', '$0.04 (₹3.4) / image', 15],
     'sd3-core': ['SD3 Core', '$0.03 (₹2.5) / image', 16]
     // sdxl: ['SDXL', '$0.002 (₹0.17) / image'],

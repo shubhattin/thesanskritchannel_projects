@@ -54,4 +54,4 @@ jobs:
           run_install: true
           version: 10
       - run: |
-          npx vite-node src/utils/text_data_invalidate.ts --verbose
+          npx vite-node src/utils/text_data_invalidate.ts --last-commit --verbose

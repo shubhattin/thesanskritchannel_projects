@@ -12,15 +12,35 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 async function main() {
-  const git = simpleGit({ baseDir: process.cwd() });
-  const status = await git.status();
-  const files = new Set([
-    ...status.modified,
-    ...status.not_added,
-    ...status.created,
-    ...status.staged
-  ]);
+  let files = new Set<string>();
+  if (process.argv.slice(2).includes('--last-commit')) {
+    const changes = await getLastCommitChanges();
+    files = new Set(changes.map((change) => change.filePath));
+  } else {
+    const git = simpleGit({ baseDir: process.cwd() });
+    const status = await git.status();
+    files = new Set([...status.modified, ...status.not_added, ...status.created, ...status.staged]);
+  }
 
+  const invalidation_keys = get_invalidation_keys_for_files(files);
+
+  if (invalidation_keys.length === 0) {
+    console.log(chalk.bold(`✅ No cache to invalidate`));
+    return;
+  }
+  if (process.argv.slice(2).includes('--only-check')) {
+    console.log(
+      chalk.bold(
+        `ℹ️  There are ${invalidation_keys.length} file caches that need to invalidated, make sure to invalidate cache ${chalk.blue('after commit')}`
+      )
+    );
+    return;
+  }
+
+  await invalidate_keys(invalidation_keys);
+}
+
+const get_invalidation_keys_for_files = (files: Set<string>) => {
   const invalidation_keys: string[] = [];
 
   files.forEach((file) => {
@@ -45,24 +65,17 @@ async function main() {
       .map((v) => Number(v));
     invalidation_keys.push(REDIS_CACHE_KEYS_CLIENT.text_data(project_id, path_params));
   });
-  if (invalidation_keys.length === 0) {
-    console.log(chalk.bold(`✅ No cache to invalidate`));
-    return;
-  }
-  if (process.argv.slice(2)[0] === '--only-check') {
-    console.log(
-      chalk.bold(
-        `ℹ️  There are ${invalidation_keys.length} file caches that need to invalidated, make sure to invalidate cache ${chalk.blue('after commit')}`
-      )
-    );
-    return;
-  }
 
-  if (process.argv.slice(2)[0] === '--verbose') {
+  return invalidation_keys;
+};
+
+const invalidate_keys = async (invalidation_keys: string[]) => {
+  if (process.argv.slice(2).includes('--verbose')) {
     console.log(chalk.blue.bold('Keys to be Invalidated: '));
     invalidation_keys.forEach((key) => {
       console.log(key);
     });
+    console.log();
   }
 
   const credential_schema = z.object({
@@ -97,6 +110,44 @@ async function main() {
     return;
   }
   console.log(chalk.bold(`✅  Invalidated ${chalk.bold(invalidation_keys.length)} cache keys`));
-}
+};
 
 main().catch(console.error);
+
+type ChangeCode = 'A' | 'M' | 'C' | 'R' | 'T';
+
+type ChangedFile = {
+  code: ChangeCode;
+  filePath: string;
+};
+
+async function getLastCommitChanges(): Promise<ChangedFile[]> {
+  const git = simpleGit({ baseDir: process.cwd() });
+  const log = await git.log({ maxCount: 1 });
+  const latest = log.latest;
+  if (!latest) return [];
+
+  const raw = await git.raw(['diff-tree', '--no-commit-id', '--name-status', '-r', latest.hash]);
+
+  const allowed = new Set<ChangeCode>(['A', 'M', 'C', 'R', 'T']);
+
+  return raw
+    .trim()
+    .split('\n')
+    .map((line) => {
+      const [statusWithScore, ...paths] = line.split('\t');
+      const code = statusWithScore.charAt(0) as ChangeCode;
+      let filePath: string;
+
+      // for copies/renames, the new path is the second element
+      if ((code === 'C' || code === 'R') && paths.length >= 2) {
+        filePath = paths[1];
+      } else {
+        // A, M, T: single path
+        filePath = paths[0];
+      }
+
+      return { code, filePath };
+    })
+    .filter((f) => allowed.has(f.code));
+}

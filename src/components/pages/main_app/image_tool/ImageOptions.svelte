@@ -74,7 +74,11 @@
     >
       <Icon src={TiArrowBackOutline} class="-mt-1 text-lg" />
     </button>
-    <select class="select inline-block w-20 p-1 text-sm ring-2" bind:value={$image_shloka}>
+    <select
+      class="select inline-block w-20 p-1 text-sm ring-2"
+      bind:value={$image_shloka}
+      disabled={$image_rendering_state}
+    >
       {#if $image_text_data_q.isSuccess && !$image_text_data_q.isFetching}
         {#each Array(total_count) as _, index}
           <option value={index}

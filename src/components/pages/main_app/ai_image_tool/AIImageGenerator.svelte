@@ -65,7 +65,7 @@
   });
 
   $effect(() => {
-    if ($selected_text_levels[0]) {
+    if ($selected_text_levels) {
       $index = get_starting_index($project_state.project_key!, $selected_text_levels);
     }
   });

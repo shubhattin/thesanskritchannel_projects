@@ -76,7 +76,7 @@
   });
 
   $effect(() => {
-    if ($image_selected_levels[0]) {
+    if ($image_selected_levels) {
       $image_shloka = get_starting_index(project_info.key!, $image_selected_levels);
       // reset after change
     }

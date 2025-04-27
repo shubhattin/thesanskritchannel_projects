@@ -44,6 +44,9 @@ jobs:
       CACHE_URL_KEY: ${{ secrets.CACHE_URL_KEY }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # fetch 2 commits so HEAD has a parent
+          fetch-depth: 2
       - name: Use iNode.js
         uses: actions/setup-node@v4
         with:

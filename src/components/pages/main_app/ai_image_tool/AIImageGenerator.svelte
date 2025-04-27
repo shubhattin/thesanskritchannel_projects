@@ -21,7 +21,7 @@
   import { copy_text_to_clipboard, format_string_text, get_permutations } from '~/tools/kry';
   import { onDestroy, onMount, untrack } from 'svelte';
   import { loadLocalConfig } from '../load_local_config';
-  import { BsDownload, BsCopy } from 'svelte-icons-pack/bs';
+  import { BsDownload, BsCopy, BsChevronDown, BsChevronUp } from 'svelte-icons-pack/bs';
   import {
     download_external_file_in_browser,
     download_file_in_browser
@@ -35,6 +35,7 @@
   import ms from 'ms';
   import { get_project_from_id, get_project_info_from_key } from '~/state/project_list';
   import { CgClose } from 'svelte-icons-pack/cg';
+  import { slide } from 'svelte/transition';
 
   let base_prompts = image_tool_prompts as {
     main_prompt: {
@@ -43,6 +44,14 @@
     }[];
     additional_prompt_info: string;
   };
+
+  let base_prompt_text = $state('');
+
+  $effect(() => {
+    base_prompt_text = format_string_text(base_prompts.main_prompt[0].content, {
+      text_name: get_project_from_id($project_state.project_id!).name
+    });
+  });
 
   let total_count = $derived($project_map_q.isSuccess ? get_total_count($selected_text_levels) : 0);
 
@@ -94,7 +103,7 @@
   >[0]['image_model'];
   let image_model: image_models_type = $state('gpt-image-1');
   const IMAGE_MODELS: Record<image_models_type, [string, string, number]> = {
-    'gpt-image-1': ['GPT', '$0.042 (₹3.5) / image', 15],
+    'gpt-image-1': ['GPT', '$0.042 (₹3.5) / image', 19],
     'dall-e-3': ['DALL-E 3', '$0.04 (₹3.4) / image', 15],
     'sd3-core': ['SD3 Core', '$0.03 (₹2.5) / image', 16]
     // sdxl: ['SDXL', '$0.002 (₹0.17) / image'],
@@ -176,16 +185,8 @@
           messages: [
             {
               role: 'user',
-              content:
-                format_string_text(base_prompts.main_prompt[0].content, {
-                  text_name: get_project_from_id($project_state.project_id!).name
-                }) + additional_prompt_info
-            },
-            {
-              role: 'assistant',
-              content: base_prompts.main_prompt[1].content
-            },
-            { role: 'user', content: $shloka_text_prompt }
+              content: base_prompt_text + additional_prompt_info + '\n\n' + $shloka_text_prompt
+            }
           ],
           model: selected_text_model
         });
@@ -293,6 +294,8 @@
     copy_text_to_clipboard(text);
     copied_text_status = true;
   };
+
+  let base_prompt_display = $state(false);
 </script>
 
 {#if copied_text_status}
@@ -368,6 +371,29 @@
     </span>
   {/if}
 </div>
+<div>
+  <button
+    class="btn space-x-2 px-1 py-0.5 text-sm opacity-80 outline-hidden"
+    onclick={() => (base_prompt_display = !base_prompt_display)}
+  >
+    {#if !base_prompt_display}
+      <Icon src={BsChevronDown} class="mb-1 text-lg" />
+    {:else}
+      <Icon src={BsChevronUp} class="mb-1 text-lg" />
+    {/if}
+    Edit Base Prompt
+  </button>
+  {#if base_prompt_display}
+    <div in:slide out:slide class="mt-1">
+      <textarea
+        class="textarea h-36 border-2 px-1 py-0 text-sm"
+        bind:value={base_prompt_text}
+        spellcheck="false"
+      ></textarea>
+    </div>
+  {/if}
+</div>
+
 <div class="space-y-1">
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div

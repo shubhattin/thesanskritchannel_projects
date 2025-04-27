@@ -2,11 +2,6 @@ main_prompt:
   - role: user
     content: >
       I will be giving you a Sanskrit shloka along with its English translation from {text_name}. Generate a text prompt which can be used to generate consistent looking images that encapsulate the essence of the translation. Make the subjects, and the backgrounds realistic. If the description is abstract, maintain a sense of fantasy while portraying those abstract concepts. Set the scene in the appropriate location as the situation happens in {text_name} across the landscapes of Ancient Bharat. Keep People's faces and clothes in Ancient Indian Context. Make appropriate adjustments for any policy violations that might be generated from the resultant prompt.
-  - role: assistant
-    content: >
-      To create consistent image prompts that encapsulate the essence of the translations, I will aim to generate a detailed, descriptive prompt based on the meaning and context of each shloka. These prompts will focus on the visual elements of the scene described in the translation, while keeping the artistic and cultural essence intact.
-
-      Feel free to provide the shloka and translation when you're ready, and I'll start generating a suitable image prompt for it.
 
 additional_prompt_info: >
   This Shloka is from {text_info} of {text_name}.

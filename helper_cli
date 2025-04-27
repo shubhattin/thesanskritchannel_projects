@@ -9,7 +9,8 @@ OPTIONS = [
         "Generate Text JSON",
         [],
     ],
-    ["Invalidate Text Data Cache", ["npx vite-node src/utils/text_data_invalidate.ts"]],
+    ["Launch Local Server", ["pnpm dev"]],
+    # ["Invalidate Text Data Cache", ["npx vite-node src/utils/text_data_invalidate.ts"]],
     ["Check Data Integrity", ["pnpm vitest run src/tests/check_data_shape.test.ts"]],
     ["Update Dependencies", ["pnpm i && uv sync "]],
 ]

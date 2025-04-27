@@ -37,3 +37,10 @@
 <br/>
 
 > ℹ️ This is a unified Interface initially made for [valmiki_ramayanam](https://github.com/shubhattin/valmiki_ramayanam), [tsc-users](https://github.com/shubhattin/tsc-users) and [bhagavadgita](https://github.com/shubhattin/bhagavadgita). Those repositories are now archived and this is the new unified interface. This will be the new base for adding more texts.
+
+## Minimal env to run the project
+
+```bash
+PG_DATABASE_URL="postgresql://postgres:pswd@127.0.0.1:5432/projects"
+PUBLIC_BETTER_AUTH_URL="http://localhost:5173"
+```

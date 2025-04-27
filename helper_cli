@@ -37,7 +37,6 @@ def generate_text_json():
         f'cd "data/{command_info[2]}. {command_info[1]}" && uv run {command_info[3]}'
     )
     os.system(command)
-    os.system("npx vite-node src/utils/text_data_invalidate.ts --only-check")
 
 
 def main():

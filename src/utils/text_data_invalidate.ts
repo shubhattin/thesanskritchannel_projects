@@ -14,6 +14,7 @@ dotenv.config();
 async function main() {
   let files = new Set<string>();
   if (process.argv.slice(2).includes('--last-commit')) {
+    console.log(chalk.yellow(`Checking for changes in the last commit...`));
     const changes = await getLastCommitChanges();
     files = new Set(changes.map((change) => change.filePath));
   } else {

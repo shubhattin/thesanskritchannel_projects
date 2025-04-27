@@ -16,7 +16,6 @@ async function main() {
   if (process.argv.slice(2).includes('--last-commit')) {
     console.log(chalk.yellow(`Checking for changes in the last commit...`));
     const changes = await getLastCommitChanges();
-    console.log(changes);
     files = new Set(changes.map((change) => change.filePath));
   } else {
     const git = simpleGit({ baseDir: process.cwd() });

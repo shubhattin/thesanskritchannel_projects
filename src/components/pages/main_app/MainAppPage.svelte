@@ -480,6 +480,8 @@
       <Display />
     </div>
   {:else}
-    <AiImageGenerator />
+    <div class="space-y-2.5 sm:space-y-4">
+      <AiImageGenerator />
+    </div>
   {/if}
 {/if}

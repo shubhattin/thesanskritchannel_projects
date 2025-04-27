@@ -306,7 +306,7 @@
     Copied to Clipboard
   </div>
 {/if}
-<div class="space-x-3">
+<div class="mb-2 space-x-3">
   <span class="space-x-1">
     <span class="font-semibold">Index No.</span>
     <button
@@ -371,7 +371,7 @@
     </span>
   {/if}
 </div>
-<div>
+<div class="mb-3">
   <button
     class="btn space-x-2 px-1 py-0.5 text-sm opacity-80 outline-hidden"
     onclick={() => (base_prompt_display = !base_prompt_display)}
@@ -384,7 +384,7 @@
     Edit Base Prompt
   </button>
   {#if base_prompt_display}
-    <div in:slide out:slide class="mt-1">
+    <div in:slide out:slide class="mt-1.5">
       <textarea
         class="textarea h-36 border-2 px-1 py-0 text-sm"
         bind:value={base_prompt_text}

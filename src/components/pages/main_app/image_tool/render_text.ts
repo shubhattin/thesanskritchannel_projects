@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   get_units,
+  image_shloka,
   image_shloka_data,
   image_text_data_q,
   image_trans_data_q,
@@ -290,7 +291,7 @@ const draw_bounding_and_reference_lines = async (shloka_config: shloka_type_conf
  * Renders all text for the particular `shloka>Chapter``
  */
 export const render_all_texts = async (
-  $image_shloka: number,
+  $image_shloka_input: number | null,
   $image_script: script_list_type,
   $image_lang_id: number
 ) => {
@@ -305,6 +306,8 @@ export const render_all_texts = async (
   const $image_trans_data = get(image_trans_data_q);
   const $project_key = get(project_state).project_key!;
   const $project_levels = get(project_state).levels;
+
+  const $image_shloka = $image_shloka_input === null ? get(image_shloka) : $image_shloka_input;
 
   if (!browser) return $shloka_configs[2]; // just like has no meaning
 
@@ -323,7 +326,8 @@ export const render_all_texts = async (
   ]);
 
   // fetch shloka config
-  const shloka_data = get(image_shloka_data);
+  const shloka_data =
+    $image_shloka_input === null ? get(image_shloka_data) : $image_sarga_data.data![$image_shloka];
 
   const shloka_lines = (() => {
     if ($project_key === 'ramayanam')

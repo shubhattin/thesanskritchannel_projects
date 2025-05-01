@@ -227,7 +227,9 @@
     )
       (async () => {
         $image_rendering_state = true;
-        await render_all_texts($image_shloka, $image_script, $image_lang);
+        $image_shloka;
+        console.log('Rendering image');
+        await render_all_texts(null, $image_script, $image_lang);
         $image_rendering_state = false;
       })();
   });

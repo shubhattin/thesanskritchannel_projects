@@ -349,7 +349,7 @@
                   $image_shloka_data.text = text_data;
                   $image_shloka_data = $image_shloka_data;
                   $image_rendering_state = true;
-                  render_all_texts($image_shloka, $image_script, $image_lang).then(() => {
+                  render_all_texts(null, $image_script, $image_lang).then(() => {
                     $image_rendering_state = false;
                     textarea_disabled = true;
                   });

@@ -192,19 +192,6 @@
     if (mounted) set_background_image_type($shaded_background_image_status);
   });
 
-  // $effect(() => {
-  // mounted &&
-  //   $image_tool_opened &&
-  //   setTimeout(async () => {
-  //     await render_all_texts(
-  //       untrack(() => $image_shloka),
-  //       untrack(() => $image_script),
-  //       untrack(() => $image_lang)
-  //     );
-  //   }, 600);
-  // });
-  // ^ This is to try to fix the issue of text not rendering after opening the image tool second time
-
   $effect(() => {
     if (mounted && !$image_text_data_q.isFetching && $image_text_data_q.isSuccess) {
       $image_shloka_data = deepCopy($image_text_data_q.data![$image_shloka]);
@@ -228,7 +215,6 @@
       (async () => {
         $image_rendering_state = true;
         $image_shloka;
-        console.log('Rendering image');
         await render_all_texts(null, $image_script, $image_lang);
         $image_rendering_state = false;
       })();

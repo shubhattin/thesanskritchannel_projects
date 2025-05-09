@@ -161,7 +161,7 @@
     image_gen_time_taken = 0;
     image_gen_interval_obj = setInterval(() => {
       image_gen_time_taken++;
-      if (image_gen_time_taken === IMAGE_MODELS[image_model][2]) {
+      if (image_gen_time_taken >= Math.trunc(IMAGE_MODELS[image_model][2])) {
         clearInterval(image_gen_interval_obj);
         return;
       }
@@ -258,7 +258,7 @@
           image_model
         });
 
-        return await get_result_from_trigger_run_id<typeof output_type>(run_id!);
+        return await get_result_from_trigger_run_id<typeof output_type>(run_id!, 2);
       },
       enabled: false,
       placeholderData: undefined,

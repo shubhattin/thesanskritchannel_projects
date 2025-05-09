@@ -1,7 +1,7 @@
 import { client } from '~/api/client';
 
 /**
- * @param time_interval  Dwfault 3 seconds
+ * @param time_interval  Default 3 seconds
  */
 export const get_result_from_trigger_run_id = async <T>(run_id: string, time_interval = 3) => {
   return await new Promise<

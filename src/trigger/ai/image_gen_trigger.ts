@@ -1,39 +1,39 @@
-import { protectedAdminProcedure } from '~/api/trpc_init';
-import { env } from '$env/dynamic/private';
-import { z } from 'zod';
-import { fetch_post } from '~/tools/fetch';
+import { task } from '@trigger.dev/sdk/v3';
 import type OpenAI from 'openai';
+import { z } from 'zod';
+import {
+  image_gen_route_schema,
+  IMAGE_GENERATE_TRIGGER_ID,
+  type image_output_type
+} from '~/api/routes/ai/ai_types';
+import { fetch_post } from '~/tools/fetch';
 
-const available_models_schema = z.enum(['dall-e-3', 'gpt-image-1', 'sd3-core']);
+export const translate_sarga = task({
+  id: IMAGE_GENERATE_TRIGGER_ID,
+  maxDuration: 5 * 60, // 5 minutes
+  run: async (payload: z.infer<typeof image_gen_route_schema.input>) => {
+    payload = image_gen_route_schema.input.parse(payload);
+    const { image_model, image_prompt, number_of_images } = payload;
 
-const create_image_output_schema = <
-  Model extends z.infer<typeof available_models_schema>,
-  ImageFormat extends 'url' | 'b64_json',
-  FileFormat extends 'png' | 'jpeg' | 'webp'
->(
-  model: Model,
-  imageFormat: ImageFormat,
-  fileFormat: FileFormat
-) =>
-  z.object({
-    created: z.number().int(),
-    prompt: z.string(),
-    url: z.string(),
-    model: z.literal(model),
-    out_format: z.literal(imageFormat),
-    file_format: z.literal(fileFormat)
-  });
-
-const image_schema = z.union([
-  create_image_output_schema('dall-e-3', 'url', 'png'),
-  create_image_output_schema('gpt-image-1', 'b64_json', 'png'),
-  create_image_output_schema('sd3-core', 'b64_json', 'png').extend({
-    seed: z.number().int(),
-    finish_reason: z.string()
-  })
-]);
-
-type image_output_type = z.infer<typeof image_schema>;
+    try {
+      const time_start = Date.now();
+      let response: (image_output_type | null)[] = null!;
+      if (image_model === 'sd3-core')
+        response = await make_image_sd3_core(image_prompt, number_of_images);
+      else if (image_model === 'dall-e-3')
+        response = await make_image_dall_e_3(image_prompt, number_of_images);
+      else response = await make_image_gpt_1_image(image_prompt, number_of_images);
+      // default `gpt-image-1`
+      return {
+        images: response,
+        time_taken: Date.now() - time_start
+      };
+    } catch (e) {
+      console.log(e);
+      return { success: false };
+    }
+  }
+});
 
 const _make_image_dall_e = async (
   image_prompt: string,
@@ -53,7 +53,7 @@ const _make_image_dall_e = async (
           response_format: 'url'
         } as OpenAI.Images.ImageGenerateParams,
         headers: {
-          Authorization: `Bearer ${env.OPENAI_API_KEY}`
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
         }
       });
       if (!req.ok) throw new Error('Failed to fetch image');
@@ -102,7 +102,7 @@ const make_image_gpt_1_image = async (image_prompt: string, number_of_images: nu
           quality: 'medium'
         } as OpenAI.Images.ImageGenerateParams,
         headers: {
-          Authorization: `Bearer ${env.OPENAI_API_KEY}`
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
         }
       });
       if (!req.ok) {
@@ -152,7 +152,7 @@ const make_image_sd3_core = async (image_prompt: string, number_of_images: numbe
             output_format: 'png'
           },
           headers: {
-            Authorization: `Bearer ${env.STABILITY_API_KEY}`,
+            Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
             Accept: 'application/json; type=image/png'
           }
         }
@@ -184,26 +184,3 @@ const make_image_sd3_core = async (image_prompt: string, number_of_images: numbe
   const responses = Array.from({ length: number_of_images }, () => get_single_image());
   return await Promise.all(responses);
 };
-
-export const get_generated_images_route = protectedAdminProcedure
-  .input(
-    z.object({
-      image_prompt: z.string(),
-      number_of_images: z.number().int().min(1).max(4),
-      image_model: available_models_schema
-    })
-  )
-  .query(async ({ input: { image_prompt, number_of_images, image_model } }) => {
-    const time_start = Date.now();
-    let response: (image_output_type | null)[] = null!;
-    if (image_model === 'sd3-core')
-      response = await make_image_sd3_core(image_prompt, number_of_images);
-    else if (image_model === 'dall-e-3')
-      response = await make_image_dall_e_3(image_prompt, number_of_images);
-    else response = await make_image_gpt_1_image(image_prompt, number_of_images);
-    // default `gpt-image-1`
-    return {
-      images: response,
-      time_taken: Date.now() - time_start
-    };
-  });

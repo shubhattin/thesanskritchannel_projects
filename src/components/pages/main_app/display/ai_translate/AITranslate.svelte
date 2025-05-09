@@ -51,9 +51,11 @@
   let selected_model: keyof typeof TEXT_MODEL_LIST = $state('o3-mini');
 
   const translate_sarga_mut = createMutation({
-    mutationFn: async (input: Parameters<typeof client.ai.trigger_funcs.translate.mutate>[0]) => {
+    mutationFn: async (
+      input: Parameters<typeof client.ai.trigger_funcs.translate_trigger.mutate>[0]
+    ) => {
       show_time_status = false;
-      const { run_id, output_type } = await client.ai.trigger_funcs.translate.mutate(input);
+      const { run_id, output_type } = await client.ai.trigger_funcs.translate_trigger.mutate(input);
 
       return await get_result_from_trigger_run_id<typeof output_type>(run_id!);
     },

@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+export const TRANSLATE_TRIGGER_ID = 'ai_text_translate';
+export const IMAGE_GENERATE_TRIGGER_ID = 'ai_image_generate';
+
 export const translation_out_schema = z
   .object({
     text: z.string().describe('The translation text'),
@@ -11,7 +14,7 @@ export const translation_out_schema = z
 
 export const text_models_enum = z.enum(['gpt-4.1', 'claude-3.7-sonnet', 'o3-mini']);
 
-export const chapter_translate_schema = {
+export const translate_route_schema = {
   input: z.object({
     project_id: z.number().int(),
     lang_id: z.number().int(),
@@ -29,4 +32,44 @@ export const chapter_translate_schema = {
   ])
 };
 
-export const TRANSLATE_TRIGGER_ID = 'ai_text_translate';
+export const available_models_schema = z.enum(['dall-e-3', 'gpt-image-1', 'sd3-core']);
+
+const create_image_output_schema = <
+  Model extends z.infer<typeof available_models_schema>,
+  ImageFormat extends 'url' | 'b64_json',
+  FileFormat extends 'png' | 'jpeg' | 'webp'
+>(
+  model: Model,
+  imageFormat: ImageFormat,
+  fileFormat: FileFormat
+) =>
+  z.object({
+    created: z.number().int(),
+    prompt: z.string(),
+    url: z.string(),
+    model: z.literal(model),
+    out_format: z.literal(imageFormat),
+    file_format: z.literal(fileFormat)
+  });
+
+const image_schema = z.union([
+  create_image_output_schema('dall-e-3', 'url', 'png'),
+  create_image_output_schema('gpt-image-1', 'b64_json', 'png'),
+  create_image_output_schema('sd3-core', 'b64_json', 'png').extend({
+    seed: z.number().int(),
+    finish_reason: z.string()
+  })
+]);
+
+export const image_gen_route_schema = {
+  input: z.object({
+    image_prompt: z.string(),
+    number_of_images: z.number().int().min(1).max(4),
+    image_model: available_models_schema
+  }),
+  output: z.object({
+    images: image_schema.array(),
+    time_taken: z.number().int()
+  })
+};
+export type image_output_type = z.infer<typeof image_schema>;

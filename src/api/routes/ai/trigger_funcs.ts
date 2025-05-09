@@ -1,8 +1,13 @@
 import { z } from 'zod';
 import { env } from '$env/dynamic/private';
-import { protectedProcedure, t } from '~/api/trpc_init';
+import { protectedAdminProcedure, protectedProcedure, t } from '~/api/trpc_init';
 import { tasks, auth, runs } from '@trigger.dev/sdk/v3';
-import { chapter_translate_schema, TRANSLATE_TRIGGER_ID } from '~/api/routes/ai/ai_types';
+import {
+  translate_route_schema,
+  TRANSLATE_TRIGGER_ID,
+  IMAGE_GENERATE_TRIGGER_ID,
+  image_gen_route_schema
+} from '~/api/routes/ai/ai_types';
 import { user_project_language_join } from '~/db/schema';
 import { db } from '~/db/db';
 import { and, eq } from 'drizzle-orm';
@@ -12,7 +17,7 @@ auth.configure({
 });
 
 const translate_route = protectedProcedure
-  .input(chapter_translate_schema.input)
+  .input(translate_route_schema.input)
   .mutation(async ({ ctx: { user }, input: { lang_id, messages, model, project_id } }) => {
     if (user.role !== 'admin') {
       const langugaes = await db
@@ -39,7 +44,21 @@ const translate_route = protectedProcedure
 
     const run_id = handle.id;
 
-    return { run_id, output_type: null! as z.infer<typeof chapter_translate_schema.output> };
+    return { run_id, output_type: null! as z.infer<typeof translate_route_schema.output> };
+  });
+
+const generate_image_trigger_route = protectedAdminProcedure
+  .input(image_gen_route_schema.input)
+  .query(async ({ input: { image_prompt, number_of_images, image_model } }) => {
+    const handle = await tasks.trigger(IMAGE_GENERATE_TRIGGER_ID, {
+      image_prompt,
+      number_of_images,
+      image_model
+    });
+
+    const run_id = handle.id;
+
+    return { run_id, output_type: null! as z.infer<typeof image_gen_route_schema.output> };
   });
 
 const retrive_run_info_route = protectedProcedure
@@ -69,6 +88,7 @@ const retrive_run_info_route = protectedProcedure
   });
 
 export const trigger_funcs_router = t.router({
-  translate: translate_route,
+  translate_trigger: translate_route,
+  generate_image_trigger: generate_image_trigger_route,
   retrive_run_info: retrive_run_info_route
 });

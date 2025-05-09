@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import {
-  chapter_translate_schema,
+  translate_route_schema,
   translation_out_schema,
   TRANSLATE_TRIGGER_ID
 } from '~/api/routes/ai/ai_types';
@@ -15,8 +15,8 @@ const anthropic_text_model = createAnthropic({ apiKey: process.env.ANTHROPIC_API
 export const translate_sarga = task({
   id: TRANSLATE_TRIGGER_ID,
   maxDuration: 15 * 60, // 12 minutes
-  run: async (payload: z.infer<typeof chapter_translate_schema.input>) => {
-    payload = chapter_translate_schema.input.parse(payload);
+  run: async (payload: z.infer<typeof translate_route_schema.input>) => {
+    payload = translate_route_schema.input.parse(payload);
     const { messages, model } = payload;
 
     try {

@@ -36,6 +36,7 @@
   import { get_project_from_id, get_project_info_from_key } from '~/state/project_list';
   import { CgClose } from 'svelte-icons-pack/cg';
   import { slide } from 'svelte/transition';
+  import { get_result_from_trigger_run_id } from '~/tools/trigger';
 
   let base_prompts = image_tool_prompts as {
     main_prompt: {
@@ -98,14 +99,16 @@
     }
   });
 
+  const ADDITIONAL_IMAGE_GEN_DELAY_S = 2;
+
   type image_models_type = Parameters<
-    typeof client.ai.get_generated_images.query
+    typeof client.ai.trigger_funcs.generate_image_trigger.query
   >[0]['image_model'];
   let image_model: image_models_type = $state('gpt-image-1');
   const IMAGE_MODELS: Record<image_models_type, [string, string, number]> = {
-    'gpt-image-1': ['GPT', '$0.042 (₹3.5) / image', 19],
-    'dall-e-3': ['DALL-E 3', '$0.04 (₹3.4) / image', 15],
-    'sd3-core': ['SD3 Core', '$0.03 (₹2.5) / image', 16]
+    'gpt-image-1': ['GPT', '$0.042 (₹3.5) / image', 19 + ADDITIONAL_IMAGE_GEN_DELAY_S],
+    'dall-e-3': ['DALL-E 3', '$0.04 (₹3.4) / image', 15 + ADDITIONAL_IMAGE_GEN_DELAY_S],
+    'sd3-core': ['SD3 Core', '$0.03 (₹2.5) / image', 16 + ADDITIONAL_IMAGE_GEN_DELAY_S]
     // sdxl: ['SDXL', '$0.002 (₹0.17) / image'],
     // 'dall-e-2': ['DALL-E 2', '$0.02 (₹1.68) / image']
   };
@@ -249,11 +252,13 @@
           }
           return { images: list, time_taken: 0 };
         }
-        return await client.ai.get_generated_images.query({
+        const { run_id, output_type } = await client.ai.trigger_funcs.generate_image_trigger.query({
           image_prompt: $image_prompt,
           number_of_images: NUMBER_OF_IMAGES,
           image_model
         });
+
+        return await get_result_from_trigger_run_id<typeof output_type>(run_id!);
       },
       enabled: false,
       placeholderData: undefined,
@@ -273,8 +278,8 @@
     }
   });
   type image_data_type = Awaited<
-    ReturnType<typeof client.ai.get_generated_images.query>
-  >['images'][0];
+    ReturnType<typeof client.ai.trigger_funcs.generate_image_trigger.query>
+  >['output_type']['images'][number];
 
   const download_image = (image: image_data_type) => {
     if (!image) return;

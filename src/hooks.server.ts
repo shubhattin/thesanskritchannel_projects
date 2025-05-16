@@ -1,5 +1,5 @@
 import type { Handle } from '@sveltejs/kit';
-import { auth } from '$lib/auth'; // path to your auth file
+import { auth, ALLOWED_ORIGINS } from '$lib/auth'; // path to your auth file
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { createTRPCHandle } from 'trpc-sveltekit';
 import { router } from '~/api/trpc_router';
@@ -9,7 +9,7 @@ export const handle_trpc: Handle = createTRPCHandle({ router, createContext });
 
 export const handle: Handle = async ({ event, resolve }) => {
   const origin = event.request.headers.get('origin');
-  const isAllowedOrigin = !!origin && ALLOWRD_ORIGINS.includes(origin);
+  const isAllowedOrigin = !!origin && ALLOWED_ORIGINS.includes(origin);
 
   const CORS_ALLOWED_URLS = ['/api/auth', '/api/ext'];
   const IS_CORS_ALLOWED_URL = CORS_ALLOWED_URLS.some((url) => event.url.pathname.startsWith(url));

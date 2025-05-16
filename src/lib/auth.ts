@@ -8,7 +8,7 @@ import { admin, openAPI } from 'better-auth/plugins';
 import { COOKIE_CACHE_TIME_MS } from './cache-time';
 import { userInfoPlugin } from './auth_plugins/user_info/server';
 
-export const ALLOWRD_ORIGINS = (() => {
+export const ALLOWED_ORIGINS = (() => {
   if (import.meta.env.DEV) return ['http://localhost:5173', 'http://localhost:3000'];
   const list: string[] = [];
   if (env.AUTH_DOMAIN && env.AUTH_DOMAIN_SITES)
@@ -86,5 +86,5 @@ export const auth = betterAuth({
         }
       : {})
   },
-  trustedOrigins: ALLOWRD_ORIGINS
+  trustedOrigins: ALLOWED_ORIGINS
 });

@@ -8,7 +8,7 @@
   let user_info_fetched = $state(false);
 
   $user_info = null;
-  if (page.data.usii_info) $user_info = page.data.user_info;
+  if (page.data.user_info) $user_info = page.data.user_info;
   $effect(() => {
     $user_info = user_info_fetched ? $session.data?.user : page.data.user_info;
   });

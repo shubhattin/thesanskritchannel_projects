@@ -7,7 +7,7 @@ import { queryClient } from './client';
 import { S3Client, PutObjectCommand, StorageClass } from '@aws-sdk/client-s3';
 import mime from 'mime-types';
 import ms from 'ms';
-import { TranslationSchemaZod } from '~/db/schema_zod';
+import { TranslationSchemaZod } from '../../db/schema_zod';
 import { json2csv } from 'json-2-csv';
 
 // Load environment variables from .env
@@ -104,15 +104,7 @@ const BACKUP_FOLDER_NAME = 'tsc_projects_backup';
 
 async function main() {
   await backup_data();
-  const current_date_key =
-    new Date().toISOString() +
-    ' : ' +
-    new Date().toLocaleString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      timeZone: 'Asia/Kolkata'
-    });
+  const current_date_key = new Date().toISOString();
   await uploadFile(
     envs.AWS_DB_BACKUP_BUCKET_NAME,
     `${BACKUP_FOLDER_NAME}/${current_date_key}.zip`,

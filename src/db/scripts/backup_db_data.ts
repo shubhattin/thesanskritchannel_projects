@@ -7,6 +7,8 @@ import { queryClient } from './client';
 import { S3Client, PutObjectCommand, StorageClass } from '@aws-sdk/client-s3';
 import mime from 'mime-types';
 import ms from 'ms';
+import { TranslationSchemaZod } from '~/db/schema_zod';
+import { json2csv } from 'json-2-csv';
 
 // Load environment variables from .env
 dotenv.config({ path: '../../../.env' });
@@ -57,10 +59,15 @@ async function backup_data() {
     queryClient.end();
     fs.copyFileSync('./out/db_data.json', './backup/db_data.json');
   });
+  const trans_data = TranslationSchemaZod.array().parse(
+    JSON.parse(fs.readFileSync('./backup/db_data.json', 'utf-8'))['translation']
+  );
+  const csv = json2csv(trans_data);
+  fs.writeFileSync(`./backup/translation.csv`, csv);
 
   console.log('Zipping backup files');
   execSync(
-    'zip backup/backup.zip backup/db_dump_schema.sql backup/db_dump_data.sql backup/db_data.json'
+    'zip backup/backup.zip backup/db_dump_schema.sql backup/db_dump_data.sql backup/db_data.json backup/translation.csv'
   );
   console.log('Backup complete');
 }

@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PG_DATABASE_URL: ${{ secrets.PG_DATABASE_URL }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DB_BACKUP_BUCKET_NAME: ${{ secrets.AWS_DB_BACKUP_BUCKET_NAME }}
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js
@@ -35,5 +39,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: db_backup
-          path: src/db/scripts/backup/
+          path: src/db/scripts/backup/translation.csv
           retention-days: 60

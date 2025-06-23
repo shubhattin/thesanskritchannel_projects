@@ -12,11 +12,15 @@ export const userInfoPlugin = () => {
         fields: {
           is_approved: {
             type: 'boolean',
-            defaultValue: false
+            defaultValue: false,
+            required: false,
+            input: false
           },
           is_maintainer: {
             type: 'boolean',
-            defaultValue: false
+            defaultValue: false,
+            required: false,
+            input: false
           }
         }
       }

@@ -18,7 +18,7 @@
         });
         return data?.sessions;
       },
-      enabled: user_info?.is_maintainer
+      enabled: user_info?.is_maintainer ?? false
     })
   );
 

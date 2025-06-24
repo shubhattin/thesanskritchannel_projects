@@ -4,7 +4,7 @@
   
 [![App Checks](https://github.com/shubhattin/thesanskritchannel_projects/actions/workflows/checks.yml/badge.svg)](https://github.com/shubhattin/thesanskritchannel_projects/actions/workflows/checks.yml)
 
-*A comprehensive digital platform for Sanskrit text management, translation, and preservation*
+_A comprehensive digital platform for Sanskrit text management, translation, and preservation_
 
 **[🔧 Technical Details](./Technical_Details.md)** | **[🌐 Live Platform](https://projects.thesanskritchannel.org/)**
 
@@ -20,13 +20,13 @@ Welcome to **The Sanskrit Channel Projects** - a modern, AI-powered portal desig
 
 Our platform currently hosts these revered Sanskrit texts:
 
-| Text | Sanskrit Name | Description |
-|------|---------------|-------------|
-| **Valmiki Ramayanam** | श्रीमद्रामायणम् | The epic tale of Lord Rama |
-| **Bhagavad Gita** | श्रीमद्भगवद्गीता | The divine discourse of Krishna |
-| **Narayaneeyam** | नारायणीयम् | Devotional hymns to Lord Vishnu |
-| **Shiva Tandava Stotra** | शिवताण्डवस्तोत्रम् | The cosmic dance of Lord Shiva |
-| **Saundarya Lahari** | सौन्दर्यलहरी | Hymns to the Divine Mother |
+| Text                     | Sanskrit Name      | Description                     |
+| ------------------------ | ------------------ | ------------------------------- |
+| **Valmiki Ramayanam**    | श्रीमद्रामायणम्    | The epic tale of Lord Rama      |
+| **Bhagavad Gita**        | श्रीमद्भगवद्गीता   | The divine discourse of Krishna |
+| **Narayaneeyam**         | नारायणीयम्         | Devotional hymns to Lord Vishnu |
+| **Shiva Tandava Stotra** | शिवताण्डवस्तोत्रम् | The cosmic dance of Lord Shiva  |
+| **Saundarya Lahari**     | सौन्दर्यलहरी       | Hymns to the Divine Mother      |
 
 ## 🚀 Key Features
 

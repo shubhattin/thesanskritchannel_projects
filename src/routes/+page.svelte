@@ -1,10 +1,9 @@
 <script lang="ts">
+  import MetaTags from '~/components/tags/MetaTags.svelte';
   import { PROJECT_LIST } from '~/state/project_list';
 </script>
 
-<svelte:head>
-  <title>The Sanskrit Channel Projects</title>
-</svelte:head>
+<MetaTags title="The Sanskrit Channel Projects" description="The Sanskrit Channel Projects" />
 
 <main class="container mx-auto px-4 py-8">
   <h1 class="mb-8 text-center text-2xl font-bold">The Sanskrit Channel Projects</h1>

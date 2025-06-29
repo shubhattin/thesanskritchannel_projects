@@ -61,7 +61,15 @@
   };
 </script>
 
-<MetaTags title={PAGE_INFO.title} description={PAGE_INFO.description} />
+<MetaTags
+  title={PAGE_INFO.title}
+  description={PAGE_INFO.description}
+  share_image_info={{
+    url: 'https://cdn.jsdelivr.net/gh/shubhattin/old_lipi_lekhika_archive@refs/heads/main/jAla/dist/i/bhasha.jpg',
+    width: 913,
+    height: 443
+  }}
+/>
 
 <div class="mt-4">
   <div class="space-y-2">

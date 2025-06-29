@@ -15,14 +15,16 @@
     url: 'https://cdn.jsdelivr.net/gh/shubhattin/thesanskritchannel_projects@latest/others/project_images/share_image.jpg',
     width: 512,
     height: 215
+    // ^ preferred size: 1200x630
   };
 </script>
 
 <svelte:head>
   <title>{title}</title>
   <meta property="og:title" content={title} />
-  <meta property="og:site_name" content={title} />
+  <meta property="og:site_name" content="The Sanskrit Channel Projects" />
   <meta name="twitter:title" content={title} />
+  <meta property="og:type" content="website" />
 
   <!-- Description -->
   {#if description}

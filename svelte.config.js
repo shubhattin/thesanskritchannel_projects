@@ -10,8 +10,7 @@ const config = {
     adapter:
       process.env.BUILD_MODE === 'vercel'
         ? adapter_vercel({
-            runtime: 'edge',
-            regions: ['sin1']
+            runtime: 'nodejs20.x',
           })
         : adapter_netlify({
             edge: true

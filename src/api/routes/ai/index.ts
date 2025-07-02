@@ -25,7 +25,7 @@ export const ai_router = t.router({
 
       return out;
     }),
-  translate: protectedAdminProcedure
+  translate_text: protectedAdminProcedure
     .input(translate_route_schema.input)
     .output(translate_route_schema.output)
     // @ts-ignore

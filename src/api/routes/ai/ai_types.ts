@@ -69,7 +69,8 @@ export const image_gen_route_schema = {
   }),
   output: z.object({
     images: image_schema.array(),
-    time_taken: z.number().int()
+    time_taken: z.number().int(),
+    success: z.literal(true)
   })
 };
 export type image_output_type = z.infer<typeof image_schema>;

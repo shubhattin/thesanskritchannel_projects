@@ -252,13 +252,20 @@
           }
           return { images: list, time_taken: 0 };
         }
-        const { run_id, output_type } = await client.ai.trigger_funcs.generate_image_trigger.query({
+        // const { run_id, output_type } = await client.ai.trigger_funcs.generate_image_trigger.query({
+        //   image_prompt: $image_prompt,
+        //   number_of_images: NUMBER_OF_IMAGES,
+        //   image_model
+        // });
+
+        // return await get_result_from_trigger_run_id<typeof output_type>(run_id!, 2);
+        const out = await client.ai.gen_image.query({
           image_prompt: $image_prompt,
           number_of_images: NUMBER_OF_IMAGES,
           image_model
         });
-
-        return await get_result_from_trigger_run_id<typeof output_type>(run_id!, 2);
+        if (!out.success) throw new Error('Image generation failed');
+        return out;
       },
       enabled: false,
       placeholderData: undefined,

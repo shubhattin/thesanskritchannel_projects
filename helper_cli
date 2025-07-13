@@ -3,6 +3,7 @@
 from rich import print
 from rich.prompt import Prompt
 import os
+import sys
 
 OPTIONS = [
     [
@@ -24,7 +25,15 @@ TEXT_LIST = [
 ]
 
 
-def generate_text_json():
+def generate_text_json_func(choice_index: int):
+    command_info = TEXT_LIST[choice_index]
+    command = (
+        f'cd "data/{command_info[2]}. {command_info[1]}" && uv run {command_info[3]}'
+    )
+    os.system(command)
+
+
+def generate_text_json_list():
     for i, option in enumerate(TEXT_LIST):
         print(f"[blue]{i+1}. {option[0]}[/]")
     print(f"[blue]e. Exit[/]")
@@ -33,14 +42,15 @@ def generate_text_json():
     choice = Prompt.ask("Choose Text", choices=CHOICES)
     if choice == "e":
         return
-    command_info = TEXT_LIST[int(choice) - 1]
-    command = (
-        f'cd "data/{command_info[2]}. {command_info[1]}" && uv run {command_info[3]}'
-    )
-    os.system(command)
+    generate_text_json_func(int(choice) - 1)
 
 
 def main():
+    if "--gen-json-all" in sys.argv[1:]:
+        for i in range(len(TEXT_LIST)):
+            generate_text_json_func(i)
+            print(f"[bold]Generated [green]{TEXT_LIST[i][0]}[/][/]")
+        return
     print("[bold yellow]Generate JSON Files for:[/]")
     for i, option in enumerate(OPTIONS):
         print(f"[blue]{i+1}. {option[0]}[/]")
@@ -51,7 +61,7 @@ def main():
     if choice == "e":
         return
     elif choice == "1":
-        generate_text_json()
+        generate_text_json_list()
         return
     command_info = OPTIONS[int(choice) - 1]
     command = " && ".join(command_info[1])

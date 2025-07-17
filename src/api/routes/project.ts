@@ -95,7 +95,6 @@ const update_project_languages_route = protectedAdminProcedure
     const languages_current = await get_languages_for_ptoject_user(user_id, project_id);
 
     await Promise.allSettled([
-      redis.del(REDIS_CACHE_KEYS.user_project_info(user_id, project_id)),
       // deleting
       ...languages_current.map((lang) => {
         const exists = languages_id.find((id) => id === lang.lang_id);
@@ -121,6 +120,7 @@ const update_project_languages_route = protectedAdminProcedure
           });
       })
     ]);
+    await Promise.allSettled([redis.del(REDIS_CACHE_KEYS.user_project_info(user_id, project_id))]);
 
     return { success: true };
   });

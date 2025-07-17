@@ -65,11 +65,11 @@ const remove_user_route = protectedAdminProcedure
         Cookie: cookie!
       }
     });
+    await Promise.allSettled([db.delete(user).where(eq(user.id, user_id))]);
     await Promise.allSettled([
       ...sessions.map(async (session, i) => {
         await redis.del(session.token);
-      }),
-      db.delete(user).where(eq(user.id, user_id))
+      })
     ]);
     return { success: true };
   });

@@ -78,9 +78,9 @@ const add_media_link_route = protectedAdminProcedure
             media_type,
             name
           })
-          .returning(),
-        redis.del(REDIS_CACHE_KEYS.media_links(project_id, path_params))
+          .returning()
       ]);
+      await Promise.allSettled([redis.del(REDIS_CACHE_KEYS.media_links(project_id, path_params))]);
 
       return {
         id: inserted[0].id
@@ -109,9 +109,9 @@ const update_media_link_route = protectedAdminProcedure
         db
           .update(media_attachment)
           .set({ link, media_type, name, lang_id })
-          .where(eq(media_attachment.id, id)),
-        redis.del(REDIS_CACHE_KEYS.media_links(project_id, path_params))
+          .where(eq(media_attachment.id, id))
       ]);
+      await Promise.allSettled([redis.del(REDIS_CACHE_KEYS.media_links(project_id, path_params))]);
       return {
         success: true
       };
@@ -133,10 +133,8 @@ const delete_media_link_route = protectedAdminProcedure
     );
 
     // await db.delete(media_attachment).where((tbl, { eq }) => eq(tbl.id, link_id));
-    await Promise.all([
-      db.delete(media_attachment).where(eq(media_attachment.id, link_id)),
-      redis.del(REDIS_CACHE_KEYS.media_links(project_id, path_params))
-    ]);
+    await Promise.allSettled([db.delete(media_attachment).where(eq(media_attachment.id, link_id))]);
+    await Promise.allSettled([redis.del(REDIS_CACHE_KEYS.media_links(project_id, path_params))]);
     return {
       success: true
     };

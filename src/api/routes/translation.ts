@@ -192,10 +192,12 @@ const edit_translation_route = protectedProcedure
             )
         );
       }
-      promises.push(redis.del(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params)));
 
       // resolving update promises
       await Promise.allSettled(promises);
+      await Promise.allSettled([
+        redis.del(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params))
+      ]);
 
       return {
         success: true

@@ -2,6 +2,7 @@
   import { createQuery } from '@tanstack/svelte-query';
   import { client } from '~/api/client';
   import Markdown from 'svelte-markdown';
+  import { fade } from 'svelte/transition';
 
   let langugae = $state('Hindi');
   let shloka = $state('');
@@ -55,8 +56,7 @@
     <div class="rounded=md h-72 placeholder animate-pulse"></div>
   {:else if $shloka_analysis_q.isSuccess}
     {@const data = $shloka_analysis_q.data}
-
-    <div class="prose text-sm prose-neutral dark:prose-invert">
+    <div class="prose text-sm prose-neutral dark:prose-invert" in:fade>
       <Markdown source={data} />
     </div>
   {/if}

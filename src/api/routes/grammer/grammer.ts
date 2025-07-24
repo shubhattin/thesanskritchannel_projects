@@ -10,7 +10,7 @@ const openai_text_model = createOpenAI({ apiKey: env.OPENAI_API_KEY });
 
 export const grammer_analysis_func = async (shloka: string, lang: string) => {
   const response = await generateText({
-    model: openai_text_model('gpt-4.1-mini'),
+    model: openai_text_model('gpt-4.1'),
     messages: [
       { role: 'system', content: format_string_text(GRAMMER_PROMPT, { lang }) },
       { role: 'user', content: `Word Meaning Language: ${lang}\n\n${shloka}` }

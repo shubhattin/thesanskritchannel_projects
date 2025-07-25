@@ -24,7 +24,7 @@ export const PAGE_TITLES: Record<
     title: '',
     classes: 'text-xl font-bold'
   },
-  '/grammer': {
+  '/grammar': {
     title: 'वैयाकरनम्',
     classes: 'text-xl font-bold'
   }

@@ -5,7 +5,8 @@ import { translation_router } from './routes/translation';
 import { ai_router } from './routes/ai';
 import { media_router } from './routes/media';
 import { cache_router } from './routes/cache';
-import { grammer_router } from './routes/grammer/grammer';
+import { grammar_router } from './routes/grammar/grammar';
+
 export const router = t.router({
   user: user_router,
   project: project_router,
@@ -13,7 +14,7 @@ export const router = t.router({
   ai: ai_router,
   media: media_router,
   cache: cache_router,
-  grammer: grammer_router
+  grammar: grammar_router
 });
 
 export type Router = typeof router;

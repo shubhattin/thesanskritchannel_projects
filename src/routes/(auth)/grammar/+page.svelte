@@ -48,7 +48,7 @@
     const start_time = Date.now();
 
     try {
-      const response = await fetch('/api/stream_grammer', {
+      const response = await fetch('/api/stream_grammar', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

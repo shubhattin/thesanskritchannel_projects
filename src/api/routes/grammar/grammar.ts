@@ -1,5 +1,5 @@
 import { t, protectedAdminProcedure } from '~/api/trpc_init';
-import GRAMMER_PROMPT from './grammer_prompt.md?raw';
+import grammar_PROMPT from './grammar_prompt.md?raw';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenRouter, type OpenRouterLanguageModel } from '@openrouter/ai-sdk-provider';
 import { z } from 'zod';
@@ -26,7 +26,7 @@ const MODELS: Record<(typeof MODELS_LIST)[number], LanguageModelV1 | OpenRouterL
   'gemini-2.5-flash': openrouter_text_model('google/gemini-2.5-flash')
 } as const;
 
-export const get_grammer_analysis_input_schema = z.object({
+export const get_grammar_analysis_input_schema = z.object({
   shloka: z.string(),
   lang: z.string(),
   model: z.enum(MODELS_LIST)
@@ -34,12 +34,12 @@ export const get_grammer_analysis_input_schema = z.object({
 
 const get_messages = (shloka: string, lang: string) => {
   return [
-    { role: 'system', content: format_string_text(GRAMMER_PROMPT, { lang }) },
+    { role: 'system', content: format_string_text(grammar_PROMPT, { lang }) },
     { role: 'user', content: `Word Meaning Language: ${lang}\n\n${shloka}` }
   ] satisfies CoreMessage[];
 };
 
-const get_grammer_analysis_text = async (
+const get_grammar_analysis_text = async (
   shloka: string,
   lang: string,
   model: keyof typeof MODELS
@@ -51,7 +51,7 @@ const get_grammer_analysis_text = async (
   return response.text;
 };
 
-export const get_grammer_analysis_text_stream = async (
+export const get_grammar_analysis_text_stream = async (
   shloka: string,
   lang: string,
   model: keyof typeof MODELS
@@ -63,17 +63,17 @@ export const get_grammer_analysis_text_stream = async (
   return response;
 };
 
-const grammer_analysis_route = protectedAdminProcedure
-  .input(get_grammer_analysis_input_schema)
+const grammar_analysis_route = protectedAdminProcedure
+  .input(get_grammar_analysis_input_schema)
   .query(async ({ input }) => {
     const time = new Date();
-    const out = await get_grammer_analysis_text(input.shloka, input.lang, input.model);
+    const out = await get_grammar_analysis_text(input.shloka, input.lang, input.model);
     return {
       text: out,
       time_ms: new Date().getTime() - time.getTime()
     };
   });
 
-export const grammer_router = t.router({
-  grammer_analysis: grammer_analysis_route
+export const grammar_router = t.router({
+  grammar_analysis: grammar_analysis_route
 });

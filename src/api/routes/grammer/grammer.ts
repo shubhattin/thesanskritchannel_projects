@@ -26,7 +26,7 @@ const MODELS: Record<(typeof MODELS_LIST)[number], LanguageModelV1 | OpenRouterL
   'gemini-2.5-flash': openrouter_text_model('google/gemini-2.5-flash')
 } as const;
 
-const get_grammer_analysis_input_schema = z.object({
+export const get_grammer_analysis_input_schema = z.object({
   shloka: z.string(),
   lang: z.string(),
   model: z.enum(MODELS_LIST)

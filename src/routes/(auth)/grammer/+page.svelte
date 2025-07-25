@@ -12,7 +12,8 @@
     queryFn: async () => {
       const out = client.grammer.grammer_analysis.query({
         shloka,
-        lang: langugae
+        lang: langugae,
+        model
       });
       return out;
     },
@@ -20,6 +21,13 @@
   });
 
   const LANGUAGES = ['Hindi', 'English', 'Sanskrit'] as const;
+  type models_list_type = Parameters<typeof client.grammer.grammer_analysis.query>[0]['model'];
+  const MODEL_NAMES: Record<models_list_type, string> = {
+    'gpt-4.1': 'GPT-4.1',
+    'gpt-4.1-mini': 'GPT-4.1 Mini',
+    'gpt-4.1-nano': 'GPT-4.1 Nano'
+  };
+  let model: models_list_type = $state('gpt-4.1');
 </script>
 
 <svelte:head>
@@ -27,10 +35,16 @@
 </svelte:head>
 
 <div class="mt-6 space-y-4">
-  <div class="text-center text-2xl font-semibold text-primary-200">
-    <h1>Grammer Analysis</h1>
-  </div>
-  <div class="space-y-4">
+  <div class="space-y-3">
+    <label class="flex items-center gap-2">
+      <span class="label-text text-xs font-semibold">Model</span>
+      <select bind:value={model} class="select w-24 text-xs">
+        {#each Object.keys(MODEL_NAMES) as model}
+          <option value={model as models_list_type}>{MODEL_NAMES[model as models_list_type]}</option
+          >
+        {/each}
+      </select>
+    </label>
     <label class="flex items-center gap-2">
       <span class="label-text text-sm">Language</span>
       <select bind:value={langugae} class="select w-28 text-sm">

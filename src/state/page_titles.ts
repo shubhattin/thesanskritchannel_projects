@@ -25,7 +25,7 @@ export const PAGE_TITLES: Record<
     classes: 'text-xl font-bold'
   },
   '/grammer': {
-    title: 'व्याकरणम्',
+    title: 'वैयाकरनम्',
     classes: 'text-xl font-bold'
   }
 };

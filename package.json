@@ -65,6 +65,7 @@
     "@floating-ui/dom": "^1.7.2",
     "@fontsource/roboto": "^5.2.6",
     "@neondatabase/serverless": "^1.0.1",
+    "@openrouter/ai-sdk-provider": "^0.7.3",
     "@tailwindcss/vite": "^4.1.11",
     "@tanstack/svelte-query": "^5.81.5",
     "@trigger.dev/sdk": "^3.3.17",

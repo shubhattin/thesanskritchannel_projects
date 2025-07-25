@@ -6,7 +6,19 @@
   let langugae = $state('Hindi');
   let shloka = $state('');
 
-  const LANGUAGES = ['Hindi', 'English', 'Sanskrit'] as const;
+  const LANGUAGES = [
+    'Hindi',
+    'English',
+    'Sanskrit',
+    'Telugu',
+    'Kannada',
+    'Marathi',
+    'Tamil',
+    'Malayalam',
+    'Bengali',
+    'Gujarati'
+  ] as const;
+
   type models_list_type = (typeof MODELS_LIST)[number];
   const MODELS_LIST = [
     'gpt-4.1',
@@ -21,7 +33,7 @@
     'gpt-4.1-nano': 'GPT-4.1 Nano',
     'gemini-2.0-flash': 'Gemini 2.0 Flash',
     'gemini-2.5-flash': 'Gemini 2.5 Flash'
-  };
+  } as const;
   let model: models_list_type = $state('gpt-4.1');
 
   let analysis_result = $state('');
@@ -103,7 +115,7 @@
     Analyze
   </button>
   {#if is_fetching && !analysis_result}
-    <div class="rounded=md h-72 placeholder animate-pulse"></div>
+    <div class="rounded=md h-96 placeholder animate-pulse"></div>
   {:else if analysis_result}
     <div class="prose text-sm prose-neutral dark:prose-invert" in:fade>
       <Markdown source={analysis_result} />

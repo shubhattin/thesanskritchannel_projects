@@ -4,6 +4,7 @@ import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { createTRPCHandle } from 'trpc-sveltekit';
 import { router } from '~/api/trpc_router';
 import { createContext } from '~/api/context';
+import { building } from '$app/environment';
 
 export const handle_trpc: Handle = createTRPCHandle({ router, createContext });
 
@@ -29,7 +30,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (event.url.pathname.startsWith('/trpc')) {
     return handle_trpc({ event, resolve });
   }
-  const res: Response = await svelteKitHandler({ event, resolve, auth });
+  const res: Response = await svelteKitHandler({ event, resolve, auth, building });
   if (IS_CORS_ALLOWED_URL && isAllowedOrigin) {
     res.headers.append('Access-Control-Allow-Origin', origin);
     res.headers.append('Access-Control-Allow-Credentials', 'true');

@@ -2,7 +2,7 @@ import { get, writable } from 'svelte/store';
 import type * as fabric from 'fabric';
 import { get_derived_query } from '~/tools/query';
 import { browser } from '$app/environment';
-import { get_translations, QUERY_KEYS } from '~/state/main_app/data.svelte';
+import { trans_lang_data_q_options, text_data_q_options } from '~/state/main_app/data.svelte';
 import { createQuery } from '@tanstack/svelte-query';
 import { queryClient } from '~/state/queryClient';
 import background_image_url from './img/background_vr.png';
@@ -17,9 +17,7 @@ import {
 import { type shloka_list_type } from '~/state/data_types';
 import { copy_plain_object } from '~/tools/kry';
 import { get_image_font_info } from './settings';
-import { client } from '~/api/client';
 import { project_state, text_data_present } from '~/state/main_app/state.svelte';
-import { get_path_params } from '~/state/project_list';
 
 export let canvas = writable<fabric.Canvas>();
 export let background_image = writable<fabric.FabricImage>();
@@ -55,20 +53,16 @@ export let zip_download_state = writable<[number, number] | null>(null);
 
 export const image_text_data_q = get_derived_query(
   [image_selected_levels, text_data_present, project_state],
-  ([_image_selected_levels, _text_data_present, _project_state]) => {
-    const path_params = get_path_params(_image_selected_levels, _project_state.levels!);
+  ([image_selected_levels_, text_data_present_, project_state_]) => {
     return createQuery(
       {
-        queryKey: QUERY_KEYS.text_data(_image_selected_levels),
-        enabled: browser && _text_data_present,
-        placeholderData: [],
-        queryFn: async () => {
-          const data = await client.translation.get_text_data.query({
-            project_key: _project_state.project_key!,
-            path_params
-          });
-          return data;
-        }
+        ...text_data_q_options(
+          image_selected_levels_,
+          project_state_.project_key!,
+          project_state_.levels!
+        ),
+        enabled: browser && text_data_present_,
+        placeholderData: []
       },
       queryClient
     );
@@ -76,12 +70,11 @@ export const image_text_data_q = get_derived_query(
 );
 export const image_trans_data_q = get_derived_query(
   [image_selected_levels, image_lang, text_data_present],
-  ([_image_selected_levels, _image_lang, _text_data_present]) => {
+  ([image_selected_levels_, image_lang_, text_data_present_]) => {
     return createQuery(
       {
-        queryKey: QUERY_KEYS.trans_lang_data(_image_lang, _image_selected_levels),
-        enabled: browser && _text_data_present,
-        queryFn: () => get_translations(_image_selected_levels, _image_lang)
+        ...trans_lang_data_q_options(image_lang_, image_selected_levels_),
+        enabled: browser && text_data_present_
       },
       queryClient
     );

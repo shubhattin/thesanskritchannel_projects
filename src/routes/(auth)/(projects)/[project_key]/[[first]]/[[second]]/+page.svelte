@@ -81,45 +81,41 @@
 
 <div class="mt-2 space-y-2.5 sm:mt-4 sm:space-y-4">
   <div class="mb-0 flex w-full items-start justify-between sm:mb-2.5">
-    <div class="flex space-x-6">
-      <ol class="flex cursor-default items-center gap-2 select-none sm:gap-3">
-        <li>
-          <Popover
-            open={project_selected_popover}
-            onOpenChange={(e) => (project_selected_popover = e.open)}
-            contentBase="card z-50 space-y-2 p-2 rounded-lg shadow-xl dark:bg-surface-900 bg-slate-100"
-          >
-            {#snippet trigger()}
-              <div class="flex space-x-2 opacity-60 outline-hidden">
-                {#if !project_selected_popover}
-                  <Icon src={BsChevronDown} class="mb-1 text-lg" />
-                {:else}
-                  <Icon src={BsChevronUp} class="mb-1 text-lg" />
-                {/if}
-                <span>{get_project_from_key(project_key).name}</span>
-              </div>
-            {/snippet}
-            {#snippet content()}
-              <div class="space-y-2">
-                {#each PROJECT_LIST as project, i}
-                  <button
-                    class={cl_join(
-                      'block w-full gap-0 rounded-md px-1.5 py-1 text-center text-sm font-semibold text-white',
-                      project.key === project_key
-                        ? 'bg-primary-500 dark:bg-primary-600'
-                        : 'bg-slate-400 hover:bg-primary-500/80 dark:bg-slate-800 dark:hover:bg-primary-600/80'
-                    )}
-                    onclick={() => {
-                      project_selected_popover = false;
-                      goto(`/${project.key}`);
-                    }}>{project.name}</button
-                  >
-                {/each}
-              </div>
-            {/snippet}
-          </Popover>
-        </li>
-      </ol>
+    <div class="flex items-center justify-start space-x-6">
+      <Popover
+        open={project_selected_popover}
+        onOpenChange={(e) => (project_selected_popover = e.open)}
+        contentBase="card z-50 space-y-2 p-2 rounded-lg shadow-xl dark:bg-surface-900 bg-slate-100"
+      >
+        {#snippet trigger()}
+          <div class="flex space-x-2 opacity-60 outline-hidden">
+            {#if !project_selected_popover}
+              <Icon src={BsChevronDown} class="mb-1 text-lg" />
+            {:else}
+              <Icon src={BsChevronUp} class="mb-1 text-lg" />
+            {/if}
+            <span>{get_project_from_key(project_key).name}</span>
+          </div>
+        {/snippet}
+        {#snippet content()}
+          <div class="space-y-2">
+            {#each PROJECT_LIST as project, i}
+              <button
+                class={cl_join(
+                  'block w-full gap-0 rounded-md px-1.5 py-1 text-center text-sm font-semibold text-white',
+                  project.key === project_key
+                    ? 'bg-primary-500 dark:bg-primary-600'
+                    : 'bg-slate-400 hover:bg-primary-500/80 dark:bg-slate-800 dark:hover:bg-primary-600/80'
+                )}
+                onclick={() => {
+                  project_selected_popover = false;
+                  goto(`/${project.key}`);
+                }}>{project.name}</button
+              >
+            {/each}
+          </div>
+        {/snippet}
+      </Popover>
       {#if $text_data_present}
         <div transition:fade>
           {#await import('~/components/pages/main_app/display/project_utility/ProjectUtility.svelte')}

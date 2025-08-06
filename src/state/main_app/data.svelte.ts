@@ -1,7 +1,7 @@
 import { get_derived_query } from '~/tools/query';
 import { client } from '~/api/client';
 import { queryClient } from '~/state/queryClient';
-import { createQuery } from '@tanstack/svelte-query';
+import { createQuery, queryOptions } from '@tanstack/svelte-query';
 import {
   project_state,
   selected_text_levels,
@@ -42,15 +42,22 @@ export const user_project_info_q = get_derived_query(
     )
 );
 
-export const project_map_q = get_derived_query([project_state], ([_prject_state]) =>
-  createQuery({
-    queryKey: ['project_map', _prject_state.project_id!],
+export const project_map_q_options = (project_id: number, project_key: project_keys_type) => {
+  return queryOptions({
+    queryKey: ['project_map', project_id],
     queryFn: async () => {
-      const project_info = get_project_info_from_key(_prject_state.project_key!);
+      const project_info = get_project_info_from_key(project_key);
       const data = await project_info.map_info();
       return data;
     }
-  })
+  });
+};
+
+export const project_map_q = get_derived_query([project_state], ([prject_state_]) =>
+  createQuery(
+    project_map_q_options(prject_state_.project_id!, prject_state_.project_key!),
+    queryClient
+  )
 );
 
 export const QUERY_KEYS = {
@@ -69,21 +76,35 @@ export const QUERY_KEYS = {
 
 let one_time_page_text_data_use_done = false;
 
+export const text_data_q_options = (
+  selected_text_levels: (number | null)[],
+  project_key: project_keys_type,
+  project_levels: number
+) => {
+  const path_params = get_path_params(selected_text_levels, project_levels);
+  return queryOptions({
+    queryKey: QUERY_KEYS.text_data(path_params),
+    queryFn: async () => {
+      const data = await client.translation.get_text_data.query({
+        project_key: project_key,
+        path_params
+      });
+      return data;
+    }
+  });
+};
+
 export const text_data_q = get_derived_query(
   [project_state, selected_text_levels, text_data_present],
-  ([_prject_state, _selected_text_levels, _text_data_present]) => {
-    const path_params = get_path_params(_selected_text_levels, _prject_state.levels!);
+  ([prject_state_, selected_text_levels_, text_data_present_]) => {
     const query = createQuery(
       {
-        queryKey: QUERY_KEYS.text_data(path_params),
-        queryFn: async () => {
-          const data = await client.translation.get_text_data.query({
-            project_key: _prject_state.project_key!,
-            path_params
-          });
-          return data;
-        },
-        enabled: _text_data_present,
+        ...text_data_q_options(
+          selected_text_levels_,
+          prject_state_.project_key!,
+          prject_state_.levels!
+        ),
+        enabled: text_data_present_,
         ...(page.data.text && !one_time_page_text_data_use_done
           ? {
               initialData: page.data.text as shloka_list_type
@@ -98,22 +119,31 @@ export const text_data_q = get_derived_query(
 );
 
 // Translations
+export const trans_lang_data_q_options = (
+  lang_id: number,
+  selected_text_levels: (number | null)[]
+) => {
+  return queryOptions({
+    queryKey: QUERY_KEYS.trans_lang_data(lang_id, selected_text_levels),
+    queryFn: () => get_translations(selected_text_levels, lang_id)
+  });
+};
+
 export const trans_en_data_q = get_derived_query(
   [selected_text_levels, view_translation_status, editing_status_on, text_data_present],
-  ([_selected_text_levels, _view_translation_status, _editing_status_on, _text_data_present]) => {
+  ([selected_text_levels_, view_translation_status_, editing_status_on_, text_data_present_]) => {
     return createQuery(
       {
-        queryKey: QUERY_KEYS.trans_lang_data(lang_list_obj.English, _selected_text_levels),
+        ...trans_lang_data_q_options(lang_list_obj.English, selected_text_levels_),
         // by also adding the kanda and chapter they are auto invalidated
         // so we dont have to manually invalidate it if were only chapter,trans,English
-        enabled: browser && _view_translation_status && _text_data_present,
-        ...(_editing_status_on
+        enabled: browser && view_translation_status_ && text_data_present_,
+        ...(editing_status_on_
           ? {
               staleTime: Infinity
               // while editing the data should not go stale, else it would refetch lead to data loss
             }
-          : {}),
-        queryFn: () => get_translations(_selected_text_levels, lang_list_obj.English) // 1 -> English
+          : {})
       },
       queryClient
     );
@@ -130,31 +160,18 @@ export const trans_lang_data_query_key = derived(
   }
 );
 export const trans_lang_data_q = get_derived_query(
-  [
-    trans_lang_data_query_key,
-    trans_lang,
-    selected_text_levels,
-    editing_status_on,
-    text_data_present
-  ],
-  ([
-    _trans_lang_data_query_key,
-    _trans_lang,
-    _selected_text_levels,
-    _editing_status_on,
-    _text_data_present
-  ]) =>
+  [trans_lang, selected_text_levels, editing_status_on, text_data_present],
+  ([trans_lang_, selected_text_levels_, editing_status_on_, text_data_present_]) =>
     createQuery(
       {
-        queryKey: _trans_lang_data_query_key,
-        enabled: browser && _trans_lang !== 0 && _text_data_present,
-        ...(_editing_status_on
+        ...trans_lang_data_q_options(trans_lang_, selected_text_levels_),
+        enabled: browser && trans_lang_ !== 0 && text_data_present_,
+        ...(editing_status_on_
           ? {
               staleTime: Infinity
               // while editing the data should not go stale, else it would refetch lead to data loss
             }
-          : {}),
-        queryFn: () => get_translations(_selected_text_levels, _trans_lang)
+          : {})
       },
       queryClient
     )

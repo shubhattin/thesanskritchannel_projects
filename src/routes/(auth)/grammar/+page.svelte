@@ -1,6 +1,6 @@
 <script lang="ts">
   import Markdown from 'svelte-markdown';
-  import { fade } from 'svelte/transition';
+  import { fade, fly, slide } from 'svelte/transition';
   import pretty_ms from 'pretty-ms';
   import { Switch } from '@skeletonlabs/skeleton-svelte';
   import { LANGUAGES, MODELS_LIST, MODEL_NAMES, type models_list_type } from './grammer_data';
@@ -66,10 +66,10 @@
   <div class="flex items-center justify-center gap-2">
     <span>Custom Text</span>
     <Switch checked={load_text_source} onCheckedChange={(e) => (load_text_source = e.checked)} />
-    <span>Text Source</span>
+    <span class="font-semibold">Text Source</span>
   </div>
   {#if !load_text_source}
-    <div class="space-y-3">
+    <div transition:slide class="space-y-3">
       <label class="flex items-center gap-2">
         <span class="label-text text-xs font-semibold">Model</span>
         <select bind:value={model} class="select w-36 px-1 pr-1.5 text-xs">
@@ -91,6 +91,7 @@
   {/if}
   {#if !load_text_source}
     <button
+      transition:fly
       class="btn preset-filled-primary-200-800 font-semibold"
       onclick={analyzeShloka}
       disabled={is_fetching}

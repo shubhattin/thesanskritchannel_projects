@@ -12,18 +12,14 @@
     type project_keys_type
   } from '~/state/project_list';
   import { createQuery } from '@tanstack/svelte-query';
-  import {
-    get_total_count,
-    project_map_q_options,
-    text_data_q_options
-  } from '~/state/main_app/data.svelte';
+  import { project_map_q_options, text_data_q_options } from '~/state/main_app/data.svelte';
   import Icon from '~/tools/Icon.svelte';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
 
   let langugae = $state('Hindi');
   let shloka = $state('');
 
-  let model: models_list_type = $state('gpt-4.1');
+  let model: models_list_type = $state('gpt-5');
 
   let analysis_result = $state('');
   let is_fetching = $state(false);

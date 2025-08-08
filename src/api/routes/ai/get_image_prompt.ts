@@ -9,6 +9,12 @@ import { text_models_enum } from './ai_types';
 const openai_text_model = createOpenAI({ apiKey: env.OPENAI_API_KEY });
 const anthropic_text_model = createAnthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
+const MODELS = {
+  'gpt-4.1': openai_text_model('gpt-4.1'),
+  'claude-3.7-sonnet': anthropic_text_model('claude-3-7-sonnet-latest'),
+  'o3-mini': openai_text_model('o3-mini')
+} as const;
+
 export const get_image_prompt_route = protectedAdminProcedure
   .input(
     z.object({
@@ -25,11 +31,7 @@ export const get_image_prompt_route = protectedAdminProcedure
     try {
       const time_start = Date.now();
       const result = await generateObject({
-        model: {
-          'gpt-4.1': openai_text_model('gpt-4.1'),
-          'claude-3.7-sonnet': anthropic_text_model('claude-3-7-sonnet-latest'),
-          'o3-mini': openai_text_model('o3-mini')
-        }[model],
+        model: MODELS[model],
         messages,
         schema: z.object({
           image_prompt: z.string()

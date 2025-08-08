@@ -1,9 +1,9 @@
 import { t, protectedAdminProcedure } from '~/api/trpc_init';
 import grammar_PROMPT from './grammar_prompt.md?raw';
 import { createOpenAI } from '@ai-sdk/openai';
-import { createOpenRouter, type OpenRouterLanguageModel } from '@openrouter/ai-sdk-provider';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { z } from 'zod';
-import { generateText, streamText, type CoreMessage, type LanguageModelV1 } from 'ai';
+import { generateText, streamText, type ModelMessage } from 'ai';
 import { format_string_text } from '~/tools/kry';
 import { env } from '$env/dynamic/private';
 
@@ -18,7 +18,7 @@ const MODELS_LIST = [
   'gemini-2.5-flash'
 ] as const;
 
-const MODELS: Record<(typeof MODELS_LIST)[number], LanguageModelV1 | OpenRouterLanguageModel> = {
+const MODELS = {
   'gpt-4.1': openai_text_model('gpt-4.1'),
   'gpt-4.1-mini': openai_text_model('gpt-4.1-mini'),
   'gpt-4.1-nano': openai_text_model('gpt-4.1-nano'),
@@ -36,7 +36,7 @@ const get_messages = (shloka: string, lang: string) => {
   return [
     { role: 'system', content: format_string_text(grammar_PROMPT, { lang }) },
     { role: 'user', content: `Word Meaning Language: ${lang}\n\n${shloka}` }
-  ] satisfies CoreMessage[];
+  ] satisfies ModelMessage[];
 };
 
 const get_grammar_analysis_text = async (

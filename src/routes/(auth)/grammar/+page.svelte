@@ -19,7 +19,7 @@
   let langugae = $state('Hindi');
   let shloka = $state('');
 
-  let model: models_list_type = $state('gpt-5');
+  let model: models_list_type = $state('gpt-4.1');
 
   let analysis_result = $state('');
   let is_fetching = $state(false);

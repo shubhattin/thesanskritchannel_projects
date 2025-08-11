@@ -14,6 +14,9 @@ const MODELS_LIST = [
   'gpt-4.1',
   'gpt-4.1-mini',
   'gpt-4.1-nano',
+  'gpt-5',
+  'gpt-5-mini',
+  'gpt-5-nano',
   'gemini-2.0-flash',
   'gemini-2.5-flash'
 ] as const;
@@ -22,6 +25,9 @@ const MODELS = {
   'gpt-4.1': openai_text_model('gpt-4.1'),
   'gpt-4.1-mini': openai_text_model('gpt-4.1-mini'),
   'gpt-4.1-nano': openai_text_model('gpt-4.1-nano'),
+  'gpt-5': openai_text_model('gpt-5'),
+  'gpt-5-mini': openai_text_model('gpt-5-mini'),
+  'gpt-5-nano': openai_text_model('gpt-5-nano'),
   'gemini-2.0-flash': openrouter_text_model('google/gemini-2.0-flash-001'),
   'gemini-2.5-flash': openrouter_text_model('google/gemini-2.5-flash')
 } as const;
@@ -46,7 +52,16 @@ const get_grammar_analysis_text = async (
 ) => {
   const response = await generateText({
     model: MODELS[model],
-    messages: get_messages(shloka, lang)
+    messages: get_messages(shloka, lang),
+    ...(model.startsWith('gpt-5')
+      ? {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'low'
+            }
+          }
+        }
+      : {})
   });
   return response.text;
 };
@@ -58,7 +73,16 @@ export const get_grammar_analysis_text_stream = async (
 ) => {
   const response = await streamText({
     model: MODELS[model],
-    messages: get_messages(shloka, lang)
+    messages: get_messages(shloka, lang),
+    ...(model.startsWith('gpt-5')
+      ? {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'low'
+            }
+          }
+        }
+      : {})
   });
   return response;
 };

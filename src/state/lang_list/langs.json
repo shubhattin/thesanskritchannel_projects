@@ -1,17 +1,17 @@
 {
   "script_list": {
-    "Devanagari": "",
-    "Telugu": "",
-    "Tamil": "",
-    "Tamil-Extended": "",
-    "Bengali": "",
-    "Kannada": "",
-    "Gujarati": "",
-    "Malayalam": "",
-    "Odia": "",
-    "Sinhala": "",
-    "Normal": "",
-    "Romanized": ""
+    "Devanagari": 1,
+    "Telugu": 2,
+    "Tamil": 3,
+    "Tamil-Extended": 4,
+    "Bengali": 5,
+    "Kannada": 6,
+    "Gujarati": 7,
+    "Malayalam": 8,
+    "Odia": 9,
+    "Sinhala": 10,
+    "Normal": 11,
+    "Romanized": 12
   },
   "lang_list": {
     "English": 1,

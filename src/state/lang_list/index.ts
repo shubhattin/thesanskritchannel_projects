@@ -5,6 +5,11 @@ import { script_list, lang_list } from './langs.json';
 
 export const SCRIPT_LIST = Object.keys(script_list);
 export type script_list_type = keyof typeof script_list;
+export const SCRIPT_LIST_IDS = Object.values(script_list);
+
+export const get_script_from_id = (id: number) => {
+  return SCRIPT_LIST[SCRIPT_LIST_IDS.indexOf(id)];
+};
 
 export const LANG_LIST = Object.keys(lang_list);
 export const LANG_LIST_IDS = Object.values(lang_list);

@@ -16,7 +16,8 @@
 
   type SessionType = typeof authClient.$Infer.Session;
 
-  let { user }: { user: SessionType['user'] } = $props();
+  let { user, is_current_app_scope }: { user: SessionType['user']; is_current_app_scope: boolean } =
+    $props();
 
   let dot_popover_status = $state(false);
   let logout_modal_status = $state(false);
@@ -126,7 +127,7 @@
 >
 <div class="mt-3">
   {#if user.role === 'user'}
-    <NonAdminInfo user_info={user} />
+    <NonAdminInfo user_info={user} user_is_current_app_scope={is_current_app_scope} />
   {:else if user.role === 'admin'}
     <AdminPanel />
   {/if}

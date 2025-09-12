@@ -1,4 +1,13 @@
-import { pgTable, text, integer, timestamp, boolean } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  integer,
+  timestamp,
+  boolean,
+  pgEnum,
+  primaryKey
+} from 'drizzle-orm/pg-core';
+import { z } from 'zod';
 
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -13,7 +22,6 @@ export const user = pgTable('user', {
   banned: boolean('banned'),
   banReason: text('ban_reason'),
   banExpires: timestamp('ban_expires'),
-  is_approved: boolean('is_approved'),
   is_maintainer: boolean('is_maintainer')
 });
 
@@ -43,3 +51,20 @@ export const verification = pgTable('verification', {
   createdAt: timestamp('created_at'),
   updatedAt: timestamp('updated_at')
 });
+
+// Custom fields
+const APP_SCOPES = ['projects_portal', 'padavali'] as const;
+export const AppScopeEnum = z.enum(APP_SCOPES);
+export type app_scope_type = (typeof APP_SCOPES)[number];
+export const app_scope_enum_db = pgEnum('app_scope', APP_SCOPES);
+
+export const user_app_scope_join = pgTable(
+  'user_app_scope_join',
+  {
+    user_id: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    scope: app_scope_enum_db('scope').notNull()
+  },
+  (table) => [primaryKey({ columns: [table.user_id, table.scope] })]
+);

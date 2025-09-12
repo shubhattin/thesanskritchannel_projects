@@ -1,6 +1,12 @@
 import type { Context } from './context';
 import { TRPCError, initTRPC } from '@trpc/server';
 import transformer from './transformer';
+import { CURRENT_APP_SCOPE } from '~/state/data_types';
+import { REDIS_CACHE_KEYS } from '~/db/redis';
+import { redis } from '~/db/redis';
+import { db } from '~/db/db';
+import type { app_scope_type } from '~/db/auth-schema';
+import ms from 'ms';
 
 export const t = initTRPC.context<Context>().create({
   transformer
@@ -8,7 +14,7 @@ export const t = initTRPC.context<Context>().create({
 
 export const publicProcedure = t.procedure;
 
-export const protectedUnverifiedProcedure = publicProcedure.use(async function isAuthed({
+export const protectedProcedure = publicProcedure.use(async function isAuthed({
   next,
   ctx: { user }
 }) {
@@ -18,11 +24,16 @@ export const protectedUnverifiedProcedure = publicProcedure.use(async function i
   });
 });
 
-export const protectedProcedure = publicProcedure.use(async function isAuthed({
+export const protectedAppScopeProcedure = protectedProcedure.use(async function hasAppScope({
   next,
   ctx: { user }
 }) {
-  if (!user || !user.is_approved) throw new TRPCError({ code: 'UNAUTHORIZED' });
+  const is_current_app_scope = await get_user_app_scope(user.id, CURRENT_APP_SCOPE);
+  if (!is_current_app_scope)
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Permission Denied for the provided app scope'
+    });
   return next({
     ctx: { user }
   });
@@ -38,3 +49,18 @@ export const protectedAdminProcedure = protectedProcedure.use(async function isA
     ctx: { user }
   });
 });
+
+export const get_user_app_scope = async (user_id: string, scope_name: app_scope_type) => {
+  const cache = await redis.get<boolean>(REDIS_CACHE_KEYS.user_app_scope(user_id, scope_name));
+  if (cache !== null && cache !== undefined) return Boolean(cache);
+
+  const app_scope = await db.query.user_app_scope_join.findFirst({
+    where: (tbl, { eq, and }) => and(eq(tbl.user_id, user_id), eq(tbl.scope, scope_name))
+  });
+  // store cache
+  await redis.set(REDIS_CACHE_KEYS.user_app_scope(user_id, scope_name), !!app_scope, {
+    ex: ms('15days') / 1000
+  });
+
+  return !!app_scope;
+};

@@ -9,7 +9,8 @@ import {
   verification,
   translation,
   media_attachment,
-  other
+  other,
+  user_app_scope_join
 } from '~/db/schema';
 import {
   UserSchemaZod,
@@ -19,7 +20,8 @@ import {
   VerificationSchemaZod,
   TranslationSchemaZod,
   MediaAttachmentSchemaZod,
-  OtherSchemaZod
+  OtherSchemaZod,
+  UserAppScopeJoinSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -45,9 +47,10 @@ const main = async () => {
     .object({
       user: UserSchemaZod.array(),
       account: AccountSchemaZod.array(),
+      verification: VerificationSchemaZod.array(),
+      user_app_scope_join: UserAppScopeJoinSchemaZod.array(),
       user_project_join: UserProjectJoinSchemaZod.array(),
       user_project_language_join: UserProjectLanguageJoinSchemaZod.array(),
-      verification: VerificationSchemaZod.array(),
       translation: TranslationSchemaZod.array(),
       other: OtherSchemaZod.array(),
       media_attachment: MediaAttachmentSchemaZod.array()
@@ -95,6 +98,17 @@ const main = async () => {
     );
   } catch (e) {
     console.log(chalk.red('✗ Error while inserting verification:'), chalk.yellow(e));
+  }
+
+  // inserting user_app_scope_join
+  try {
+    await db.insert(user_app_scope_join).values(data.user_app_scope_join);
+    console.log(
+      chalk.green('✓ Successfully added values into table'),
+      chalk.blue('`user_app_scope_join`')
+    );
+  } catch (e) {
+    console.log(chalk.red('✗ Error while inserting user_app_scope_join:'), chalk.yellow(e));
   }
 
   // resetting user_project_join

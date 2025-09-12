@@ -10,6 +10,7 @@ export const import_data = async (confirm_env = true) => {
   const user = await db.query.user.findMany();
   const account = await db.query.account.findMany();
   const verification = await db.query.verification.findMany();
+  const user_app_scope_join = await db.query.user_app_scope_join.findMany();
   const user_project_join = await db.query.user_project_join.findMany();
   const user_project_language_join = await db.query.user_project_language_join.findMany();
   const translation = await db.query.translation.findMany();
@@ -20,6 +21,7 @@ export const import_data = async (confirm_env = true) => {
     user,
     account,
     verification,
+    user_app_scope_join,
     user_project_join,
     user_project_language_join,
     translation,

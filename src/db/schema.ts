@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { account, user } from './auth-schema';
+import { account, user, user_app_scope_join } from './auth-schema';
 import {
   pgTable,
   text,
@@ -81,7 +81,8 @@ export const user_project_language_join = pgTable(
 
 export const userRelation = relations(user, ({ one, many }) => ({
   accounts: many(account),
-  projects: many(user_project_join)
+  projects: many(user_project_join),
+  app_scopes: many(user_app_scope_join)
 }));
 
 export const accountRelation = relations(account, ({ one }) => ({
@@ -94,4 +95,8 @@ export const userProjectJoinRelation = relations(user_project_join, ({ one }) =>
 
 export const userProjectLanguageJoinRelation = relations(user_project_language_join, ({ one }) => ({
   user: one(user, { fields: [user_project_language_join.user_id], references: [user.id] })
+}));
+
+export const userAppScopeJoinRelation = relations(user_app_scope_join, ({ one }) => ({
+  user: one(user, { fields: [user_app_scope_join.user_id], references: [user.id] })
 }));

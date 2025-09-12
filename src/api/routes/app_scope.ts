@@ -27,27 +27,30 @@ const get_user_app_scope_list_route = protectedAdminProcedure.query(async ({ ctx
 const add_user_app_scope_route = protectedAdminProcedure
   .input(
     z.object({
+      user_id: z.string(),
       scope: AppScopeEnum
     })
   )
-  .mutation(async ({ input: { scope }, ctx: { user } }) => {
-    await db.insert(user_app_scope_join).values({ user_id: user.id, scope });
+  .mutation(async ({ input: { scope, user_id } }) => {
+    await db.insert(user_app_scope_join).values({ user_id, scope });
   });
 
 const remove_user_app_scope_route = protectedAdminProcedure
   .input(
     z.object({
+      user_id: z.string(),
       scope: AppScopeEnum
     })
   )
-  .mutation(async ({ input: { scope }, ctx: { user } }) => {
+  .mutation(async ({ input: { scope, user_id } }) => {
     const deleted = await db
       .delete(user_app_scope_join)
-      .where(and(eq(user_app_scope_join.user_id, user.id), eq(user_app_scope_join.scope, scope)));
+      .where(and(eq(user_app_scope_join.user_id, user_id), eq(user_app_scope_join.scope, scope)));
     return { deleted };
   });
 
 export const app_scope_router = t.router({
   get_user_app_scope_list: get_user_app_scope_list_route,
-  add_user_app_scope: add_user_app_scope_route
+  add_user_app_scope: add_user_app_scope_route,
+  remove_user_app_scope: remove_user_app_scope_route
 });

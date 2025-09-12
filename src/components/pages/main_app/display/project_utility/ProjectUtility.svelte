@@ -139,7 +139,7 @@
     </span>
   {/snippet}
   {#snippet content()}
-    {#if user_info && user_info.is_approved}
+    {#if user_info}
       <button
         onclick={() => {
           $download_excel_file.mutate();

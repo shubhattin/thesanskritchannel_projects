@@ -15,6 +15,7 @@
   import { OiLinkExternal16 } from 'svelte-icons-pack/oi';
   import RevokeSessions from './RevokeSessions.svelte';
   import ms from 'ms';
+  import { CURRENT_APP_SCOPE } from '~/state/data_types';
 
   const query_client = useQueryClient();
 
@@ -79,8 +80,9 @@
 
   const approve_user_func = async () => {
     $projects_info.refetch();
-    await authClient.user_info.approve_user({
-      userId: user_info.id
+    await client.app_scope.add_user_app_scope.mutate({
+      scope: CURRENT_APP_SCOPE,
+      user_id: user_info.id
     });
     query_client.invalidateQueries({
       queryKey: ['user_info', user_info.id]

@@ -19,6 +19,7 @@
   import { get_lang_from_id } from '~/state/lang_list';
   import { client } from '~/api/client';
   import { cl_join } from '~/tools/cl_join';
+  import { is_current_app_scope } from '~/state/user.svelte';
 
   const session = useSession();
 
@@ -116,7 +117,7 @@
           </button>
           {#if $user_project_info_q.isFetching}
             <div class="h-5 placeholder w-full animate-pulse"></div>
-          {:else if user_info.is_approved}
+          {:else if $is_current_app_scope}
             {@const langs = $user_project_info_q.data.languages!}
             {#if langs && langs.length > 0}
               <div>

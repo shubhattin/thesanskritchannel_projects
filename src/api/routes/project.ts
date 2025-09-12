@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { protectedAdminProcedure, protectedUnverifiedProcedure } from '../trpc_init';
+import { protectedAdminProcedure, protectedProcedure } from '../trpc_init';
 import { db } from '~/db/db';
 import { delay } from '~/tools/delay';
 import { user_project_join, user_project_language_join } from '~/db/schema';
@@ -125,7 +125,7 @@ const update_project_languages_route = protectedAdminProcedure
     return { success: true };
   });
 
-export const user_project_info_route = protectedUnverifiedProcedure
+export const user_project_info_route = protectedProcedure
   .input(
     z.object({
       project_id: z.number().int()

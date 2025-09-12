@@ -5,6 +5,7 @@
   import NonAdminInfo from './NonAdminInfo.svelte';
   import { selected_user_id, selected_user_type } from '~/components/pages/user/user_state.svelte';
   import RevokeSessions from './RevokeSessions.svelte';
+  import { CURRENT_APP_SCOPE } from '~/state/data_types';
 
   const users_list = createQuery({
     queryKey: ['users_list'],
@@ -20,12 +21,20 @@
 
   const get_filtered_users = () => {
     const users = $users_list.data!;
+
     if ($selected_user_type === 'admin') {
       return users.filter((user) => user.role === 'admin');
     } else if ($selected_user_type === 'regular') {
-      return users.filter((user) => user.role === 'user' && user.is_approved);
+      return users.filter(
+        (user) =>
+          user.role === 'user' && user.app_scopes.some((scope) => scope.scope === CURRENT_APP_SCOPE)
+      );
     } else if ($selected_user_type === 'unapproved') {
-      return users.filter((user) => user.role !== 'admin' && !user.is_approved);
+      return users.filter(
+        (user) =>
+          user.role !== 'admin' &&
+          !user.app_scopes.some((scope) => scope.scope === CURRENT_APP_SCOPE)
+      );
     }
   };
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { protectedAdminProcedure, protectedUnverifiedProcedure } from '../trpc_init';
+import { protectedAdminProcedure, protectedProcedure } from '../trpc_init';
 import { db } from '~/db/db';
 import { delay } from '~/tools/delay';
 import { user, user_project_join } from '~/db/schema';
@@ -8,8 +8,10 @@ import { t } from '../trpc_init';
 import { auth } from '$lib/auth';
 import { redis } from '~/db/redis';
 import { get_languages_for_ptoject_user } from './project';
+import { CURRENT_APP_SCOPE } from '~/state/data_types';
+import { get_user_app_scope } from './app_scope';
 
-const get_user_info_route = protectedUnverifiedProcedure
+const get_user_info_route = protectedProcedure
   .input(z.object({ user_id: z.string() }))
   .query(async ({ input: { user_id }, ctx: { user } }) => {
     await delay(550);
@@ -35,7 +37,9 @@ const get_user_info_route = protectedUnverifiedProcedure
       })
     );
 
-    return { projects };
+    const current_app_scope = await get_user_app_scope(user_id, CURRENT_APP_SCOPE);
+
+    return { projects, current_app_scope };
   });
 
 const list_users_route = protectedAdminProcedure.query(async ({ ctx: { user } }) => {
@@ -47,7 +51,14 @@ const list_users_route = protectedAdminProcedure.query(async ({ ctx: { user } })
       email: true,
       role: true
     },
-    where: ({ id }, { ne }) => ne(id, user.id)
+    where: ({ id }, { ne }) => ne(id, user.id),
+    with: {
+      app_scopes: {
+        columns: {
+          scope: true
+        }
+      }
+    }
   });
   return users;
 });

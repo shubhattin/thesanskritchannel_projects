@@ -2,7 +2,10 @@ import type { Context } from './context';
 import { TRPCError, initTRPC } from '@trpc/server';
 import transformer from './transformer';
 import { CURRENT_APP_SCOPE } from '~/state/data_types';
-import { get_user_app_scope } from './routes/app_scope';
+import { REDIS_CACHE_KEYS } from '~/db/redis';
+import { redis } from '~/db/redis';
+import { db } from '~/db/db';
+import type { app_scope_type } from '~/db/auth-schema';
 
 export const t = initTRPC.context<Context>().create({
   transformer
@@ -45,3 +48,14 @@ export const protectedAdminProcedure = protectedProcedure.use(async function isA
     ctx: { user }
   });
 });
+
+export const get_user_app_scope = async (user_id: string, scope_name: app_scope_type) => {
+  const cache = await redis.get<boolean>(REDIS_CACHE_KEYS.user_app_scope(user_id, scope_name));
+  if (cache) return Boolean(cache);
+
+  const app_scope = await db.query.user_app_scope_join.findFirst({
+    where: (tbl, { eq, and }) => and(eq(tbl.user_id, user_id), eq(tbl.scope, scope_name))
+  });
+
+  return !!app_scope;
+};

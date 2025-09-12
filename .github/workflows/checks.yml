@@ -37,3 +37,4 @@ jobs:
           run_install: true
       - run: |
           pnpm check
+          pnpm build

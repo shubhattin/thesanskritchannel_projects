@@ -1,7 +1,7 @@
 import { auth } from '~/lib/auth';
 import type { LayoutServerLoad } from './$types'; // Adjust the path based on your project structure
 import { CURRENT_APP_SCOPE } from '~/state/data_types';
-import { get_user_app_scope } from '~/api/routes/app_scope';
+import { get_user_app_scope } from '~/api/trpc_init';
 
 export const load: LayoutServerLoad = async ({ request }) => {
   const session = await auth.api.getSession({

@@ -1,20 +1,8 @@
 import { db } from '~/db/db';
-import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { protectedAdminProcedure, t } from '../trpc_init';
-import { user_app_scope_join, type app_scope_type, AppScopeEnum } from '~/db/auth-schema';
+import { user_app_scope_join, AppScopeEnum } from '~/db/auth-schema';
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
-
-export const get_user_app_scope = async (user_id: string, scope_name: app_scope_type) => {
-  const cache = await redis.get<boolean>(REDIS_CACHE_KEYS.user_app_scope(user_id, scope_name));
-  if (cache) return Boolean(cache);
-
-  const app_scope = await db.query.user_app_scope_join.findFirst({
-    where: (tbl, { eq, and }) => and(eq(tbl.user_id, user_id), eq(tbl.scope, scope_name))
-  });
-
-  return !!app_scope;
-};
 
 const get_user_app_scope_list_route = protectedAdminProcedure.query(async ({ ctx: { user } }) => {
   const app_scopes = await db.query.user_app_scope_join.findMany({

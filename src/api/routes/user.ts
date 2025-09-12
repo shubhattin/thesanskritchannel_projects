@@ -9,7 +9,7 @@ import { auth } from '$lib/auth';
 import { redis } from '~/db/redis';
 import { get_languages_for_ptoject_user } from './project';
 import { CURRENT_APP_SCOPE } from '~/state/data_types';
-import { get_user_app_scope } from './app_scope';
+import { get_user_app_scope } from '../trpc_init';
 
 const get_user_info_route = protectedProcedure
   .input(z.object({ user_id: z.string() }))

@@ -6,6 +6,7 @@ import { REDIS_CACHE_KEYS } from '~/db/redis';
 import { redis } from '~/db/redis';
 import { db } from '~/db/db';
 import type { app_scope_type } from '~/db/auth-schema';
+import ms from 'ms';
 
 export const t = initTRPC.context<Context>().create({
   transformer
@@ -57,7 +58,9 @@ export const get_user_app_scope = async (user_id: string, scope_name: app_scope_
     where: (tbl, { eq, and }) => and(eq(tbl.user_id, user_id), eq(tbl.scope, scope_name))
   });
   // store cache
-  await redis.set(REDIS_CACHE_KEYS.user_app_scope(user_id, scope_name), !!app_scope);
+  await redis.set(REDIS_CACHE_KEYS.user_app_scope(user_id, scope_name), !!app_scope, {
+    ex: ms('15days') / 1000
+  });
 
   return !!app_scope;
 };

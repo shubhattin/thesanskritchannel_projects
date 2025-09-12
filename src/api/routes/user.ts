@@ -17,7 +17,7 @@ const get_user_info_route = protectedProcedure
     await delay(550);
 
     if (user.role !== 'admin' && user.id !== user_id) {
-      return { projects: [] };
+      return { projects: [], current_app_scope: false };
     }
 
     const projects_info = await db

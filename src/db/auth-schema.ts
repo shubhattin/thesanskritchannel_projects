@@ -7,7 +7,7 @@ import {
   pgEnum,
   primaryKey
 } from 'drizzle-orm/pg-core';
-import z from 'zod';
+import { z } from 'zod';
 
 export const user = pgTable('user', {
   id: text('id').primaryKey(),

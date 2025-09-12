@@ -133,7 +133,7 @@
             {/if}
           {:else}
             <div class="text-sm text-warning-600 dark:text-warning-500">
-              You account is not approved by Admin
+              You account is not added to Projects Portal scope by Admin
             </div>
           {/if}
         {/if}

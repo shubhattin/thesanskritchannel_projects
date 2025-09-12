@@ -3,6 +3,8 @@ import { protectedAdminProcedure, t } from '../trpc_init';
 import { user_app_scope_join, AppScopeEnum } from '~/db/auth-schema';
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
+import { redis } from '~/db/redis';
+import { REDIS_CACHE_KEYS } from '~/db/redis';
 
 const get_user_app_scope_list_route = protectedAdminProcedure.query(async ({ ctx: { user } }) => {
   const app_scopes = await db.query.user_app_scope_join.findMany({
@@ -20,7 +22,11 @@ const add_user_app_scope_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { scope, user_id } }) => {
-    await db.insert(user_app_scope_join).values({ user_id, scope });
+    await Promise.allSettled([
+      db.insert(user_app_scope_join).values({ user_id, scope }),
+      redis.set(REDIS_CACHE_KEYS.user_app_scope(user_id, scope), true)
+    ]);
+    return { success: true };
   });
 
 const remove_user_app_scope_route = protectedAdminProcedure
@@ -34,6 +40,7 @@ const remove_user_app_scope_route = protectedAdminProcedure
     const deleted = await db
       .delete(user_app_scope_join)
       .where(and(eq(user_app_scope_join.user_id, user_id), eq(user_app_scope_join.scope, scope)));
+    await redis.del(REDIS_CACHE_KEYS.user_app_scope(user_id, scope));
     return { deleted };
   });
 

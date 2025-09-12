@@ -56,6 +56,8 @@ export const get_user_app_scope = async (user_id: string, scope_name: app_scope_
   const app_scope = await db.query.user_app_scope_join.findFirst({
     where: (tbl, { eq, and }) => and(eq(tbl.user_id, user_id), eq(tbl.scope, scope_name))
   });
+  // store cache
+  await redis.set(REDIS_CACHE_KEYS.user_app_scope(user_id, scope_name), !!app_scope);
 
   return !!app_scope;
 };

@@ -24,12 +24,12 @@
 
     if ($selected_user_type === 'admin') {
       return users.filter((user) => user.role === 'admin');
-    } else if ($selected_user_type === 'regular') {
+    } else if ($selected_user_type === 'project_scope') {
       return users.filter(
         (user) =>
           user.role === 'user' && user.app_scopes.some((scope) => scope.scope === CURRENT_APP_SCOPE)
       );
-    } else if ($selected_user_type === 'unapproved') {
+    } else if ($selected_user_type === 'non_project_scope') {
       return users.filter(
         (user) =>
           user.role !== 'admin' &&
@@ -52,9 +52,11 @@
   >
     {#snippet list()}
       <Tabs.Control labelClasses="rounded-md font-semibold" value="admin">Admin</Tabs.Control>
-      <Tabs.Control labelClasses="rounded-md font-semibold" value="regular">Regular</Tabs.Control>
-      <Tabs.Control labelClasses="rounded-md font-semibold text-sm" value="unapproved"
-        >Unapproved</Tabs.Control
+      <Tabs.Control labelClasses="rounded-md font-semibold" value="project_scope"
+        >Projects Portal</Tabs.Control
+      >
+      <Tabs.Control labelClasses="rounded-md font-semibold text-sm" value="non_project_scope"
+        >Others</Tabs.Control
       >
     {/snippet}
     {#snippet content()}
@@ -83,8 +85,14 @@
             </div>
             <div class="mt-2 ml-0 w-full sm:ml-2">
               {#if user}
-                {#if $selected_user_type === 'regular' || $selected_user_type === 'unapproved'}
-                  <NonAdminInfo user_info={user} admin_edit={true} />
+                {#if $selected_user_type === 'project_scope' || $selected_user_type === 'non_project_scope'}
+                  <NonAdminInfo
+                    user_info={user}
+                    admin_edit={true}
+                    user_is_current_app_scope={user.app_scopes.some(
+                      (scope) => scope.scope === CURRENT_APP_SCOPE
+                    )}
+                  />
                 {:else if $selected_user_type === 'admin'}
                   <div class="mt-2 text-base font-semibold">{user.name}</div>
                   <a

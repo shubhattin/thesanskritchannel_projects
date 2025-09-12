@@ -2,34 +2,35 @@
   import { client, client_q } from '~/api/client';
   import { createQuery, useQueryClient } from '@tanstack/svelte-query';
   import ConfirmPopover from '~/components/PopoverModals/ConfirmPopover.svelte';
-  import { selected_user_id, selected_user_type } from '~/components/pages/user/user_state.svelte';
+  import { selected_user_type } from '~/components/pages/user/user_state.svelte';
   import { get_lang_from_id, LANG_LIST, LANG_LIST_IDS } from '~/state/lang_list';
   import { get_project_from_id, PROJECT_LIST } from '~/state/project_list';
   import Icon from '~/tools/Icon.svelte';
-  import { BsCheckLg, BsPlusLg } from 'svelte-icons-pack/bs';
+  import { BsPlusLg } from 'svelte-icons-pack/bs';
   import { cl_join } from '~/tools/cl_join';
   import { Popover } from '@skeletonlabs/skeleton-svelte';
   import { CgClose } from 'svelte-icons-pack/cg';
   import { FiEdit3 } from 'svelte-icons-pack/fi';
-  import { authClient } from '~/lib/auth-client';
   import { OiLinkExternal16 } from 'svelte-icons-pack/oi';
   import RevokeSessions from './RevokeSessions.svelte';
   import ms from 'ms';
   import { CURRENT_APP_SCOPE } from '~/state/data_types';
+  import { AiOutlinePlus } from 'svelte-icons-pack/ai';
 
   const query_client = useQueryClient();
 
   let {
     user_info,
-    admin_edit = false
+    admin_edit = false,
+    user_is_current_app_scope
   }: {
     user_info: {
       id: string;
       name: string;
       email: string;
       role?: string | null;
-      is_approved?: boolean | null;
     };
+    user_is_current_app_scope: boolean;
     admin_edit?: boolean;
   } = $props();
 
@@ -57,7 +58,7 @@
     if (!$projects_info.isSuccess) return;
     if (!selected_project_id || selected_project_id === '') return;
     const data = $projects_info.data;
-    if (!user_info.is_approved) return;
+    if (!user_is_current_app_scope) return;
     selected_langs_ids = [];
     const languages = data!.projects.find(
       (p) => p.project_id === parseInt(selected_project_id)
@@ -72,7 +73,7 @@
   $effect(() => {
     // select the first project
     if (!$projects_info.isSuccess) return;
-    if (!user_info.is_approved || $projects_info.data?.projects.length === 0) return;
+    if (!user_is_current_app_scope || $projects_info.data?.projects.length === 0) return;
     selected_project_id = $projects_info.data!.projects[0]?.project_id.toString();
   });
 
@@ -90,26 +91,8 @@
     query_client.invalidateQueries({
       queryKey: ['users_list']
     });
-    $selected_user_type = 'regular';
+    $selected_user_type = 'project_scope';
     // $selected_user_id = user_info.id;
-  };
-
-  let remove_user_popup = $state(false);
-
-  const remove_user_mut = client_q.user.remove_user.mutation({
-    onSuccess() {
-      query_client.invalidateQueries({
-        queryKey: ['users_list']
-      });
-      $selected_user_id = null;
-    }
-  });
-
-  const remove_user_func = async () => {
-    remove_user_popup = false;
-    await $remove_user_mut.mutateAsync({
-      user_id: user_info.id
-    });
   };
 
   let add_project_popup = $state(false);
@@ -177,14 +160,16 @@
       href={`emailto:${user_info.email}`}>{user_info.email}</a
     >
   {/if}
-  {#if !user_info.is_approved}
+  {#if !user_is_current_app_scope}
     {#if !admin_edit}
       <div class="text-warning-600 dark:text-warning-500">
-        Your Account has not been approved yet. <span class="text-xs">Contact the admin</span>
+        Your Account has not been added to Projects Portal scope yet. <span class="text-xs"
+          >Contact the admin</span
+        >
       </div>
     {:else}
       <div class="mt-2 text-warning-600 dark:text-warning-500">
-        This account has not been Approved.
+        This account has not been added to Projects Portal scope.
       </div>
       <div class="space-x-2">
         <ConfirmPopover
@@ -197,28 +182,11 @@
           description="Sure to Approve this User ?"
         >
           <span
-            class="mt-1.5 btn gap-1 bg-primary-500 px-1.5 py-0 text-sm font-bold text-white dark:bg-primary-600"
+            class="mt-1.5 btn gap-1 bg-primary-500 px-2 py-1 text-sm font-bold text-white dark:bg-primary-600"
           >
-            <Icon src={BsCheckLg} class="text-xl" />
-            Approve
+            <Icon src={AiOutlinePlus} class="text-xl" />
+            Add to Projects Portal Scope
           </span>
-        </ConfirmPopover>
-        <ConfirmPopover
-          bind:popup_state={remove_user_popup}
-          confirm_func={() => {
-            remove_user_popup = false;
-            remove_user_func();
-          }}
-          placement="right"
-          description="Sure to Remove this User ?"
-        >
-          <button
-            disabled={$remove_user_mut.isPending}
-            class="mt-1.5 btn gap-1 bg-rose-500 px-1.5 py-0 text-sm font-bold text-white dark:bg-rose-600"
-          >
-            <Icon src={CgClose} class="text-xl" />
-            Remove
-          </button>
         </ConfirmPopover>
       </div>
     {/if}
@@ -326,7 +294,7 @@
 {/if}
 
 {#snippet add_project(new_list = false)}
-  {#if user_info.is_approved && $projects_info.data!.projects.length !== PROJECT_LIST.length}
+  {#if user_is_current_app_scope && $projects_info.data!.projects.length !== PROJECT_LIST.length}
     <Popover
       open={add_project_popup}
       onOpenChange={(e) => (add_project_popup = e.open)}
@@ -350,7 +318,7 @@
       {/snippet}
       {#snippet content()}
         {#each PROJECT_LIST as project}
-          {#if user_info.is_approved && !$projects_info.data!.projects.find((p) => p.project_id === project.id)}
+          {#if user_is_current_app_scope && !$projects_info.data!.projects.find((p) => p.project_id === project.id)}
             <div class="block w-full">
               <ConfirmPopover
                 popup_state={false}

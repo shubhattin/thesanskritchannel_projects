@@ -23,7 +23,7 @@ export const protectedProcedure = publicProcedure.use(async function isAuthed({
   });
 });
 
-export const protectedAppScopeProcedure = protectedProcedure.use(async function isAuthed({
+export const protectedAppScopeProcedure = protectedProcedure.use(async function hasAppScope({
   next,
   ctx: { user }
 }) {
@@ -51,7 +51,7 @@ export const protectedAdminProcedure = protectedProcedure.use(async function isA
 
 export const get_user_app_scope = async (user_id: string, scope_name: app_scope_type) => {
   const cache = await redis.get<boolean>(REDIS_CACHE_KEYS.user_app_scope(user_id, scope_name));
-  if (cache) return Boolean(cache);
+  if (cache !== null && cache !== undefined) return Boolean(cache);
 
   const app_scope = await db.query.user_app_scope_join.findFirst({
     where: (tbl, { eq, and }) => and(eq(tbl.user_id, user_id), eq(tbl.scope, scope_name))

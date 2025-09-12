@@ -163,7 +163,7 @@
   {#if !user_is_current_app_scope}
     {#if !admin_edit}
       <div class="text-warning-600 dark:text-warning-500">
-        Your Account has not been added to Projects Portal scope yet. <span class="text-xs"
+        Your account has not been added to the Projects Portal scope yet. <span class="text-xs"
           >Contact the admin</span
         >
       </div>

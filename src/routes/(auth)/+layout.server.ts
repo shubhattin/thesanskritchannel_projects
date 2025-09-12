@@ -8,7 +8,7 @@ export const load: LayoutServerLoad = async ({ request }) => {
     headers: request.headers
   });
   const is_current_app_scope = session
-    ? await get_user_app_scope(session.user.id, CURRENT_APP_SCOPE)
+    ? await get_user_app_scope(session.user.id, CURRENT_APP_SCOPE).catch(() => false)
     : false;
   return {
     user_info: session?.user, // This can be undefined if the user is not authenticated

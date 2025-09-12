@@ -1,4 +1,12 @@
-import { pgTable, text, integer, timestamp, boolean } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  integer,
+  timestamp,
+  boolean,
+  pgEnum,
+  primaryKey
+} from 'drizzle-orm/pg-core';
 
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -42,3 +50,18 @@ export const verification = pgTable('verification', {
   createdAt: timestamp('created_at'),
   updatedAt: timestamp('updated_at')
 });
+
+// Custom fields
+
+export const app_scope_enum = pgEnum('app_scope', ['projects_portal', 'padavali']);
+
+export const user_app_scope_join = pgTable(
+  'user_app_scope_join',
+  {
+    user_id: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    scope: app_scope_enum('scope').notNull()
+  },
+  (table) => [primaryKey({ columns: [table.user_id, table.scope] })]
+);

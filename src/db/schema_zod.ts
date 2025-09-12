@@ -7,7 +7,8 @@ import {
   verification,
   translation,
   media_attachment,
-  other
+  other,
+  user_app_scope_join
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 
@@ -27,6 +28,7 @@ export const VerificationSchemaZod = createSelectSchema(verification, {
   updatedAt: z.coerce.date().nullable(),
   expiresAt: z.coerce.date()
 });
+export const UserAppScopeJoinSchemaZod = createSelectSchema(user_app_scope_join);
 
 export const UserProjectJoinSchemaZod = createSelectSchema(user_project_join);
 export const UserProjectLanguageJoinSchemaZod = createSelectSchema(user_project_language_join);

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { env } from '$env/dynamic/private';
-import { protectedAdminProcedure, protectedProcedure, t } from '~/api/trpc_init';
+import { protectedAdminProcedure, protectedAppScopeProcedure, t } from '~/api/trpc_init';
 import { tasks, auth, runs } from '@trigger.dev/sdk/v3';
 import {
   translate_route_schema,
@@ -16,7 +16,7 @@ auth.configure({
   secretKey: env.TRIGGER_SECRET_KEY
 });
 
-const translate_route = protectedProcedure
+const translate_route = protectedAppScopeProcedure
   .input(translate_route_schema.input)
   .mutation(async ({ ctx: { user }, input: { lang_id, messages, model, project_id } }) => {
     if (user.role !== 'admin') {
@@ -31,7 +31,6 @@ const translate_route = protectedProcedure
             eq(user_project_language_join.project_id, project_id)
           )
         );
-      if (!user.is_approved) return { success: false };
       const allowed_langs = langugaes.map((lang) => lang.lang_id);
       if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
     }
@@ -61,7 +60,7 @@ const generate_image_trigger_route = protectedAdminProcedure
     return { run_id, output_type: null! as z.infer<typeof image_gen_route_schema.output> };
   });
 
-const retrive_run_info_route = protectedProcedure
+const retrive_run_info_route = protectedAppScopeProcedure
   .input(z.object({ run_id: z.string() }))
   .output(
     z.union([

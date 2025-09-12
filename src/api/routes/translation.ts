@@ -1,6 +1,11 @@
 import { and, eq, exists, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { protectedAdminProcedure, protectedProcedure, publicProcedure, t } from '~/api/trpc_init';
+import {
+  protectedAdminProcedure,
+  protectedAppScopeProcedure,
+  publicProcedure,
+  t
+} from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { translation } from '~/db/schema';
 import type { shloka_list_type } from '~/state/data_types';
@@ -114,7 +119,7 @@ const get_translation_route = publicProcedure
     return data_map;
   });
 
-const edit_translation_route = protectedProcedure
+const edit_translation_route = protectedAppScopeProcedure
   .input(
     z.object({
       project_id: z.number().int(),
@@ -137,7 +142,6 @@ const edit_translation_route = protectedProcedure
 
       // authorization check to edit or add lang records
       if (user.role !== 'admin') {
-        if (!user.is_approved) return { success: false };
         const languages = await get_languages_for_ptoject_user(user.id, project_id);
         const allowed_langs = languages.map((lang) => lang.lang_id);
         if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
@@ -205,7 +209,7 @@ const edit_translation_route = protectedProcedure
     }
   );
 
-const get_all_langs_translation_route = protectedProcedure
+const get_all_langs_translation_route = protectedAppScopeProcedure
   .input(
     z.object({
       project_id: z.number().int(),

@@ -7,6 +7,7 @@ import {
   pgEnum,
   primaryKey
 } from 'drizzle-orm/pg-core';
+import z from 'zod';
 
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -52,8 +53,10 @@ export const verification = pgTable('verification', {
 });
 
 // Custom fields
-
-export const app_scope_enum = pgEnum('app_scope', ['projects_portal', 'padavali']);
+const APP_SCOPES = ['projects_portal', 'padavali'] as const;
+export const AppScopeEnum = z.enum(APP_SCOPES);
+export type app_scope_type = (typeof APP_SCOPES)[number];
+export const app_scope_enum_db = pgEnum('app_scope', APP_SCOPES);
 
 export const user_app_scope_join = pgTable(
   'user_app_scope_join',
@@ -61,7 +64,7 @@ export const user_app_scope_join = pgTable(
     user_id: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
-    scope: app_scope_enum('scope').notNull()
+    scope: app_scope_enum_db('scope').notNull()
   },
   (table) => [primaryKey({ columns: [table.user_id, table.scope] })]
 );

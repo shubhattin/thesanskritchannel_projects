@@ -13,9 +13,8 @@ const get_user_info_route = protectedUnverifiedProcedure
   .input(z.object({ user_id: z.string() }))
   .query(async ({ input: { user_id }, ctx: { user } }) => {
     await delay(550);
-    const is_approved = user.is_approved;
 
-    if ((user.role !== 'admin' && user.id !== user_id) || !is_approved) {
+    if (user.role !== 'admin' && user.id !== user_id) {
       return { projects: [] };
     }
 
@@ -46,8 +45,7 @@ const list_users_route = protectedAdminProcedure.query(async ({ ctx: { user } })
       id: true,
       name: true,
       email: true,
-      role: true,
-      is_approved: true
+      role: true
     },
     where: ({ id }, { ne }) => ne(id, user.id)
   });

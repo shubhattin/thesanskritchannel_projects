@@ -134,11 +134,6 @@ export const user_project_info_route = protectedUnverifiedProcedure
   .query(async ({ input: { project_id }, ctx: { user } }) => {
     await delay(550);
 
-    const is_approved = user?.is_approved;
-    if (!is_approved) {
-      return { languages: [] };
-    }
-
     const languages = await get_languages_for_ptoject_user(user.id, project_id);
     return { languages };
   });

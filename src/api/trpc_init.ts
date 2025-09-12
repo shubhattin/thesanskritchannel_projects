@@ -1,6 +1,8 @@
 import type { Context } from './context';
 import { TRPCError, initTRPC } from '@trpc/server';
 import transformer from './transformer';
+import { APP_SCOPE } from '~/state/data_types';
+import { get_user_app_scope } from './routes/app_scope';
 
 export const t = initTRPC.context<Context>().create({
   transformer
@@ -18,17 +20,22 @@ export const protectedUnverifiedProcedure = publicProcedure.use(async function i
   });
 });
 
-export const protectedProcedure = publicProcedure.use(async function isAuthed({
+export const protectedAppScopeProcedure = protectedUnverifiedProcedure.use(async function isAuthed({
   next,
   ctx: { user }
 }) {
-  if (!user || !user.is_approved) throw new TRPCError({ code: 'UNAUTHORIZED' });
+  const is_current_app_scope = await get_user_app_scope(user.id, APP_SCOPE);
+  if (!is_current_app_scope)
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Permission Denied for the provided app scope'
+    });
   return next({
     ctx: { user }
   });
 });
 
-export const protectedAdminProcedure = protectedProcedure.use(async function isAuthed({
+export const protectedAdminProcedure = protectedUnverifiedProcedure.use(async function isAuthed({
   next,
   ctx: { user }
 }) {

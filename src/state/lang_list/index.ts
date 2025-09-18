@@ -27,3 +27,20 @@ export const ALL_LANG_SCRIPT_LIST = Array.from(new Set([...LANG_LIST, ...SCRIPT_
 
 export type script_and_lang_list_type = script_list_type | lang_list_type;
 export { lang_list as lang_list_obj, script_list as script_list_obj };
+
+export const LANG_SCRIPT_MAP: Record<lang_list_type, script_list_type> = {
+  Bengali: 'Bengali',
+  Gujarati: 'Gujarati',
+  Hindi: 'Devanagari',
+  Kannada: 'Kannada',
+  Malayalam: 'Malayalam',
+  Odia: 'Odia',
+  Sinhala: 'Sinhala',
+  Tamil: 'Tamil',
+  Telugu: 'Telugu',
+  English: 'Normal',
+  Sanskrit: 'Devanagari',
+  Marathi: 'Devanagari',
+  Nepali: 'Devanagari',
+  Punjabi: 'Gurumukhi'
+};

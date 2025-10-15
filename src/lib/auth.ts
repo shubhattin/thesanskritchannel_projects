@@ -15,6 +15,12 @@ export const ALLOWED_ORIGINS = (() => {
   if (env.AUTH_DOMAIN && env.AUTH_DOMAIN_SITES)
     for (let site of env.AUTH_DOMAIN_SITES.split(','))
       list.push(`https://${site}.${env.AUTH_DOMAIN}`);
+  const other_allowed_origins = z
+    .string()
+    .url()
+    .array()
+    .safeParse(env.OTHER_ALLOWED_ORIGINS?.split(','));
+  if (other_allowed_origins.success) list.push(...other_allowed_origins.data);
   return list;
 })();
 

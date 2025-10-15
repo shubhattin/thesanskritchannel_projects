@@ -1,6 +1,6 @@
 import { createAuthClient } from 'better-auth/svelte';
 import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
-import { adminClient } from 'better-auth/client/plugins';
+import { adminClient, jwtClient } from 'better-auth/client/plugins';
 import { userInfoPluginClient } from './auth_plugins/user_info/client';
 
 export const authClient = createAuthClient({
@@ -8,7 +8,8 @@ export const authClient = createAuthClient({
   plugins: [
     // usernameClient(),
     adminClient(),
-    userInfoPluginClient()
+    userInfoPluginClient(),
+    jwtClient()
   ]
 });
 

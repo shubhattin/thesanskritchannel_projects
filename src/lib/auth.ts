@@ -4,9 +4,10 @@ import { db } from '../db/db';
 import { redis } from '../db/redis';
 import * as schema from '../db/schema';
 import { env } from '$env/dynamic/private';
-import { admin, openAPI } from 'better-auth/plugins';
+import { admin, openAPI, jwt, username } from 'better-auth/plugins';
 import { COOKIE_CACHE_TIME_MS } from './cache-time';
 import { userInfoPlugin } from './auth_plugins/user_info/server';
+import { z } from 'zod';
 
 export const ALLOWED_ORIGINS = (() => {
   if (import.meta.env.DEV) return ['http://localhost:5173', 'http://localhost:3000'];
@@ -14,6 +15,12 @@ export const ALLOWED_ORIGINS = (() => {
   if (env.AUTH_DOMAIN && env.AUTH_DOMAIN_SITES)
     for (let site of env.AUTH_DOMAIN_SITES.split(','))
       list.push(`https://${site}.${env.AUTH_DOMAIN}`);
+  const other_allowed_origins = z
+    .string()
+    .url()
+    .array()
+    .safeParse(env.OTHER_ALLOWED_ORIGINS?.split(','));
+  if (other_allowed_origins.success) list.push(...other_allowed_origins.data);
   return list;
 })();
 
@@ -26,15 +33,16 @@ export const auth = betterAuth({
   //   enabled: true
   // },
   plugins: [
-    // username({
-    //   minUsernameLength: 6,
-    //   maxUsernameLength: 20
-    // }),
+    username({
+      minUsernameLength: 6,
+      maxUsernameLength: 20
+    }),
     // we do we have it enabled but we are not using username auth now
     // to keep it simple its google auth only for now
     admin(),
     ...(import.meta.env.DEV ? [openAPI()] : []),
-    userInfoPlugin()
+    userInfoPlugin(),
+    jwt()
     // captcha({
     //   provider: 'cloudflare-turnstile',
     //   secretKey: env.TURNSTILE_SECRET_KEY!

@@ -2,14 +2,13 @@ import { z } from 'zod';
 import { protectedAdminProcedure, protectedProcedure } from '../trpc_init';
 import { db } from '~/db/db';
 import { delay } from '~/tools/delay';
-import { user, user_project_join } from '~/db/schema';
+import { user_project_join } from '~/db/schema';
 import { eq } from 'drizzle-orm';
 import { t } from '../trpc_init';
-import { auth } from '$lib/auth';
-import { redis } from '~/db/redis';
 import { get_languages_for_ptoject_user } from './project';
-import { CURRENT_APP_SCOPE } from '~/state/data_types';
-import { get_user_app_scope } from '../trpc_init';
+import { get_user_app_scope_status } from '../trpc_init';
+import { fetch_get, Fetch } from '~/tools/fetch';
+import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
 
 const get_user_info_route = protectedProcedure
   .input(z.object({ user_id: z.string() }))
@@ -37,49 +36,48 @@ const get_user_info_route = protectedProcedure
       })
     );
 
-    const current_app_scope = await get_user_app_scope(user_id, CURRENT_APP_SCOPE);
+    const current_app_scope = await get_user_app_scope_status(user_id);
 
     return { projects, current_app_scope };
   });
 
-const list_users_route = protectedAdminProcedure.query(async ({ ctx: { user } }) => {
+const list_users_route = protectedAdminProcedure.query(async ({ ctx: { user, cookie } }) => {
   await delay(550);
-  const users = await db.query.user.findMany({
-    columns: {
-      id: true,
-      name: true,
-      email: true,
-      role: true
+  type res_type = {
+    email: string;
+    id: string;
+    name: string;
+    role: string | null;
+    app_scopes: {
+      scope: string;
+    }[];
+  }[];
+  const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/user/list_users`, {
+    headers: {
+      Cookie: cookie!
     },
-    where: ({ id }, { ne }) => ne(id, user.id),
-    with: {
-      app_scopes: {
-        columns: {
-          scope: true
-        }
-      }
+    params: {
+      user_id: user.id
     }
   });
+  if (!res.ok) return [];
+  const users = (await res.json()) as res_type;
   return users;
 });
 
 const remove_user_route = protectedAdminProcedure
   .input(z.object({ user_id: z.string() }))
   .mutation(async ({ input: { user_id }, ctx: { cookie } }) => {
-    const { sessions } = await auth.api.listUserSessions({
-      body: {
-        userId: user_id
+    const res = await Fetch(`${PUBLIC_BETTER_AUTH_URL}/api/user/remove_user`, {
+      method: 'DELETE',
+      params: {
+        user_id: user_id
       },
       headers: {
         Cookie: cookie!
       }
     });
-    await Promise.allSettled([db.delete(user).where(eq(user.id, user_id))]);
-    await Promise.allSettled([
-      ...sessions.map(async (session, i) => {
-        await redis.del(session.token);
-      })
-    ]);
+    if (!res.ok) return { success: false };
     return { success: true };
   });
 

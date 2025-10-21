@@ -2,11 +2,8 @@ import type { Context } from './context';
 import { TRPCError, initTRPC } from '@trpc/server';
 import transformer from './transformer';
 import { CURRENT_APP_SCOPE } from '~/state/data_types';
-import { REDIS_CACHE_KEYS } from '~/db/redis';
-import { redis } from '~/db/redis';
-import { db } from '~/db/db';
-import type { app_scope_type } from '~/db/auth-schema';
-import ms from 'ms';
+import { fetch_get } from '~/tools/fetch';
+import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
 
 export const t = initTRPC.context<Context>().create({
   transformer
@@ -28,7 +25,7 @@ export const protectedAppScopeProcedure = protectedProcedure.use(async function 
   next,
   ctx: { user }
 }) {
-  const is_current_app_scope = await get_user_app_scope(user.id, CURRENT_APP_SCOPE);
+  const is_current_app_scope = await get_user_app_scope_status(user.id);
   if (!is_current_app_scope)
     throw new TRPCError({
       code: 'UNAUTHORIZED',
@@ -50,17 +47,13 @@ export const protectedAdminProcedure = protectedProcedure.use(async function isA
   });
 });
 
-export const get_user_app_scope = async (user_id: string, scope_name: app_scope_type) => {
-  const cache = await redis.get<boolean>(REDIS_CACHE_KEYS.user_app_scope(user_id, scope_name));
-  if (cache !== null && cache !== undefined) return Boolean(cache);
-
-  const app_scope = await db.query.user_app_scope_join.findFirst({
-    where: (tbl, { eq, and }) => and(eq(tbl.user_id, user_id), eq(tbl.scope, scope_name))
+export const get_user_app_scope_status = async (user_id: string) => {
+  const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/app_scope/get_user_app_scope_status`, {
+    params: {
+      user_id,
+      scope_name: CURRENT_APP_SCOPE
+    }
   });
-  // store cache
-  await redis.set(REDIS_CACHE_KEYS.user_app_scope(user_id, scope_name), !!app_scope, {
-    ex: ms('15days') / 1000
-  });
-
-  return !!app_scope;
+  if (!res.ok) return false;
+  return (await res.json()) ?? false;
 };

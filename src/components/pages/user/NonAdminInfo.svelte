@@ -16,6 +16,8 @@
   import ms from 'ms';
   import { CURRENT_APP_SCOPE } from '~/state/data_types';
   import { AiOutlinePlus } from 'svelte-icons-pack/ai';
+  import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
+  import { fetch_post } from '~/tools/fetch';
 
   const query_client = useQueryClient();
 
@@ -79,12 +81,20 @@
 
   let approve_popup_state = $state(false);
 
+  const add_user_app_scope = async (user_id: string) => {
+    const res = await fetch_post(`${PUBLIC_BETTER_AUTH_URL}/api/app_scope/add_user_app_scope`, {
+      params: {
+        user_id: user_id,
+        scope: CURRENT_APP_SCOPE
+      }
+    });
+    if (!res.ok) return;
+    return (await res.json()) ?? ({ success: false } as { success: boolean });
+  };
+
   const approve_user_func = async () => {
     $projects_info.refetch();
-    await client.app_scope.add_user_app_scope.mutate({
-      scope: CURRENT_APP_SCOPE,
-      user_id: user_info.id
-    });
+    await add_user_app_scope(user_info.id);
     query_client.invalidateQueries({
       queryKey: ['user_info', user_info.id]
     });

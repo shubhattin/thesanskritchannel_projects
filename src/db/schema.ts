@@ -1,5 +1,4 @@
 import { relations } from 'drizzle-orm';
-import { account, user, user_app_scope_join } from './auth-schema';
 import {
   pgTable,
   text,
@@ -10,7 +9,6 @@ import {
   index,
   jsonb
 } from 'drizzle-orm/pg-core';
-export * from './auth-schema';
 
 export const translation = pgTable(
   'translation',
@@ -57,9 +55,7 @@ export const media_attachment = pgTable(
 export const user_project_join = pgTable(
   'user_project_join',
   {
-    user_id: text()
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
+    user_id: text().notNull(),
     project_id: integer().notNull()
   },
   (table) => [primaryKey({ columns: [table.user_id, table.project_id] })]
@@ -68,9 +64,7 @@ export const user_project_join = pgTable(
 export const user_project_language_join = pgTable(
   'user_project_language_join',
   {
-    user_id: text()
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
+    user_id: text().notNull(),
     project_id: integer().notNull(),
     language_id: integer().notNull()
   },
@@ -78,25 +72,3 @@ export const user_project_language_join = pgTable(
 );
 
 // relations
-
-export const userRelation = relations(user, ({ one, many }) => ({
-  accounts: many(account),
-  projects: many(user_project_join),
-  app_scopes: many(user_app_scope_join)
-}));
-
-export const accountRelation = relations(account, ({ one }) => ({
-  user: one(user, { fields: [account.userId], references: [user.id] })
-}));
-
-export const userProjectJoinRelation = relations(user_project_join, ({ one }) => ({
-  user: one(user, { fields: [user_project_join.user_id], references: [user.id] })
-}));
-
-export const userProjectLanguageJoinRelation = relations(user_project_language_join, ({ one }) => ({
-  user: one(user, { fields: [user_project_language_join.user_id], references: [user.id] })
-}));
-
-export const userAppScopeJoinRelation = relations(user_app_scope_join, ({ one }) => ({
-  user: one(user, { fields: [user_app_scope_join.user_id], references: [user.id] })
-}));

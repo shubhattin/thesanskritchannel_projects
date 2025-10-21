@@ -2,26 +2,18 @@ import { dbClient_ext as db, queryClient } from './client';
 import { readFile } from 'fs/promises';
 import { dbMode, take_input } from '~/tools/kry.server';
 import {
-  user,
-  account,
   user_project_join,
   user_project_language_join,
-  verification,
   translation,
   media_attachment,
-  other,
-  user_app_scope_join
+  other
 } from '~/db/schema';
 import {
-  UserSchemaZod,
-  AccountSchemaZod,
   UserProjectJoinSchemaZod,
   UserProjectLanguageJoinSchemaZod,
-  VerificationSchemaZod,
   TranslationSchemaZod,
   MediaAttachmentSchemaZod,
-  OtherSchemaZod,
-  UserAppScopeJoinSchemaZod
+  OtherSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -45,10 +37,6 @@ const main = async () => {
 
   const data = z
     .object({
-      user: UserSchemaZod.array(),
-      account: AccountSchemaZod.array(),
-      verification: VerificationSchemaZod.array(),
-      user_app_scope_join: UserAppScopeJoinSchemaZod.array(),
       user_project_join: UserProjectJoinSchemaZod.array(),
       user_project_language_join: UserProjectLanguageJoinSchemaZod.array(),
       translation: TranslationSchemaZod.array(),
@@ -59,9 +47,6 @@ const main = async () => {
 
   // deleting all the tables initially
   try {
-    await db.delete(user);
-    await db.delete(account);
-    await db.delete(verification);
     await db.delete(user_project_join);
     await db.delete(user_project_language_join);
     await db.delete(user_project_language_join);
@@ -71,44 +56,6 @@ const main = async () => {
     console.log(chalk.green('✓ Deleted All Tables Successfully'));
   } catch (e) {
     console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
-  }
-
-  // inserting user
-  try {
-    await db.insert(user).values(data.user);
-    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`users`'));
-  } catch (e) {
-    console.log(chalk.red('✗ Error while inserting users:'), chalk.yellow(e));
-  }
-
-  // inserting account
-  try {
-    await db.insert(account).values(data.account);
-    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`account`'));
-  } catch (e) {
-    console.log(chalk.red('✗ Error while inserting account:'), chalk.yellow(e));
-  }
-
-  // inserting verification
-  try {
-    await db.insert(verification).values(data.verification);
-    console.log(
-      chalk.green('✓ Successfully added values into table'),
-      chalk.blue('`verification`')
-    );
-  } catch (e) {
-    console.log(chalk.red('✗ Error while inserting verification:'), chalk.yellow(e));
-  }
-
-  // inserting user_app_scope_join
-  try {
-    await db.insert(user_app_scope_join).values(data.user_app_scope_join);
-    console.log(
-      chalk.green('✓ Successfully added values into table'),
-      chalk.blue('`user_app_scope_join`')
-    );
-  } catch (e) {
-    console.log(chalk.red('✗ Error while inserting user_app_scope_join:'), chalk.yellow(e));
   }
 
   // resetting user_project_join

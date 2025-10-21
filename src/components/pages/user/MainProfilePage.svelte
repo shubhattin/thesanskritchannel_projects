@@ -127,9 +127,9 @@
     >{user.email}</a
   >
   <div class="mt-3">
-    {#if user.role === 'user'}
+    {#if user?.role === 'user'}
       <NonAdminInfo user_info={user} user_is_current_app_scope={is_current_app_scope} />
-    {:else if user.role === 'admin'}
+    {:else if user?.role === 'admin'}
       <AdminPanel />
     {/if}
   </div>

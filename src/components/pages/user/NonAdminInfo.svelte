@@ -2,6 +2,7 @@
   import { client, client_q } from '~/api/client';
   import { createQuery, useQueryClient } from '@tanstack/svelte-query';
   import ConfirmPopover from '~/components/PopoverModals/ConfirmPopover.svelte';
+  import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { selected_user_type } from '~/components/pages/user/user_state.svelte';
   import { get_lang_from_id, LANG_LIST, LANG_LIST_IDS } from '~/state/lang_list';
   import { get_project_from_id, PROJECT_LIST } from '~/state/project_list';
@@ -83,13 +84,34 @@
 
   const add_user_app_scope = async (user_id: string) => {
     const res = await fetch_post(`${PUBLIC_BETTER_AUTH_URL}/api/app_scope/add_user_app_scope`, {
-      params: {
+      json: {
         user_id: user_id,
         scope: CURRENT_APP_SCOPE
-      }
+      },
+      credentials: 'include'
     });
     if (!res.ok) return;
     return (await res.json()) ?? ({ success: false } as { success: boolean });
+  };
+
+  const remove_user_from_current_app_scope_mut =
+    client_q.user.remove_user_from_current_app_scope.mutation({
+      onSuccess() {
+        query_client.invalidateQueries({
+          queryKey: ['user_info', user_info.id],
+          exact: true
+        });
+        query_client.invalidateQueries({
+          queryKey: ['users_list'],
+          exact: true
+        });
+      }
+    });
+
+  const remove_user_from_current_app_scope = async () => {
+    await $remove_user_from_current_app_scope_mut.mutateAsync({
+      user_id: user_info.id
+    });
   };
 
   const approve_user_func = async () => {
@@ -298,6 +320,23 @@
   {/if}
   {#if admin_edit}
     <RevokeSessions user_id={user_info.id} />
+    {#if user_is_current_app_scope}
+      <div class="mt-6">
+        <ConfirmModal
+          title="Remove User from Projects Portal Scope"
+          body_text={() => 'Are you sure you want to reset user permissions to Projects Portal ?'}
+          confirm_func={remove_user_from_current_app_scope}
+          popup_state={false}
+        >
+          <button
+            disabled={$remove_user_from_current_app_scope_mut.isPending}
+            class="btn preset-filled-error-500 px-1 py-0.5 text-xs"
+          >
+            Remove User from Projects Portal Scope
+          </button>
+        </ConfirmModal>
+      </div>
+    {/if}
   {/if}
 {:else}
   <div class="h-40 placeholder w-full animate-pulse rounded-md"></div>

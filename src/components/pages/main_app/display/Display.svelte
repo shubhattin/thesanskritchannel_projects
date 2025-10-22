@@ -332,7 +332,7 @@
       >
         {#if $trans_en_data_q.data.has(i)}
           <!-- Usually translations are single but still... -->
-          {#each $trans_en_data_q.data.get(i)!.split('\n') as line_trans}
+          {#each $trans_en_data_q.data.get(i)?.split('\n') ?? [''] as line_trans}
             {#if line_trans !== ''}
               <div>{line_trans}</div>
             {/if}

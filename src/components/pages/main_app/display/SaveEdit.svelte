@@ -22,6 +22,7 @@
   import Icon from '~/tools/Icon.svelte';
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
+  import { lang_list_obj } from '~/state/lang_list';
 
   const query_client = useQueryClient();
 
@@ -45,7 +46,7 @@
         indexes,
         selected_text_levels: $selected_text_levels,
         project_id: $project_state.project_id!,
-        lang_id: $trans_lang !== 0 ? $trans_lang : 1
+        lang_id: $trans_lang !== 0 ? $trans_lang : lang_list_obj['English']
       });
       if (res.success) {
         $added_translations_indexes = [];

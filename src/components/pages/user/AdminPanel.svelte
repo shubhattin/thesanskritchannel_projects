@@ -1,16 +1,35 @@
 <script lang="ts">
-  import { client } from '~/api/client';
   import { createQuery } from '@tanstack/svelte-query';
   import { Segment, Tabs } from '@skeletonlabs/skeleton-svelte';
   import NonAdminInfo from './NonAdminInfo.svelte';
   import { selected_user_id, selected_user_type } from '~/components/pages/user/user_state.svelte';
   import RevokeSessions from './RevokeSessions.svelte';
   import { CURRENT_APP_SCOPE } from '~/state/data_types';
+  import { fetch_get } from '~/tools/fetch';
+  import { user_info } from '~/state/user.svelte';
+  import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
 
   const users_list = createQuery({
     queryKey: ['users_list'],
     queryFn: async () => {
-      return await client.user.list_users.query();
+      type res_type = {
+        email: string;
+        id: string;
+        name: string;
+        role: string | null;
+        app_scopes: {
+          scope: string;
+        }[];
+      }[];
+      const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/user/list_users`, {
+        params: {
+          user_id: $user_info?.id ?? ''
+        },
+        credentials: 'include'
+      });
+      if (!res.ok) return [];
+      const users = (await res.json()) as res_type;
+      return users;
     }
   });
 

@@ -13,7 +13,7 @@
     onclick={async () => {
       await signIn.social({
         provider: 'google',
-        callbackURL: '/user'
+        callbackURL: window.location.origin + '/user'
       });
     }}
     class="btn flex gap-2 rounded-lg preset-outlined-secondary-700-300 font-semibold"

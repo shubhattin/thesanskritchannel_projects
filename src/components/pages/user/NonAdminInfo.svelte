@@ -2,6 +2,7 @@
   import { client, client_q } from '~/api/client';
   import { createQuery, useQueryClient } from '@tanstack/svelte-query';
   import ConfirmPopover from '~/components/PopoverModals/ConfirmPopover.svelte';
+  import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { selected_user_type } from '~/components/pages/user/user_state.svelte';
   import { get_lang_from_id, LANG_LIST, LANG_LIST_IDS } from '~/state/lang_list';
   import { get_project_from_id, PROJECT_LIST } from '~/state/project_list';
@@ -16,6 +17,8 @@
   import ms from 'ms';
   import { CURRENT_APP_SCOPE } from '~/state/data_types';
   import { AiOutlinePlus } from 'svelte-icons-pack/ai';
+  import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
+  import { fetch_post } from '~/tools/fetch';
 
   const query_client = useQueryClient();
 
@@ -79,12 +82,41 @@
 
   let approve_popup_state = $state(false);
 
-  const approve_user_func = async () => {
-    $projects_info.refetch();
-    await client.app_scope.add_user_app_scope.mutate({
-      scope: CURRENT_APP_SCOPE,
+  const add_user_app_scope = async (user_id: string) => {
+    const res = await fetch_post(`${PUBLIC_BETTER_AUTH_URL}/api/app_scope/add_user_app_scope`, {
+      json: {
+        user_id: user_id,
+        scope: CURRENT_APP_SCOPE
+      },
+      credentials: 'include'
+    });
+    if (!res.ok) return;
+    return (await res.json()) ?? ({ success: false } as { success: boolean });
+  };
+
+  const remove_user_from_current_app_scope_mut =
+    client_q.user.remove_user_from_current_app_scope.mutation({
+      onSuccess() {
+        query_client.invalidateQueries({
+          queryKey: ['user_info', user_info.id],
+          exact: true
+        });
+        query_client.invalidateQueries({
+          queryKey: ['users_list'],
+          exact: true
+        });
+      }
+    });
+
+  const remove_user_from_current_app_scope = async () => {
+    await $remove_user_from_current_app_scope_mut.mutateAsync({
       user_id: user_info.id
     });
+  };
+
+  const approve_user_func = async () => {
+    $projects_info.refetch();
+    await add_user_app_scope(user_info.id);
     query_client.invalidateQueries({
       queryKey: ['user_info', user_info.id]
     });
@@ -288,6 +320,23 @@
   {/if}
   {#if admin_edit}
     <RevokeSessions user_id={user_info.id} />
+    {#if user_is_current_app_scope}
+      <div class="mt-6">
+        <ConfirmModal
+          title="Remove User from Projects Portal Scope"
+          body_text={() => 'Are you sure you want to reset user permissions to Projects Portal ?'}
+          confirm_func={remove_user_from_current_app_scope}
+          popup_state={false}
+        >
+          <button
+            disabled={$remove_user_from_current_app_scope_mut.isPending}
+            class="btn preset-filled-error-500 px-1 py-0.5 text-xs"
+          >
+            Remove User from Projects Portal Scope
+          </button>
+        </ConfirmModal>
+      </div>
+    {/if}
   {/if}
 {:else}
   <div class="h-40 placeholder w-full animate-pulse rounded-md"></div>

@@ -26,7 +26,7 @@
   import pretty_ms from 'pretty-ms';
   import { OiStopwatch16 } from 'svelte-icons-pack/oi';
   import { onDestroy } from 'svelte';
-  import { get_lang_from_id, LANG_LIST, LANG_LIST_IDS } from '~/state/lang_list';
+  import { get_lang_from_id, LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { get_project_from_id } from '~/state/project_list';
 
@@ -55,9 +55,8 @@
       input: Parameters<typeof client.ai.trigger_funcs.translate_trigger.mutate>[0]
     ) => {
       show_time_status = false;
-      const { run_id, output_type } = await client.ai.trigger_funcs.translate_trigger.mutate(input);
-
-      return await get_result_from_trigger_run_id<typeof output_type>(run_id!);
+      const out = await client.ai.trigger_funcs.translate_trigger.mutate(input);
+      return await get_result_from_trigger_run_id<typeof out.output_type>(out.run_id!);
     },
     async onSuccess(response) {
       response = response!;
@@ -98,7 +97,7 @@
     });
     await $translate_sarga_mut.mutateAsync({
       project_id: $project_state.project_id!,
-      lang_id: $trans_lang,
+      lang_id: $trans_lang === 0 ? lang_list_obj['English'] : $trans_lang,
       model: selected_model,
       messages: [
         {

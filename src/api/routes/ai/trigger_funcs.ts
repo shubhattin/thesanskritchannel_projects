@@ -32,7 +32,6 @@ const translate_route = protectedAppScopeProcedure
           )
         );
       const allowed_langs = langugaes.map((lang) => lang.lang_id);
-      console.log(allowed_langs, lang_id);
       if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
     }
     const handle = await tasks.trigger(TRANSLATE_TRIGGER_ID, {

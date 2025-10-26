@@ -24,6 +24,17 @@ OUTPUT_TEXT_FOLDER = "text_data"
 RAW_DATA_FOLDER = "raw_data"
 
 
+VARGANI = [
+    ["क", "ख", "ग", "घ", "ङ"],
+    ["च", "छ", "ज", "झ", "ञ"],
+    ["ट", "ठ", "ड", "ढ", "ण"],
+    ["त", "थ", "द", "ध", "न"],
+    ["प", "फ", "ब", "भ", "म"],
+]
+HALANT = "्"
+ANUNASIK = "ं"
+
+
 def get_shloka_text(kANDa_num: str, sarga_num: str, to_recreate_text_folder=False):
     """extract the shlokas from html and save them into text"""
 
@@ -113,6 +124,10 @@ def get_shloka_text(kANDa_num: str, sarga_num: str, to_recreate_text_folder=Fals
         # if you are sure and satisfied with the changes, then you can make the change in the code
         # this problem was found in 2-(89-119)
         line = line.replace(":", VISARGA)
+        #  Confirm if the change below has to merged or not
+        # for varga in VARGANI:
+        #     for i in range(4):
+        #         line = line.replace(ANUNASIK + varga[i], varga[4] + HALANT + varga[i])
         continue_status = False
         break_loop_as_last_found = False
         for nsw in NOT_STARTS_WITH:

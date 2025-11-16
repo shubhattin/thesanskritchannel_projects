@@ -125,8 +125,7 @@ const update_project_languages_route = protectedAdminProcedure
               )
           ),
         // insertions
-        ...target_set
-          .values()
+        ...Array.from(target_set)
           .filter((lang_id) => !current_set.has(lang_id))
           .map((lang_id) =>
             tx.insert(user_project_language_join).values({

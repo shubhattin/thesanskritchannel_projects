@@ -181,7 +181,7 @@ const edit_translation_route = protectedAppScopeProcedure
               }))
             ),
           // update entries
-          update_entries.map(([index, dataIndex]) =>
+          ...update_entries.map(([index, dataIndex]) =>
             tx
               .update(translation)
               .set({ text: data[dataIndex] })

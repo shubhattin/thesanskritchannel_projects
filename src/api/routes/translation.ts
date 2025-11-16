@@ -22,6 +22,7 @@ import ms from 'ms';
 import { fetch_post } from '~/tools/fetch';
 import { get_languages_for_project_user } from './project';
 import { get_path_params } from '~/state/project_list';
+import { waitUntil } from '@vercel/functions';
 
 /** first and second here are like the ones in url */
 export const get_text_data_func = async (key: string, path_params: number[]) => {
@@ -54,9 +55,12 @@ export const get_text_data_func = async (key: string, path_params: number[]) => 
   const buffer = Buffer.from(base_64_data, 'base64');
   const decoded_content = buffer.toString('utf-8');
   const data = JSON.parse(decoded_content) as shloka_list_type;
-  await redis.set(REDIS_CACHE_KEYS.text_data(project_id, path_params), data, {
-    ex: ms('30days') / 1000
-  });
+  // set cache in background and return data immediately
+  waitUntil(
+    redis.set(REDIS_CACHE_KEYS.text_data(project_id, path_params), data, {
+      ex: ms('30days') / 1000
+    })
+  );
   return data;
 };
 
@@ -109,9 +113,12 @@ const get_translation_route = publicProcedure
           and(eq(tbl.project_id, project_id), eq(tbl.lang_id, lang_id), eq(tbl.path, path))
       });
       if (import.meta.env.PROD) {
-        await redis.set(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params), data, {
-          ex: ms('30days') / 1000
-        });
+        // set cache in background
+        waitUntil(
+          redis.set(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params), data, {
+            ex: ms('30days') / 1000
+          })
+        );
       }
     }
     const data_map = new Map<number, string>();

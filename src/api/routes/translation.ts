@@ -20,7 +20,7 @@ import {
 } from '~/state/project_list';
 import ms from 'ms';
 import { fetch_post } from '~/tools/fetch';
-import { get_languages_for_ptoject_user } from './project';
+import { get_languages_for_project_user } from './project';
 import { get_path_params } from '~/state/project_list';
 
 /** first and second here are like the ones in url */
@@ -142,66 +142,62 @@ const edit_translation_route = protectedAppScopeProcedure
 
       // authorization check to edit or add lang records
       if (user.role !== 'admin') {
-        const languages = await get_languages_for_ptoject_user(user.id, project_id);
+        const languages = await get_languages_for_project_user(user.id, project_id, db);
         const allowed_langs = languages.map((lang) => lang.lang_id);
         if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
       }
 
-      const exists_indexes = (
-        await db
-          .select({ index: translation.index })
-          .from(translation)
-          .where(
-            and(
-              eq(translation.project_id, project_id),
-              eq(translation.lang_id, lang_id),
-              eq(translation.path, path),
-              inArray(translation.index, indexes)
-            )
-          )
-      ).map((v) => v.index);
-
       const indexed_indexes = indexes.map((v, i) => [v, i]);
-      const to_add_indexes = indexed_indexes.filter((index) => !exists_indexes.includes(index[0]));
-      const to_edit_indexes = indexed_indexes.filter((index) => exists_indexes.includes(index[0]));
-
-      // add new records
-      if (to_add_indexes.length > 0) {
-        const data_to_add = to_add_indexes.map(([index, i]) => ({
-          project_id,
-          lang_id,
-          path,
-          index: index,
-          text: data[i]
-        }));
-        await db.insert(translation).values(data_to_add);
-      }
-
-      // update existing records
-      const promises: Promise<any>[] = [];
-      for (let _i = 0; _i < to_edit_indexes.length; _i++) {
-        const [index, i] = to_edit_indexes[_i];
-        const text = data[i];
-        promises.push(
-          db
-            .update(translation)
-            .set({ text })
-            .where(
-              and(
-                eq(translation.project_id, project_id),
-                eq(translation.lang_id, lang_id),
-                eq(translation.path, path),
-                eq(translation.index, index)
+      await db.transaction(async (tx) => {
+        const existing_indexes = new Set(
+          (
+            await tx
+              .select({ index: translation.index })
+              .from(translation)
+              .where(
+                and(
+                  eq(translation.project_id, project_id),
+                  eq(translation.lang_id, lang_id),
+                  eq(translation.path, path),
+                  inArray(translation.index, indexes)
+                )
               )
-            )
+          ).map((v) => v.index)
         );
-      }
 
-      // resolving update promises
-      await Promise.allSettled(promises);
-      await Promise.allSettled([
-        redis.del(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params))
-      ]);
+        const add_entries = indexed_indexes.filter(([index]) => !existing_indexes.has(index));
+        const update_entries = indexed_indexes.filter(([index]) => existing_indexes.has(index));
+
+        await Promise.all([
+          // add entries
+          add_entries.length > 0 &&
+            tx.insert(translation).values(
+              add_entries.map(([index, i]) => ({
+                project_id,
+                lang_id,
+                path,
+                index,
+                text: data[i]
+              }))
+            ),
+          // update entries
+          ...update_entries.map(([index, dataIndex]) =>
+            tx
+              .update(translation)
+              .set({ text: data[dataIndex] })
+              .where(
+                and(
+                  eq(translation.project_id, project_id),
+                  eq(translation.lang_id, lang_id),
+                  eq(translation.path, path),
+                  eq(translation.index, index)
+                )
+              )
+          )
+        ]);
+      });
+
+      await redis.del(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params));
 
       return {
         success: true

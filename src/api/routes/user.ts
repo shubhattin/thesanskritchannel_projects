@@ -5,7 +5,7 @@ import { delay } from '~/tools/delay';
 import { user_project_join, user_project_language_join } from '~/db/schema';
 import { eq } from 'drizzle-orm';
 import { t } from '../trpc_init';
-import { get_languages_for_ptoject_user } from './project';
+import { get_languages_for_project_user } from './project';
 import { get_user_app_scope_status } from '../trpc_init';
 import { fetch_post } from '~/tools/fetch';
 import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
@@ -29,7 +29,11 @@ const get_user_info_route = protectedProcedure
 
     const projects = await Promise.all(
       projects_info.map(async (project_info) => {
-        const languages = await get_languages_for_ptoject_user(user_id, project_info.project_id);
+        const languages = await get_languages_for_project_user(
+          user_id,
+          project_info.project_id,
+          db
+        );
         return {
           ...project_info,
           langugae_ids: languages.map((lang) => lang.lang_id)
@@ -56,10 +60,12 @@ const remove_user_from_current_app_scope_route = protectedAdminProcedure
     });
     if (!res.ok) return { success: false };
 
-    await Promise.allSettled([
-      db.delete(user_project_join).where(eq(user_project_join.user_id, user_id)),
-      db.delete(user_project_language_join).where(eq(user_project_language_join.user_id, user_id))
-    ]);
+    await db.transaction(async (tx) => {
+      await Promise.all([
+        tx.delete(user_project_join).where(eq(user_project_join.user_id, user_id)),
+        tx.delete(user_project_language_join).where(eq(user_project_language_join.user_id, user_id))
+      ]);
+    });
 
     return { success: true };
   });

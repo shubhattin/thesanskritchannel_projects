@@ -32,9 +32,12 @@ importers:
       '@tanstack/svelte-query':
         specifier: ^5.87.1
         version: 5.87.4(svelte@5.38.8)
+      '@toon-format/toon':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@trigger.dev/sdk':
-        specifier: 4.0.4
-        version: 4.0.4(ai@5.0.39(zod@3.25.76))(zod@3.25.76)
+        specifier: 4.1.0
+        version: 4.1.0(ai@5.0.39(zod@3.25.76))(typescript@5.9.2)(zod@3.25.76)
       '@trpc/client':
         specifier: ^10.45.2
         version: 10.45.2(@trpc/server@10.45.2)
@@ -184,8 +187,8 @@ importers:
         specifier: ^16.6.1
         version: 16.6.1
       drizzle-kit:
-        specifier: ^0.31.4
-        version: 0.31.4
+        specifier: ^0.31.7
+        version: 0.31.7
       mime-types:
         specifier: ^3.0.1
         version: 3.0.1
@@ -425,8 +428,8 @@ packages:
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
 
-  '@electric-sql/client@1.0.0-beta.1':
-    resolution: {integrity: sha512-Ei9jN3pDoGzc+a/bGqnB5ajb52IvSv7/n2btuyzUlcOHIR2kM9fqtYTJXPwZYKLkGZlHWlpHgWyRtrinkP2nHg==}
+  '@electric-sql/client@1.0.14':
+    resolution: {integrity: sha512-LtPAfeMxXRiYS0hyDQ5hue2PjljUiK9stvzsVyVb4nwxWQxfOWTSF42bHTs/o5i3x1T4kAQ7mwHpxa4A+f8X7Q==}
 
   '@esbuild-kit/core-utils@3.3.2':
     resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
@@ -947,6 +950,9 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  '@microsoft/fetch-event-source@2.0.1':
+    resolution: {integrity: sha512-W6CLUJ2eBMw3Rec70qrsEW0jOm/3twwJv21mrmj2yORiaVmVYGS4sSS5yUwvQc1ZlDLYGPnClVWmUUMagKNsfA==}
+
   '@modyfi/vite-plugin-yaml@1.1.1':
     resolution: {integrity: sha512-rEbfFNlMGLKpAYs2RsfLAhxCHFa6M4QKHHk0A4EYcCJAUwFtFO6qiEdLjUGUTtnRUxAC7GxxCa+ZbeUILSDvqQ==}
     peerDependencies:
@@ -1162,6 +1168,9 @@ packages:
   '@posthog/core@1.0.2':
     resolution: {integrity: sha512-hWk3rUtJl2crQK0WNmwg13n82hnTwB99BT99/XI5gZSvIlYZ1TPmMZE8H2dhJJ98J/rm9vYJ/UXNzw3RV5HTpQ==}
 
+  '@protobuf-ts/runtime@2.11.1':
+    resolution: {integrity: sha512-KuDaT1IfHkugM2pyz+FwiY80ejWrkH1pAtOBOZFuR6SXEFTsnb/jiQWQ1rCIrcKx2BtyxnxW6BWwsVSA/Ie+WQ==}
+
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
 
@@ -1341,6 +1350,11 @@ packages:
     resolution: {integrity: sha512-StxAO/8ts62KZVRAm4JZYq9+NqNsV7RvimNK+YM7ry//zebEH6meuugqW/P5OFUCjyQgui+9fUxT6d5NShvMvA==}
     cpu: [x64]
     os: [win32]
+
+  '@s2-dev/streamstore@0.17.3':
+    resolution: {integrity: sha512-UeXL5+MgZQfNkbhCgEDVm7PrV5B3bxh6Zp4C5pUzQQwaoA+iGh2QiiIptRZynWgayzRv4vh0PYfnKpTzJEXegQ==}
+    peerDependencies:
+      typescript: ^5.9.3
 
   '@simplewebauthn/browser@13.1.2':
     resolution: {integrity: sha512-aZnW0KawAM83fSBUgglP5WofbrLbLyr7CoPqYr66Eppm7zO86YX6rrCjRB3hQKPrL7ATvY4FVXlykZ6w6FwYYw==}
@@ -1742,16 +1756,19 @@ packages:
     peerDependencies:
       svelte: ^3.54.0 || ^4.0.0 || ^5.0.0
 
+  '@toon-format/toon@1.0.0':
+    resolution: {integrity: sha512-2gIk8LaqrzpurNDaDWZ72kucAGcBbxJxUnp+4ZP+Pny/QVNdMVf97yzSDTI3ed2q8ypjj8T271P6iE3bRmQBNw==}
+
   '@tootallnate/once@2.0.0':
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
     engines: {node: '>= 10'}
 
-  '@trigger.dev/core@4.0.4':
-    resolution: {integrity: sha512-c5myttkNhqaqvLlEz3ttE1qEsULlD6ILBge5FAfEtMv9HVS/pNlgvMKrdFMefaGO/bE4HoxrNGdJsY683Kq32w==}
+  '@trigger.dev/core@4.1.0':
+    resolution: {integrity: sha512-CS2wMGw1ZR5moHUe0xIOqy9LUGm0wBo4FWEzptSZvyoLvfoP3bnFyR24bzNHqFgb6UGGDxURyeZGuQsKT04TNg==}
     engines: {node: '>=18.20.0'}
 
-  '@trigger.dev/sdk@4.0.4':
-    resolution: {integrity: sha512-54krRw9SN1CGm5u17JBzu0hNzRf1u37jKbSFFngPJjUOltOgi/owey5+KNu1rGthabhOBK2VKzvKEd4sn08RCA==}
+  '@trigger.dev/sdk@4.1.0':
+    resolution: {integrity: sha512-+HJb/1TpBpfFwMYdPveGJ6876xSuLyjnXKjOT+8VeZuHWptlIbc/2vVK/Dj9QBIWB5InFU0k+6JlvCrEomfuLg==}
     engines: {node: '>=18.20.0'}
     peerDependencies:
       ai: ^4.2.0 || ^5.0.0
@@ -2411,8 +2428,8 @@ packages:
     resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
     engines: {node: '>=12'}
 
-  drizzle-kit@0.31.4:
-    resolution: {integrity: sha512-tCPWVZWZqWVx2XUsVpJRnH9Mx0ClVOf5YUHerZ5so1OKSlqww4zy1R5ksEdGRcO3tM3zj0PYN6V48TbQCL1RfA==}
+  drizzle-kit@0.31.7:
+    resolution: {integrity: sha512-hOzRGSdyKIU4FcTSFYGKdXEjFsncVwHZ43gY3WU5Bz9j5Iadp6Rh6hxLSQ1IWXpKLBKt/d5y1cpSPcV+FcoQ1A==}
     hasBin: true
 
   drizzle-orm@0.42.0:
@@ -4624,7 +4641,9 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
-  '@electric-sql/client@1.0.0-beta.1':
+  '@electric-sql/client@1.0.14':
+    dependencies:
+      '@microsoft/fetch-event-source': 2.0.1
     optionalDependencies:
       '@rollup/rollup-darwin-arm64': 4.50.1
 
@@ -4968,6 +4987,8 @@ snapshots:
       - encoding
       - supports-color
 
+  '@microsoft/fetch-event-source@2.0.1': {}
+
   '@modyfi/vite-plugin-yaml@1.1.1(rollup@4.50.1)(vite@6.3.6(@types/node@24.3.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.1)(tsx@4.20.6))':
     dependencies:
       '@rollup/pluginutils': 5.1.0(rollup@4.50.1)
@@ -5186,6 +5207,8 @@ snapshots:
 
   '@posthog/core@1.0.2': {}
 
+  '@protobuf-ts/runtime@2.11.1': {}
+
   '@protobufjs/aspromise@1.1.2': {}
 
   '@protobufjs/base64@1.1.2': {}
@@ -5315,6 +5338,11 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.50.1':
     optional: true
+
+  '@s2-dev/streamstore@0.17.3(typescript@5.9.2)':
+    dependencies:
+      '@protobuf-ts/runtime': 2.11.1
+      typescript: 5.9.2
 
   '@simplewebauthn/browser@13.1.2': {}
 
@@ -5865,13 +5893,15 @@ snapshots:
       '@tanstack/query-core': 5.87.4
       svelte: 5.38.8
 
+  '@toon-format/toon@1.0.0': {}
+
   '@tootallnate/once@2.0.0':
     optional: true
 
-  '@trigger.dev/core@4.0.4':
+  '@trigger.dev/core@4.1.0(typescript@5.9.2)':
     dependencies:
       '@bugsnag/cuid': 3.2.1
-      '@electric-sql/client': 1.0.0-beta.1
+      '@electric-sql/client': 1.0.14
       '@google-cloud/precise-date': 4.0.0
       '@jsonhero/path': 1.0.21
       '@opentelemetry/api': 1.9.0
@@ -5885,6 +5915,7 @@ snapshots:
       '@opentelemetry/sdk-trace-base': 2.0.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-node': 2.0.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.36.0
+      '@s2-dev/streamstore': 0.17.3(typescript@5.9.2)
       dequal: 2.0.3
       eventsource: 3.0.7
       eventsource-parser: 3.0.6
@@ -5905,13 +5936,14 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - supports-color
+      - typescript
       - utf-8-validate
 
-  '@trigger.dev/sdk@4.0.4(ai@5.0.39(zod@3.25.76))(zod@3.25.76)':
+  '@trigger.dev/sdk@4.1.0(ai@5.0.39(zod@3.25.76))(typescript@5.9.2)(zod@3.25.76)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/semantic-conventions': 1.36.0
-      '@trigger.dev/core': 4.0.4
+      '@trigger.dev/core': 4.1.0(typescript@5.9.2)
       chalk: 5.6.2
       cronstrue: 2.59.0
       debug: 4.4.1
@@ -5927,6 +5959,7 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - supports-color
+      - typescript
       - utf-8-validate
 
   '@trpc/client@10.45.2(@trpc/server@10.45.2)':
@@ -6697,7 +6730,7 @@ snapshots:
 
   dotenv@16.6.1: {}
 
-  drizzle-kit@0.31.4:
+  drizzle-kit@0.31.7:
     dependencies:
       '@drizzle-team/brocli': 0.10.2
       '@esbuild-kit/esm-loader': 2.6.5

@@ -29,6 +29,7 @@
   import { get_lang_from_id, LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { get_project_from_id } from '~/state/project_list';
+  import { encode } from '@toon-format/toon';
 
   const query_client = useQueryClient();
 
@@ -90,8 +91,8 @@
         if (lang_data && lang_data.has(i)) trans = lang_data.get(i)!;
       }
       return {
-        text: text,
         index: shloka_line.index,
+        text: text,
         ...(trans !== null && { english_translation: trans })
       };
     });
@@ -108,7 +109,7 @@
               : trans_prompts.prompts_english[0].content,
             {
               text_name: get_project_from_id($project_state.project_id!).name,
-              text: JSON.stringify(texts_obj_list, null, 2),
+              text: encode(texts_obj_list),
               lang: $trans_lang !== 0 ? get_lang_from_id($trans_lang) : 'English'
             }
           )

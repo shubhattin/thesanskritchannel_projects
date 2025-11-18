@@ -69,6 +69,7 @@
     "@openrouter/ai-sdk-provider": "^1.2.0",
     "@tailwindcss/vite": "^4.1.13",
     "@tanstack/svelte-query": "^5.87.1",
+    "@toon-format/toon": "^1.0.0",
     "@trigger.dev/sdk": "4.0.4",
     "@trpc/client": "^10.45.2",
     "@trpc/server": "^10.45.2",

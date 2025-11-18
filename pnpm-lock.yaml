@@ -32,6 +32,9 @@ importers:
       '@tanstack/svelte-query':
         specifier: ^5.87.1
         version: 5.87.4(svelte@5.38.8)
+      '@toon-format/toon':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@trigger.dev/sdk':
         specifier: 4.0.4
         version: 4.0.4(ai@5.0.39(zod@3.25.76))(zod@3.25.76)
@@ -1741,6 +1744,9 @@ packages:
     resolution: {integrity: sha512-HIo3Rr/2M8q7mOJqOIWb0tQHwLkKJ12SjDji4E2+YyMGHtzGvg+7wLqQqUqFvaitloLeYkXI0skP05Z95ciLMQ==}
     peerDependencies:
       svelte: ^3.54.0 || ^4.0.0 || ^5.0.0
+
+  '@toon-format/toon@1.0.0':
+    resolution: {integrity: sha512-2gIk8LaqrzpurNDaDWZ72kucAGcBbxJxUnp+4ZP+Pny/QVNdMVf97yzSDTI3ed2q8ypjj8T271P6iE3bRmQBNw==}
 
   '@tootallnate/once@2.0.0':
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
@@ -5864,6 +5870,8 @@ snapshots:
     dependencies:
       '@tanstack/query-core': 5.87.4
       svelte: 5.38.8
+
+  '@toon-format/toon@1.0.0': {}
 
   '@tootallnate/once@2.0.0':
     optional: true

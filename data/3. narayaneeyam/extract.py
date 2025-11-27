@@ -60,7 +60,7 @@ if os.path.exists("data"):
     sh.delete_folder("data")
 sh.makedir("data")
 
-for i in range(1, 100):
+for i in range(1, 100 + 1):
     text_data = sh.read(f"text_data/{i}.txt")
     data = extract_data_from_text(sh.read(f"text_data/{i}.txt"), i)
     sh.write(f"text_data/{i}.txt", text_data.replace("\r\n", "\n"))

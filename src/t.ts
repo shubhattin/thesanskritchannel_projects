@@ -14,7 +14,7 @@ const project_info = get_project_from_key(project_key);
 const project_id = project_info.id;
 const project_name = project_info.name;
 
-const lang: lang_list_type = 'English';
+const lang: lang_list_type = 'Hindi';
 const lang_id = lang_list_obj[lang];
 
 const trans_prompts = (await YAML.parse(
@@ -36,6 +36,7 @@ const translate = async (
       {
         role: 'user',
         content: format_string_text(
+          // @ts-ignore
           lang === 'English'
             ? trans_prompts.prompts_english[0].content
             : trans_prompts.prompts[0].content,
@@ -51,7 +52,7 @@ const translate = async (
   return res;
 };
 
-const failed_paths: string[] = [];
+let failed_paths: string[] = [];
 const translate_sarga = async (sarga_num: number, kanda_num: number) => {
   const db_path = `${kanda_num}:${sarga_num}`;
   const data: {
@@ -70,7 +71,7 @@ const translate_sarga = async (sarga_num: number, kanda_num: number) => {
   }
   const db_format = res.translations!.map((val) => ({
     project_id: project_id,
-    lang_id: lang_list_obj['English'],
+    lang_id: lang_id,
     path: db_path,
     ...val
   }));
@@ -81,48 +82,58 @@ const translate_sarga = async (sarga_num: number, kanda_num: number) => {
   // return db_format;
 };
 
-const kanda_num = 3;
-const limit = pLimit(30); // Max 15 concurrent tasks
-const SARGA_RANGE = [71, 71];
-console.log(chalk.green('Kanda num: ' + chalk.yellow.bold(kanda_num)));
-console.log(
-  chalk.green('Sarga range: ' + chalk.yellow.bold(`${SARGA_RANGE[0]} to ${SARGA_RANGE[1]}`))
-);
-// Create progress bar
-const totalTasks = SARGA_RANGE[1] - SARGA_RANGE[0] + 1;
-const progressBar = new cliProgress.SingleBar(
-  {
-    format: 'Progress |' + chalk.cyan('{bar}') + '| {percentage}% || {value}/{total} Sargas',
-    barCompleteChar: '\u2588',
-    barIncompleteChar: '\u2591',
-    hideCursor: true
-  },
-  cliProgress.Presets.shades_classic
-);
-
-progressBar.start(totalTasks, 0);
-
-const promises = [];
-for (let sarga_num = SARGA_RANGE[0]; sarga_num <= SARGA_RANGE[1]; sarga_num++) {
-  promises.push(
-    limit(async () => {
-      await translate_sarga(sarga_num, kanda_num);
-      progressBar.increment();
-    })
+const KANDA_SARGA_RANGE_RANGE: [number, [number, number]][] = [
+  [1, [32, 77]],
+  [2, [1, 119]],
+  [3, [1, 75]],
+  [4, [1, 67]],
+  [5, [1, 68]],
+  [6, [1, 131]],
+  [7, [1, 111]]
+];
+for (const [kanda_num, SARGA_RANGE] of KANDA_SARGA_RANGE_RANGE) {
+  failed_paths = [];
+  const limit = pLimit(30); // Max 15 concurrent tasks
+  console.log(chalk.green('Kanda num: ' + chalk.yellow.bold(kanda_num)));
+  console.log(
+    chalk.green('Sarga range: ' + chalk.yellow.bold(`${SARGA_RANGE[0]} to ${SARGA_RANGE[1]}`))
   );
+  // Create progress bar
+  const totalTasks = SARGA_RANGE[1] - SARGA_RANGE[0] + 1;
+  const progressBar = new cliProgress.SingleBar(
+    {
+      format: 'Progress |' + chalk.cyan('{bar}') + '| {percentage}% || {value}/{total} Sargas',
+      barCompleteChar: '\u2588',
+      barIncompleteChar: '\u2591',
+      hideCursor: true
+    },
+    cliProgress.Presets.shades_classic
+  );
+
+  progressBar.start(totalTasks, 0);
+
+  const promises = [];
+  for (let sarga_num = SARGA_RANGE[0]; sarga_num <= SARGA_RANGE[1]; sarga_num++) {
+    promises.push(
+      limit(async () => {
+        await translate_sarga(sarga_num, kanda_num);
+        progressBar.increment();
+      })
+    );
+  }
+  await Promise.all(promises);
+
+  progressBar.stop();
+
+  if (failed_paths.length > 0) {
+    console.log(chalk.red('Failed count: ' + chalk.yellow.bold(failed_paths.length)));
+    console.log(chalk.red('Failed paths: ' + chalk.yellow.bold(failed_paths.join(', '))));
+    Bun.write(`./trans/failed_${kanda_num}.txt`, failed_paths.join('\n'));
+  }
+
+  // Send desktop notification
+  Bun.spawn([
+    'notify-send',
+    `"Automations Done for ${kanda_num} from ${SARGA_RANGE[0]} to ${SARGA_RANGE[1]}"`
+  ]);
 }
-await Promise.all(promises);
-
-progressBar.stop();
-
-if (failed_paths.length > 0) {
-  console.log(chalk.red('Failed count: ' + chalk.yellow.bold(failed_paths.length)));
-  console.log(chalk.red('Failed paths: ' + chalk.yellow.bold(failed_paths.join(', '))));
-  Bun.write(`./trans/failed_${kanda_num}.txt`, failed_paths.join('\n'));
-}
-
-// Send desktop notification
-Bun.spawn([
-  'notify-send',
-  `"Automations Done for ${kanda_num} from ${SARGA_RANGE[0]} to ${SARGA_RANGE[1]}"`
-]);

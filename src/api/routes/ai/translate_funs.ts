@@ -14,6 +14,7 @@ const MODELS = {
   'gpt-4.1': openai_text_model('gpt-4.1'),
   'claude-3.7-sonnet': anthropic_text_model('claude-3-7-sonnet-latest'),
   'o3-mini': openai_text_model('o3-mini'),
+  'gpt-5.1': openai_text_model('gpt-5.1'),
   'gpt-5.2': openai_text_model('gpt-5.2')
 } satisfies Record<text_models_type, any>;
 
@@ -26,6 +27,13 @@ const model_custom_options = {
     }
   },
   'gpt-5.2': {
+    providerOptions: {
+      openai: {
+        reasoningEffort: 'low'
+      }
+    }
+  },
+  'gpt-5.1': {
     providerOptions: {
       openai: {
         reasoningEffort: 'low'

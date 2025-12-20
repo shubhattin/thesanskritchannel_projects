@@ -12,11 +12,12 @@ import type { z } from 'zod';
 
 // this file should be called from root dir
 async function main() {
-  if (!fs.existsSync('./src/db/scripts/backup/translation.json')) return;
+  const file = './src/db/scripts/backup/db_data.json';
+  if (!fs.existsSync(file)) return;
 
-  const translations = JSON.parse(
-    fs.readFileSync('./src/db/scripts/backup/translation.json', 'utf8')
-  ) as z.infer<typeof TranslationSchemaZod>[];
+  const translations = JSON.parse(fs.readFileSync(file, 'utf8'))['translation'] as z.infer<
+    typeof TranslationSchemaZod
+  >[];
   const trans_folder = './data/translations/';
   if (fs.existsSync(trans_folder)) fs.rmSync(trans_folder, { recursive: true });
   fs.mkdirSync(trans_folder);

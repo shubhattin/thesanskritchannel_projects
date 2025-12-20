@@ -62,7 +62,8 @@ export const TEXT_MODEL_LIST = {
     'sonnet',
     '200K token context window\n$3/1M Input tokens & $15/1M Output tokens'
   ],
-  'gpt-5.2': ['gpt 5.2', '200K token context window\n$2.0/1M Input tokens & $8/1M Output tokens']
+  'gpt-5.1': ['gpt 5.1', '400K token context window\n$1.25/1M Input tokens & $10/1M Output tokens'],
+  'gpt-5.2': ['gpt 5.2', '400K token context window\n$1.75/1M Input tokens & $14/1M Output tokens']
 } as const;
 
 export type text_models_type = keyof typeof TEXT_MODEL_LIST;

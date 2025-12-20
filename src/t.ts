@@ -14,7 +14,7 @@ const project_info = get_project_from_key(project_key);
 const project_id = project_info.id;
 const project_name = project_info.name;
 
-const lang: lang_list_type = 'Hindi';
+const lang: lang_list_type = 'Telugu';
 const lang_id = lang_list_obj[lang];
 
 const trans_prompts = (await YAML.parse(
@@ -83,13 +83,15 @@ const translate_sarga = async (sarga_num: number, kanda_num: number) => {
 };
 
 const KANDA_SARGA_RANGE_RANGE: [number, [number, number]][] = [
-  [1, [32, 77]],
-  [2, [1, 119]],
-  [3, [1, 75]],
-  [4, [1, 67]],
-  [5, [1, 68]],
-  [6, [1, 131]],
-  [7, [1, 111]]
+  // [1, [31, 77]],
+  // [2, [1, 119]],
+  // [3, [1, 75]],
+  // [4, [1, 67]],
+  // [5, [1, 68]],
+  // [6, [1, 131]],
+  // [7, [1, 111]]
+  [6, [67, 67]],
+  [6, [73, 73]]
 ];
 for (const [kanda_num, SARGA_RANGE] of KANDA_SARGA_RANGE_RANGE) {
   failed_paths = [];

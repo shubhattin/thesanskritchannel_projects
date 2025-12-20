@@ -5,8 +5,6 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import type { text_models_type } from '~/state/main_app/state.svelte';
 
-import { config } from 'dotenv';
-config({ path: '../.env' });
 const openai_text_model = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const anthropic_text_model = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 

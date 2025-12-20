@@ -24,6 +24,13 @@ const model_custom_options = {
       }
     }
   },
+  'gpt-5.1': {
+    providerOptions: {
+      openai: {
+        reasoningEffort: 'low'
+      }
+    }
+  },
   'gpt-5.2': {
     providerOptions: {
       openai: {
@@ -50,7 +57,13 @@ export const translate_func = async (payload: z.infer<typeof translate_route_sch
         'This should be an array of objects, each object containing the translation text and the index of the shloka to be generated.',
       schemaName: 'ai_translations_text_schema'
     });
-    return { translations: response.object, success: true };
+    return {
+      translations: response.object.map((v, i) => ({
+        ...v,
+        index: i
+      })),
+      success: true
+    };
   } catch (e) {
     console.log(e);
     return { success: false };

@@ -60,10 +60,10 @@
     }
   });
 
-  let media_type = $state<media_list_type>(link_info.media_type as media_list_type);
-  let lang_id = $state(link_info.lang_id);
-  let url = $state(link_info.link);
-  let name = $state(link_info.name);
+  let media_type = $derived<media_list_type>(link_info.media_type as media_list_type);
+  let lang_id = $derived(link_info.lang_id);
+  let url = $derived(link_info.link);
+  let name = $derived(link_info.name);
 
   const del_link_func = () => {
     $del_media_link_mut.mutate({

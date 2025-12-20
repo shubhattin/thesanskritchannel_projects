@@ -15,7 +15,7 @@
   }
 
   let { sync_lang_script, modal_opened = $bindable() }: Props = $props();
-  let typing_assistance_lang = $state(sync_lang_script);
+  let typing_assistance_lang = $derived(sync_lang_script);
 
   const IMAGE_SCALING = 0.81;
   const ONE_PX = 1;

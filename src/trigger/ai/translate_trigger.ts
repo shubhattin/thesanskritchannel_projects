@@ -5,7 +5,7 @@ import { translate_func } from '~/api/routes/ai/translate_funs';
 
 export const translate = task({
   id: TRANSLATE_TRIGGER_ID,
-  maxDuration: 15 * 60, // 12 minutes
+  maxDuration: 25 * 60, // 25 minutes
   run: async (payload: z.infer<typeof translate_route_schema.input>) => {
     return await translate_func(payload);
   }

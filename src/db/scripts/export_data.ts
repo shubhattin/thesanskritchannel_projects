@@ -82,7 +82,10 @@ const main = async () => {
 
   // resetting translation
   try {
-    await db.insert(translation).values(data.translation);
+    const chunks = chunkArray(data.translation, 5000);
+    for (const chunk of chunks) {
+      await db.insert(translation).values(chunk);
+    }
     console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`translation`'));
   } catch (e) {
     console.log(chalk.red('✗ Error while inserting translation:'), chalk.yellow(e));
@@ -125,4 +128,12 @@ async function confirm_environemnt() {
   let confirmation: string = await take_input(`Are you sure INSERT in ${dbMode} ? `);
   if (['yes', 'y'].includes(confirmation)) return true;
   return false;
+}
+
+function chunkArray<T>(array: T[], chunkSize: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    chunks.push(array.slice(i, i + chunkSize));
+  }
+  return chunks;
 }

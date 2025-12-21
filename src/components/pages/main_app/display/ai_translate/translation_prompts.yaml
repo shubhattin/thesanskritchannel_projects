@@ -6,6 +6,7 @@ prompts:
       Include translations for all the shlokas. Dont leave out any shloka translation.
       Do not return English translations rather translate it to {lang} Language.
       Also do not include the original Sanskrit shloka in the translation (in any script).
+      Properly order the "index" field of the shlokas in the translation. Do not miss or reorder any index. Indexes should be in natural increasing order.
 
 
 
@@ -18,6 +19,7 @@ prompts_english:
       Keep the translations consistent for all the shlokas, until the very last. Do not make it shorter towards the later shlokas
       Include translations for all the shlokas. Dont leave out any shloka translation.
       Do not return Sanskrit Shlokas rather translate it to {lang}.
+      Properly order the "index" field of the shlokas in the translation. Do not miss or reorder any index. Indexes should be in natural increasing order.
 
 
 

@@ -5,6 +5,7 @@ prompts:
       Also make it contain the entire essence and detail of the English translation, please do not miss any details. Keep the translations consistent for all the shlokas, until the very last. Do not make it shorter towards the later shlokas.
       Include translations for all the shlokas. Dont leave out any shloka translation.
       Do not return English translations rather translate it to {lang} Language.
+      Also do not include the original Sanskrit shloka in the translation (in any script).
 
 
 

@@ -63,6 +63,10 @@
       response = response!;
       if (!response.success) return;
       const translations = response.translations;
+      if (translations.length !== $text_data_q.data!.length || translations.some((v, i) => v.index !== i || !v.text)) {
+        console.error("Translation Rejected: Length mismatch or index mismatch");
+        console.error(translations);
+      }
 
       const new_data = new Map($trans_lang !== 0 ? $trans_lang_data_q.data : $trans_en_data_q.data);
       translations.forEach((translation) => {

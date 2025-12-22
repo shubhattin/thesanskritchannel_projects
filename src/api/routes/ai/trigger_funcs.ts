@@ -21,7 +21,7 @@ const translate_route = protectedAppScopeProcedure
   .mutation(
     async ({ ctx: { user }, input: { lang_id, model, text_name, text_data, project_id } }) => {
       if (user.role !== 'admin') {
-        const langugaes = await db
+        const languages = await db
           .select({
             lang_id: user_project_language_join.language_id
           })
@@ -32,7 +32,7 @@ const translate_route = protectedAppScopeProcedure
               eq(user_project_language_join.project_id, project_id)
             )
           );
-        const allowed_langs = langugaes.map((lang) => lang.lang_id);
+        const allowed_langs = languages.map((lang) => lang.lang_id);
         if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
       }
       const handle = await tasks.trigger(TRANSLATE_TRIGGER_ID, {

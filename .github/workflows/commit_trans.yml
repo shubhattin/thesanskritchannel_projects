@@ -28,7 +28,7 @@ jobs:
       - name: Load Translations
         run: |
           cd src/db/scripts/
-          npx tsx backup_db_data.ts
+          npx tsx backup_db_data.ts --no-sql-backup --no-zip-backup
       - name: Organize Translations
         run: |
           npx vite-node src/tests/organize_translation_folder.ts

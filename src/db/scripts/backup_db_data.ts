@@ -21,6 +21,8 @@ import ms from 'ms';
 // Load environment variables from .env
 dotenv.config({ path: '../../../.env' });
 
+const argv = process.argv.slice(2);
+
 const OUT_FOLDER = './backup';
 const envs_parsed = z
   .object({
@@ -50,18 +52,23 @@ async function backup_data() {
   }
 
   // Backup using pg_dump
-  console.log('Backing up schema...');
-  backup(
-    `pg_dump --dbname=${envs.PG_DATABASE_URL} --if-exists --schema-only --clean --no-owner -f b.sql`,
-    'db_dump_schema.sql',
-    'b.sql'
-  );
+  const BACKUP_SQL = !argv.includes('--no-sql-backup');
+  if (BACKUP_SQL) {
+    console.log('Backing up schema...');
+    backup(
+      `pg_dump --dbname=${envs.PG_DATABASE_URL} --if-exists --schema-only --clean --no-owner -f b.sql`,
+      'db_dump_schema.sql',
+      'b.sql'
+    );
+  }
   console.log('Backing up data...');
-  backup(
-    `pg_dump --dbname=${envs.PG_DATABASE_URL} --data-only --insert --no-owner --rows-per-insert=8000 -f b.sql`,
-    'db_dump_data.sql',
-    'b.sql'
-  );
+  if (BACKUP_SQL) {
+    backup(
+      `pg_dump --dbname=${envs.PG_DATABASE_URL} --data-only --insert --no-owner --rows-per-insert=8000 -f b.sql`,
+      'db_dump_data.sql',
+      'b.sql'
+    );
+  }
 
   await import_data(false).then(() => {
     queryClient.end();
@@ -70,13 +77,16 @@ async function backup_data() {
   const trans_data = TranslationSchemaZod.array().parse(
     JSON.parse(fs.readFileSync('./backup/db_data.json', 'utf-8'))['translation']
   );
-  const csv = json2csv(trans_data);
-  fs.writeFileSync(`./backup/translation.csv`, csv);
-
-  console.log('Zipping backup files');
-  execSync(
-    'zip backup/backup.zip backup/db_dump_schema.sql backup/db_dump_data.sql backup/db_data.json backup/translation.csv'
-  );
+  if (BACKUP_SQL) {
+    const csv = json2csv(trans_data);
+    fs.writeFileSync(`./backup/translation.csv`, csv);
+  }
+  if (!argv.includes('--no-zip-backup')) {
+    console.log('Zipping backup files');
+    execSync(
+      'zip backup/backup.zip backup/db_dump_schema.sql backup/db_dump_data.sql backup/db_data.json backup/translation.csv'
+    );
+  }
   console.log('Backup complete');
 }
 

@@ -1,6 +1,7 @@
 import type { project_keys_type } from '~/state/project_list';
 import { derived, writable } from 'svelte/store';
 import type { script_list_type } from '~/state/lang_list';
+import type { ai_text_models_type } from '~/api/routes/ai/ai_types';
 
 /**
  * This stores the info related to current selected text
@@ -58,12 +59,6 @@ export const TEXT_MODEL_LIST = {
     'o3 mini',
     '200K token context window\n$1.10/1M Input tokens & $4.40/1M Output tokens'
   ],
-  'claude-3.7-sonnet': [
-    'sonnet',
-    '200K token context window\n$3/1M Input tokens & $15/1M Output tokens'
-  ],
   'gpt-5.1': ['gpt 5.1', '400K token context window\n$1.25/1M Input tokens & $10/1M Output tokens'],
   'gpt-5.2': ['gpt 5.2', '400K token context window\n$1.75/1M Input tokens & $14/1M Output tokens']
-} as const;
-
-export type text_models_type = keyof typeof TEXT_MODEL_LIST;
+} satisfies Record<ai_text_models_type, [string, string]>;

@@ -18,18 +18,15 @@
     project_map_q
   } from '~/state/main_app/data.svelte';
   import { createMutation, useQueryClient } from '@tanstack/svelte-query';
-  import { format_string_text } from '~/tools/kry';
-  import trans_prompts from './translation_prompts.yaml';
   import { AIIcon } from '~/components/icons';
   import Icon from '~/tools/Icon.svelte';
   import { get_result_from_trigger_run_id } from '~/tools/trigger';
   import pretty_ms from 'pretty-ms';
   import { OiStopwatch16 } from 'svelte-icons-pack/oi';
   import { onDestroy } from 'svelte';
-  import { get_lang_from_id, LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
+  import { LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { get_project_from_id } from '~/state/project_list';
-  import { encode } from '@toon-format/toon';
 
   const query_client = useQueryClient();
 
@@ -104,21 +101,8 @@
       project_id: $project_state.project_id!,
       lang_id: $trans_lang === 0 ? lang_list_obj['English'] : $trans_lang,
       model: selected_model,
-      messages: [
-        {
-          role: 'user',
-          content: format_string_text(
-            $trans_lang !== 0
-              ? trans_prompts.prompts[0].content
-              : trans_prompts.prompts_english[0].content,
-            {
-              text_name: get_project_from_id($project_state.project_id!).name,
-              text: encode(texts_obj_list),
-              lang: $trans_lang !== 0 ? get_lang_from_id($trans_lang) : 'English'
-            }
-          )
-        }
-      ]
+      text_name: get_project_from_id($project_state.project_id!).name,
+      text_data: texts_obj_list
     });
   }
 

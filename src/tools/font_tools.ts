@@ -1,8 +1,10 @@
 import { browser } from '$app/environment';
 import {
+  get_lang_from_id,
   LANG_LIST,
   LANG_LIST_IDS,
   lang_list_obj,
+  LANG_SCRIPT_MAP,
   type script_and_lang_list_type,
   type script_list_type
 } from '~/state/lang_list';
@@ -20,6 +22,11 @@ export function get_script_for_lang(lang_id: number): script_list_type {
   // ^ Name for Sanskrit value in the dropdown is Devanagari
   else if (lang_id === lang_list_obj.Tamil) return 'Tamil-Extended';
   // Add a default return value to satisfy the return type
+  const lang = get_lang_from_id(lang_id);
+  if (LANG_SCRIPT_MAP[lang]) {
+    return LANG_SCRIPT_MAP[lang];
+  }
+
   return LANG_LIST[LANG_LIST_IDS.indexOf(lang_id)] as script_list_type;
 }
 

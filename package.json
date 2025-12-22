@@ -9,7 +9,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/svelte-query": "^5.90.2",
     "@toon-format/toon": "^1.4.0",
-    "@trigger.dev/sdk": "4.3.0",
+    "@trigger.dev/sdk": "4.3.1",
     "@trpc/client": "^10.45.3",
     "@trpc/server": "^10.45.3",
     "@upstash/redis": "^1.35.8",

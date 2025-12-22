@@ -36,8 +36,8 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0
       '@trigger.dev/sdk':
-        specifier: 4.3.0
-        version: 4.3.0(ai@5.0.116(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)
+        specifier: 4.3.1
+        version: 4.3.1(ai@5.0.116(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)
       '@trpc/client':
         specifier: ^10.45.3
         version: 10.45.3(@trpc/server@10.45.3)
@@ -1926,12 +1926,12 @@ packages:
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
     engines: {node: '>= 10'}
 
-  '@trigger.dev/core@4.3.0':
-    resolution: {integrity: sha512-mOavnsfCEgEES67Lnfbq9vMV+A2JAtCAoMVxNI7umpSXbbKOmsxdcKRG46/0rclqHKp9X5hk2aF3TlFhvgl/EQ==}
+  '@trigger.dev/core@4.3.1':
+    resolution: {integrity: sha512-qsFlEJtW1dBjiokUr/3/toghRe48orBK9voPjJAPLPKe0yA7HykqZuUWYGOIbrLUHrjxEPRWfegOCwdmPvxEfQ==}
     engines: {node: '>=18.20.0'}
 
-  '@trigger.dev/sdk@4.3.0':
-    resolution: {integrity: sha512-54wyCtXaumNfv1ou8PMGs7gb5+wNz94RjwznTWLoBAMhMmPsiqSTa6qxwjjWbpxAb/FWvasUnfbHxOmio2xdMg==}
+  '@trigger.dev/sdk@4.3.1':
+    resolution: {integrity: sha512-q/gah1kpz5MgFk4KfBkysbmTXkbYcyDR9LelWZdkM9TD7q3C7DnVYTiplv3lka1jiWxyVdRmRv8jDEFTCEEHZg==}
     engines: {node: '>=18.20.0'}
     peerDependencies:
       ai: ^4.2.0 || ^5.0.0
@@ -6119,7 +6119,7 @@ snapshots:
   '@tootallnate/once@2.0.0':
     optional: true
 
-  '@trigger.dev/core@4.3.0(typescript@5.9.3)':
+  '@trigger.dev/core@4.3.1(typescript@5.9.3)':
     dependencies:
       '@bugsnag/cuid': 3.2.1
       '@electric-sql/client': 1.0.14
@@ -6160,11 +6160,11 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@trigger.dev/sdk@4.3.0(ai@5.0.116(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)':
+  '@trigger.dev/sdk@4.3.1(ai@5.0.116(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/semantic-conventions': 1.36.0
-      '@trigger.dev/core': 4.3.0(typescript@5.9.3)
+      '@trigger.dev/core': 4.3.1(typescript@5.9.3)
       chalk: 5.6.2
       cronstrue: 2.59.0
       debug: 4.4.3

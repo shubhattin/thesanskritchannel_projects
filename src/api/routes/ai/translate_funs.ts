@@ -7,9 +7,9 @@ import {
 } from './ai_types';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { get_lang_from_id } from '~/state/lang_list';
-import translation_prompt_yaml_obj from './translation_prompt.yaml';
 import { format_string_text } from '~/tools/kry';
 import { encode } from '@toon-format/toon';
+import { ENGLISH_SYSTEM_PROMPT, OTHER_SYSTEM_PROMPT, USER_PROMPT } from './translation_prompt';
 
 // import { createOpenAI } from '@ai-sdk/openai';
 // const openai_text_model = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -58,12 +58,12 @@ type translation_prompt_yaml_type = Record<
 
 const translation_prompt_langs: translation_prompt_yaml_type = {
   English: {
-    system_prompt: translation_prompt_yaml_obj.system_prompt,
-    user_msg: translation_prompt_yaml_obj.user_msg
+    system_prompt: ENGLISH_SYSTEM_PROMPT,
+    user_msg: USER_PROMPT
   },
   Other: {
-    system_prompt: translation_prompt_yaml_obj.system_prompt,
-    user_msg: translation_prompt_yaml_obj.user_msg
+    system_prompt: OTHER_SYSTEM_PROMPT,
+    user_msg: USER_PROMPT
   }
 };
 

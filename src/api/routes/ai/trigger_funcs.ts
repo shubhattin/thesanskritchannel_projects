@@ -18,33 +18,36 @@ auth.configure({
 
 const translate_route = protectedAppScopeProcedure
   .input(translate_route_schema.input)
-  .mutation(async ({ ctx: { user }, input: { lang_id, messages, model, project_id } }) => {
-    if (user.role !== 'admin') {
-      const langugaes = await db
-        .select({
-          lang_id: user_project_language_join.language_id
-        })
-        .from(user_project_language_join)
-        .where(
-          and(
-            eq(user_project_language_join.user_id, user.id),
-            eq(user_project_language_join.project_id, project_id)
-          )
-        );
-      const allowed_langs = langugaes.map((lang) => lang.lang_id);
-      if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
+  .mutation(
+    async ({ ctx: { user }, input: { lang_id, model, text_name, text_data, project_id } }) => {
+      if (user.role !== 'admin') {
+        const langugaes = await db
+          .select({
+            lang_id: user_project_language_join.language_id
+          })
+          .from(user_project_language_join)
+          .where(
+            and(
+              eq(user_project_language_join.user_id, user.id),
+              eq(user_project_language_join.project_id, project_id)
+            )
+          );
+        const allowed_langs = langugaes.map((lang) => lang.lang_id);
+        if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
+      }
+      const handle = await tasks.trigger(TRANSLATE_TRIGGER_ID, {
+        project_id,
+        lang_id,
+        text_name,
+        text_data,
+        model
+      });
+
+      const run_id = handle.id;
+
+      return { run_id, output_type: null! as z.infer<typeof translate_route_schema.output> };
     }
-    const handle = await tasks.trigger(TRANSLATE_TRIGGER_ID, {
-      project_id,
-      lang_id,
-      messages,
-      model
-    });
-
-    const run_id = handle.id;
-
-    return { run_id, output_type: null! as z.infer<typeof translate_route_schema.output> };
-  });
+  );
 
 const generate_image_trigger_route = protectedAdminProcedure
   .input(image_gen_route_schema.input)

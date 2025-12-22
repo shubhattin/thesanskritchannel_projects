@@ -21,16 +21,21 @@ export const translate_route_schema = {
     project_id: z.number().int(),
     lang_id: z.number().int(),
     model: text_models_enum,
-    messages: z
-      .object({
-        role: z.union([z.literal('user'), z.literal('assistant')]),
-        content: z.string()
+    text_name: z.string(),
+    text_data: z.array(
+      z.object({
+        index: z.number().int().min(0),
+        text: z.string(),
+        english_translation: z.string().optional()
       })
-      .array()
+    )
   }),
-  output: z.union([
-    z.object({ success: z.literal(true), translations: translation_out_schema.array() }),
-    z.object({ success: z.literal(false) })
+  output: z.discriminatedUnion('success', [
+    z.object({
+      success: z.literal(true),
+      translations: translation_out_schema.array()
+    }),
+    z.object({ success: z.literal(false), error: z.string().optional() })
   ])
 };
 

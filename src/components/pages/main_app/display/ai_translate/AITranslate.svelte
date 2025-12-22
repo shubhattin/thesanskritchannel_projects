@@ -104,21 +104,8 @@
       project_id: $project_state.project_id!,
       lang_id: $trans_lang === 0 ? lang_list_obj['English'] : $trans_lang,
       model: selected_model,
-      messages: [
-        {
-          role: 'user',
-          content: format_string_text(
-            $trans_lang !== 0
-              ? trans_prompts.prompts[0].content
-              : trans_prompts.prompts_english[0].content,
-            {
-              text_name: get_project_from_id($project_state.project_id!).name,
-              text: encode(texts_obj_list),
-              lang: $trans_lang !== 0 ? get_lang_from_id($trans_lang) : 'English'
-            }
-          )
-        }
-      ]
+      text_name: get_project_from_id($project_state.project_id!).name,
+      text_data: texts_obj_list
     });
   }
 

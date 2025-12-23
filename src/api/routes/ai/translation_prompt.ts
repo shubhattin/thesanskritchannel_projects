@@ -11,6 +11,18 @@ Properly order the "index" field of the shlokas in the translation.
 Do not miss or reorder any index. Indexes should be in natural increasing order.
 `;
 
+export const SANSKRIT_SYSTEM_PROMPT = `
+I will be providing you with Sanskrit shlokas of certain text in a list format.
+Generate Paraphrase(vyakhya) in simple Sanskrit to all those shlokas based on the Sanskrit shloka.
+Also make it contain the entire essence and detail of the Sanskrit Shloka, please do not miss any details.
+Keep the paraphrase/vyakhya (also known as tippaNi or tIkA) consistent for all the shlokas, until the very last.
+Do not make it shorter towards the later shlokas.
+Include vyakhya for all the shlokas. Don't leave out any shloka vyakhya.
+Do not return Sanskrit Shlokas rather generate the vyakhya in simple (modern) Sanskrit.
+Properly order the "index" field of the shlokas in the translation.
+Do not miss or reorder any index. Indexes should be in natural increasing order.
+`;
+
 export const OTHER_SYSTEM_PROMPT = `
 I will be providing you with Sanskrit shlokas of a certain text along with its English tranlsations in a list format.
 Generate Translations in the instructed language to all those shlokas based on both the Sanskrit shloka and English Translation.

@@ -39,8 +39,8 @@ const translate_route = protectedAppScopeProcedure
         project_id,
         lang_id,
         text_name,
-        text_data,
-        model
+        model,
+        text_data
       });
 
       const run_id = handle.id;

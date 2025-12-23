@@ -9,7 +9,12 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { get_lang_from_id } from '~/state/lang_list';
 import { format_string_text } from '~/tools/kry';
 import { encode } from '@toon-format/toon';
-import { ENGLISH_SYSTEM_PROMPT, OTHER_SYSTEM_PROMPT, USER_PROMPT } from './translation_prompt';
+import {
+  ENGLISH_SYSTEM_PROMPT,
+  OTHER_SYSTEM_PROMPT,
+  SANSKRIT_SYSTEM_PROMPT,
+  USER_PROMPT
+} from './translation_prompt';
 
 // import { createOpenAI } from '@ai-sdk/openai';
 // const openai_text_model = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -49,7 +54,7 @@ const model_custom_options = {
 };
 
 type translation_prompt_yaml_type = Record<
-  'English' | 'Other',
+  'English' | 'Sanskrit' | 'Other',
   {
     system_prompt: string;
     user_msg: string;
@@ -59,6 +64,10 @@ type translation_prompt_yaml_type = Record<
 const translation_prompt_langs: translation_prompt_yaml_type = {
   English: {
     system_prompt: ENGLISH_SYSTEM_PROMPT,
+    user_msg: USER_PROMPT
+  },
+  Sanskrit: {
+    system_prompt: SANSKRIT_SYSTEM_PROMPT,
     user_msg: USER_PROMPT
   },
   Other: {
@@ -75,7 +84,11 @@ export const translate_func = async (args: TranslationInput): Promise<Translatio
   const lang = get_lang_from_id(lang_id);
 
   const translation_prompt =
-    lang === 'English' ? translation_prompt_langs.English : translation_prompt_langs.Other;
+    lang === 'English'
+      ? translation_prompt_langs.English
+      : lang === 'Sanskrit'
+        ? translation_prompt_langs.Sanskrit
+        : translation_prompt_langs.Other;
 
   const prompt = format_string_text(translation_prompt.user_msg, {
     text_name,

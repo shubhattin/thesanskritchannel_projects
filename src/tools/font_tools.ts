@@ -134,6 +134,10 @@ const MAIN_FONT_CONFIG = {
     font: 'ADOBE_DEVANAGARI',
     size: 1.45
   },
+  Sanskrit: {
+    font: 'ADOBE_DEVANAGARI',
+    size: 1.45
+  },
   Telugu: {
     font: 'NOTO_SERIF_TELUGU',
     size: 1.25

@@ -1,20 +1,17 @@
 import { protectedAdminProcedure } from '~/api/trpc_init';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { createOpenAI } from '@ai-sdk/openai';
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { env } from '$env/dynamic/private';
 import { text_models_enum } from './ai_types';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 
-const openai_text_model = createOpenAI({ apiKey: env.OPENAI_API_KEY });
-const anthropic_text_model = createAnthropic({ apiKey: env.ANTHROPIC_API_KEY });
+const openrouter_text_model = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
 
 const MODELS = {
-  'gpt-4.1': openai_text_model('gpt-4.1'),
-  'claude-3.7-sonnet': anthropic_text_model('claude-3-7-sonnet-latest'),
-  'o3-mini': openai_text_model('o3-mini'),
-  'gpt-5.1': openai_text_model('gpt-5.1'),
-  'gpt-5.2': openai_text_model('gpt-5.2')
+  'gpt-4.1': openrouter_text_model('openai/gpt-4.1'),
+  'o3-mini': openrouter_text_model('openai/o3-mini'),
+  'gpt-5.1': openrouter_text_model('openai/gpt-5.1'),
+  'gpt-5.2': openrouter_text_model('openai/gpt-5.2')
 } as const;
 
 export const get_image_prompt_route = protectedAdminProcedure

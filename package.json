@@ -1,7 +1,5 @@
 {
   "dependencies": {
-    "@ai-sdk/anthropic": "^2.0.56",
-    "@ai-sdk/openai": "^2.0.88",
     "@floating-ui/dom": "^1.7.4",
     "@fontsource/roboto": "^5.2.9",
     "@neondatabase/serverless": "^1.0.2",

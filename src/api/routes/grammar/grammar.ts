@@ -1,13 +1,11 @@
 import { t, protectedAdminProcedure } from '~/api/trpc_init';
 import grammar_PROMPT from './grammar_prompt.md?raw';
-import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { z } from 'zod';
 import { generateText, streamText, type ModelMessage } from 'ai';
 import { format_string_text } from '~/tools/kry';
 import { env } from '$env/dynamic/private';
 
-const openai_text_model = createOpenAI({ apiKey: env.OPENAI_API_KEY });
 const openrouter_text_model = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
 
 const MODELS_LIST = [
@@ -22,12 +20,12 @@ const MODELS_LIST = [
 ] as const;
 
 const MODELS = {
-  'gpt-4.1': openai_text_model('gpt-4.1'),
-  'gpt-4.1-mini': openai_text_model('gpt-4.1-mini'),
-  'gpt-4.1-nano': openai_text_model('gpt-4.1-nano'),
-  'gpt-5': openai_text_model('gpt-5'),
-  'gpt-5-mini': openai_text_model('gpt-5-mini'),
-  'gpt-5-nano': openai_text_model('gpt-5-nano'),
+  'gpt-4.1': openrouter_text_model('openai/gpt-4.1'),
+  'gpt-4.1-mini': openrouter_text_model('openai/gpt-4.1-mini'),
+  'gpt-4.1-nano': openrouter_text_model('openai/gpt-4.1-nano'),
+  'gpt-5': openrouter_text_model('openai/gpt-5'),
+  'gpt-5-mini': openrouter_text_model('openai/gpt-5-mini'),
+  'gpt-5-nano': openrouter_text_model('openai/gpt-5-nano'),
   'gemini-2.0-flash': openrouter_text_model('google/gemini-2.0-flash-001'),
   'gemini-2.5-flash': openrouter_text_model('google/gemini-2.5-flash')
 } as const;

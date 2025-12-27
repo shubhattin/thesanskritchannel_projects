@@ -1,5 +1,5 @@
 import { protectedAdminProcedure } from '~/api/trpc_init';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { env } from '$env/dynamic/private';
 import { text_models_enum } from './ai_types';
@@ -29,14 +29,16 @@ export const get_image_prompt_route = protectedAdminProcedure
   .query(async ({ input: { messages, model } }) => {
     try {
       const time_start = Date.now();
-      const result = await generateObject({
+      const result = await generateText({
         model: MODELS[model],
         messages,
-        schema: z.object({
-          image_prompt: z.string()
+        output: Output.object({
+          schema: z.object({
+            image_prompt: z.string()
+          })
         })
       });
-      return { ...result.object, time_taken: Date.now() - time_start };
+      return { ...result.output, time_taken: Date.now() - time_start };
     } catch (e) {
       return { image_prompt: null };
     }

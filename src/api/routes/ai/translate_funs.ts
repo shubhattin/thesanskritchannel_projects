@@ -1,4 +1,4 @@
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import {
   translate_route_schema,
@@ -97,18 +97,19 @@ export const translate_func = async (args: TranslationInput): Promise<Translatio
   });
 
   try {
-    const response = await generateObject({
+    const response = await generateText({
       model: MODELS[model],
       system: translation_prompt.system_prompt,
       ...(model_custom_options[model as keyof typeof model_custom_options] ?? {}),
       prompt,
-      output: 'array',
-      schema: translation_out_schema,
-      schemaDescription:
-        'This should be an array of objects, each object containing the translation text and the index of the shloka to be generated.',
-      schemaName: 'translations_text_schema'
+      output: Output.array({
+        element: translation_out_schema,
+        description:
+          'This should be an array of objects, each object containing the translation text and the index of the shloka to be generated.',
+        name: 'translations_text_schema'
+      })
     });
-    const translations = response.object;
+    const translations = response.output;
     if (
       translations.length !== text_data.length ||
       translations.some((translation, i) => translation.index !== i)

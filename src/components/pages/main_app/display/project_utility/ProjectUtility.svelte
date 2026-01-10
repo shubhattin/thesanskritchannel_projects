@@ -243,7 +243,7 @@
   onOpenChange={(e) => (cache_tool_modal_opened = e.open)}
 >
   {#snippet content()}
-    {#await import("./CacheTool.svelte") then CacheTool}
+    {#await import('./CacheTool.svelte') then CacheTool}
       <CacheTool.default />
     {/await}
   {/snippet}

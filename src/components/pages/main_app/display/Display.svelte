@@ -38,7 +38,11 @@
   import { Popover, Tabs } from '@skeletonlabs/skeleton-svelte';
   import BulkEdit from './bulk/BulkEdit.svelte';
   import AiTranslate from './ai_translate/AITranslate.svelte';
-    import { clearTypingContextOnKeyDown, createTypingContext, handleTypingBeforeInputEvent } from 'lipilekhika/typing';
+  import {
+    clearTypingContextOnKeyDown,
+    createTypingContext,
+    handleTypingBeforeInputEvent
+  } from 'lipilekhika/typing';
 
   const query_client = useQueryClient();
 
@@ -46,12 +50,14 @@
   let transliterated_data = $state<string[]>($text_data_q.data?.map((v) => v.text) ?? []);
   $effect(() => {
     // console.time('transliterate_sarga_data');
-    transliterate_custom($text_data_q.data?.map((v) => v.text) ?? [], BASE_SCRIPT, $viewing_script).then(
-      (data) => {
-        // console.timeEnd('transliterate_sarga_data');
-        transliterated_data = data;
-      }
-    );
+    transliterate_custom(
+      $text_data_q.data?.map((v) => v.text) ?? [],
+      BASE_SCRIPT,
+      $viewing_script
+    ).then((data) => {
+      // console.timeEnd('transliterate_sarga_data');
+      transliterated_data = data;
+    });
   });
 
   async function update_trans_lang_data(index: number, text: string) {
@@ -134,7 +140,11 @@
 
   let copy_btn_popup_state = $state(false);
 
-  let ctx = $derived(createTypingContext(LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type ?? 'Devanagari'));
+  let ctx = $derived(
+    createTypingContext(
+      (LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type) ?? 'Devanagari'
+    )
+  );
 
   $effect(() => {
     ctx.ready;

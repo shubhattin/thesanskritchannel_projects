@@ -8,7 +8,7 @@
     sanskrit_mode,
     edit_language_typer_status,
     added_translations_indexes,
-    edited_translations_indexes,
+    edited_translations_indexes
   } from '~/state/main_app/state.svelte';
   import {
     trans_en_data_q,
@@ -24,7 +24,11 @@
   import { trans_map_to_text, text_to_trans_map } from './trans_bulk_funcs';
   import { get_font_family_and_size } from '~/tools/font_tools';
   import { LANG_LIST, LANG_LIST_IDS, type lang_list_type } from '~/state/lang_list';
-  import { clearTypingContextOnKeyDown, createTypingContext, handleTypingBeforeInputEvent } from 'lipilekhika/typing';
+  import {
+    clearTypingContextOnKeyDown,
+    createTypingContext,
+    handleTypingBeforeInputEvent
+  } from 'lipilekhika/typing';
   import { OiSync16 } from 'svelte-icons-pack/oi';
   import { useQueryClient } from '@tanstack/svelte-query';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
@@ -32,8 +36,12 @@
 
   const query_client = useQueryClient();
 
-  let ctx = $derived(createTypingContext(LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type ?? 'Devanagari'));
-  
+  let ctx = $derived(
+    createTypingContext(
+      (LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type) ?? 'Devanagari'
+    )
+  );
+
   $effect(() => {
     ctx.ready;
   });
@@ -184,7 +192,7 @@
   bind:value={$bulk_text_data}
   onbeforeinput={(e) =>
     handleTypingBeforeInputEvent(
-      ctx, 
+      ctx,
       e,
       (newValue) => ($bulk_text_data = newValue),
       $edit_language_typer_status && !$english_edit_status

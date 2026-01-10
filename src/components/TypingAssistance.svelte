@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createQuery } from '@tanstack/svelte-query';
   import { transliterate_custom } from '~/tools/converter';
-  import {preloadScriptData, type ScriptLangType} from 'lipilekhika';
+  import { preloadScriptData, type ScriptLangType } from 'lipilekhika';
   import { delay } from '~/tools/delay';
   import { ALL_LANG_SCRIPT_LIST } from '~/state/lang_list';
   import { cl_join } from '~/tools/cl_join';
@@ -31,7 +31,9 @@
       enabled: modal_opened,
       queryFn: async () => {
         await delay(700);
-        const script_data_load_promise = preloadScriptData(typing_assistance_lang as ScriptLangType);
+        const script_data_load_promise = preloadScriptData(
+          typing_assistance_lang as ScriptLangType
+        );
         const IMAGE_URLS = import.meta.glob('/src/tools/converter/resources/images/*.png', {
           eager: true,
           query: '?url'

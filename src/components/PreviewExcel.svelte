@@ -21,7 +21,9 @@
 
   const get_lang_code_of_columnn = (worksheet: Worksheet, column_i: number) => {
     const lang = getNormalizedScriptName(
-      (worksheet.getCell(1, column_i + 1).value?.toLocaleString() ?? '').split(' ')[0] as ScriptLangType
+      (worksheet.getCell(1, column_i + 1).value?.toLocaleString() ?? '').split(
+        ' '
+      )[0] as ScriptLangType
     ) as script_and_lang_list_type;
     return lang || '';
   };

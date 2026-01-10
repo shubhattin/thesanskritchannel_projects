@@ -53,7 +53,7 @@
   import { BsKeyboard } from 'svelte-icons-pack/bs';
   import { loadLocalConfig } from './load_local_config';
   import AiImageGenerator from './ai_image_tool/AIImageGenerator.svelte';
-    import { preloadScriptData, type ScriptLangType } from 'lipilekhika';
+  import { preloadScriptData, type ScriptLangType } from 'lipilekhika';
 
   const query_client = useQueryClient();
 

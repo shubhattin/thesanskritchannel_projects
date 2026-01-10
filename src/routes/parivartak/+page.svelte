@@ -2,11 +2,13 @@
   import Icon from '~/tools/Icon.svelte';
   import { Switch } from '@skeletonlabs/skeleton-svelte';
   import { SCRIPT_LIST, type script_list_type } from '~/state/lang_list';
+  import { transliterate_custom } from '~/tools/converter';
+  import { preloadScriptData, type ScriptLangType } from 'lipilekhika';
   import {
-    load_parivartak_lang_data,
-    lipi_parivartak,
-    lekhika_typing_tool
-  } from '~/tools/converter';
+    createTypingContext,
+    clearTypingContextOnKeyDown,
+    handleTypingBeforeInputEvent
+  } from 'lipilekhika/typing';
   import { FaCircleUp, FaCircleDown } from 'svelte-icons-pack/fa';
   import { writable } from 'svelte/store';
   import type { Writable } from 'svelte/store';
@@ -28,8 +30,8 @@
   let to_text_type_enabled = $state(true);
 
   $effect(() => {
-    load_parivartak_lang_data($from_lang, 'src', true);
-    load_parivartak_lang_data($to_lang, 'src', true);
+    preloadScriptData($from_lang);
+    preloadScriptData($to_lang);
   });
 
   async function convert_text(
@@ -38,7 +40,13 @@
     source_lang: string,
     target_lang: string
   ) {
-    target.set(await lipi_parivartak(source_text, source_lang, target_lang));
+    target.set(
+      await transliterate_custom(
+        source_text,
+        source_lang as ScriptLangType,
+        target_lang as ScriptLangType
+      )
+    );
   }
   const copy_text_to_clipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -59,6 +67,14 @@
     event.preventDefault();
     if (event.altKey && event.key.toLowerCase() === 'x') callback && callback();
   };
+
+  let from_ctx = $derived(createTypingContext($from_lang));
+  let to_ctx = $derived(createTypingContext($to_lang));
+
+  $effect(() => {
+    from_ctx.ready;
+    to_ctx.ready;
+  });
 </script>
 
 <MetaTags
@@ -101,19 +117,17 @@
     <textarea
       class="textarea h-56 ring-2"
       placeholder={`Enter text in ${$from_lang}`}
-      bind:value={$from_text}
       style:font-size={`${from_text_font_info.size}rem`}
       style:font-family={from_text_font_info.family}
-      oninput={async (e) => {
-        if (from_text_type_enabled)
-          // @ts-ignore
-          await lekhika_typing_tool(e.target, e.data, $from_lang, true, (val) => {
-            $from_text = val;
-          });
-        else $from_text = (e.target as any).value;
-      }}
-      onkeyup={(e) =>
-        detect_shortcut_pressed(e, () => (from_text_type_enabled = !from_text_type_enabled))}
+      bind:value={$from_text}
+      onbeforeinput={(e) =>
+        handleTypingBeforeInputEvent(
+          from_ctx,
+          e,
+          (newValue) => (($from_text = newValue), from_text_type_enabled)
+        )}
+      onblur={() => from_ctx.clearContext()}
+      onkeydown={(e) => clearTypingContextOnKeyDown(e, from_ctx)}
     ></textarea>
   </div>
   <div class="my-3 flex justify-center space-x-3">
@@ -164,21 +178,19 @@
       </Switch>
     </div>
     <textarea
-      bind:value={$to_text}
       class="textarea h-56 ring-2"
       style:font-size={`${to_text_font_info.size}rem`}
       style:font-family={to_text_font_info.family}
       placeholder={`Enter text in ${$to_lang}`}
-      oninput={async (e) => {
-        if (to_text_type_enabled)
-          // @ts-ignore
-          await lekhika_typing_tool(e.target, e.data, $to_lang, true, (val) => {
-            $to_text = val;
-          });
-        else $to_text = (e.target as any).value;
-      }}
-      onkeyup={(e) =>
-        detect_shortcut_pressed(e, () => (to_text_type_enabled = !to_text_type_enabled))}
+      bind:value={$to_text}
+      onbeforeinput={(e) =>
+        handleTypingBeforeInputEvent(
+          to_ctx,
+          e,
+          (newValue) => (($to_text = newValue), to_text_type_enabled)
+        )}
+      onblur={() => to_ctx.clearContext()}
+      onkeydown={(e) => clearTypingContextOnKeyDown(e, to_ctx)}
     ></textarea>
   </div>
 </div>

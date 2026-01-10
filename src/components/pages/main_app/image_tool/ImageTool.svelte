@@ -37,7 +37,7 @@
   import ImageOptions from './ImageOptions.svelte';
   import { get_map_type, get_project_info_from_key } from '~/state/project_list';
   import { get_starting_index, project_map_q } from '~/state/main_app/data.svelte';
-  import { lipi_parivartak } from '~/tools/converter';
+  import { transliterate_custom } from '~/tools/converter';
   import { deepCopy } from '~/tools/kry';
 
   let mounted = $state(false);
@@ -51,7 +51,7 @@
   type option_type = { text?: string; value?: number };
 
   const transliterate_options = async (options: option_type[], script: script_list_type) => {
-    const transliterate_texts = await lipi_parivartak(
+    const transliterate_texts = await transliterate_custom(
       options.map((v) => v.text!),
       BASE_SCRIPT,
       script

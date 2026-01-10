@@ -32,9 +32,10 @@ import {
   type lang_list_type,
   type script_list_type
 } from '~/state/lang_list';
-import { lipi_parivartak } from '~/tools/converter';
+import { transliterate_custom } from '~/tools/converter';
 import { get_font_url } from '~/tools/font_tools';
 import { BASE_SCRIPT, project_state } from '~/state/main_app/state.svelte';
+import type { ScriptLangType } from 'lipilekhika';
 
 const render_text_args_schema = z.object({
   text: z.string(),
@@ -356,7 +357,11 @@ export const render_all_texts = async (
 
   // shloka
   for (let line_i = 0; line_i < shloka_lines.length; line_i++) {
-    const main_text = await lipi_parivartak(shloka_lines[line_i], BASE_SCRIPT, $image_script);
+    const main_text = await transliterate_custom(
+      shloka_lines[line_i],
+      BASE_SCRIPT,
+      $image_script as ScriptLangType
+    );
     const text_main_group = await render_text({
       text: main_text,
       font_url: get_font_url(main_text_font_info.key, 'bold'),
@@ -371,7 +376,11 @@ export const render_all_texts = async (
       width_usage_factor: 0.985,
       align: 'center'
     });
-    const norm_text = await lipi_parivartak(shloka_lines[line_i], BASE_SCRIPT, 'Normal');
+    const norm_text = await transliterate_custom(
+      shloka_lines[line_i],
+      BASE_SCRIPT,
+      'Normal' as ScriptLangType
+    );
     const text_norm_group = await render_text({
       text: norm_text,
       font_url: get_font_url(norm_text_font_info.key, 'regular'),

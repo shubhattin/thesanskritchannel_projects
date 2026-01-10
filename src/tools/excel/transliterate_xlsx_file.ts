@@ -1,6 +1,7 @@
 import type ExcelJS from 'exceljs';
-import { normalize_lang_code, lipi_parivartak, load_parivartak_lang_data } from '~/tools/converter';
 import { LANG_LIST, LANG_LIST_IDS } from '~/state/lang_list';
+import { getNormalizedScriptName, preloadScriptData, type ScriptLangType } from 'lipilekhika';
+import { transliterate_custom } from '~/tools/converter';
 
 /**
  * To transliterate text in a given Excel file
@@ -28,7 +29,7 @@ export const transliterate_xlxs_file = async (
     if (sheets_to_process !== 'all' && !sheets_to_process.includes(i_worksheet + 1)) continue;
     const worksheet = workbook.worksheets[i_worksheet];
 
-    await load_parivartak_lang_data(base_lang_code, base_folder_path_lipi_parivartak!);
+    await preloadScriptData(base_lang_code as ScriptLangType);
 
     const lang_row = worksheet.getRow(lang_row_index);
     const text_col = worksheet.getColumn(text_col_index);
@@ -44,13 +45,17 @@ export const transliterate_xlxs_file = async (
         const lang_split = cell.value!.toLocaleString().trim().split(' ');
         const lang_split_index = lang_split.map((lang) => LANG_LIST_IDS[LANG_LIST.indexOf(lang)]);
         const script_name = cell.value!.toLocaleString().trim().replaceAll(' ', ''); // trimming white spaces and
-        const script_code = normalize_lang_code(script_name);
+        const script_code = getNormalizedScriptName(script_name as ScriptLangType);
         if (script_code && script_code !== base_lang_code) {
-          await load_parivartak_lang_data(script_code, base_folder_path_lipi_parivartak!);
+          await preloadScriptData(script_code as ScriptLangType);
           for (let val_pair of texts) {
             const text = val_pair[1];
             const i = val_pair[0];
-            const out = await lipi_parivartak(text, base_lang_code, script_code);
+            const out = await transliterate_custom(
+              text,
+              base_lang_code as ScriptLangType,
+              script_code as ScriptLangType
+            );
             worksheet.getCell(i, col_i).value = out;
           }
         }

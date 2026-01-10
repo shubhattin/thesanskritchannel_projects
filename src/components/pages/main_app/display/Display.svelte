@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { lekhika_typing_tool, lipi_parivartak } from '~/tools/converter';
+  import { transliterate_custom } from '~/tools/converter';
   import { fade, slide } from 'svelte/transition';
   import { cl_join } from '~/tools/cl_join';
   import {
@@ -38,6 +38,7 @@
   import { Popover, Tabs } from '@skeletonlabs/skeleton-svelte';
   import BulkEdit from './bulk/BulkEdit.svelte';
   import AiTranslate from './ai_translate/AITranslate.svelte';
+    import { clearTypingContextOnKeyDown, createTypingContext, handleTypingBeforeInputEvent } from 'lipilekhika/typing';
 
   const query_client = useQueryClient();
 
@@ -45,7 +46,7 @@
   let transliterated_data = $state<string[]>($text_data_q.data?.map((v) => v.text) ?? []);
   $effect(() => {
     // console.time('transliterate_sarga_data');
-    lipi_parivartak($text_data_q.data?.map((v) => v.text) ?? [], BASE_SCRIPT, $viewing_script).then(
+    transliterate_custom($text_data_q.data?.map((v) => v.text) ?? [], BASE_SCRIPT, $viewing_script).then(
       (data) => {
         // console.timeEnd('transliterate_sarga_data');
         transliterated_data = data;
@@ -88,7 +89,7 @@
   const copy_sarga_with_transliteration_and_translation = async () => {
     const texts_to_copy = await Promise.all(
       transliterated_data.map(async (shloka_lines, i) => {
-        const normal_shloka = await lipi_parivartak(
+        const normal_shloka = await transliterate_custom(
           $text_data_q.data![i].text,
           BASE_SCRIPT,
           'Normal'
@@ -113,24 +114,24 @@
       $edited_translations_indexes.add(trans_index);
       $edited_translations_indexes = $edited_translations_indexes;
     }
-    let callback_function_called_from_lipi_lekhika = false;
-    if ($edit_language_typer_status && !$english_edit_status)
-      await lekhika_typing_tool(
-        e.target,
-        // @ts-ignore
-        e.data,
-        LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type,
-        true,
-        // @ts-ignore
-        (val) => {
-          update_trans_lang_data(trans_index, val);
-          callback_function_called_from_lipi_lekhika = true;
-        },
-        $sanskrit_mode as 0 | 1
-      );
-    if (!callback_function_called_from_lipi_lekhika) {
-      update_trans_lang_data(trans_index, e.target.value);
-    }
+    update_trans_lang_data(trans_index, e.target.value);
+    // let callback_function_called_from_lipi_lekhika = false;
+    // if ($edit_language_typer_status && !$english_edit_status)
+    //   await lekhika_typing_tool(
+    //     e.target,
+    //     // @ts-ignore
+    //     e.data,
+    //     LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type,
+    //     true,
+    //     // @ts-ignore
+    //     (val) => {
+    //       update_trans_lang_data(trans_index, val);
+    //       callback_function_called_from_lipi_lekhika = true;
+    //     },
+    //     $sanskrit_mode as 0 | 1
+    //   );
+    // if (!callback_function_called_from_lipi_lekhika) {
+      // }
   };
 
   const detect_shortcut_pressed = (event: KeyboardEvent) => {
@@ -149,6 +150,12 @@
   });
 
   let copy_btn_popup_state = $state(false);
+
+  let ctx = $derived(createTypingContext(LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type ?? 'Devanagari'));
+
+  $effect(() => {
+    ctx.ready;
+  });
 </script>
 
 {#if $editing_status_on}
@@ -242,7 +249,7 @@
       'h-[85vh] overflow-scroll rounded-xl border-2 border-gray-400 p-0 dark:border-gray-600',
       $trans_en_data_q.isSuccess && 'h-[90vh]',
       $trans_lang_data_q.isSuccess && 'h-[95vh]',
-      $editing_status_on && 'h-[100vh]'
+      $editing_status_on && 'h-screen'
     )}
     onmouseenter={() => (text_portion_hovered = true)}
     onmouseleave={() => {
@@ -260,7 +267,7 @@
             <div class="flex space-x-2">
               {#if $text_data_q.data[i]?.shloka_num || is_spacing_allowed}
                 <div
-                  class="flex items-center align-top text-[0.75rem] leading-[1.5rem] text-gray-500 select-none dark:text-gray-300"
+                  class="flex items-center align-top text-[0.75rem] leading-6 text-gray-500 select-none dark:text-gray-300"
                 >
                   {#if $text_data_q.data[i]?.shloka_num}
                     {$text_data_q.data[i].shloka_num}
@@ -384,9 +391,20 @@
     font_info: ReturnType<typeof get_font_family_and_size>
   )}
     <textarea
-      oninput={(e) => input_func(e, i)}
-      class="textarea h-28 w-full border-[2.5px] md:h-24"
       value={lang_data?.get(i)}
+      oninput={(e) => input_func(e, i)}
+      onbeforeinput={(e) =>
+        handleTypingBeforeInputEvent(
+          ctx,
+          e,
+          (newValue) => {
+            update_trans_lang_data(i, newValue);
+          },
+          $edit_language_typer_status && !$english_edit_status
+        )}
+      onblur={() => ctx.clearContext()}
+      onkeydown={(e) => clearTypingContextOnKeyDown(e, ctx)}
+      class="textarea h-28 w-full border-[2.5px] md:h-24"
       style:font-size={`${font_info.size}rem`}
       style:font-family={font_info.family}
       onkeyup={detect_shortcut_pressed}

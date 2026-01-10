@@ -9,7 +9,6 @@
     edit_language_typer_status,
     added_translations_indexes,
     edited_translations_indexes,
-    project_state
   } from '~/state/main_app/state.svelte';
   import {
     trans_en_data_q,
@@ -25,13 +24,19 @@
   import { trans_map_to_text, text_to_trans_map } from './trans_bulk_funcs';
   import { get_font_family_and_size } from '~/tools/font_tools';
   import { LANG_LIST, LANG_LIST_IDS, type lang_list_type } from '~/state/lang_list';
-  import { lekhika_typing_tool } from '~/tools/converter';
+  import { clearTypingContextOnKeyDown, createTypingContext, handleTypingBeforeInputEvent } from 'lipilekhika/typing';
   import { OiSync16 } from 'svelte-icons-pack/oi';
   import { useQueryClient } from '@tanstack/svelte-query';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { get_map_type, get_project_info_from_key } from '~/state/project_list';
 
   const query_client = useQueryClient();
+
+  let ctx = $derived(createTypingContext(LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type ?? 'Devanagari'));
+  
+  $effect(() => {
+    ctx.ready;
+  });
 
   let { tab_edit_name = $bindable() }: { tab_edit_name: 'main' | 'bulk' } = $props();
 
@@ -55,28 +60,6 @@
       );
     }
   });
-
-  const input_func = async (e: any) => {
-    let callback_function_called_from_lipi_lekhika = false;
-    if ($edit_language_typer_status && !$english_edit_status)
-      await lekhika_typing_tool(
-        e.target,
-        // @ts-ignore
-        e.data,
-        LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)],
-        true,
-        // @ts-ignore
-        (val) => {
-          $bulk_text_data = val;
-          // update_trans_lang_data(trans_index, val);
-          callback_function_called_from_lipi_lekhika = true;
-        },
-        $sanskrit_mode as 0 | 1
-      );
-    if (!callback_function_called_from_lipi_lekhika) {
-      $bulk_text_data = e.target.value;
-    }
-  };
 
   const sync_text_data_to_main = async () => {
     const trans_text_map = text_to_trans_map($bulk_text_data, total_count);
@@ -198,7 +181,15 @@
   style:font-size={`${trans_text_font_info.size}rem`}
   style:font-family={trans_text_font_info.family}
   class="mt-2.5 textarea h-[60vh] border-2"
-  value={$bulk_text_data}
-  oninput={(e) => ($bulk_text_edit_status = true) && input_func(e)}
+  bind:value={$bulk_text_data}
+  onbeforeinput={(e) =>
+    handleTypingBeforeInputEvent(
+      ctx, 
+      e,
+      (newValue) => ($bulk_text_data = newValue),
+      $edit_language_typer_status && !$english_edit_status
+    )}
+  onblur={() => ctx.clearContext()}
+  onkeydown={(e) => clearTypingContextOnKeyDown(e, ctx)}
   onkeyup={detect_shortcut_pressed}
 ></textarea>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createQuery } from '@tanstack/svelte-query';
-  import { lipi_parivartak, load_parivartak_lang_data } from '~/tools/converter';
+  import { transliterate_custom } from '~/tools/converter';
+  import {preloadScriptData, type ScriptLangType} from 'lipilekhika';
   import { delay } from '~/tools/delay';
   import { ALL_LANG_SCRIPT_LIST } from '~/state/lang_list';
   import { cl_join } from '~/tools/cl_join';
@@ -30,7 +31,7 @@
       enabled: modal_opened,
       queryFn: async () => {
         await delay(700);
-        const script_data_load_promise = load_parivartak_lang_data(typing_assistance_lang);
+        const script_data_load_promise = preloadScriptData(typing_assistance_lang as ScriptLangType);
         const IMAGE_URLS = import.meta.glob('/src/tools/converter/resources/images/*.png', {
           eager: true,
           query: '?url'
@@ -135,7 +136,7 @@
         <div class="inline-block space-x-1 text-center text-base">
           <span class="text-gray-500 dark:text-gray-400">{char}</span>
           ➜
-          {#await lipi_parivartak(char, 'Normal', typing_assistance_lang) then text}
+          {#await transliterate_custom(char, 'Normal', typing_assistance_lang as ScriptLangType) then text}
             <span class="font-bold">{text}</span>
           {/await}
         </div>

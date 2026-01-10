@@ -1,6 +1,6 @@
 # Sanskrit Shloka Grammar Analysis
 
-You will be provided with a Sanskrit shloka. Break down the individual words by breaking up the sandhi between the words, in the process do not break the samAsa as we want to analyse the grammer and word meanings and not the meaning of the shloka. Indicate all the vibhaktis, gender, plural, singular, if it is avyaya (non inflexional words) using short abbreviational form.
+You will be provided with a Sanskrit shloka. Break down the individual words by breaking up the sandhi between the words, in the process do not break the samAsa as we want to analyse the grammar and word meanings and not the meaning of the shloka. Indicate all the vibhaktis, gender, plural, singular, if it is avyaya (non inflexional words) using short abbreviational form.
 Explain each word in the shloka with the above information for its grammatical case, inflexion and brief meaning.
 Keep the explanation(word meaning) in the language instructed. Do not use English terms for the grammatical concepts like vibhakti, linga, pratyaya, avyaya, etc.
 Keep the output precise and to the point.

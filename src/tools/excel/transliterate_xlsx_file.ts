@@ -54,7 +54,7 @@ export const transliterate_xlxs_file = async (
             const out = await transliterate_custom(
               text,
               base_lang_code as ScriptLangType,
-              script_code as ScriptLangType
+              script_code
             );
             worksheet.getCell(i, col_i).value = out;
           }

@@ -124,7 +124,8 @@
         handleTypingBeforeInputEvent(
           from_ctx,
           e,
-          (newValue) => (($from_text = newValue), from_text_type_enabled)
+          (newValue) => ($from_text = newValue),
+          from_text_type_enabled
         )}
       onblur={() => from_ctx.clearContext()}
       onkeydown={(e) => clearTypingContextOnKeyDown(e, from_ctx)}
@@ -187,7 +188,8 @@
         handleTypingBeforeInputEvent(
           to_ctx,
           e,
-          (newValue) => (($to_text = newValue), to_text_type_enabled)
+          (newValue) => ($to_text = newValue),
+          to_text_type_enabled
         )}
       onblur={() => to_ctx.clearContext()}
       onkeydown={(e) => clearTypingContextOnKeyDown(e, to_ctx)}

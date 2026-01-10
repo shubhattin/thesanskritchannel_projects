@@ -26,8 +26,8 @@ export async function transliterate_custom<T extends string | string[]>(
   trans_options?: TransliterationOptions
 ): Promise<T extends string ? string : string[]> {
   trans_options = {
-    ...trans_options,
-    ...CUSTOM_TRANS_OPTIONS
+    ...CUSTOM_TRANS_OPTIONS,
+    ...trans_options
   };
   if (SCRIPTS_TO_REPLACE_WITH_ANUNASIK.indexOf(to) !== -1) {
     trans_options = {

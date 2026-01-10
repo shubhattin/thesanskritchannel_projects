@@ -109,29 +109,12 @@
     get_font_family_and_size(LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type)
   );
   const en_trans_text_font_info = get_font_family_and_size('English');
-  const input_func = async (e: any, trans_index: number) => {
+  const input_func = async (trans_index: number, newValue: string) => {
     if (!$added_translations_indexes.includes(trans_index)) {
       $edited_translations_indexes.add(trans_index);
       $edited_translations_indexes = $edited_translations_indexes;
     }
-    update_trans_lang_data(trans_index, e.target.value);
-    // let callback_function_called_from_lipi_lekhika = false;
-    // if ($edit_language_typer_status && !$english_edit_status)
-    //   await lekhika_typing_tool(
-    //     e.target,
-    //     // @ts-ignore
-    //     e.data,
-    //     LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type,
-    //     true,
-    //     // @ts-ignore
-    //     (val) => {
-    //       update_trans_lang_data(trans_index, val);
-    //       callback_function_called_from_lipi_lekhika = true;
-    //     },
-    //     $sanskrit_mode as 0 | 1
-    //   );
-    // if (!callback_function_called_from_lipi_lekhika) {
-      // }
+    update_trans_lang_data(trans_index, newValue);
   };
 
   const detect_shortcut_pressed = (event: KeyboardEvent) => {
@@ -392,13 +375,13 @@
   )}
     <textarea
       value={lang_data?.get(i)}
-      oninput={(e) => input_func(e, i)}
+      oninput={(e) => input_func(i, e.currentTarget.value)}
       onbeforeinput={(e) =>
         handleTypingBeforeInputEvent(
           ctx,
           e,
           (newValue) => {
-            update_trans_lang_data(i, newValue);
+            input_func(i, newValue);
           },
           $edit_language_typer_status && !$english_edit_status
         )}

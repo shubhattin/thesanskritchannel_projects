@@ -142,7 +142,10 @@
 
   let ctx = $derived(
     createTypingContext(
-      (LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type) ?? 'Devanagari'
+      (LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type) ?? 'Devanagari',
+      {
+        includeInherentVowel: $sanskrit_mode !== 1
+      }
     )
   );
 

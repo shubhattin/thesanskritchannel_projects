@@ -11,6 +11,7 @@
     LANG_LIST_IDS,
     lang_list_obj,
     SCRIPT_LIST,
+    script_list_obj,
     type script_list_type
   } from '~/state/lang_list';
   import {
@@ -34,7 +35,6 @@
     get_project_info_from_key,
     type project_keys_type
   } from '~/state/project_list';
-  // import { get_sa_mode, lipi_parivartak, load_parivartak_lang_data } from '~/tools/converter';
   import { transliterate_custom } from '~/tools/converter';
   import { delay } from '~/tools/delay';
   import { get_script_for_lang, get_text_font_class } from '~/tools/font_tools';
@@ -231,12 +231,28 @@
       placeholderData: ['राम्', 'राम']
     })
   );
+  const SPECIFIC_SCHWA = {
+    scripts: [
+      script_list_obj.Bengali,
+      script_list_obj.Gujarati,
+      script_list_obj.Odia,
+      script_list_obj.Gurumukhi
+    ],
+    langs: [lang_list_obj.Hindi, lang_list_obj.Marathi, lang_list_obj.Nepali, lang_list_obj.Punjabi]
+  } as const;
   $effect(() => {
     (async () => {
       if (!$editing_status_on || $sanskrit_mode_texts.isFetching || !$sanskrit_mode_texts.isSuccess)
         return;
       if ($trans_lang === 0) return;
-      $sanskrit_mode = 1; // no inherent vowel(schwa deletion) by default
+      let schwa_deletion = false;
+      if (
+        SPECIFIC_SCHWA.scripts.includes(script_list_obj[$viewing_script]) ||
+        SPECIFIC_SCHWA.langs.includes($trans_lang)
+      ) {
+        schwa_deletion = true;
+      }
+      $sanskrit_mode = !schwa_deletion ? 1 : 0; // no inherent vowel(schwa deletion) by default
     })();
   });
 </script>

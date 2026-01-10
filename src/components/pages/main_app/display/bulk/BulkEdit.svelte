@@ -32,13 +32,15 @@
   import { OiSync16 } from 'svelte-icons-pack/oi';
   import { useQueryClient } from '@tanstack/svelte-query';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
-  import { get_map_type, get_project_info_from_key } from '~/state/project_list';
 
   const query_client = useQueryClient();
 
   let ctx = $derived(
     createTypingContext(
-      (LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type) ?? 'Devanagari'
+      (LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type) ?? 'Devanagari',
+      {
+        includeInherentVowel: $sanskrit_mode !== 1
+      }
     )
   );
 

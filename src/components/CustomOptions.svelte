@@ -8,7 +8,7 @@
 
   let {
     availableOptions,
-    options = $bindable()
+    options = $bindable({})
   }: {
     availableOptions: string[];
     options: TransliterationOptions;

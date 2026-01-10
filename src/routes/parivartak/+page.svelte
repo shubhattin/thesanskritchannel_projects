@@ -26,6 +26,7 @@
   import CustomOptions from '~/components/CustomOptions.svelte';
   import { get_font_family_and_size } from '~/tools/font_tools';
   import { PAGE_TITLES } from '~/state/page_titles';
+  import { TrOutlineExternalLink } from 'svelte-icons-pack/tr';
 
   let from_lang = writable<script_list_type>('Devanagari');
   let to_lang = writable<script_list_type>('Telugu');
@@ -114,6 +115,22 @@
   }}
 />
 
+<!-- svelte-ignore a11y_consider_explicit_label -->
+<div class="group mt-4 flex items-center justify-center space-x-2">
+  <a
+    class="flex items-center justify-center space-x-2"
+    href="https://lipilekhika.in/app"
+    target="_blank"
+  >
+    <span style="background-image: url('/lipi.svg')" class="block size-8 bg-cover bg-no-repeat"
+    ></span>
+    <span class="font-semibold transition-colors">Lipi Lekhika</span>
+    <Icon
+      src={TrOutlineExternalLink}
+      class="text-lg transition-colors group-hover:text-blue-600 hover:text-blue-600 group-hover:dark:text-blue-400 hover:dark:text-blue-400"
+    />
+  </a>
+</div>
 <div class="mt-4">
   <div class="space-y-2">
     <div class="flex space-x-4">
@@ -231,14 +248,6 @@
 </div>
 <div class="mt-4">
   <CustomOptions {availableOptions} bind:options />
-</div>
-<div class="mt-4 mb-2 text-sm text-stone-500 dark:text-stone-400">
-  You should also refer
-  <a
-    href="https://app-lipilekhika.pages.dev/parivartak"
-    target="_blank"
-    class="text-blue-500 underline dark:text-blue-400">Lipi Lekhika (Lipi Parivartak)</a
-  > for more functionality and wider language support.
 </div>
 <TypingAssistance
   bind:modal_opened={$typing_assistance_modal_opened}

@@ -2,8 +2,14 @@
   import Icon from '~/tools/Icon.svelte';
   import { Switch } from '@skeletonlabs/skeleton-svelte';
   import { SCRIPT_LIST, type script_list_type } from '~/state/lang_list';
-  import { transliterate_custom } from '~/tools/converter';
-  import { preloadScriptData, type ScriptLangType } from 'lipilekhika';
+  import { CUSTOM_TRANS_OPTIONS, SCRIPTS_TO_REPLACE_WITH_ANUNASIK } from '~/tools/converter';
+  import {
+    transliterate,
+    preloadScriptData,
+    getAllOptions,
+    type ScriptLangType,
+    type TransliterationOptions
+  } from 'lipilekhika';
   import {
     createTypingContext,
     clearTypingContextOnKeyDown,
@@ -17,6 +23,7 @@
   import { OiCopy16 } from 'svelte-icons-pack/oi';
   import { BiHelpCircle } from 'svelte-icons-pack/bi';
   import TypingAssistance from '~/components/TypingAssistance.svelte';
+  import CustomOptions from '~/components/CustomOptions.svelte';
   import { get_font_family_and_size } from '~/tools/font_tools';
   import { PAGE_TITLES } from '~/state/page_titles';
 
@@ -28,6 +35,9 @@
 
   let from_text_type_enabled = $state(true);
   let to_text_type_enabled = $state(true);
+
+  let options = $state<TransliterationOptions>({});
+  let availableOptions = $state<string[]>([]);
 
   $effect(() => {
     preloadScriptData($from_lang);
@@ -41,10 +51,11 @@
     target_lang: string
   ) {
     target.set(
-      await transliterate_custom(
+      await transliterate(
         source_text,
         source_lang as ScriptLangType,
-        target_lang as ScriptLangType
+        target_lang as ScriptLangType,
+        options
       )
     );
   }
@@ -64,8 +75,7 @@
   let to_text_font_info = $derived(get_font_family_and_size($to_lang));
 
   const detect_shortcut_pressed = (event: KeyboardEvent, callback: (() => void) | null = null) => {
-    event.preventDefault();
-    if (event.altKey && event.key.toLowerCase() === 'x') callback && callback();
+    if (event.altKey && event.key.toLowerCase() === 'x') callback?.();
   };
 
   let from_ctx = $derived(createTypingContext($from_lang));
@@ -74,6 +84,23 @@
   $effect(() => {
     from_ctx.ready;
     to_ctx.ready;
+  });
+
+  $effect(() => {
+    getAllOptions($from_lang, $to_lang).then((all_options) => {
+      options = Object.fromEntries(all_options.map((v) => [v, false]));
+      options = {
+        ...options,
+        ...CUSTOM_TRANS_OPTIONS
+      };
+      if (SCRIPTS_TO_REPLACE_WITH_ANUNASIK.indexOf($to_lang) !== -1) {
+        options = {
+          ...options,
+          'brahmic_to_brahmic:replace_pancham_varga_varna_with_anusvAra': true
+        };
+      }
+      availableOptions = all_options;
+    });
   });
 </script>
 
@@ -128,7 +155,10 @@
           from_text_type_enabled
         )}
       onblur={() => from_ctx.clearContext()}
-      onkeydown={(e) => clearTypingContextOnKeyDown(e, from_ctx)}
+      onkeydown={(e) => {
+        detect_shortcut_pressed(e, () => (from_text_type_enabled = !from_text_type_enabled));
+        clearTypingContextOnKeyDown(e, from_ctx);
+      }}
     ></textarea>
   </div>
   <div class="my-3 flex justify-center space-x-3">
@@ -192,9 +222,15 @@
           to_text_type_enabled
         )}
       onblur={() => to_ctx.clearContext()}
-      onkeydown={(e) => clearTypingContextOnKeyDown(e, to_ctx)}
+      onkeydown={(e) => {
+        detect_shortcut_pressed(e, () => (to_text_type_enabled = !to_text_type_enabled));
+        clearTypingContextOnKeyDown(e, to_ctx);
+      }}
     ></textarea>
   </div>
+</div>
+<div class="mt-4">
+  <CustomOptions {availableOptions} bind:options />
 </div>
 <div class="mt-4 mb-2 text-sm text-stone-500 dark:text-stone-400">
   You should also refer

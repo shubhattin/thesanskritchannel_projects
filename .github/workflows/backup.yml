@@ -2,7 +2,7 @@ name: Data Backup
 
 on:
   schedule:
-    - cron: "30 17 */3 * *" # Run at 11:00 PM IST every 3 days
+    - cron: '30 17 */3 * *' # Run at 11:00 PM IST every 3 days
   workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:

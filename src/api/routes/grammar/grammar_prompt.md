@@ -1,6 +1,6 @@
 # Sanskrit Shloka Grammar Analysis
 
-You will be provided with a Sanskrit shloka. Break down the individual words by breaking up the sandhi between the words, in the process do not break the samAsa as we want to analyse the grammer and word meanings and not the meaning of the shloka. Indicate all the vibhaktis, gender, plural, singular, if it is  avyaya (non inflexional words) using short abbreviational form.
+You will be provided with a Sanskrit shloka. Break down the individual words by breaking up the sandhi between the words, in the process do not break the samAsa as we want to analyse the grammar and word meanings and not the meaning of the shloka. Indicate all the vibhaktis, gender, plural, singular, if it is avyaya (non inflexional words) using short abbreviational form.
 Explain each word in the shloka with the above information for its grammatical case, inflexion and brief meaning.
 Keep the explanation(word meaning) in the language instructed. Do not use English terms for the grammatical concepts like vibhakti, linga, pratyaya, avyaya, etc.
 Keep the output precise and to the point.
@@ -47,7 +47,7 @@ Keep the output precise and to the point.
 
 ### vachana (Number)
 
-- एक. =  एकवचनम्
+- एक. = एकवचनम्
 - द्विव. = द्विवचनम्
 - बहु. = बहुवचनम्
 
@@ -132,7 +132,7 @@ Word Meaning Language: Hindi
 - **आचार्यम्** - अ. पुं. द्वि. एक
 - **उपसंगम्य** - अव्ययम्
 - **राजा** - राजन्-न. पुं. प्र. एक
-- **वचनम्**-  अ. नपुं. द्वि. एक.
+- **वचनम्**- अ. नपुं. द्वि. एक.
 - **अब्रवीत्** - ब्रूञ्-पर. कर्तरि लङ् प्रपु. एक
 
 ## पदार्थ
@@ -171,7 +171,7 @@ Word Meaning Language: English
 - **आचार्यम्** - अ. पुं. द्वि. एक
 - **उपसंगम्य** - अव्ययम्
 - **राजा** - राजन्-न. पुं. प्र. एक
-- **वचनम्**-  अ. नपुं. द्वि. एक.
+- **वचनम्**- अ. नपुं. द्वि. एक.
 - **अब्रवीत्** - ब्रूञ्-पर. कर्तरि लङ् प्रपु. एक
 
 ## Meaning

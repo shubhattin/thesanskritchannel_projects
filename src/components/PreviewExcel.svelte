@@ -3,7 +3,7 @@
   import { RiSystemDownloadLine } from 'svelte-icons-pack/ri';
   import { Modal, Tabs } from '@skeletonlabs/skeleton-svelte';
   import type { Workbook, Worksheet } from 'exceljs';
-  import { normalize_lang_code } from '~/tools/converter';
+  import { getNormalizedScriptName, type ScriptLangType } from 'lipilekhika';
   import { get_text_font_class } from '~/tools/font_tools';
   import type { script_and_lang_list_type } from '~/state/lang_list';
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
@@ -20,8 +20,10 @@
   let sheet_number = $state('0');
 
   const get_lang_code_of_columnn = (worksheet: Worksheet, column_i: number) => {
-    const lang = normalize_lang_code(
-      (worksheet.getCell(1, column_i + 1).value?.toLocaleString() ?? '').split(' ')[0]
+    const lang = getNormalizedScriptName(
+      (worksheet.getCell(1, column_i + 1).value?.toLocaleString() ?? '').split(
+        ' '
+      )[0] as ScriptLangType
     ) as script_and_lang_list_type;
     return lang || '';
   };

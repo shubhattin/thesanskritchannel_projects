@@ -2,11 +2,19 @@
   import Icon from '~/tools/Icon.svelte';
   import { Switch } from '@skeletonlabs/skeleton-svelte';
   import { SCRIPT_LIST, type script_list_type } from '~/state/lang_list';
+  import { CUSTOM_TRANS_OPTIONS, SCRIPTS_TO_REPLACE_WITH_ANUNASIK } from '~/tools/converter';
   import {
-    load_parivartak_lang_data,
-    lipi_parivartak,
-    lekhika_typing_tool
-  } from '~/tools/converter';
+    transliterate,
+    preloadScriptData,
+    getAllOptions,
+    type ScriptLangType,
+    type TransliterationOptions
+  } from 'lipilekhika';
+  import {
+    createTypingContext,
+    clearTypingContextOnKeyDown,
+    handleTypingBeforeInputEvent
+  } from 'lipilekhika/typing';
   import { FaCircleUp, FaCircleDown } from 'svelte-icons-pack/fa';
   import { writable } from 'svelte/store';
   import type { Writable } from 'svelte/store';
@@ -15,8 +23,10 @@
   import { OiCopy16 } from 'svelte-icons-pack/oi';
   import { BiHelpCircle } from 'svelte-icons-pack/bi';
   import TypingAssistance from '~/components/TypingAssistance.svelte';
+  import CustomOptions from '~/components/CustomOptions.svelte';
   import { get_font_family_and_size } from '~/tools/font_tools';
   import { PAGE_TITLES } from '~/state/page_titles';
+  import { TrOutlineExternalLink } from 'svelte-icons-pack/tr';
 
   let from_lang = writable<script_list_type>('Devanagari');
   let to_lang = writable<script_list_type>('Telugu');
@@ -27,9 +37,12 @@
   let from_text_type_enabled = $state(true);
   let to_text_type_enabled = $state(true);
 
+  let options = $state<TransliterationOptions>({});
+  let availableOptions = $state<string[]>([]);
+
   $effect(() => {
-    load_parivartak_lang_data($from_lang, 'src', true);
-    load_parivartak_lang_data($to_lang, 'src', true);
+    preloadScriptData($from_lang);
+    preloadScriptData($to_lang);
   });
 
   async function convert_text(
@@ -38,7 +51,14 @@
     source_lang: string,
     target_lang: string
   ) {
-    target.set(await lipi_parivartak(source_text, source_lang, target_lang));
+    target.set(
+      await transliterate(
+        source_text,
+        source_lang as ScriptLangType,
+        target_lang as ScriptLangType,
+        options
+      )
+    );
   }
   const copy_text_to_clipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -56,9 +76,33 @@
   let to_text_font_info = $derived(get_font_family_and_size($to_lang));
 
   const detect_shortcut_pressed = (event: KeyboardEvent, callback: (() => void) | null = null) => {
-    event.preventDefault();
-    if (event.altKey && event.key.toLowerCase() === 'x') callback && callback();
+    if (event.altKey && event.key.toLowerCase() === 'x') callback?.();
   };
+
+  let from_ctx = $derived(createTypingContext($from_lang));
+  let to_ctx = $derived(createTypingContext($to_lang));
+
+  $effect(() => {
+    from_ctx.ready;
+    to_ctx.ready;
+  });
+
+  $effect(() => {
+    getAllOptions($from_lang, $to_lang).then((all_options) => {
+      options = Object.fromEntries(all_options.map((v) => [v, false]));
+      options = {
+        ...options,
+        ...CUSTOM_TRANS_OPTIONS
+      };
+      if (SCRIPTS_TO_REPLACE_WITH_ANUNASIK.indexOf($to_lang) !== -1) {
+        options = {
+          ...options,
+          'brahmic_to_brahmic:replace_pancham_varga_varna_with_anusvAra': true
+        };
+      }
+      availableOptions = all_options;
+    });
+  });
 </script>
 
 <MetaTags
@@ -71,6 +115,22 @@
   }}
 />
 
+<!-- svelte-ignore a11y_consider_explicit_label -->
+<div class="group mt-4 flex items-center justify-center space-x-2">
+  <a
+    class="flex items-center justify-center space-x-2"
+    href="https://lipilekhika.in/app"
+    target="_blank"
+  >
+    <span style="background-image: url('/lipi.svg')" class="block size-8 bg-cover bg-no-repeat"
+    ></span>
+    <span class="font-semibold transition-colors">Lipi Lekhika</span>
+    <Icon
+      src={TrOutlineExternalLink}
+      class="text-lg transition-colors group-hover:text-blue-600 hover:text-blue-600 group-hover:dark:text-blue-400 hover:dark:text-blue-400"
+    />
+  </a>
+</div>
 <div class="mt-4">
   <div class="space-y-2">
     <div class="flex space-x-4">
@@ -101,19 +161,21 @@
     <textarea
       class="textarea h-56 ring-2"
       placeholder={`Enter text in ${$from_lang}`}
-      bind:value={$from_text}
       style:font-size={`${from_text_font_info.size}rem`}
       style:font-family={from_text_font_info.family}
-      oninput={async (e) => {
-        if (from_text_type_enabled)
-          // @ts-ignore
-          await lekhika_typing_tool(e.target, e.data, $from_lang, true, (val) => {
-            $from_text = val;
-          });
-        else $from_text = (e.target as any).value;
+      bind:value={$from_text}
+      onbeforeinput={(e) =>
+        handleTypingBeforeInputEvent(
+          from_ctx,
+          e,
+          (newValue) => ($from_text = newValue),
+          from_text_type_enabled
+        )}
+      onblur={() => from_ctx.clearContext()}
+      onkeydown={(e) => {
+        detect_shortcut_pressed(e, () => (from_text_type_enabled = !from_text_type_enabled));
+        clearTypingContextOnKeyDown(e, from_ctx);
       }}
-      onkeyup={(e) =>
-        detect_shortcut_pressed(e, () => (from_text_type_enabled = !from_text_type_enabled))}
     ></textarea>
   </div>
   <div class="my-3 flex justify-center space-x-3">
@@ -164,31 +226,28 @@
       </Switch>
     </div>
     <textarea
-      bind:value={$to_text}
       class="textarea h-56 ring-2"
       style:font-size={`${to_text_font_info.size}rem`}
       style:font-family={to_text_font_info.family}
       placeholder={`Enter text in ${$to_lang}`}
-      oninput={async (e) => {
-        if (to_text_type_enabled)
-          // @ts-ignore
-          await lekhika_typing_tool(e.target, e.data, $to_lang, true, (val) => {
-            $to_text = val;
-          });
-        else $to_text = (e.target as any).value;
+      bind:value={$to_text}
+      onbeforeinput={(e) =>
+        handleTypingBeforeInputEvent(
+          to_ctx,
+          e,
+          (newValue) => ($to_text = newValue),
+          to_text_type_enabled
+        )}
+      onblur={() => to_ctx.clearContext()}
+      onkeydown={(e) => {
+        detect_shortcut_pressed(e, () => (to_text_type_enabled = !to_text_type_enabled));
+        clearTypingContextOnKeyDown(e, to_ctx);
       }}
-      onkeyup={(e) =>
-        detect_shortcut_pressed(e, () => (to_text_type_enabled = !to_text_type_enabled))}
     ></textarea>
   </div>
 </div>
-<div class="mt-4 mb-2 text-sm text-stone-500 dark:text-stone-400">
-  You should also refer
-  <a
-    href="https://app-lipilekhika.pages.dev/parivartak"
-    target="_blank"
-    class="text-blue-500 underline dark:text-blue-400">Lipi Lekhika (Lipi Parivartak)</a
-  > for more functionality and wider language support.
+<div class="mt-4">
+  <CustomOptions {availableOptions} bind:options />
 </div>
 <TypingAssistance
   bind:modal_opened={$typing_assistance_modal_opened}

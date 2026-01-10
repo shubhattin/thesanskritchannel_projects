@@ -2,7 +2,7 @@ name: Commit Translation to Main Repo
 
 on:
   schedule:
-    - cron: "0 0 1,16 * *" # Run every 15days at midnight(UTC)
+    - cron: '0 0 1,16 * *' # Run every 15days at midnight(UTC)
   workflow_dispatch: # Allows manual triggering of the workflow
 
 permissions:

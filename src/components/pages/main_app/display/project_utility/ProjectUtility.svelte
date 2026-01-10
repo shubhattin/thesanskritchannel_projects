@@ -19,7 +19,7 @@
   import type { Workbook } from 'exceljs';
   import { TrOutlineFileTypeTxt } from 'svelte-icons-pack/tr';
   import { download_file_in_browser } from '~/tools/download_file_browser';
-  import { lipi_parivartak } from '~/tools/converter';
+  import { transliterate_custom } from '~/tools/converter';
   import { RiUserFacesRobot2Line } from 'svelte-icons-pack/ri';
   import { useSession } from '~/lib/auth-client';
   import { Modal, Popover } from '@skeletonlabs/skeleton-svelte';
@@ -97,7 +97,7 @@
       const text = (
         await Promise.all(
           $text_data_q.data!.map((shloka_lines) =>
-            lipi_parivartak(shloka_lines.text, BASE_SCRIPT, $viewing_script)
+            transliterate_custom(shloka_lines.text, BASE_SCRIPT, $viewing_script)
           )
         )
       ).join('\n\n');
@@ -105,7 +105,7 @@
       const url = URL.createObjectURL(blob);
       const names = get_last_level_name($selected_text_levels);
       const sarga_name_normal = names.nor.split('\n')[0];
-      const sarga_name_script = await lipi_parivartak(
+      const sarga_name_script = await transliterate_custom(
         names.dev.split('\n')[0],
         BASE_SCRIPT,
         $viewing_script
@@ -243,7 +243,7 @@
   onOpenChange={(e) => (cache_tool_modal_opened = e.open)}
 >
   {#snippet content()}
-    {#await import("./CacheTool.svelte") then CacheTool}
+    {#await import('./CacheTool.svelte') then CacheTool}
       <CacheTool.default />
     {/await}
   {/snippet}

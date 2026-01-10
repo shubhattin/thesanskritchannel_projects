@@ -34,7 +34,8 @@
     get_project_info_from_key,
     type project_keys_type
   } from '~/state/project_list';
-  import { get_sa_mode, lipi_parivartak, load_parivartak_lang_data } from '~/tools/converter';
+  // import { get_sa_mode, lipi_parivartak, load_parivartak_lang_data } from '~/tools/converter';
+  import { transliterate_custom } from '~/tools/converter';
   import { delay } from '~/tools/delay';
   import { get_script_for_lang, get_text_font_class } from '~/tools/font_tools';
   import Icon from '~/tools/Icon.svelte';
@@ -52,6 +53,7 @@
   import { BsKeyboard } from 'svelte-icons-pack/bs';
   import { loadLocalConfig } from './load_local_config';
   import AiImageGenerator from './ai_image_tool/AIImageGenerator.svelte';
+  import { preloadScriptData, type ScriptLangType } from 'lipilekhika';
 
   const query_client = useQueryClient();
 
@@ -94,7 +96,7 @@
         }
       });
     }
-    await load_parivartak_lang_data(BASE_SCRIPT);
+    await preloadScriptData(BASE_SCRIPT);
     mounted = true;
   });
 
@@ -149,7 +151,7 @@
       const script = args.script as script_list_type;
       if (!mounted) return script;
       await delay(350);
-      await load_parivartak_lang_data(script);
+      await preloadScriptData(script);
       return script;
     },
     onSuccess(script, { update_viewing_script_selection }) {
@@ -167,7 +169,7 @@
 
   const transliterate_options = async (options: option_type[], script: script_list_type) => {
     if (!browser) return options;
-    const transliterate_texts = await lipi_parivartak(
+    const transliterate_texts = await transliterate_custom(
       options.map((v) => v.text!),
       BASE_SCRIPT,
       script
@@ -197,7 +199,7 @@
   });
   $effect(() => {
     if ($editing_status_on && $trans_lang !== 0)
-      load_parivartak_lang_data(LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)], 'src', true);
+      preloadScriptData(LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as ScriptLangType);
   });
   $effect(() => {
     const _trans_lang_mut = untrack(() => $trans_lang_mut);
@@ -221,10 +223,10 @@
       queryKey: ['sanskrit_mode_texts'],
       enabled: browser && $editing_status_on && $trans_lang !== 0,
       queryFn: () =>
-        lipi_parivartak(
+        transliterate_custom(
           ['राम्', 'राम'],
           BASE_SCRIPT,
-          LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)]
+          LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as ScriptLangType
         ),
       placeholderData: ['राम्', 'राम']
     })
@@ -234,13 +236,9 @@
       if (!$editing_status_on || $sanskrit_mode_texts.isFetching || !$sanskrit_mode_texts.isSuccess)
         return;
       if ($trans_lang === 0) return;
-      $sanskrit_mode = await get_sa_mode(
-        untrack(() => LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)])
-      );
+      $sanskrit_mode = 1; // no inherent vowel(schwa deletion) by default
     })();
   });
-
-  let multimedia_popover_state = $state(false);
 </script>
 
 <label class="block space-x-2 text-sm sm:space-x-2 sm:text-base">

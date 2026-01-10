@@ -60,8 +60,11 @@
       response = response!;
       if (!response.success) return;
       const translations = response.translations;
-      if (translations.length !== $text_data_q.data!.length || translations.some((v, i) => v.index !== i || !v.text)) {
-        console.error("Translation Rejected: Length mismatch or index mismatch");
+      if (
+        translations.length !== $text_data_q.data!.length ||
+        translations.some((v, i) => v.index !== i || !v.text)
+      ) {
+        console.error('Translation Rejected: Length mismatch or index mismatch');
         console.error(translations);
       }
 

@@ -81,8 +81,8 @@ importers:
         specifier: ^3.10.1
         version: 3.10.1
       lipilekhika:
-        specifier: ^1.0.3
-        version: 1.0.3
+        specifier: ^1.0.4
+        version: 1.0.4
       mode-watcher:
         specifier: 0.3.1
         version: 0.3.1(svelte@5.46.1)
@@ -3195,8 +3195,8 @@ packages:
     resolution: {integrity: sha512-utfs7Pr5uJyyvDETitgsaqSyjCb2qNRAtuqUeWIAKztsOYdcACf2KtARYXg2pSvhkt+9NfoaNY7fxjl6nuMjIQ==}
     engines: {node: '>= 12.0.0'}
 
-  lipilekhika@1.0.3:
-    resolution: {integrity: sha512-OWL8Cv5HPqGbSglNwgxmi68zHX1xGsJpgVIhPs8I4Zp7w7fZ/ikm2jXtYIBInHOU2ANOOVXV/7AcuJaBXGbkdQ==}
+  lipilekhika@1.0.4:
+    resolution: {integrity: sha512-XuXyWR4XeHe6ZupYoEgzfMRJ2bUVPZ07HXXDs1Djc35pu6zBtIGsR/K32iSHmRPWVOF/SRF9xuwoR7FYXU9q9g==}
 
   listenercount@1.0.1:
     resolution: {integrity: sha512-3mk/Zag0+IJxeDrxSgaDPy4zZ3w05PRZeJNnlWhzFz5OkX49J4krc+A8X2d2M69vGMBEX0uyl8M+W+8gH+kBqQ==}
@@ -7613,7 +7613,7 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.30.2
       lightningcss-win32-x64-msvc: 1.30.2
 
-  lipilekhika@1.0.3: {}
+  lipilekhika@1.0.4: {}
 
   listenercount@1.0.1: {}
 

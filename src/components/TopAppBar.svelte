@@ -38,7 +38,7 @@
     {#if start}
       {@render start()}
     {/if}
-    {#if pathname === '/parivartak' || page.error}
+    {#if page.error}
       <a class="mr-2 text-xl" href="/" title="श्रीरामायणम्">
         <Icon
           src={BiArrowBack}
@@ -70,11 +70,15 @@
       <Icon src={ContributeIcon} class="text-3xl" />
       <span class="hidden text-sm sm:inline">Support Our Projects</span>
     </button>
-    {#if pathname !== '/parivartak'}
-      <a class="text-xl" href="/parivartak" title="Lipi Parivartak">
-        <Icon src={SiConvertio} class="text-2xl hover:fill-cyan-700 dark:hover:fill-zinc-400" />
-      </a>
-    {/if}
+    <a
+      class="text-xl"
+      target="_blank"
+      rel="noopener noreferrer"
+      href="https://lipilekhika.in/app"
+      title="Lipi Parivartak"
+    >
+      <Icon src={SiConvertio} class="text-2xl hover:fill-cyan-700 dark:hover:fill-zinc-400" />
+    </a>
     <Popover
       open={app_bar_popover_status}
       onOpenChange={(e) => (app_bar_popover_status = e.open)}
@@ -91,7 +95,9 @@
       {/snippet}
       {#snippet content()}
         <a
-          href="/parivartak"
+          target="_blank"
+          rel="noopener noreferrer"
+          href="https://lipilekhika.in/app"
           class="group flex space-x-2 rounded-md px-2 py-1 text-sm font-bold hover:bg-gray-200 sm:text-base dark:hover:bg-gray-700"
         >
           <Icon

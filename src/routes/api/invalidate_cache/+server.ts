@@ -29,10 +29,11 @@ export const POST: RequestHandler = async ({ url, request }) => {
     })
     .parse(await request.json());
 
-  // project by project invalidation
-  for (const data of keys) {
-    const { project_id, path_params_list } = data;
-    db.transaction(async (tx) => {
+  // single transaction for all invalidations
+  await db.transaction(async (tx) => {
+    // project by project invalidation
+    for (const data of keys) {
+      const { project_id, path_params_list } = data;
       await tx.delete(texts).where(
         and(
           eq(texts.project_id, project_id),
@@ -47,8 +48,8 @@ export const POST: RequestHandler = async ({ url, request }) => {
           REDIS_CACHE_KEYS_CLIENT.text_data(project_id, path_params)
         )
       );
-    });
-  }
+    }
+  });
 
   return new Response(JSON.stringify({ success: true }), {
     status: 200

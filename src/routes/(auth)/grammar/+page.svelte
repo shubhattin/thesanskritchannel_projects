@@ -2,7 +2,7 @@
   import Markdown from 'svelte-markdown';
   import { fade, fly, slide } from 'svelte/transition';
   import pretty_ms from 'pretty-ms';
-  import { Switch } from '@skeletonlabs/skeleton-svelte';
+  import { Switch } from '$lib/components/ui/switch';
   import { LANGUAGES, MODELS_LIST, MODEL_NAMES, type models_list_type } from './grammar_data';
   import {
     get_map_type,
@@ -146,7 +146,7 @@
 <div class="mt-6 space-y-4">
   <div class="flex items-center justify-center gap-2">
     <span>Custom Text</span>
-    <Switch checked={load_text_source} onCheckedChange={(e) => (load_text_source = e.checked)} />
+    <Switch bind:checked={load_text_source} />
     <span class="font-semibold">Text Source</span>
   </div>
   <label class="flex items-center gap-2">

@@ -16,7 +16,8 @@
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
   import { writable } from 'svelte/store';
   import image_tool_prompts from './image_tool_prompts.yaml';
-  import { Switch, ProgressRing } from '@skeletonlabs/skeleton-svelte';
+  import { Switch } from '$lib/components/ui/switch';
+  import { ProgressRing } from '$lib/components/ui/progress-ring';
   import { client } from '~/api/client';
   import { copy_text_to_clipboard, format_string_text, get_permutations } from '~/tools/kry';
   import { onDestroy, onMount, untrack } from 'svelte';
@@ -429,12 +430,8 @@
       <option class="text-sm" value={option[0]} title={option[1][1]}>{option[1][0]}</option>
     {/each}
   </select>
-  <Switch
-    name="auto_image"
-    stateFocused="outline-hidden select-none"
-    checked={$auto_gen_image}
-    onCheckedChange={(e) => ($auto_gen_image = e.checked)}>Auto Generate Image</Switch
-  >
+  <Switch id="auto_image" bind:checked={$auto_gen_image} />
+  <label for="auto_image" class="text-sm">Auto Generate Image</label>
 </div>
 {#if $image_prompt_q.data !== undefined || $image_prompt_q.isFetching}
   {#if $image_prompt_q.isFetching || !$image_prompt_q.isSuccess}
@@ -460,11 +457,10 @@
           value={(image_gen_time_taken / IMAGE_MODELS[image_model][2]) * 100}
           max={100}
           size="size-6"
-          strokeLinecap="butt"
-          classes="inline-block -mb-2"
-          meterBase="stroke-primary-500"
-          trackBase="stroke-primary-500/30"
           strokeWidth="15px"
+          class="-mb-2"
+          meterClass="stroke-primary"
+          trackClass="stroke-primary/30"
         />
       {:else if show_image_time_status && $image_q.isSuccess}
         <span class="ml-4 text-xs text-stone-500 select-none dark:text-stone-300">

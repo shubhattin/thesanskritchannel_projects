@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { Popover } from '@skeletonlabs/skeleton-svelte';
+  import * as Popover from '$lib/components/ui/popover';
   import type { Snippet } from 'svelte';
-  import type { Placement } from '@floating-ui/dom';
-  import { cl_join } from '~/tools/cl_join';
+  import { cn } from '$lib/utils';
+
+  type Placement = 'top' | 'bottom' | 'left' | 'right';
 
   let {
     children,
@@ -11,54 +12,32 @@
     cancel_func,
     confirm_func,
     close_on_confirm = false,
-    contentBase,
-    placement,
-    class: className,
-    triggerBase,
-    z_index = 100
+    placement = 'bottom',
+    class: className
   }: {
     children: Snippet;
     confirm_func?: () => void;
     cancel_func?: () => void;
     description: string;
     popup_state: boolean;
-    contentBase?: string;
     close_on_confirm?: boolean;
-    placement: Placement;
+    placement?: Placement;
     class?: string;
-    triggerBase?: string;
-    z_index?: number;
   } = $props();
 </script>
 
-<Popover
-  open={popup_state}
-  onOpenChange={(e) => {
-    popup_state = e.open;
-  }}
-  positioning={{ placement: placement }}
-  arrow={false}
-  contentBase={cl_join(
-    'card z-70 space-y-2 p-2 rounded-lg shadow-xl dark:bg-surface-900 bg-zinc-100',
-    contentBase
-  )}
-  triggerBase={cl_join(triggerBase)}
-  zIndex={z_index!.toString()}
->
-  {#snippet trigger()}
+<Popover.Root bind:open={popup_state}>
+  <Popover.Trigger>
     {@render children()}
-  {/snippet}
-  {#snippet content()}
-    <div class={cl_join('text-lg font-bold', className)}>{description}</div>
-    <div class="space-x-2">
+  </Popover.Trigger>
+  <Popover.Content side={placement} class="w-auto space-y-3 p-3">
+    <div class={cn('text-base font-semibold', className)}>{description}</div>
+    <div class="flex gap-2">
       <button
-        class={cl_join(
-          'btn dark:bg-surface-700 rounded-lg bg-zinc-500 font-semibold text-white',
-          className
-        )}
+        class="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
         onclick={() => {
           if (close_on_confirm) popup_state = false;
-          confirm_func && confirm_func();
+          confirm_func?.();
         }}
       >
         Confirm
@@ -66,12 +45,12 @@
       <button
         onclick={() => {
           popup_state = false;
-          cancel_func && cancel_func();
+          cancel_func?.();
         }}
-        class={cl_join('btn preset-outlined-surface-800-200 rounded-lg font-semibold', className)}
+        class="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-semibold hover:bg-muted"
       >
         Cancel
       </button>
     </div>
-  {/snippet}
-</Popover>
+  </Popover.Content>
+</Popover.Root>

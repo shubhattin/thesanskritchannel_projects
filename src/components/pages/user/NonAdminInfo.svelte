@@ -8,8 +8,8 @@
   import { get_project_from_id, PROJECT_LIST } from '~/state/project_list';
   import Icon from '~/tools/Icon.svelte';
   import { BsPlusLg } from 'svelte-icons-pack/bs';
-  import { cl_join } from '~/tools/cl_join';
-  import { Popover } from '@skeletonlabs/skeleton-svelte';
+  import { cn } from '$lib/utils';
+  import * as Popover from '$lib/components/ui/popover';
   import { CgClose } from 'svelte-icons-pack/cg';
   import { FiEdit3 } from 'svelte-icons-pack/fi';
   import { OiLinkExternal16 } from 'svelte-icons-pack/oi';
@@ -187,20 +187,19 @@
   {@const data = $projects_info.data}
   {#if admin_edit}
     <div class="text-base font-semibold">{user_info.name}</div>
-    <a
-      class="text-xs text-slate-500 sm:text-sm dark:text-slate-400"
-      href={`emailto:${user_info.email}`}>{user_info.email}</a
+    <a class="text-xs text-muted-foreground sm:text-sm" href={`emailto:${user_info.email}`}
+      >{user_info.email}</a
     >
   {/if}
   {#if !user_is_current_app_scope}
     {#if !admin_edit}
-      <div class="text-warning-600 dark:text-warning-500">
+      <div class="text-amber-600 dark:text-amber-500">
         Your account has not been added to the Projects Portal scope yet. <span class="text-xs"
           >Contact the admin</span
         >
       </div>
     {:else}
-      <div class="text-warning-600 dark:text-warning-500 mt-2">
+      <div class="mt-2 text-amber-600 dark:text-amber-500">
         This account has not been added to Projects Portal scope.
       </div>
       <div class="space-x-2">
@@ -214,7 +213,7 @@
           description="Sure to Approve this User ?"
         >
           <span
-            class="btn bg-primary-500 dark:bg-primary-600 mt-1.5 gap-1 px-2 py-1 text-sm font-bold text-white"
+            class="mt-1.5 inline-flex cursor-pointer items-center gap-1 rounded-md bg-primary px-2 py-1 text-sm font-bold text-primary-foreground"
           >
             <Icon src={AiOutlinePlus} class="text-xl" />
             Add to Projects Portal Scope
@@ -242,8 +241,11 @@
         : null}
       <div class="mt-2.5">
         <label class="inline-block">
-          <span class="label-text font-semibold">Project</span>
-          <select bind:value={selected_project_id} class="select w-56 text-sm sm:w-60">
+          <span class="text-sm font-semibold">Project</span>
+          <select
+            bind:value={selected_project_id}
+            class="w-56 rounded-md border border-input bg-background px-2 py-1 text-sm sm:w-60"
+          >
             {#each projects as project}
               <option value={project.project_id.toString()}
                 >{get_project_from_id(project.project_id).name}</option
@@ -263,10 +265,7 @@
             description="Sure to unassign this Project ?"
             class="text-sm"
           >
-            <button
-              disabled={$project_remove_mut.isPending}
-              class="ml-2 hover:text-red-600 dark:hover:text-red-500"
-            >
+            <button disabled={$project_remove_mut.isPending} class="ml-2 hover:text-destructive">
               <Icon src={CgClose} class="text-xl" />
             </button>
           </ConfirmPopover>
@@ -274,7 +273,7 @@
         {#if current_project_info}
           {@const url = `/${current_project_info.key}`}
           <a
-            class="btn ml-1.5 p-0 hover:text-blue-600 dark:hover:text-blue-500"
+            class="ml-1.5 inline-block p-0 hover:text-blue-600 dark:hover:text-blue-500"
             href={url}
             target="_blank"
             rel="noopener noreferrer"
@@ -286,7 +285,7 @@
       </div>
       {#if current_project_info && current_project}
         {#if current_project_info.description}
-          <div class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          <div class="mt-2 text-sm text-muted-foreground">
             {current_project_info.description}
           </div>
         {/if}
@@ -302,11 +301,11 @@
           {/if}
         {:else}
           <div class="mt-2">
-            <div class="gap-2 text-sm text-slate-600 dark:text-slate-200">
+            <div class="gap-2 text-sm text-muted-foreground">
               <span>Languages</span>
               <span class="inline-flex gap-2">
                 {#each language_ids as lang_id}
-                  <div class="rounded-md bg-zinc-200 px-2 py-1 text-xs dark:bg-slate-700">
+                  <div class="rounded-md bg-muted px-2 py-1 text-xs">
                     {get_lang_from_id(lang_id)}
                   </div>
                 {/each}
@@ -330,7 +329,7 @@
         >
           <button
             disabled={$remove_user_from_current_app_scope_mut.isPending}
-            class="btn preset-filled-error-500 px-1 py-0.5 text-xs"
+            class="rounded-md bg-destructive px-2 py-1 text-xs text-destructive-foreground"
           >
             Remove User from Projects Portal Scope
           </button>
@@ -339,23 +338,16 @@
     {/if}
   {/if}
 {:else}
-  <div class="placeholder h-40 w-full animate-pulse rounded-md"></div>
+  <div class="h-40 w-full animate-pulse rounded-md bg-muted"></div>
 {/if}
 
 {#snippet add_project(new_list = false)}
   {#if user_is_current_app_scope && $projects_info.data!.projects.length !== PROJECT_LIST.length}
-    <Popover
-      open={add_project_popup}
-      onOpenChange={(e) => (add_project_popup = e.open)}
-      positioning={{ placement: new_list ? 'right' : 'bottom' }}
-      arrow={false}
-      contentBase="card z-50 space-y-1 sm:space-y-1.5 rounded-lg px-2 py-1 shadow-xl bg-surface-100-900"
-      triggerBase="ml-1"
-    >
-      {#snippet trigger()}
+    <Popover.Root bind:open={add_project_popup}>
+      <Popover.Trigger class="ml-1">
         <span
-          class={cl_join(
-            'btn bg-primary-500 dark:bg-primary-600 gap-1 rounded-md px-1 py-0.5 font-semibold text-white',
+          class={cn(
+            'inline-flex items-center gap-1 rounded-md bg-primary px-1 py-0.5 font-semibold text-primary-foreground',
             new_list && 'px-2'
           )}
         >
@@ -364,8 +356,8 @@
             Add Project
           {/if}
         </span>
-      {/snippet}
-      {#snippet content()}
+      </Popover.Trigger>
+      <Popover.Content side={new_list ? 'right' : 'bottom'} class="space-y-1 p-2 sm:space-y-1.5">
         {#each PROJECT_LIST as project}
           {#if user_is_current_app_scope && !$projects_info.data!.projects.find((p) => p.project_id === project.id)}
             <div class="block w-full">
@@ -377,44 +369,44 @@
                 placement="bottom"
                 description={`Are you sure you want this user to '${project.name}' project ?`}
                 class="text-sm"
-                triggerBase="btn block w-full gap-1 space-x-1 rounded-md px-1 py-0 text-center hover:bg-gray-200 dark:hover:bg-gray-700"
               >
-                {project.name}
+                <span
+                  class="block w-full cursor-pointer rounded-md px-2 py-1 text-center hover:bg-muted"
+                >
+                  {project.name}
+                </span>
               </ConfirmPopover>
             </div>
           {/if}
         {/each}
-      {/snippet}
-    </Popover>
+      </Popover.Content>
+    </Popover.Root>
   {/if}
 {/snippet}
 {#snippet add_language(new_list = false)}
-  <Popover
-    open={langugae_select_popover}
-    onOpenChange={(e) => (langugae_select_popover = e.open)}
-    positioning={{ placement: new_list ? 'right' : 'bottom' }}
-    arrow={false}
-    contentBase="card z-50 sm:space-y-1.5 rounded-lg px-2 py-1 shadow-xl bg-surface-100-900"
-    triggerBase="ml-1"
-  >
-    {#snippet trigger()}
+  <Popover.Root bind:open={langugae_select_popover}>
+    <Popover.Trigger class="ml-1">
       {#if admin_edit}
         {#if new_list}
-          <button
-            class="btn bg-primary-500 dark:bg-primary-600 gap-1 rounded-md px-1.5 py-0.5 text-sm"
+          <span
+            class="inline-flex items-center gap-1 rounded-md bg-primary px-1.5 py-0.5 text-sm text-primary-foreground"
           >
             <Icon src={BsPlusLg} class="text-xl" />
             Add Language
-          </button>
+          </span>
         {:else}
-          <button class="btn ml-1.5 p-0">
+          <span class="ml-1.5 inline-block p-0">
             <Icon src={FiEdit3} class="text-xl" />
-          </button>
+          </span>
         {/if}
       {/if}
-    {/snippet}
-    {#snippet content()}
-      <select class="select px-2 py-1" multiple bind:value={selected_langs_ids}>
+    </Popover.Trigger>
+    <Popover.Content side={new_list ? 'right' : 'bottom'} class="space-y-2 p-2">
+      <select
+        class="rounded-md border border-input bg-background px-2 py-1"
+        multiple
+        bind:value={selected_langs_ids}
+      >
         {#each LANG_LIST as lang, i (i)}
           <option value={LANG_LIST_IDS[i]}>{lang}</option>
         {/each}
@@ -424,9 +416,8 @@
           langugae_select_popover = false;
           add_language_to_project(parseInt(selected_project_id), selected_langs_ids);
         }}
-        class="btn bg-tertiary-500 dark:bg-tertiary-600 mt-2 rounded-md px-2 py-1 text-white"
-        >Update</button
+        class="mt-2 rounded-md bg-primary px-2 py-1 text-primary-foreground">Update</button
       >
-    {/snippet}
-  </Popover>
+    </Popover.Content>
+  </Popover.Root>
 {/snippet}

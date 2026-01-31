@@ -15,10 +15,11 @@
   import Login from './Login.svelte';
   import Signup from './Signup.svelte';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
-  import { Modal, Popover } from '@skeletonlabs/skeleton-svelte';
+  import * as Dialog from '$lib/components/ui/dialog';
+  import * as Popover from '$lib/components/ui/popover';
   import { get_lang_from_id } from '~/state/lang_list';
   import { client } from '~/api/client';
-  import { cl_join } from '~/tools/cl_join';
+  import { cn } from '$lib/utils';
   import { is_current_app_scope } from '~/state/user.svelte';
 
   const session = useSession();
@@ -48,22 +49,11 @@
   let user_popover_status = $state(false);
 </script>
 
-<Popover
-  open={user_popover_status}
-  onOpenChange={(e) => (user_popover_status = e.open)}
-  positioning={{ placement: 'left-start' }}
-  arrow={false}
-  contentBase={'card z-50 space-y-2 p-2 rounded-lg shadow-xl bg-zinc-100 dark:bg-surface-900'}
->
-  {#snippet trigger()}
-    <span class="btn p-0">
-      <Icon
-        class="text-2xl hover:text-gray-600 sm:text-[1.78rem] dark:hover:text-gray-400"
-        src={VscAccount}
-      />
-    </span>
-  {/snippet}
-  {#snippet content()}
+<Popover.Root bind:open={user_popover_status}>
+  <Popover.Trigger class="p-0">
+    <Icon class="text-2xl hover:text-muted-foreground sm:text-[1.78rem]" src={VscAccount} />
+  </Popover.Trigger>
+  <Popover.Content side="left" align="start" class="w-auto space-y-2 p-2">
     {#if user_info}
       <div class="space-y-1 p-1 select-none sm:space-y-1">
         <div class="space-x-1.5 sm:space-x-2">
@@ -76,7 +66,7 @@
             {user_info.name}
           </span>
           <a
-            class="btn p-0 hover:text-blue-600 dark:hover:text-blue-500"
+            class="inline-block p-0 hover:text-blue-600 dark:hover:text-blue-500"
             href="/user"
             target="_blank"
             rel="noopener noreferrer"
@@ -95,7 +85,7 @@
           >
             <button
               disabled={$editing_status_on}
-              class="btn bg-error-600 rounded-md px-2 py-0 pb-0.5 pl-1 text-sm font-bold text-white sm:text-base"
+              class="flex items-center gap-1 rounded-md bg-destructive px-2 py-0.5 pb-0.5 pl-1 text-sm font-bold text-destructive-foreground sm:text-base"
             >
               <Icon class="text-2xl" src={BiLogOut} />
               <span>Logout</span>
@@ -104,8 +94,8 @@
         </div>
         {#if user_info.role !== 'admin' && $user_project_info_q.isSuccess}
           <button
-            class={cl_join(
-              'btn mb-1 block p-0 text-sm outline-hidden select-none hover:text-gray-500 dark:hover:text-gray-400',
+            class={cn(
+              'mb-1 block p-0 text-sm outline-none select-none hover:text-muted-foreground',
               $user_project_info_q.isFetching && 'animate-spin'
             )}
             onclick={() => {
@@ -116,23 +106,21 @@
             <Icon src={LuRefreshCw} class="text-lg" />
           </button>
           {#if $user_project_info_q.isFetching}
-            <div class="placeholder h-5 w-full animate-pulse"></div>
+            <div class="h-5 w-full animate-pulse rounded bg-muted"></div>
           {:else if $is_current_app_scope}
             {@const langs = $user_project_info_q.data.languages!}
             {#if langs && langs.length > 0}
               <div>
                 <Icon class="text-xl" src={LanguageIcon} /> :
-                <span class="text-sm text-gray-500 dark:text-gray-300">
+                <span class="text-sm text-muted-foreground">
                   {langs.map((l) => get_lang_from_id(l.lang_id)).join(', ')}
                 </span>
               </div>
             {:else}
-              <div class="text-warning-600 dark:text-warning-500 text-sm">
-                No languages assigned
-              </div>
+              <div class="text-sm text-amber-600 dark:text-amber-500">No languages assigned</div>
             {/if}
           {:else}
-            <div class="text-warning-600 dark:text-warning-500 text-sm">
+            <div class="text-sm text-amber-600 dark:text-amber-500">
               You account is not added to Projects Portal scope by Admin
             </div>
           {/if}
@@ -148,7 +136,7 @@
           >
             <button
               disabled={$editing_status_on}
-              class="btn bg-primary-800 dark:bg-primary-900 block rounded-md px-1.5 py-0 font-bold text-white"
+              class="block rounded-md bg-primary px-1.5 py-0.5 font-bold text-primary-foreground"
             >
               <Icon src={OiSync16} class="my-1 mb-1 text-lg" />
               <span class="text-xs">Sync Translations from DB</span>
@@ -162,11 +150,11 @@
           onclick={() => {
             $pass_enterer_status = true;
           }}
-          class="group flex w-full space-x-2 rounded-md px-2 py-1 font-bold hover:bg-gray-200 dark:hover:bg-gray-700"
+          class="group flex w-full items-center space-x-2 rounded-md px-2 py-1 font-bold hover:bg-muted"
         >
           <Icon
             src={TrOutlineLogin2}
-            class="-mt-1 -ml-1 text-2xl group-hover:text-gray-600 sm:text-3xl dark:group-hover:text-stone-400"
+            class="-mt-1 -ml-1 text-2xl group-hover:text-muted-foreground sm:text-3xl"
           />
           <span class="text-sm sm:text-base">Login</span>
         </button>
@@ -174,39 +162,28 @@
           onclick={() => {
             $user_create_modal_status = true;
           }}
-          class="group flex w-full space-x-2 rounded-md px-2 py-1 font-bold hover:bg-gray-200 dark:hover:bg-gray-700"
+          class="group flex w-full items-center space-x-2 rounded-md px-2 py-1 font-bold hover:bg-muted"
         >
-          <Icon
-            src={LuUserPlus}
-            class="text-xl group-hover:text-gray-600 sm:text-2xl dark:group-hover:text-stone-400"
-          />
+          <Icon src={LuUserPlus} class="text-xl group-hover:text-muted-foreground sm:text-2xl" />
           <span class="text-sm sm:text-base">Signup</span>
         </button>
       </div>
     {/if}
-  {/snippet}
-</Popover>
-<Modal
-  backdropBackground="backdrop-blur-xs"
-  contentBase={'card z-50 space-y-2 p-2 rounded-lg shadow-xl bg-zinc-100 dark:bg-surface-900'}
-  open={$pass_enterer_status}
-  onOpenChange={(e) => ($pass_enterer_status = e.open)}
->
-  {#snippet content()}
+  </Popover.Content>
+</Popover.Root>
+
+<Dialog.Root bind:open={$pass_enterer_status}>
+  <Dialog.Content class="max-w-sm">
     <div class="m-2 mb-3">
       <Login />
     </div>
-  {/snippet}
-</Modal>
-<Modal
-  backdropBackground="backdrop-blur-sm"
-  contentBase={'card z-50 space-y-2 p-2 rounded-lg shadow-xl bg-zinc-100 dark:bg-surface-900'}
-  open={$user_create_modal_status}
-  onOpenChange={(e) => ($user_create_modal_status = e.open)}
->
-  {#snippet content()}
+  </Dialog.Content>
+</Dialog.Root>
+
+<Dialog.Root bind:open={$user_create_modal_status}>
+  <Dialog.Content class="max-w-sm">
     <div class="m-2 mb-3">
       <Signup />
     </div>
-  {/snippet}
-</Modal>
+  </Dialog.Content>
+</Dialog.Root>

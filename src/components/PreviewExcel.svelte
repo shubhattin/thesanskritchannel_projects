@@ -1,7 +1,8 @@
 <script lang="ts">
   import Icon from '~/tools/Icon.svelte';
   import { RiSystemDownloadLine } from 'svelte-icons-pack/ri';
-  import { Modal, Tabs } from '@skeletonlabs/skeleton-svelte';
+  import * as Dialog from '$lib/components/ui/dialog';
+  import * as Tabs from '$lib/components/ui/tabs';
   import type { Workbook, Worksheet } from 'exceljs';
   import { getNormalizedScriptName, type ScriptLangType } from 'lipilekhika';
   import { get_text_font_class } from '~/tools/font_tools';
@@ -31,57 +32,56 @@
   let overflow_behavior: 'hidden' | 'scroll' = $state('hidden');
 </script>
 
-<div>
-  <Modal
-    open={file_preview_opened}
-    onOpenChange={(e) => (file_preview_opened = e.open)}
-    closeOnInteractOutside={false}
-    backdropBackground="backdrop-blur-xs"
-    contentBase="z-50 mx-3 max-h-[97%] max-w-[97%] overflow-scroll card rounded-lg bg-stone-100 p-1 shadow-2xl dark:bg-surface-900"
-  >
-    {#snippet content()}
-      <div class="flex w-[97%] justify-end">
-        <button
-          aria-label="Close"
-          class="absolute cursor-pointer text-gray-500 hover:text-gray-700"
-          onclick={() => (file_preview_opened = false)}><Icon src={AiOutlineClose} /></button
-        >
+<Dialog.Root bind:open={file_preview_opened}>
+  <Dialog.Content class="max-h-[95vh] max-w-[95vw] overflow-auto p-3">
+    <div class="flex justify-end">
+      <button
+        aria-label="Close"
+        class="absolute top-3 right-3 cursor-pointer text-muted-foreground hover:text-foreground"
+        onclick={() => (file_preview_opened = false)}><Icon src={AiOutlineClose} /></button
+      >
+    </div>
+    <article class="overflow-auto rounded-lg p-3 pt-2">
+      <div class="ml-4 flex items-center gap-4 select-none">
+        <span class="text-2xl">
+          <a href={file_link} class="ml-2" download={file_name}>
+            <Icon
+              src={RiSystemDownloadLine}
+              class="text-blue-800 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-500"
+            />
+          </a>
+        </span>
+        <label class="flex items-center gap-1">
+          <span>Overflow</span>
+          <select
+            class="rounded-md border border-input bg-background px-2 py-1"
+            bind:value={overflow_behavior}
+          >
+            <option value="hidden">Hidden</option>
+            <option value="scroll">Scroll</option>
+          </select>
+        </label>
       </div>
-      <article class="overflow-scroll rounded-lg p-3 pt-2 shadow-lg">
-        <div class="ml-4 flex space-x-4 select-none">
-          <span class="text-2xl">
-            <a href={file_link} class="ml-2" download={file_name}>
-              <Icon
-                src={RiSystemDownloadLine}
-                class="text-blue-800 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-500"
-              />
-            </a>
-          </span>
-          <label class="space-x-1">
-            <span>Overflow</span>
-            <select class="select inline-block w-24 p-1" bind:value={overflow_behavior}>
-              <option value="hidden">Hidden</option>
-              <option value="scroll">Scroll</option>
-            </select>
-          </label>
-        </div>
-        <Tabs value={sheet_number} onValueChange={(e) => (sheet_number = e.value)}>
-          {#snippet list()}
-            {#each workbook.worksheets as worksheet, i}
-              <Tabs.Control value={i.toString()}>
-                <span class="font-bold">{worksheet.name}</span>
-              </Tabs.Control>
-            {/each}
-          {/snippet}
-          {#snippet content()}
-            {@const worksheet = workbook.worksheets[parseInt(sheet_number)]}
-            <div class="overflow-x-scroll">
-              <table class="table-compact table-cell-fit table">
+      <Tabs.Root bind:value={sheet_number} class="mt-4">
+        <Tabs.List>
+          {#each workbook.worksheets as worksheet, i}
+            <Tabs.Trigger value={i.toString()}>
+              <span class="font-bold">{worksheet.name}</span>
+            </Tabs.Trigger>
+          {/each}
+        </Tabs.List>
+        {#each workbook.worksheets as _, i}
+          <Tabs.Content value={i.toString()}>
+            {@const worksheet = workbook.worksheets[i]}
+            <div class="overflow-x-auto">
+              <table class="w-full border-collapse text-sm">
                 <thead>
                   <tr>
-                    {#each Array(worksheet.columnCount) as _, i}
-                      {@const row_value = worksheet.getCell(1, i + 1).value}
-                      <th class="text-center">{row_value ?? ''}</th>
+                    {#each Array(worksheet.columnCount) as _, colIdx}
+                      {@const row_value = worksheet.getCell(1, colIdx + 1).value}
+                      <th class="border border-border bg-muted px-2 py-1 text-center font-semibold"
+                        >{row_value ?? ''}</th
+                      >
                     {/each}
                   </tr>
                 </thead>
@@ -92,9 +92,9 @@
                         {@const row_value =
                           worksheet.getCell(row_i + 2, column_i + 1).value?.toLocaleString() ?? ''}
                         {@const lang = get_lang_code_of_columnn(worksheet, column_i)}
-                        <td>
+                        <td class="border border-border px-2 py-1">
                           <pre
-                            class={`${get_text_font_class(lang)} max-w-72 scroll-m-0 ${overflow_behavior === 'scroll' ? 'overflow-scroll' : 'overflow-hidden'} text-sm`}>{row_value}</pre>
+                            class={`${get_text_font_class(lang)} max-w-72 scroll-m-0 ${overflow_behavior === 'scroll' ? 'overflow-auto' : 'overflow-hidden'} text-sm`}>{row_value}</pre>
                         </td>
                       {/each}
                     </tr>
@@ -102,9 +102,9 @@
                 </tbody>
               </table>
             </div>
-          {/snippet}
-        </Tabs>
-      </article>
-    {/snippet}
-  </Modal>
-</div>
+          </Tabs.Content>
+        {/each}
+      </Tabs.Root>
+    </article>
+  </Dialog.Content>
+</Dialog.Root>

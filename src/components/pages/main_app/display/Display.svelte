@@ -35,7 +35,8 @@
   import { get_font_family_and_size } from '~/tools/font_tools';
   import { LANG_LIST, LANG_LIST_IDS, type lang_list_type } from '~/state/lang_list';
   import { RiSystemAddLargeLine } from 'svelte-icons-pack/ri';
-  import { Popover, Tabs } from '@skeletonlabs/skeleton-svelte';
+  import * as Popover from '$lib/components/ui/popover';
+  import * as Tabs from '$lib/components/ui/tabs';
   import BulkEdit from './bulk/BulkEdit.svelte';
   import AiTranslate from './ai_translate/AITranslate.svelte';
   import {
@@ -168,14 +169,8 @@
 {/if}
 {#if !$editing_status_on}
   <div class="relative w-full">
-    <Popover
-      open={copy_btn_popup_state}
-      onOpenChange={(e) => (copy_btn_popup_state = e.open)}
-      positioning={{ placement: 'bottom-end' }}
-      arrow={false}
-      triggerBase={'btn absolute top-2 right-5 z-20 p-0 outline-hidden select-none'}
-    >
-      {#snippet trigger()}
+    <Popover.Root bind:open={copy_btn_popup_state}>
+      <Popover.Trigger class="absolute top-2 right-5 z-20 p-0 outline-none select-none">
         {#if text_portion_hovered}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <span
@@ -186,11 +181,11 @@
             <Icon src={OiCopy16} class="text-lg" />
           </span>
         {/if}
-      {/snippet}
-      {#snippet content()}
+      </Popover.Trigger>
+      <Popover.Content side="bottom" align="end" class="w-auto space-y-1 p-1">
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
-          class="card dark:bg-surface-900 z-70 space-y-1 rounded-lg bg-slate-100 p-1 shadow-xl"
+          class="space-y-1"
           onmouseenter={() => (text_portion_hovered = true)}
           onmouseleave={() => {
             copy_btn_popup_state = false;
@@ -198,13 +193,13 @@
         >
           <button
             onclick={copy_sarga_shlokas_only}
-            class="btn block w-full rounded-md px-2 py-1 text-sm hover:bg-gray-200 dark:hover:bg-gray-700"
+            class="block w-full rounded-md px-2 py-1 text-sm hover:bg-muted"
           >
             Copy Shlokas
           </button>
           <button
             onclick={copy_sarga_with_transliteration_and_translation}
-            class="btn block w-full rounded-md px-2 py-1 text-xs hover:bg-gray-200 dark:hover:bg-gray-700"
+            class="block w-full rounded-md px-2 py-1 text-xs hover:bg-muted"
           >
             <div>Copy Shlokas</div>
             <div>with</div>
@@ -212,31 +207,26 @@
             <div>and Translation</div>
           </button>
         </div>
-      {/snippet}
-    </Popover>
+      </Popover.Content>
+    </Popover.Root>
   </div>
 {/if}
 
 {#if !$editing_status_on}
   {@render main()}
 {:else}
-  <Tabs
-    value={tab_edit_name}
-    onValueChange={(e) => (tab_edit_name = e.value as typeof tab_edit_name)}
-    base="mt-4"
-  >
-    {#snippet list()}
-      <Tabs.Control value={'main'}>Main</Tabs.Control>
-      <Tabs.Control value={'bulk'}><span class="text-sm">Batch Edit</span></Tabs.Control>
-    {/snippet}
-    {#snippet content()}
-      {#if tab_edit_name === 'main'}
-        {@render main()}
-      {:else}
-        <BulkEdit bind:tab_edit_name />
-      {/if}
-    {/snippet}
-  </Tabs>
+  <Tabs.Root bind:value={tab_edit_name} class="mt-4">
+    <Tabs.List>
+      <Tabs.Trigger value="main">Main</Tabs.Trigger>
+      <Tabs.Trigger value="bulk"><span class="text-sm">Batch Edit</span></Tabs.Trigger>
+    </Tabs.List>
+    <Tabs.Content value="main">
+      {@render main()}
+    </Tabs.Content>
+    <Tabs.Content value="bulk">
+      <BulkEdit bind:tab_edit_name />
+    </Tabs.Content>
+  </Tabs.Root>
 {/if}
 {#snippet main()}
   <!-- svelte-ignore a11y_no_static_element_interactions -->

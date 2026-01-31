@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Accordion } from '@skeletonlabs/skeleton-svelte';
+  import * as Accordion from '$lib/components/ui/accordion';
   import { TrOutlineHelpSquare } from 'svelte-icons-pack/tr';
   import Icon from '~/tools/Icon.svelte';
   import {
@@ -114,34 +114,35 @@
   };
 </script>
 
-<Accordion collapsible>
+<Accordion.Root type="single" class="w-full">
   <Accordion.Item value="help">
-    {#snippet lead()}
-      <Icon src={TrOutlineHelpSquare} class="-m-1.5  -mt-2 text-2xl" />
-    {/snippet}
-    {#snippet control()}
+    <Accordion.Trigger class="flex items-center gap-2">
+      <Icon src={TrOutlineHelpSquare} class="-m-1.5 -mt-2 text-2xl" />
       <span class="text-base font-bold">Instructions</span>
-    {/snippet}
-    {#snippet panel()}
-      <ul class="list-disc">
+    </Accordion.Trigger>
+    <Accordion.Content>
+      <ul class="list-disc space-y-2 pl-5">
         <li>Each shloka should be separated by two or more blank lines</li>
         <li>
           <strong>Format 1</strong>
-          <ul class="list-option rounded-lg">
+          <ul class="mt-1 list-disc space-y-1 pl-5">
             <li>
-              Shloka number can be indicated in either <code>{`{num}. {text}`}</code> or
-              <code>{`{num}: {text}`}</code> format.
+              Shloka number can be indicated in either <code class="rounded bg-muted px-1"
+                >{`{num}. {text}`}</code
+              >
+              or
+              <code class="rounded bg-muted px-1">{`{num}: {text}`}</code> format.
             </li>
             <li>
-              Three or more <code>-(dashes)</code> will make the shloka being ignored or marked as non
-              existent.
+              Three or more <code class="rounded bg-muted px-1">-(dashes)</code> will make the shloka
+              being ignored or marked as non existent.
             </li>
             <li>You are free to place shlokas in any order in this format.</li>
           </ul>
         </li>
         <li>
           <strong>Format 2</strong>
-          <ul class="list-option rounded-lg">
+          <ul class="mt-1 list-disc space-y-1 pl-5">
             <li>
               If shlokas have missing index markers then they will be interpreted in the usual
               order, i.e. 0, 1, 2 to last.
@@ -153,9 +154,9 @@
           </ul>
         </li>
       </ul>
-    {/snippet}
+    </Accordion.Content>
   </Accordion.Item>
-</Accordion>
+</Accordion.Root>
 
 <div class="mt-3 p-1">
   <div class="pb-2 text-sm">⚠️ Avoid using it for single/minor changes or unless necessary.</div>
@@ -175,7 +176,7 @@
           'If you are adding to an empty non translated shloka it should be fine.'}
       >
         <button
-          class="btn bg-tertiary-700 dark:bg-tertiary-600 gap-1 rounded-lg px-1 py-1 font-bold text-white"
+          class="flex items-center gap-1 rounded-lg bg-primary px-2 py-1 font-bold text-primary-foreground"
         >
           <Icon src={OiSync16} class="-my-1 text-lg" />
           Sync to Main
@@ -190,7 +191,7 @@
 <textarea
   style:font-size={`${trans_text_font_info.size}rem`}
   style:font-family={trans_text_font_info.family}
-  class="textarea mt-2.5 h-[60vh] border-2"
+  class="mt-2.5 h-[60vh] w-full rounded-md border-2 border-input bg-background p-2"
   bind:value={$bulk_text_data}
   onbeforeinput={(e) =>
     handleTypingBeforeInputEvent(

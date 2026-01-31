@@ -49,7 +49,7 @@
   } from '~/state/main_app/data.svelte';
   import { is_current_app_scope, user_info } from '~/state/user.svelte';
   import { BiEdit, BiHelpCircle } from 'svelte-icons-pack/bi';
-  import { Switch } from '@skeletonlabs/skeleton-svelte';
+  import { Switch } from '$lib/components/ui/switch';
   import { BsKeyboard } from 'svelte-icons-pack/bs';
   import { loadLocalConfig } from './load_local_config';
   import AiImageGenerator from './ai_image_tool/AIImageGenerator.svelte';
@@ -458,14 +458,14 @@
 {/if}
 {#if $trans_lang !== 0 && $editing_status_on && !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
   <div class="flex space-x-2.5 sm:space-x-4">
-    <Switch
-      name="edit_lang"
-      checked={$edit_language_typer_status}
-      stateFocused="outline-hidden select-none"
-      onCheckedChange={(e) => ($edit_language_typer_status = e.checked)}
-    >
+    <div class="flex items-center gap-2">
+      <Switch
+        id="edit_lang"
+        bind:checked={$edit_language_typer_status}
+        class="focus:outline-none"
+      />
       <Icon src={BsKeyboard} class="text-4xl" />
-    </Switch>
+    </div>
     {#if $sanskrit_mode_texts.isSuccess && !$sanskrit_mode_texts.isFetching}
       <select
         disabled={!$edit_language_typer_status}

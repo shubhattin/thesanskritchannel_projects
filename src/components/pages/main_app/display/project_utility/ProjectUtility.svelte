@@ -22,8 +22,9 @@
   import { transliterate_custom } from '~/tools/converter';
   import { RiUserFacesRobot2Line } from 'svelte-icons-pack/ri';
   import { useSession } from '~/lib/auth-client';
-  import { Modal, Popover } from '@skeletonlabs/skeleton-svelte';
-  import { cl_join } from '~/tools/cl_join';
+  import * as Dialog from '$lib/components/ui/dialog';
+  import * as Popover from '$lib/components/ui/popover';
+  import { cn } from '$lib/utils';
   import { BsThreeDots } from 'svelte-icons-pack/bs';
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
@@ -124,28 +125,18 @@
   let cache_tool_modal_opened = $state(false);
 </script>
 
-<Popover
-  open={utility_popover_state}
-  onOpenChange={(e) => (utility_popover_state = e.open)}
-  positioning={{ placement: 'bottom' }}
-  arrow={false}
-  contentBase={cl_join(
-    'card z-70 space-y-1 p-1 rounded-lg shadow-xl dark:bg-surface-900 bg-zinc-100 text-sm'
-  )}
->
-  {#snippet trigger()}
-    <span class="btn outline-hidden select-none" title="Extra Options">
-      <Icon class="mx-[0.17rem] text-lg sm:mx-0 sm:text-2xl" src={BsThreeDots} />
-    </span>
-  {/snippet}
-  {#snippet content()}
+<Popover.Root bind:open={utility_popover_state}>
+  <Popover.Trigger class="outline-none select-none" title="Extra Options">
+    <Icon class="mx-[0.17rem] text-lg sm:mx-0 sm:text-2xl" src={BsThreeDots} />
+  </Popover.Trigger>
+  <Popover.Content side="bottom" class="w-auto space-y-1 p-1 text-sm">
     {#if user_info}
       <button
         onclick={() => {
           $download_excel_file.mutate();
           utility_popover_state = false;
         }}
-        class="btn block w-full rounded-md px-2 py-1 pt-0 hover:bg-gray-200 dark:hover:bg-gray-700"
+        class="block w-full rounded-md px-2 py-1 pt-0 hover:bg-muted"
       >
         <Icon
           class="-mt-1 mr-1 text-2xl text-green-600 dark:text-green-400"
@@ -159,7 +150,7 @@
         utility_popover_state = false;
         image_tool_opened.set(true);
       }}
-      class="btn block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-gray-200 dark:hover:bg-gray-700"
+      class="block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-muted"
     >
       <Icon src={BiImage} class="-mt-1 fill-sky-500 text-2xl dark:fill-sky-400" />
       Image Tool
@@ -171,7 +162,7 @@
           $ai_tool_opened = true;
           $view_translation_status = true;
         }}
-        class="btn block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-gray-200 dark:hover:bg-gray-700"
+        class="block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-muted"
       >
         <Icon
           src={RiUserFacesRobot2Line}
@@ -181,13 +172,13 @@
       </button>
     {/if}
     <button
-      class="btn block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-gray-200 dark:hover:bg-gray-700"
+      class="block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-muted"
       onclick={() => {
         utility_popover_state = false;
         $download_text_file.mutate();
       }}
     >
-      <Icon src={TrOutlineFileTypeTxt} class=" mr-1 text-2xl" />
+      <Icon src={TrOutlineFileTypeTxt} class="mr-1 text-2xl" />
       Download Text File
     </button>
     {#if user_info && user_info.role === 'admin'}
@@ -196,34 +187,30 @@
           cache_tool_modal_opened = true;
           utility_popover_state = false;
         }}
-        class="btn block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-gray-200 dark:hover:bg-gray-700"
+        class="block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-muted"
       >
         <Icon src={OiCache16} class="-mt-1 mr-1 text-xl text-yellow-600 dark:text-yellow-400" />
         Cache Tool
       </button>
     {/if}
-  {/snippet}
-</Popover>
-<Modal
-  open={$image_tool_opened}
-  onOpenChange={(e) => ($image_tool_opened = e.open)}
-  closeOnInteractOutside={true}
-  contentBase="z-10 mx-3 max-h-[97%] max-w-[97%] overflow-scroll rounded-md p-2 card rounded-lg bg-slate-100 p-1 shadow-2xl dark:bg-surface-900"
-  backdropBackground="backdrop-blur-xs"
->
-  {#snippet content()}
+  </Popover.Content>
+</Popover.Root>
+
+<Dialog.Root bind:open={$image_tool_opened}>
+  <Dialog.Content class="max-h-[97%] max-w-[97%] overflow-scroll p-2">
     {#await import('../../image_tool/ImageTool.svelte') then ImageTool}
       <div class="flex w-[98%] justify-end">
         <button
           aria-label="Close"
-          class="absolute cursor-pointer text-gray-500 hover:text-gray-700"
+          class="absolute top-3 right-3 cursor-pointer text-muted-foreground hover:text-foreground"
           onclick={() => ($image_tool_opened = false)}><Icon src={AiOutlineClose} /></button
         >
       </div>
       <ImageTool.default />
     {/await}
-  {/snippet}
-</Modal>
+  </Dialog.Content>
+</Dialog.Root>
+
 {#if excel_preview_opened}
   {#await import('~/components/PreviewExcel.svelte') then PreviewExcel}
     <PreviewExcel.default
@@ -235,16 +222,10 @@
   {/await}
 {/if}
 
-<Modal
-  contentBase="card z-40 space-y-1.5 rounded-lg px-2 py-1 shadow-xl dark:bg-surface-900 bg-stone-100"
-  triggerBase="btn p-0 outline-hidden select-none"
-  backdropBackground="backdrop-blur-sm"
-  open={cache_tool_modal_opened}
-  onOpenChange={(e) => (cache_tool_modal_opened = e.open)}
->
-  {#snippet content()}
+<Dialog.Root bind:open={cache_tool_modal_opened}>
+  <Dialog.Content class="max-w-md">
     {#await import('./CacheTool.svelte') then CacheTool}
       <CacheTool.default />
     {/await}
-  {/snippet}
-</Modal>
+  </Dialog.Content>
+</Dialog.Root>

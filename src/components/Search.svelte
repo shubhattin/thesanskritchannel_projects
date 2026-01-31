@@ -145,7 +145,7 @@
         <input
           name="path_filter"
           class="input w-full p-2"
-          placeholder="e.g. 1:2 or 1/2 (free text for now)"
+          placeholder="e.g. 1:2"
           bind:value={path_filter}
           onkeydown={(e) => {
             if (e.key === 'Enter') {

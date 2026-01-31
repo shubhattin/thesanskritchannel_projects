@@ -57,6 +57,13 @@
       "when": 1761059037347,
       "tag": "0007_cheerful_cassandra_nova",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1769827077041,
+      "tag": "0008_quick_princess_powerful",
+      "breakpoints": true
     }
   ]
 }

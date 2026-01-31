@@ -10,8 +10,24 @@ import {
   jsonb
 } from 'drizzle-orm/pg-core';
 
-export const translation = pgTable(
-  'translation',
+export const texts = pgTable(
+  'texts',
+  {
+    project_id: integer().notNull(),
+    lang_id: integer().notNull(),
+    path: text().notNull(),
+    index: integer().notNull(),
+    text: text().default('').notNull()
+  },
+  ({ project_id, lang_id, path, index }) => [
+    primaryKey({
+      columns: [project_id, lang_id, path, index]
+    })
+  ]
+);
+
+export const translations = pgTable(
+  'translations',
   {
     project_id: integer().notNull(),
     lang_id: integer().notNull(),

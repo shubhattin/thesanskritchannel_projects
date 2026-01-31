@@ -4,14 +4,16 @@ import { dbMode, take_input } from '~/tools/kry.server';
 import {
   user_project_join,
   user_project_language_join,
-  translation,
+  translations,
   media_attachment,
-  other
+  other,
+  texts
 } from '~/db/schema';
 import {
   UserProjectJoinSchemaZod,
   UserProjectLanguageJoinSchemaZod,
   TranslationSchemaZod,
+  TextSchemaZod,
   MediaAttachmentSchemaZod,
   OtherSchemaZod
 } from '~/db/schema_zod';
@@ -39,7 +41,8 @@ const main = async () => {
     .object({
       user_project_join: UserProjectJoinSchemaZod.array(),
       user_project_language_join: UserProjectLanguageJoinSchemaZod.array(),
-      translation: TranslationSchemaZod.array(),
+      translations: TranslationSchemaZod.array(),
+      texts: TextSchemaZod.array(),
       other: OtherSchemaZod.array(),
       media_attachment: MediaAttachmentSchemaZod.array()
     })
@@ -50,7 +53,8 @@ const main = async () => {
     await db.delete(user_project_join);
     await db.delete(user_project_language_join);
     await db.delete(user_project_language_join);
-    await db.delete(translation);
+    await db.delete(translations);
+    await db.delete(texts);
     await db.delete(other);
     await db.delete(media_attachment);
     console.log(chalk.green('✓ Deleted All Tables Successfully'));
@@ -80,11 +84,22 @@ const main = async () => {
     console.log(chalk.red('✗ Error while inserting user_project_language_join:'), chalk.yellow(e));
   }
 
+  // resetting texts
+  try {
+    const chunks = chunkArray(data.texts, 5000);
+    for (const chunk of chunks) {
+      await db.insert(texts).values(chunk);
+    }
+    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`text`'));
+  } catch (e) {
+    console.log(chalk.red('✗ Error while inserting text:'), chalk.yellow(e));
+  }
+
   // resetting translation
   try {
-    const chunks = chunkArray(data.translation, 5000);
+    const chunks = chunkArray(data.translations, 5000);
     for (const chunk of chunks) {
-      await db.insert(translation).values(chunk);
+      await db.insert(translations).values(chunk);
     }
     console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`translation`'));
   } catch (e) {

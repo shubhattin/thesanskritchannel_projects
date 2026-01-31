@@ -7,7 +7,7 @@ import {
   t
 } from '~/api/trpc_init';
 import { db } from '~/db/db';
-import { translation } from '~/db/schema';
+import { translations } from '~/db/schema';
 import type { shloka_list_type } from '~/state/data_types';
 import { delay } from '~/tools/delay';
 import { env } from '$env/dynamic/private';
@@ -104,7 +104,7 @@ const get_translation_route = publicProcedure
     }
     if (cache) data = cache;
     else {
-      data = await db.query.translation.findMany({
+      data = await db.query.translations.findMany({
         columns: {
           index: true,
           text: true
@@ -159,14 +159,14 @@ const edit_translation_route = protectedAppScopeProcedure
         const existing_indexes = new Set(
           (
             await tx
-              .select({ index: translation.index })
-              .from(translation)
+              .select({ index: translations.index })
+              .from(translations)
               .where(
                 and(
-                  eq(translation.project_id, project_id),
-                  eq(translation.lang_id, lang_id),
-                  eq(translation.path, path),
-                  inArray(translation.index, indexes)
+                  eq(translations.project_id, project_id),
+                  eq(translations.lang_id, lang_id),
+                  eq(translations.path, path),
+                  inArray(translations.index, indexes)
                 )
               )
           ).map((v) => v.index)
@@ -178,7 +178,7 @@ const edit_translation_route = protectedAppScopeProcedure
         await Promise.all([
           // add entries
           add_entries.length > 0 &&
-            tx.insert(translation).values(
+            tx.insert(translations).values(
               add_entries.map(([index, i]) => ({
                 project_id,
                 lang_id,
@@ -190,14 +190,14 @@ const edit_translation_route = protectedAppScopeProcedure
           // update entries
           ...update_entries.map(([index, dataIndex]) =>
             tx
-              .update(translation)
+              .update(translations)
               .set({ text: data[dataIndex] })
               .where(
                 and(
-                  eq(translation.project_id, project_id),
-                  eq(translation.lang_id, lang_id),
-                  eq(translation.path, path),
-                  eq(translation.index, index)
+                  eq(translations.project_id, project_id),
+                  eq(translations.lang_id, lang_id),
+                  eq(translations.path, path),
+                  eq(translations.index, index)
                 )
               )
           )
@@ -227,7 +227,7 @@ const get_all_langs_translation_route = protectedAppScopeProcedure
       get_project_info_from_id(project_id).levels
     );
     const path = path_params.join(':');
-    const data = await db.query.translation.findMany({
+    const data = await db.query.translations.findMany({
       columns: {
         index: true,
         text: true,

@@ -85,7 +85,7 @@ export const text_data_q_options = (
   return queryOptions({
     queryKey: QUERY_KEYS.text_data(path_params),
     queryFn: async () => {
-      const data = await client.translation.get_text_data.query({
+      const data = await client.text.get_text_data.query({
         project_key: project_key,
         path_params
       });

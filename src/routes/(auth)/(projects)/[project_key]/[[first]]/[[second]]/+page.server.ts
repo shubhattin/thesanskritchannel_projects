@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { project_keys_enum_schema, get_project_info_from_key } from '~/state/project_list';
 import { z } from 'zod';
-import { get_text_data_func } from '~/api/routes/translation';
+import { get_text_data_func } from '~/api/routes/text';
 import type { shloka_list_type } from '~/state/data_types';
 
 const params_schema = z.object({

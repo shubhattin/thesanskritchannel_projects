@@ -87,7 +87,7 @@ async function backup_data() {
   if (!argv.includes('--no-zip-backup')) {
     console.log('Zipping backup files');
     execSync(
-      'zip backup/backup.zip backup/db_dump_schema.sql backup/db_dump_data.sql backup/db_data.json backup/translation.csv'
+      'zip backup/backup.zip backup/db_dump_schema.sql backup/db_dump_data.sql backup/db_data.json backup/translations.csv backup/texts.csv'
     );
   }
   console.log('Backup complete');

@@ -8,6 +8,7 @@ build
 
 # Ignore files for PNPM, NPM and YARN
 pnpm-lock.yaml
+bun.lock
 
 src/db/migrations
 src/db/scripts/out/

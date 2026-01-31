@@ -64,7 +64,6 @@
     "dotenv": "^16.6.1",
     "drizzle-kit": "^0.31.8",
     "mime-types": "^3.0.2",
-    "postgres": "^3.4.8",
     "prettier": "^3.8.0",
     "prettier-plugin-svelte": "^3.4.1",
     "prettier-plugin-tailwindcss": "^0.7.2",

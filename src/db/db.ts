@@ -6,15 +6,14 @@ import { get_db_url } from './db_utils';
 import type { PgTransaction } from 'drizzle-orm/pg-core';
 import type { NeonQueryResultHKT } from 'drizzle-orm/neon-serverless';
 import type { ExtractTablesWithRelations } from 'drizzle-orm';
-import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
+import type { BunSQLQueryResultHKT } from 'drizzle-orm/bun-sql';
 
 const DB_URL = get_db_url(env);
 
 const get_drizzle_instance_dev = async () => {
   // using local postgres to allow edge environment in the edge
-  const postgres = await import('postgres');
-  const { drizzle } = await import('drizzle-orm/postgres-js');
-  return drizzle(postgres.default(DB_URL), { schema });
+  const { drizzle } = await import('drizzle-orm/bun-sql');
+  return drizzle(DB_URL, { schema });
 };
 
 export const db = import.meta.env.DEV
@@ -24,9 +23,5 @@ export const db = import.meta.env.DEV
 
 export type transactionType =
   | PgTransaction<NeonQueryResultHKT, typeof schema, ExtractTablesWithRelations<typeof schema>>
-  | PgTransaction<
-      PostgresJsQueryResultHKT,
-      typeof schema,
-      ExtractTablesWithRelations<typeof schema>
-    >
+  | PgTransaction<BunSQLQueryResultHKT, typeof schema, ExtractTablesWithRelations<typeof schema>>
   | typeof db;

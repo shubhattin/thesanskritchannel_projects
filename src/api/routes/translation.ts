@@ -32,6 +32,8 @@ export const get_text_data_func = async (key: string, path_params: number[]) => 
     `data/${project_id}. ${key}/data` +
     (path_params.length !== 0 ? `/${path_params.join('/')}.json` : `.json`);
   if (import.meta.env.DEV) {
+    // on DEV use local files directly
+    // changes on local will be synced to the db and redis in PROD
     const fs = await import('fs');
     return JSON.parse(fs.readFileSync('./' + loc, 'utf8')) as shloka_list_type;
   }
@@ -40,21 +42,15 @@ export const get_text_data_func = async (key: string, path_params: number[]) => 
     REDIS_CACHE_KEYS.text_data(project_id, path_params)
   );
   if (cache) return cache;
-  // raw.githubusercontent.com is faster but imposes a cache of 5 mins so currently using this
-  const req = await fetch(
-    `https://api.github.com/repos/shubhattin/thesanskritchannel_projects/contents/${loc}`,
-    {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        Authorization: `Bearer ${env.GITHUB_API_KEY}`,
-        'X-GitHub-Api-Version': '2022-11-28'
-      }
-    }
-  );
-  const base_64_data = (await req.json())['content'];
-  const buffer = Buffer.from(base_64_data, 'base64');
-  const decoded_content = buffer.toString('utf-8');
-  const data = JSON.parse(decoded_content) as shloka_list_type;
+  const data = await db.query.texts.findMany({
+    columns: {
+      text: true,
+      index: true,
+      shloka_num: true
+    },
+    where: (tbl, { eq, and }) =>
+      and(eq(tbl.project_id, project_id), eq(tbl.path, path_params.join(':')))
+  });
   // set cache in background and return data immediately
   waitUntil(
     redis.set(REDIS_CACHE_KEYS.text_data(project_id, path_params), data, {

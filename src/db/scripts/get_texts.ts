@@ -1,15 +1,15 @@
 // this file gets all the texts from the local json files and dump them in the db compatible schema
-import type z from 'zod';
+import z from 'zod';
 import { get_project_info_from_key, PROJECT_LIST } from '../../state/project_list';
 import { TextSchemaZod } from '../schema_zod';
 import fs from 'node:fs';
 import path from 'node:path';
 
-type Text = {
-  text: string;
-  index: number;
-  shloka_num: number | null;
-};
+const text_schema = z.object({
+  text: z.string(),
+  index: z.number(),
+  shloka_num: z.number().nullable()
+});
 
 const list_json_files_recursive = (root_dir: string): string[] => {
   const out: string[] = [];
@@ -55,9 +55,13 @@ const main = async () => {
     // console.log(`Processing ${project.key}...`);
     const project_info = get_project_info_from_key(project.key);
     if (project_info.levels === 1) {
-      const data: Text[] = JSON.parse(
-        fs.readFileSync(`../../../data/${project.id}. ${project.key}/data.json`, 'utf-8')
-      );
+      const data = text_schema
+        .array()
+        .parse(
+          JSON.parse(
+            fs.readFileSync(`../../../data/${project.id}. ${project.key}/data.json`, 'utf-8')
+          )
+        );
       let project_text_count = 0;
       for (const text of data) {
         texts.push({
@@ -77,7 +81,7 @@ const main = async () => {
       let project_text_count = 0;
       for (const json_file of json_files) {
         const db_path = get_db_path_from_json_file(data_folder, json_file);
-        const data: Text[] = JSON.parse(fs.readFileSync(json_file, 'utf-8'));
+        const data = text_schema.array().parse(JSON.parse(fs.readFileSync(json_file, 'utf-8')));
 
         for (const text of data) {
           texts.push({

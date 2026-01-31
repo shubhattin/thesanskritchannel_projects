@@ -4,8 +4,9 @@ import { z } from 'zod';
 import { db } from '~/db/db';
 import { error } from '@sveltejs/kit';
 import { texts } from '~/db/schema';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
+import { shloka_list_schema } from '~/state/data_types';
 
 const CACHE_KEY_DB_NAME = 'cache_verify_key';
 
@@ -23,7 +24,12 @@ export const POST: RequestHandler = async ({ url, request }) => {
       keys: z.array(
         z.object({
           project_id: z.number(),
-          path_params_list: z.array(z.number().array())
+          path_params_list: z.array(
+            z.object({
+              path_params: z.array(z.number()),
+              new_shloka_list: shloka_list_schema
+            })
+          )
         })
       )
     })
@@ -34,17 +40,28 @@ export const POST: RequestHandler = async ({ url, request }) => {
     // project by project invalidation
     for (const data of keys) {
       const { project_id, path_params_list } = data;
-      await tx.delete(texts).where(
-        and(
-          eq(texts.project_id, project_id),
-          inArray(
-            texts.path,
-            path_params_list.map((path_params) => path_params.join(':'))
-          )
-        )
+      await Promise.all(
+        path_params_list.map(async ({ path_params, new_shloka_list }) => {
+          const path = path_params.join(':');
+
+          // safest sync: replace rows for this (project_id, path)
+          await tx.delete(texts).where(and(eq(texts.project_id, project_id), eq(texts.path, path)));
+
+          if (new_shloka_list.length > 0) {
+            await tx.insert(texts).values(
+              new_shloka_list.map((s) => ({
+                project_id,
+                path,
+                index: s.index,
+                shloka_num: s.shloka_num,
+                text: s.text
+              }))
+            );
+          }
+        })
       );
       await redis.del(
-        ...path_params_list.map((path_params) =>
+        ...path_params_list.map(({ path_params }) =>
           REDIS_CACHE_KEYS_CLIENT.text_data(project_id, path_params)
         )
       );

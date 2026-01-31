@@ -9,11 +9,17 @@ import { z } from 'zod';
 import chalk from 'chalk';
 import { fetch_post } from '~/tools/fetch';
 import dotenv from 'dotenv';
+import { shloka_list_schema, type shloka_list_type } from '../../src/state/data_types';
+import fs from 'node:fs';
 dotenv.config();
 
 type GroupedKey = {
   project_id: number;
-  path_params_list: number[][];
+  path_params_list: {
+    path_params: number[];
+    // a associated data with a path param
+    new_shloka_list: shloka_list_type;
+  }[];
 };
 
 async function main() {
@@ -50,10 +56,12 @@ const get_invalidation_keys_for_files = (files: Set<string>) => {
   const invalidation_keys: {
     project_id: number;
     path_params: number[];
+    new_shloka_list: shloka_list_type;
   }[] = [];
 
   files.forEach((file) => {
-    if (!/^data\/\d(\d)?\. \S+$/.test(file)) return;
+    // only handle project text json files under data/<id>. <key>/*
+    if (!/^data\/\d+\. [^/]+\//.test(file)) return;
     if (!file.endsWith('.json')) return;
     const project_key = file.split('/')[1].split('. ')[1] as project_keys_type;
     const project_info = get_project_info_from_key(project_key);
@@ -61,7 +69,8 @@ const get_invalidation_keys_for_files = (files: Set<string>) => {
     const { levels } = project_info;
     if (levels === 1) {
       if (file.endsWith('data.json')) {
-        invalidation_keys.push({ project_id, path_params: [] });
+        const data = shloka_list_schema.parse(JSON.parse(fs.readFileSync(file, 'utf-8')));
+        invalidation_keys.push({ project_id, path_params: [], new_shloka_list: data });
       }
       return;
     }
@@ -72,7 +81,8 @@ const get_invalidation_keys_for_files = (files: Set<string>) => {
       .split('/')
       .splice(3)
       .map((v) => Number(v));
-    invalidation_keys.push({ project_id, path_params });
+    const data = shloka_list_schema.parse(JSON.parse(fs.readFileSync(file, 'utf-8')));
+    invalidation_keys.push({ project_id, path_params, new_shloka_list: data });
   });
 
   const grouped_keys: GroupedKey[] = [];
@@ -83,7 +93,7 @@ const get_invalidation_keys_for_files = (files: Set<string>) => {
   for (const project_id of all_project_ids) {
     const path_params_list = invalidation_keys
       .filter((key) => key.project_id === project_id)
-      .map((key) => key.path_params);
+      .map((key) => ({ path_params: key.path_params, new_shloka_list: key.new_shloka_list }));
     grouped_keys.push({ project_id, path_params_list });
   }
   return grouped_keys;
@@ -93,7 +103,7 @@ const invalidate_keys = async (invalidation_keys: GroupedKey[]) => {
   if (process.argv.slice(2).includes('--verbose')) {
     console.log(chalk.blue.bold('Keys to be Invalidated: '));
     invalidation_keys.forEach((key) => {
-      key.path_params_list.forEach((path_params) => {
+      key.path_params_list.forEach(({ path_params }) => {
         console.log(REDIS_CACHE_KEYS_CLIENT.text_data(key.project_id, path_params));
       });
     });

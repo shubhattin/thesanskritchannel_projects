@@ -48,7 +48,7 @@ const get_text_data_route = publicProcedure
   .input(
     z.object({
       project_key: z.string(),
-      path_params: z.number().int().array()
+      path_params: z.int().array()
     })
   )
   .query(async ({ input: { project_key, path_params } }) => {
@@ -62,10 +62,10 @@ export const search_text_in_texts_route = publicProcedure
   .input(
     z.object({
       project_key: z.string().optional(),
-      path_params: z.number().int().array().optional(),
+      path_params: z.int().array().optional(),
       search_text: z.string().min(3).max(500),
-      limit: z.number().int().min(1).max(100).default(DEFAULT_PAGE_LIMIT),
-      offset: z.number().int().min(0).default(0)
+      limit: z.int().min(1).max(100).default(DEFAULT_PAGE_LIMIT),
+      offset: z.int().min(0).default(0)
     })
   )
   .query(async ({ input: { project_key, search_text, path_params, limit, offset } }) => {

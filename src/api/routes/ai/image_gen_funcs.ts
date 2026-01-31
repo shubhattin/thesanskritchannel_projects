@@ -29,7 +29,7 @@ const _make_image_dall_e = async (
       // when returned as plain URL
       const resp = z
         .object({
-          created: z.number().int(),
+          created: z.int(),
           data: z
             .object({
               revised_prompt: z.string().optional(),
@@ -81,7 +81,7 @@ const make_image_gpt_1_image = async (image_prompt: string, number_of_images: nu
       // when returned as plain URL
       const resp = z
         .object({
-          created: z.number().int(),
+          created: z.int(),
           data: z
             .object({
               revised_prompt: z.string().optional(),

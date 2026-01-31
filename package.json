@@ -19,7 +19,7 @@
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.42.0",
-    "drizzle-zod": "^0.7.1",
+    "drizzle-zod": "^0.8.3",
     "exceljs": "^4.4.0",
     "fabric": "^6.9.1",
     "js-yaml": "^4.1.1",
@@ -41,7 +41,7 @@
     "trpc-svelte-query": "^2.1.0",
     "trpc-sveltekit": "^3.6.3",
     "vitest": "^3.2.4",
-    "zod": "^3.25.76"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.971.0",

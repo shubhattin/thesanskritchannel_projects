@@ -71,7 +71,7 @@ const retrive_run_info_route = protectedAppScopeProcedure
       z.object({
         completed: z.literal(true),
         output: z.any(),
-        time_taken: z.number().int()
+        time_taken: z.int()
       }),
       z.object({
         error_code: z.string()

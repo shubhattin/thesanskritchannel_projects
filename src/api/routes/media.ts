@@ -12,8 +12,8 @@ import { get_path_params } from '~/state/project_list';
 const get_media_list_route = publicProcedure
   .input(
     z.object({
-      project_id: z.number().int(),
-      selected_text_levels: z.array(z.number().int().nullable())
+      project_id: z.int(),
+      selected_text_levels: z.array(z.int().nullable())
     })
   )
   .query(async ({ input: { project_id, selected_text_levels } }) => {
@@ -57,7 +57,7 @@ const add_media_link_route = protectedAdminProcedure
       id: true,
       path: true
     }).extend({
-      selected_text_levels: z.array(z.number().int().nullable())
+      selected_text_levels: z.array(z.int().nullable())
     })
   )
   .mutation(
@@ -91,8 +91,8 @@ const add_media_link_route = protectedAdminProcedure
 const update_media_link_route = protectedAdminProcedure
   .input(
     MediaAttachmentSchemaZod.omit({ path: true }).extend({
-      project_id: z.number().int(),
-      selected_text_levels: z.array(z.number().int().nullable())
+      project_id: z.int(),
+      selected_text_levels: z.array(z.int().nullable())
     })
   )
   .mutation(
@@ -121,9 +121,9 @@ const update_media_link_route = protectedAdminProcedure
 const delete_media_link_route = protectedAdminProcedure
   .input(
     z.object({
-      project_id: z.number().int(),
-      link_id: z.number().int(),
-      selected_text_levels: z.array(z.number().int().nullable())
+      project_id: z.int(),
+      link_id: z.int(),
+      selected_text_levels: z.array(z.int().nullable())
     })
   )
   .mutation(async ({ input: { link_id, project_id, selected_text_levels } }) => {

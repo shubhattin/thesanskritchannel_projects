@@ -18,13 +18,13 @@ export const text_models_enum = z.enum(AI_TEXT_MODELS);
 
 export const translate_route_schema = {
   input: z.object({
-    project_id: z.number().int(),
-    lang_id: z.number().int(),
+    project_id: z.int(),
+    lang_id: z.int(),
     model: text_models_enum,
     text_name: z.string(),
     text_data: z.array(
       z.object({
-        index: z.number().int().min(0),
+        index: z.int().min(0),
         text: z.string(),
         english_translation: z.string().optional()
       })
@@ -51,7 +51,7 @@ const create_image_output_schema = <
   fileFormat: FileFormat
 ) =>
   z.object({
-    created: z.number().int(),
+    created: z.int(),
     prompt: z.string(),
     url: z.string(),
     model: z.literal(model),
@@ -63,7 +63,7 @@ const image_schema = z.union([
   create_image_output_schema('dall-e-3', 'url', 'png'),
   create_image_output_schema('gpt-image-1', 'b64_json', 'png'),
   create_image_output_schema('sd3-core', 'b64_json', 'png').extend({
-    seed: z.number().int(),
+    seed: z.int(),
     finish_reason: z.string()
   })
 ]);
@@ -71,12 +71,12 @@ const image_schema = z.union([
 export const image_gen_route_schema = {
   input: z.object({
     image_prompt: z.string(),
-    number_of_images: z.number().int().min(1).max(4),
+    number_of_images: z.int().min(1).max(4),
     image_model: available_models_schema
   }),
   output: z.object({
     images: image_schema.array(),
-    time_taken: z.number().int(),
+    time_taken: z.int(),
     success: z.literal(true)
   })
 };

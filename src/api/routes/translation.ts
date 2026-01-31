@@ -21,9 +21,9 @@ import { waitUntil } from '@vercel/functions';
 const get_translation_route = publicProcedure
   .input(
     z.object({
-      project_id: z.number().int(),
-      lang_id: z.number().int(),
-      selected_text_levels: z.array(z.number().int().nullable())
+      project_id: z.int(),
+      lang_id: z.int(),
+      selected_text_levels: z.array(z.int().nullable())
     })
   )
   .query(async ({ input: { project_id, lang_id, selected_text_levels } }) => {
@@ -70,11 +70,11 @@ const get_translation_route = publicProcedure
 const edit_translation_route = protectedAppScopeProcedure
   .input(
     z.object({
-      project_id: z.number().int(),
-      lang_id: z.number().int(),
+      project_id: z.int(),
+      lang_id: z.int(),
       data: z.string().array(),
       indexes: z.number().array(),
-      selected_text_levels: z.array(z.number().int().nullable())
+      selected_text_levels: z.array(z.int().nullable())
     })
   )
   .mutation(
@@ -156,8 +156,8 @@ const edit_translation_route = protectedAppScopeProcedure
 const get_all_langs_translation_route = protectedAppScopeProcedure
   .input(
     z.object({
-      project_id: z.number().int(),
-      selected_text_levels: z.number().int().nullable().array()
+      project_id: z.int(),
+      selected_text_levels: z.int().nullable().array()
     })
   )
   .query(async ({ input: { project_id, selected_text_levels } }) => {

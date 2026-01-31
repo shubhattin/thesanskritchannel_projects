@@ -44,7 +44,7 @@ const add_to_project_route = protectedAdminProcedure
   .input(
     z.object({
       user_id: z.string(),
-      project_id: z.number().int()
+      project_id: z.int()
     })
   )
   .mutation(async ({ input: { user_id, project_id } }) => {
@@ -61,7 +61,7 @@ const remove_from_project_route = protectedAdminProcedure
   .input(
     z.object({
       user_id: z.string(),
-      project_id: z.number().int()
+      project_id: z.int()
     })
   )
   .mutation(async ({ input }) => {
@@ -96,8 +96,8 @@ const update_project_languages_route = protectedAdminProcedure
   .input(
     z.object({
       user_id: z.string(),
-      project_id: z.number().int(),
-      languages_id: z.number().int().array()
+      project_id: z.int(),
+      languages_id: z.int().array()
     })
   )
   .mutation(async ({ input }) => {
@@ -145,7 +145,7 @@ const update_project_languages_route = protectedAdminProcedure
 export const user_project_info_route = protectedProcedure
   .input(
     z.object({
-      project_id: z.number().int()
+      project_id: z.int()
     })
   )
   .query(async ({ input: { project_id }, ctx: { user } }) => {

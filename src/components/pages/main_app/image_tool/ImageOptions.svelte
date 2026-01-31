@@ -250,96 +250,102 @@
             </div>
           </Tabs.Content>
           <Tabs.Content value="depend">
-            <div class="flex items-center justify-center space-x-4 text-sm">
-              <span class="text-base font-bold">
-                Current Shloka Type : {$current_shloka_type}
-              </span>
-            </div>
-            <div class="flex justify-center space-x-16">
-              <div class="flex flex-col justify-center space-y-1">
-                <label class="space-x-1">
-                  <span class="text-sm">Main Text</span>
-                  <input
-                    type="number"
-                    class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
-                    bind:value={$shloka_configs[$current_shloka_type].main_text_font_size}
-                    min={10}
-                  />
-                </label>
-                <label class="space-x-1">
-                  <span class="text-sm">Normal Text</span>
-                  <input
-                    type="number"
-                    class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
-                    bind:value={$shloka_configs[$current_shloka_type].norm_text_font_size}
-                    min={10}
-                  />
-                </label>
-                <label class="space-x-1">
-                  <span class="text-sm">Translation Text</span>
-                  <input
-                    type="number"
-                    class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
-                    bind:value={$shloka_configs[$current_shloka_type].trans_text_font_size}
-                    min={10}
-                  />
-                </label>
+            {#if $current_shloka_type && $shloka_configs[$current_shloka_type]}
+              <div class="flex items-center justify-center space-x-4 text-sm">
+                <span class="text-base font-bold">
+                  Current Shloka Type : {$current_shloka_type}
+                </span>
               </div>
-              <div class="flex flex-col items-center justify-center space-y-2">
-                <div class="text-sm font-semibold">Boundaries</div>
-                <input
-                  type="number"
-                  class="block w-14 rounded border border-input bg-background px-1 py-0 text-sm"
-                  bind:value={$shloka_configs[$current_shloka_type].bounding_coords.top}
-                  min={0}
-                  max={1080}
-                />
-                <div class="space-x-6">
+              <div class="flex justify-center space-x-16">
+                <div class="flex flex-col justify-center space-y-1">
+                  <label class="space-x-1">
+                    <span class="text-sm">Main Text</span>
+                    <input
+                      type="number"
+                      class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                      bind:value={$shloka_configs[$current_shloka_type].main_text_font_size}
+                      min={10}
+                    />
+                  </label>
+                  <label class="space-x-1">
+                    <span class="text-sm">Normal Text</span>
+                    <input
+                      type="number"
+                      class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                      bind:value={$shloka_configs[$current_shloka_type].norm_text_font_size}
+                      min={10}
+                    />
+                  </label>
+                  <label class="space-x-1">
+                    <span class="text-sm">Translation Text</span>
+                    <input
+                      type="number"
+                      class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                      bind:value={$shloka_configs[$current_shloka_type].trans_text_font_size}
+                      min={10}
+                    />
+                  </label>
+                </div>
+                <div class="flex flex-col items-center justify-center space-y-2">
+                  <div class="text-sm font-semibold">Boundaries</div>
                   <input
                     type="number"
-                    class="inline-block w-16 rounded border border-input bg-background px-1 py-0 text-sm"
-                    bind:value={$shloka_configs[$current_shloka_type].bounding_coords.left}
+                    class="block w-14 rounded border border-input bg-background px-1 py-0 text-sm"
+                    bind:value={$shloka_configs[$current_shloka_type].bounding_coords.top}
                     min={0}
-                    max={1920}
+                    max={1080}
                   />
+                  <div class="space-x-6">
+                    <input
+                      type="number"
+                      class="inline-block w-16 rounded border border-input bg-background px-1 py-0 text-sm"
+                      bind:value={$shloka_configs[$current_shloka_type].bounding_coords.left}
+                      min={0}
+                      max={1920}
+                    />
+                    <input
+                      type="number"
+                      class="inline-block w-16 rounded border border-input bg-background px-1 py-0 text-sm"
+                      bind:value={$shloka_configs[$current_shloka_type].bounding_coords.right}
+                      min={0}
+                      max={1920}
+                    />
+                  </div>
                   <input
                     type="number"
                     class="inline-block w-16 rounded border border-input bg-background px-1 py-0 text-sm"
-                    bind:value={$shloka_configs[$current_shloka_type].bounding_coords.right}
+                    bind:value={$shloka_configs[$current_shloka_type].bounding_coords.bottom}
                     min={0}
-                    max={1920}
+                    max={1080}
                   />
                 </div>
-                <input
-                  type="number"
-                  class="inline-block w-16 rounded border border-input bg-background px-1 py-0 text-sm"
-                  bind:value={$shloka_configs[$current_shloka_type].bounding_coords.bottom}
-                  min={0}
-                  max={1080}
-                />
+                <div class="flex flex-col items-center justify-center space-y-1">
+                  <div class="font-semibold">Reference Lines</div>
+                  <label class="inline-block space-x-1">
+                    <span class="text-sm">Top Start</span>
+                    <input
+                      type="number"
+                      class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                      bind:value={$shloka_configs[$current_shloka_type].reference_lines.top}
+                      min={10}
+                    />
+                  </label>
+                  <label class="inline-block space-x-1">
+                    <span class="text-sm">Spacing</span>
+                    <input
+                      type="number"
+                      class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                      bind:value={$shloka_configs[$current_shloka_type].reference_lines.spacing}
+                      min={10}
+                    />
+                  </label>
+                </div>
               </div>
-              <div class="flex flex-col items-center justify-center space-y-1">
-                <div class="font-semibold">Reference Lines</div>
-                <label class="inline-block space-x-1">
-                  <span class="text-sm">Top Start</span>
-                  <input
-                    type="number"
-                    class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
-                    bind:value={$shloka_configs[$current_shloka_type].reference_lines.top}
-                    min={10}
-                  />
-                </label>
-                <label class="inline-block space-x-1">
-                  <span class="text-sm">Spacing</span>
-                  <input
-                    type="number"
-                    class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
-                    bind:value={$shloka_configs[$current_shloka_type].reference_lines.spacing}
-                    min={10}
-                  />
-                </label>
+            {:else}
+              <div class="flex items-center justify-center p-4 text-sm text-muted-foreground">
+                Loading shloka configuration...
               </div>
-            </div>
+            {/if}
           </Tabs.Content>
         </Tabs.Root>
       </div>

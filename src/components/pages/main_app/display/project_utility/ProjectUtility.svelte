@@ -31,6 +31,7 @@
   import { OiCache16 } from 'svelte-icons-pack/oi';
   import { get_path_params } from '~/state/project_list';
   import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
+  import { Button } from '$lib/components/ui/button';
 
   const session = useSession();
   let user_info = $derived($session.data?.user);
@@ -131,48 +132,52 @@
   </Popover.Trigger>
   <Popover.Content side="bottom" class="w-auto space-y-1 p-1 text-sm">
     {#if user_info}
-      <button
+      <Button
+        variant="ghost"
+        class="w-full justify-start px-2 py-1 text-sm font-normal"
         onclick={() => {
           $download_excel_file.mutate();
           utility_popover_state = false;
         }}
-        class="block w-full rounded-md px-2 py-1 pt-0 hover:bg-muted"
       >
         <Icon
           class="-mt-1 mr-1 text-2xl text-green-600 dark:text-green-400"
           src={RiDocumentFileExcel2Line}
         />
         Download Excel File
-      </button>
+      </Button>
     {/if}
-    <button
+    <Button
+      variant="ghost"
+      class="w-full justify-start px-2 py-1 text-sm font-normal"
       onclick={() => {
         utility_popover_state = false;
         image_tool_opened.set(true);
       }}
-      class="block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-muted"
     >
       <Icon src={BiImage} class="-mt-1 fill-sky-500 text-2xl dark:fill-sky-400" />
       Image Tool
-    </button>
+    </Button>
     {#if user_info && user_info.role === 'admin'}
-      <button
+      <Button
+        variant="ghost"
+        class="w-full justify-start px-2 py-1 text-sm font-normal"
         onclick={() => {
           utility_popover_state = false;
           $ai_tool_opened = true;
           $view_translation_status = true;
         }}
-        class="block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-muted"
       >
         <Icon
           src={RiUserFacesRobot2Line}
           class="-mt-1 mr-1 fill-blue-500 text-2xl dark:fill-blue-400"
         />
         AI Image Generator
-      </button>
+      </Button>
     {/if}
-    <button
-      class="block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-muted"
+    <Button
+      variant="ghost"
+      class="w-full justify-start px-2 py-1 text-sm font-normal"
       onclick={() => {
         utility_popover_state = false;
         $download_text_file.mutate();
@@ -180,33 +185,43 @@
     >
       <Icon src={TrOutlineFileTypeTxt} class="mr-1 text-2xl" />
       Download Text File
-    </button>
+    </Button>
     {#if user_info && user_info.role === 'admin'}
-      <button
+      <Button
+        variant="ghost"
+        class="w-full justify-start px-2 py-1 text-sm font-normal"
         onclick={() => {
           cache_tool_modal_opened = true;
           utility_popover_state = false;
         }}
-        class="block w-full rounded-md px-2 py-1 pt-0 text-start hover:bg-muted"
       >
         <Icon src={OiCache16} class="-mt-1 mr-1 text-xl text-yellow-600 dark:text-yellow-400" />
         Cache Tool
-      </button>
+      </Button>
     {/if}
   </Popover.Content>
 </Popover.Root>
 
 <Dialog.Root bind:open={$image_tool_opened}>
-  <Dialog.Content class="max-h-[97%] max-w-[97%] overflow-scroll p-2">
+  <Dialog.Content
+    showCloseButton={false}
+    class="flex h-[95vh] w-[95vw] max-w-[95vw] flex-col gap-0 p-0"
+  >
     {#await import('../../image_tool/ImageTool.svelte') then ImageTool}
-      <div class="flex w-[98%] justify-end">
-        <button
+      <div class="flex w-full justify-end border-b p-2">
+        <Button
+          variant="ghost"
+          size="icon"
           aria-label="Close"
-          class="absolute top-3 right-3 cursor-pointer text-muted-foreground hover:text-foreground"
-          onclick={() => ($image_tool_opened = false)}><Icon src={AiOutlineClose} /></button
+          class="cursor-pointer text-muted-foreground hover:text-foreground"
+          onclick={() => ($image_tool_opened = false)}
         >
+          <Icon src={AiOutlineClose} />
+        </Button>
       </div>
-      <ImageTool.default />
+      <div class="flex-1 overflow-auto p-4">
+        <ImageTool.default />
+      </div>
     {/await}
   </Dialog.Content>
 </Dialog.Root>

@@ -14,14 +14,14 @@ export const texts = pgTable(
   'texts',
   {
     project_id: integer().notNull(),
-    lang_id: integer().notNull(),
     path: text().notNull(),
     index: integer().notNull(),
+    shloka_num: integer(),
     text: text().default('').notNull()
   },
-  ({ project_id, lang_id, path, index }) => [
+  ({ project_id, path, index }) => [
     primaryKey({
-      columns: [project_id, lang_id, path, index]
+      columns: [project_id, path, index]
     })
   ]
 );

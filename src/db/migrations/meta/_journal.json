@@ -71,6 +71,13 @@
       "when": 1769827546111,
       "tag": "0009_add_trgm_text_index",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1769830303406,
+      "tag": "0010_last_vargas",
+      "breakpoints": true
     }
   ]
 }

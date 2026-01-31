@@ -11,6 +11,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import { Checkbox } from '$lib/components/ui/checkbox';
+  import * as Select from '$lib/components/ui/select';
 
   const current_text_cache_invalidate_mut = client_q.cache.invalidate_cache.mutation({
     onSuccess() {
@@ -92,15 +93,16 @@
 <div class="space-y-2">
   <div class="mt-4 space-y-1">
     <Label for="cache-name" class="font-semibold">Cache Name</Label>
-    <select
-      id="cache-name"
-      class="flex h-9 w-48 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
-      bind:value={selected_cache_name}
-    >
-      {#each Object.entries(REDIS_CACHE_KEYS_CLIENT) as [cache_name]}
-        <option value={cache_name}>{cache_name}</option>
-      {/each}
-    </select>
+    <Select.Root type="single" bind:value={selected_cache_name as any}>
+      <Select.Trigger id="cache-name" class="w-48 text-sm">
+        {selected_cache_name}
+      </Select.Trigger>
+      <Select.Content>
+        {#each Object.entries(REDIS_CACHE_KEYS_CLIENT) as [cache_name]}
+          <Select.Item value={cache_name}>{cache_name}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
   </div>
   {@render cache_tool(selected_cache_name)}
 </div>

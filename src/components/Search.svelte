@@ -8,6 +8,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
+  import * as Select from '$lib/components/ui/select';
 
   let started = $state(false);
   let validation_error = $state<string | null>(null);
@@ -135,17 +136,24 @@
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div class="space-y-1">
         <Label for="project-select" class="text-sm font-semibold">Project</Label>
-        <select
-          id="project-select"
-          name="project_id"
-          class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
-          bind:value={project_id}
+        <Select.Root
+          type="single"
+          value={project_id.toString()}
+          onValueChange={(v) => {
+            project_id = parseInt(v) || 0;
+          }}
         >
-          {#each PROJECT_LIST as project (project.id)}
-            <option value={project.id}>{project.name}</option>
-          {/each}
-          <option value={0}>All</option>
-        </select>
+          <Select.Trigger id="project-select" class="w-full">
+            {PROJECT_LIST.find((p) => p.id === project_id)?.name ?? 'All'}
+          </Select.Trigger>
+          <Select.Content>
+            {#each PROJECT_LIST as project (project.id)}
+              <Select.Item value={project.id.toString()} label={project.name} />
+            {/each}
+            <Select.Item value="0" label="All" />
+          </Select.Content>
+        </Select.Root>
+        <input type="hidden" name="project_id" value={project_id} />
       </div>
 
       <div class="space-y-1">

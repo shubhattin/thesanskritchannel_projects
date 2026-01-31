@@ -28,6 +28,7 @@
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { get_project_from_id } from '~/state/project_list';
   import { Button } from '$lib/components/ui/button';
+  import * as Select from '$lib/components/ui/select';
 
   const query_client = useQueryClient();
 
@@ -140,15 +141,19 @@
       Translate with AI
     </Button>
   </ConfirmModal>
-  <select
-    class="ml-3 inline-block w-24 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
-    bind:value={selected_model}
-    title={TEXT_MODEL_LIST[selected_model][1]}
-  >
-    {#each Object.entries(TEXT_MODEL_LIST) as [key, value]}
-      <option value={key} title={value[1]}>{value[0]}</option>
-    {/each}
-  </select>
+  <Select.Root type="single" bind:value={selected_model as any}>
+    <Select.Trigger
+      class="ml-3 inline-flex w-24 px-2 py-1 text-xs"
+      title={TEXT_MODEL_LIST[selected_model][1]}
+    >
+      {TEXT_MODEL_LIST[selected_model][0]}
+    </Select.Trigger>
+    <Select.Content>
+      {#each Object.entries(TEXT_MODEL_LIST) as [key, value]}
+        <Select.Item value={key} label={value[0]} title={value[1]} />
+      {/each}
+    </Select.Content>
+  </Select.Root>
 {:else if $editing_status_on && $translate_sarga_mut.isSuccess && show_time_status}
   <span class="ml-4 text-xs text-stone-500 select-none dark:text-stone-300">
     <Icon src={OiStopwatch16} class="text-base" />

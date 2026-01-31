@@ -12,6 +12,10 @@
   import * as Popover from '$lib/components/ui/popover';
   import { CgClose } from 'svelte-icons-pack/cg';
   import { FiEdit3 } from 'svelte-icons-pack/fi';
+  import * as Select from '$lib/components/ui/select';
+  import { Checkbox } from '$lib/components/ui/checkbox';
+  import { Label } from '$lib/components/ui/label';
+  import { Button } from '$lib/components/ui/button';
   import { OiLinkExternal16 } from 'svelte-icons-pack/oi';
   import RevokeSessions from './RevokeSessions.svelte';
   import ms from 'ms';
@@ -242,16 +246,23 @@
       <div class="mt-2.5">
         <label class="inline-block">
           <span class="text-sm font-semibold">Project</span>
-          <select
-            bind:value={selected_project_id}
-            class="w-56 rounded-md border border-input bg-background px-2 py-1 text-sm sm:w-60"
-          >
-            {#each projects as project}
-              <option value={project.project_id.toString()}
-                >{get_project_from_id(project.project_id).name}</option
-              >
-            {/each}
-          </select>
+          <Select.Root type="single" bind:value={selected_project_id as any}>
+            <Select.Trigger class="w-56 text-sm sm:w-60">
+              {projects.find((p) => p.project_id.toString() === selected_project_id)
+                ? get_project_from_id(
+                    projects.find((p) => p.project_id.toString() === selected_project_id)!
+                      .project_id
+                  ).name
+                : 'Select Project'}
+            </Select.Trigger>
+            <Select.Content>
+              {#each projects as project}
+                <Select.Item value={project.project_id.toString()}
+                  >{get_project_from_id(project.project_id).name}</Select.Item
+                >
+              {/each}
+            </Select.Content>
+          </Select.Root>
         </label>
         {#if admin_edit}
           {@render add_project()}
@@ -401,22 +412,31 @@
         {/if}
       {/if}
     </Popover.Trigger>
-    <Popover.Content side={new_list ? 'right' : 'bottom'} class="space-y-2 p-2">
-      <select
-        class="rounded-md border border-input bg-background px-2 py-1"
-        multiple
-        bind:value={selected_langs_ids}
-      >
+    <Popover.Content side={new_list ? 'right' : 'bottom'} class="w-64 space-y-2 p-3">
+      <div class="max-h-60 space-y-2 overflow-y-auto pr-2">
         {#each LANG_LIST as lang, i (i)}
-          <option value={LANG_LIST_IDS[i]}>{lang}</option>
+          <label class="flex items-center space-x-2">
+            <Checkbox
+              checked={selected_langs_ids.includes(LANG_LIST_IDS[i])}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  selected_langs_ids = [...selected_langs_ids, LANG_LIST_IDS[i]];
+                } else {
+                  selected_langs_ids = selected_langs_ids.filter((id) => id !== LANG_LIST_IDS[i]);
+                }
+              }}
+            />
+            <span class="text-sm">{lang}</span>
+          </label>
         {/each}
-      </select>
-      <button
+      </div>
+      <Button
         onclick={() => {
           langugae_select_popover = false;
           add_language_to_project(parseInt(selected_project_id), selected_langs_ids);
         }}
-        class="mt-2 rounded-md bg-primary px-2 py-1 text-primary-foreground">Update</button
+        class="mt-2 w-full"
+        size="sm">Update</Button
       >
     </Popover.Content>
   </Popover.Root>

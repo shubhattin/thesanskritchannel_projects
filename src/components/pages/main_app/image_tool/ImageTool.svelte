@@ -39,6 +39,7 @@
   import { get_starting_index, project_map_q } from '~/state/main_app/data.svelte';
   import { transliterate_custom } from '~/tools/converter';
   import { deepCopy } from '~/tools/kry';
+  import * as Select from '$lib/components/ui/select';
 
   let mounted = $state(false);
 
@@ -223,13 +224,18 @@
 
 <div class="space-y-2">
   <div class="space-x-2 text-sm">
-    <select class="select inline-block w-36 p-1 text-sm ring-2" bind:value={$image_script}>
-      {#each SCRIPT_LIST as lang (lang)}
-        {#if !['Normal'].includes(lang)}
-          <option value={lang}>{lang}</option>
-        {/if}
-      {/each}
-    </select>
+    <Select.Root type="single" bind:value={$image_script as any}>
+      <Select.Trigger class="inline-flex h-10 w-36 p-1 text-sm">
+        {$image_script}
+      </Select.Trigger>
+      <Select.Content>
+        {#each SCRIPT_LIST as lang (lang)}
+          {#if !['Normal'].includes(lang)}
+            <Select.Item value={lang}>{lang}</Select.Item>
+          {/if}
+        {/each}
+      </Select.Content>
+    </Select.Root>
     <div class="inline-block space-x-1">
       {#each { length: project_info.levels - 1 } as _, i}
         {@const level_name = project_info.level_names[project_info.levels - i - 1]}
@@ -286,30 +292,52 @@
         options: false | option_type[];
         text_level_state_index: number;
       })}
-        <select
-          class={`${get_text_font_class($image_script)} select inline-block w-40 p-1 text-sm ring-2`}
+        <Select.Root
+          type="single"
+          value={$image_selected_levels[text_level_state_index]?.toString() ?? ''}
+          onValueChange={(v) => {
+            $image_selected_levels[text_level_state_index] = v ? parseInt(v) : null;
+          }}
           disabled={$editing_status_on}
-          bind:value={$image_selected_levels[text_level_state_index]}
         >
-          <option value={null}>Select</option>
-          {#if !options}
-            {#if initial_option && initial_option.value}
-              <option value={initial_option.value} selected
-                >{initial_option.value}. {initial_option.text}</option
-              >
+          <Select.Trigger
+            class={`${get_text_font_class($image_script)} inline-flex h-10 w-40 p-1 text-sm`}
+          >
+            {$image_selected_levels[text_level_state_index]
+              ? `${$image_selected_levels[text_level_state_index]}. ${
+                  options
+                    ? (options.find(
+                        (o) => o.value === $image_selected_levels[text_level_state_index]
+                      )?.text ?? '')
+                    : (initial_option?.text ?? '')
+                }`
+              : 'Select'}
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Item value="">Select</Select.Item>
+            {#if !options}
+              {#if initial_option && initial_option.value}
+                <Select.Item value={initial_option.value.toString()}>
+                  {initial_option.value}. {initial_option.text}
+                </Select.Item>
+              {/if}
+            {:else}
+              {#await transliterate_options(options, $viewing_script)}
+                {#each options as option}
+                  <Select.Item value={option.value!.toString()}
+                    >{option.value}. {option.text}</Select.Item
+                  >
+                {/each}
+              {:then options_tr}
+                {#each options_tr as option}
+                  <Select.Item value={option.value!.toString()}
+                    >{option.value}. {option.text}</Select.Item
+                  >
+                {/each}
+              {/await}
             {/if}
-          {:else}
-            {#await transliterate_options(options, $viewing_script)}
-              {#each options as option}
-                <option value={option.value}>{option.value}. {option.text}</option>
-              {/each}
-            {:then options_tr}
-              {#each options_tr as option}
-                <option value={option.value}>{option.value}. {option.text}</option>
-              {/each}
-            {/await}
-          {/if}
-        </select>
+          </Select.Content>
+        </Select.Root>
       {/snippet}
     </div>
   </div>

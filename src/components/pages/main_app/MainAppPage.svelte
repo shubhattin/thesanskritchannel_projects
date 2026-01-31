@@ -55,6 +55,7 @@
   import AiImageGenerator from './ai_image_tool/AIImageGenerator.svelte';
   import { preloadScriptData, type ScriptLangType } from 'lipilekhika';
   import { Button } from '$lib/components/ui/button';
+  import * as Select from '$lib/components/ui/select';
 
   const query_client = useQueryClient();
 
@@ -261,15 +262,20 @@
 <label class="block space-x-2 text-sm sm:space-x-2 sm:text-base">
   Script
   <Icon src={LanguageIcon} class="text-2xl sm:text-4xl" />
-  <select
-    class="inline-block h-10 w-32 rounded-md border border-input bg-background px-2 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 sm:h-12 sm:w-40 sm:text-base dark:bg-input/30"
+  <Select.Root
+    type="single"
+    bind:value={$viewing_script_selection as any}
     disabled={$viewing_script_selection !== BASE_SCRIPT && $viewing_script_mut.isPending}
-    bind:value={$viewing_script_selection}
   >
-    {#each SCRIPT_LIST as lang (lang)}
-      <option value={lang}>{lang}</option>
-    {/each}
-  </select>
+    <Select.Trigger class="inline-flex h-10 w-32 px-2 py-1 text-sm sm:h-12 sm:w-40 sm:text-base">
+      {$viewing_script_selection}
+    </Select.Trigger>
+    <Select.Content>
+      {#each SCRIPT_LIST as lang (lang)}
+        <Select.Item value={lang}>{lang}</Select.Item>
+      {/each}
+    </Select.Content>
+  </Select.Root>
 </label>
 {#each { length: project_info.levels - 1 } as _, i}
   {@const level_name = project_info.level_names[project_info.levels - i - 1]}
@@ -331,30 +337,51 @@
 })}
   <label class="block space-x-2 sm:space-x-3">
     <span class="text-sm font-bold sm:text-base">Select {name}</span>
-    <select
-      class={`${get_text_font_class($viewing_script)} inline-block h-10 w-44 rounded-md border border-input bg-background px-2 py-1 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 sm:h-12 sm:w-52 dark:bg-input/30`}
+    <Select.Root
+      type="single"
+      value={$selected_text_levels[text_level_state_index]?.toString() ?? ''}
+      onValueChange={(v) => {
+        $selected_text_levels[text_level_state_index] = v ? parseInt(v) : null;
+      }}
       disabled={$editing_status_on}
-      bind:value={$selected_text_levels[text_level_state_index]}
     >
-      <option value={null}>Select</option>
-      {#if !options}
-        {#if initial_option.value}
-          <option value={initial_option.value} selected
-            >{initial_option.value}. {initial_option.text}</option
-          >
+      <Select.Trigger
+        class={`${get_text_font_class($viewing_script)} inline-flex h-10 w-44 px-2 py-1 sm:h-12 sm:w-52`}
+      >
+        {$selected_text_levels[text_level_state_index]
+          ? `${$selected_text_levels[text_level_state_index]}. ${
+              options
+                ? (options.find((o) => o.value === $selected_text_levels[text_level_state_index])
+                    ?.text ?? '')
+                : (initial_option.text ?? '')
+            }`
+          : 'Select'}
+      </Select.Trigger>
+      <Select.Content>
+        <Select.Item value="">Select</Select.Item>
+        {#if !options}
+          {#if initial_option.value}
+            <Select.Item value={initial_option.value.toString()}>
+              {initial_option.value}. {initial_option.text}
+            </Select.Item>
+          {/if}
+        {:else}
+          {#await transliterate_options(options, $viewing_script)}
+            {#each options as option}
+              <Select.Item value={option.value!.toString()}
+                >{option.value}. {option.text}</Select.Item
+              >
+            {/each}
+          {:then options_tr}
+            {#each options_tr as option}
+              <Select.Item value={option.value!.toString()}
+                >{option.value}. {option.text}</Select.Item
+              >
+            {/each}
+          {/await}
         {/if}
-      {:else}
-        {#await transliterate_options(options, $viewing_script)}
-          {#each options as option}
-            <option value={option.value}>{option.value}. {option.text}</option>
-          {/each}
-        {:then options_tr}
-          {#each options_tr as option}
-            <option value={option.value}>{option.value}. {option.text}</option>
-          {/each}
-        {/await}
-      {/if}
-    </select>
+      </Select.Content>
+    </Select.Root>
   </label>
 {/snippet}
 
@@ -398,19 +425,26 @@
           <label class="mr-1 inline-block space-x-1.5 text-sm sm:mr-3 sm:space-x-4 sm:text-base">
             Translation
             <Icon src={LanguageIcon} class="text-xl sm:text-2xl" />
-            <select
+            <Select.Root
+              type="single"
+              value={$trans_lang_selection.toString()}
+              onValueChange={(v) => {
+                $trans_lang_selection = parseInt(v) || 0;
+              }}
               disabled={$editing_status_on || $viewing_script_mut.isPending}
-              class="inline-block w-24 rounded-md border border-input bg-background px-2 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-32 sm:text-base dark:bg-input/30"
-              bind:value={$trans_lang_selection}
             >
-              <!-- $trans_lang_mut.isPending || -->
-              <option value={0}>English</option>
-              {#each LANG_LIST as lang, i (lang)}
-                {#if lang !== 'English'}
-                  <option value={LANG_LIST_IDS[i]}>{lang}</option>
-                {/if}
-              {/each}
-            </select>
+              <Select.Trigger class="inline-flex w-24 px-2 py-1 text-sm sm:w-32 sm:text-base">
+                {LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang_selection)] ?? 'English'}
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="0">English</Select.Item>
+                {#each LANG_LIST as lang, i (lang)}
+                  {#if lang !== 'English'}
+                    <Select.Item value={LANG_LIST_IDS[i].toString()}>{lang}</Select.Item>
+                  {/if}
+                {/each}
+              </Select.Content>
+            </Select.Root>
           </label>
           {#if !$editing_status_on && $user_info && $is_current_app_scope}
             {@const languages =
@@ -469,14 +503,21 @@
       <Icon src={BsKeyboard} class="text-4xl" />
     </div>
     {#if $sanskrit_mode_texts.isSuccess && !$sanskrit_mode_texts.isFetching}
-      <select
+      <Select.Root
+        type="single"
+        bind:value={$sanskrit_mode as any}
         disabled={!$edit_language_typer_status}
-        bind:value={$sanskrit_mode}
-        class="w-28 rounded-md border border-input bg-background px-1 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
       >
-        <option value={1}>rAm ➔ {$sanskrit_mode_texts.data[0]}</option>
-        <option value={0}>rAm ➔ {$sanskrit_mode_texts.data[1]}</option>
-      </select>
+        <Select.Trigger class="w-28 text-sm">
+          {$sanskrit_mode === 1
+            ? 'rAm ➔ ' + $sanskrit_mode_texts.data[0]
+            : 'rAm ➔ ' + $sanskrit_mode_texts.data[1]}
+        </Select.Trigger>
+        <Select.Content>
+          <Select.Item value={1 as any}>rAm ➔ {$sanskrit_mode_texts.data[0]}</Select.Item>
+          <Select.Item value={0 as any}>rAm ➔ {$sanskrit_mode_texts.data[1]}</Select.Item>
+        </Select.Content>
+      </Select.Root>
     {/if}
     <Button
       variant="ghost"

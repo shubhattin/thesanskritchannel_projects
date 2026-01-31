@@ -11,6 +11,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
+  import * as Select from '$lib/components/ui/select';
 
   let { modal_open_state = $bindable() }: { modal_open_state: boolean } = $props();
 
@@ -63,31 +64,39 @@
     <Label for="media-type" class="font-semibold">Type</Label>
     <div class="flex items-center gap-2">
       <MediaTypeIcon {media_type} />
-      <select
-        id="media-type"
-        required
-        bind:value={media_type}
-        class="flex h-9 w-32 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
-      >
-        {#each Object.entries(MEDIA_TYPE_LIST) as [key, value]}
-          <option value={key}>{value}</option>
-        {/each}
-      </select>
+      <Select.Root type="single" bind:value={media_type as any}>
+        <Select.Trigger class="w-full text-sm">
+          {MEDIA_TYPE_LIST[media_type] ?? 'Select Type'}
+        </Select.Trigger>
+        <Select.Content>
+          {#each Object.entries(MEDIA_TYPE_LIST) as [key, value]}
+            <Select.Item value={key}>{value}</Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
+      <input type="hidden" name="type" value={media_type} />
     </div>
   </div>
 
   <div class="space-y-2">
     <Label for="language" class="font-semibold">Language</Label>
-    <select
-      id="language"
-      required
-      bind:value={lang_id}
-      class="flex h-9 w-40 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
+    <Select.Root
+      type="single"
+      value={lang_id.toString()}
+      onValueChange={(v) => {
+        lang_id = parseInt(v) || 0;
+      }}
     >
-      {#each Object.entries(lang_list_obj) as [lang, id]}
-        <option value={id}>{lang}</option>
-      {/each}
-    </select>
+      <Select.Trigger class="w-full text-sm">
+        {Object.entries(lang_list_obj).find(([, id]) => id === lang_id)?.[0] ?? 'English'}
+      </Select.Trigger>
+      <Select.Content>
+        {#each Object.entries(lang_list_obj) as [lang, id]}
+          <Select.Item value={id.toString()}>{lang}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
+    <input type="hidden" name="lang_id" value={lang_id} />
   </div>
 
   <div class="space-y-2">

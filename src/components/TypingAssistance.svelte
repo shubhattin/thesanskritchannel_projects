@@ -15,6 +15,7 @@
   import * as Tabs from '$lib/components/ui/tabs';
   import Icon from '~/tools/Icon.svelte';
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
+  import * as Select from '$lib/components/ui/select';
 
   interface Props {
     sync_lang_script: string;
@@ -134,14 +135,16 @@
     </div>
     <div class="space-y-4">
       <div>
-        <select
-          class="w-40 rounded-md border border-input bg-background px-3 py-2"
-          bind:value={typing_assistance_lang}
-        >
-          {#each ALL_LANG_SCRIPT_LIST.filter((src) => src !== 'English') as lang_script}
-            <option value={lang_script}>{lang_script}</option>
-          {/each}
-        </select>
+        <Select.Root type="single" bind:value={typing_assistance_lang as any}>
+          <Select.Trigger class="w-40 text-sm">
+            {typing_assistance_lang}
+          </Select.Trigger>
+          <Select.Content>
+            {#each ALL_LANG_SCRIPT_LIST.filter((src) => src !== 'English') as lang_script}
+              <Select.Item value={lang_script}>{lang_script}</Select.Item>
+            {/each}
+          </Select.Content>
+        </Select.Root>
       </div>
 
       <Tabs.Root bind:value={active_tab}>
@@ -374,15 +377,17 @@
 
               <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                 <span class="text-sm text-muted-foreground">Compare with</span>
-                <select
-                  class="w-full rounded-lg border border-input bg-background px-3 py-2 sm:w-64"
-                  bind:value={script_to_compare_value}
-                >
-                  <option value="">Select a script</option>
-                  {#each available_compare_scripts as script_option (script_option)}
-                    <option value={script_option}>{script_option}</option>
-                  {/each}
-                </select>
+                <Select.Root type="single" bind:value={script_to_compare_value as any}>
+                  <Select.Trigger class="w-full sm:w-64">
+                    {script_to_compare_value || 'Select a script'}
+                  </Select.Trigger>
+                  <Select.Content>
+                    <Select.Item value="">Select a script</Select.Item>
+                    {#each available_compare_scripts as script_option (script_option)}
+                      <Select.Item value={script_option}>{script_option}</Select.Item>
+                    {/each}
+                  </Select.Content>
+                </Select.Root>
               </div>
             </div>
 

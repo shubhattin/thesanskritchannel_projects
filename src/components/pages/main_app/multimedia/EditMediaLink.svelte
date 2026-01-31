@@ -12,6 +12,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
+  import * as Select from '$lib/components/ui/select';
 
   type link_info_type = Awaited<ReturnType<typeof client.media.get_media_list.query>>[0];
 
@@ -63,17 +64,10 @@
     }
   });
 
-  let media_type = $state<media_list_type>(link_info.media_type as media_list_type);
-  let lang_id = $state(link_info.lang_id);
-  let url = $state(link_info.link);
-  let name = $state(link_info.name);
-
-  $effect(() => {
-    media_type = link_info.media_type as media_list_type;
-    lang_id = link_info.lang_id;
-    url = link_info.link;
-    name = link_info.name;
-  });
+  let media_type = $derived<media_list_type>(link_info.media_type as media_list_type);
+  let lang_id = $derived(link_info.lang_id);
+  let url = $derived(link_info.link);
+  let name = $derived(link_info.name);
 
   const del_link_func = () => {
     $del_media_link_mut.mutate({
@@ -110,7 +104,6 @@
       placement="bottom"
       close_on_confirm={true}
       confirm_func={del_link_func}
-      z_index={999}
     >
       <Button
         type="button"
@@ -128,31 +121,39 @@
     <Label for="edit-media-type" class="font-semibold">Type</Label>
     <div class="flex items-center gap-2">
       <MediaTypeIcon {media_type} />
-      <select
-        id="edit-media-type"
-        required
-        bind:value={media_type}
-        class="flex h-9 w-32 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
-      >
-        {#each Object.entries(MEDIA_TYPE_LIST) as [key, value]}
-          <option value={key}>{value}</option>
-        {/each}
-      </select>
+      <Select.Root type="single" bind:value={media_type}>
+        <Select.Trigger class="w-full text-sm">
+          {MEDIA_TYPE_LIST[media_type] ?? 'Select Type'}
+        </Select.Trigger>
+        <Select.Content>
+          {#each Object.entries(MEDIA_TYPE_LIST) as [key, value]}
+            <Select.Item value={key}>{value}</Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
+      <input type="hidden" name="type" value={media_type} />
     </div>
   </div>
 
   <div class="space-y-2">
     <Label for="edit-language" class="font-semibold">Language</Label>
-    <select
-      id="edit-language"
-      required
-      bind:value={lang_id}
-      class="flex h-9 w-40 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
+    <Select.Root
+      type="single"
+      value={lang_id.toString()}
+      onValueChange={(v) => {
+        lang_id = parseInt(v) || 0;
+      }}
     >
-      {#each Object.entries(lang_list_obj) as [lang, id]}
-        <option value={id}>{lang}</option>
-      {/each}
-    </select>
+      <Select.Trigger class="w-full text-sm">
+        {Object.entries(lang_list_obj).find(([, id]) => id === lang_id)?.[0] ?? 'English'}
+      </Select.Trigger>
+      <Select.Content>
+        {#each Object.entries(lang_list_obj) as [lang, id]}
+          <Select.Item value={id.toString()}>{lang}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
+    <input type="hidden" name="lang_id" value={lang_id} />
   </div>
 
   <div class="space-y-2">

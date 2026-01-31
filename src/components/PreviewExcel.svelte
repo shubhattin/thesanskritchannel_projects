@@ -8,6 +8,7 @@
   import { get_text_font_class } from '~/tools/font_tools';
   import type { script_and_lang_list_type } from '~/state/lang_list';
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
+  import * as Select from '$lib/components/ui/select';
 
   type Props = {
     file_link: string;
@@ -53,13 +54,15 @@
         </span>
         <label class="flex items-center gap-1">
           <span>Overflow</span>
-          <select
-            class="rounded-md border border-input bg-background px-2 py-1"
-            bind:value={overflow_behavior}
-          >
-            <option value="hidden">Hidden</option>
-            <option value="scroll">Scroll</option>
-          </select>
+          <Select.Root type="single" bind:value={overflow_behavior as any}>
+            <Select.Trigger class="w-24 px-2 py-1 text-sm">
+              {overflow_behavior === 'hidden' ? 'Hidden' : 'Scroll'}
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Item value="hidden">Hidden</Select.Item>
+              <Select.Item value="scroll">Scroll</Select.Item>
+            </Select.Content>
+          </Select.Root>
         </label>
       </div>
       <Tabs.Root bind:value={sheet_number} class="mt-4">

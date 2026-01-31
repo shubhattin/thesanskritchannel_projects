@@ -40,6 +40,7 @@
   import { get_result_from_trigger_run_id } from '~/tools/trigger';
   import { Button } from '$lib/components/ui/button';
   import { Textarea } from '$lib/components/ui/textarea';
+  import * as Select from '$lib/components/ui/select';
 
   let base_prompts = image_tool_prompts as {
     main_prompt: {
@@ -333,20 +334,29 @@
     >
       <Icon src={TiArrowBackOutline} class="-mt-1 text-lg" />
     </button>
-    <select
+    <Select.Root
+      type="single"
+      value={$index.toString()}
+      onValueChange={(v) => {
+        $index = parseInt(v) || 0;
+      }}
       disabled={$text_data_q.isFetching}
-      class="inline-block w-20 rounded-md border border-input bg-background px-1 text-sm shadow-xs outline-none focus-visible:border-ring dark:bg-input/30"
-      bind:value={$index}
     >
-      {#each Array(total_count) as _, index}
-        {#if !$text_data_q.isFetching && $text_data_q.isSuccess}
-          <option value={index}
-            >{index}{$text_data_q.data[index]?.shloka_num &&
-              ` - ${$text_data_q.data[index].shloka_num}`}</option
-          >
-        {/if}
-      {/each}
-    </select>
+      <Select.Trigger class="inline-flex w-20 px-1 text-sm">
+        {$index}{$text_data_q.data?.[$index]?.shloka_num &&
+          ` - ${$text_data_q.data[$index].shloka_num}`}
+      </Select.Trigger>
+      <Select.Content>
+        {#each Array(total_count) as _, index}
+          {#if !$text_data_q.isFetching && $text_data_q.isSuccess}
+            <Select.Item value={index.toString()}>
+              {index}{$text_data_q.data[index]?.shloka_num &&
+                ` - ${$text_data_q.data[index].shloka_num}`}
+            </Select.Item>
+          {/if}
+        {/each}
+      </Select.Content>
+    </Select.Root>
     <button
       class="btn-hover"
       onclick={() => {
@@ -367,15 +377,19 @@
   >
     Generate Image Prompt
   </Button>
-  <select
-    class="ml-2.5 inline-block w-20 rounded-md border border-input bg-background px-1.5 py-1 text-xs shadow-xs outline-none focus-visible:border-ring dark:bg-input/30"
-    bind:value={selected_text_model}
-    title={TEXT_MODEL_LIST[selected_text_model][1]}
-  >
-    {#each Object.entries(TEXT_MODEL_LIST) as [key, value]}
-      <option value={key} title={value[1]}>{value[0]}</option>
-    {/each}
-  </select>
+  <Select.Root type="single" bind:value={selected_text_model as any}>
+    <Select.Trigger
+      class="ml-2.5 inline-flex w-20 px-1.5 py-1 text-xs"
+      title={TEXT_MODEL_LIST[selected_text_model][1]}
+    >
+      {TEXT_MODEL_LIST[selected_text_model][0]}
+    </Select.Trigger>
+    <Select.Content>
+      {#each Object.entries(TEXT_MODEL_LIST) as [key, value]}
+        <Select.Item value={key} label={value[0]} title={value[1]} />
+      {/each}
+    </Select.Content>
+  </Select.Root>
   <Button
     variant="ghost"
     size="icon"
@@ -426,15 +440,16 @@
   </div>
 </div>
 <div class="flex space-x-3">
-  <select
-    class="w-24 rounded-md border border-input bg-background px-1.5 py-1 text-sm shadow-xs outline-none focus-visible:border-ring dark:bg-input/30"
-    bind:value={image_model}
-    title={IMAGE_MODELS[image_model][1]}
-  >
-    {#each Object.entries(IMAGE_MODELS) as option}
-      <option class="text-sm" value={option[0]} title={option[1][1]}>{option[1][0]}</option>
-    {/each}
-  </select>
+  <Select.Root type="single" bind:value={image_model as any}>
+    <Select.Trigger class="w-24 px-1.5 py-1 text-sm" title={IMAGE_MODELS[image_model][1]}>
+      {IMAGE_MODELS[image_model][0]}
+    </Select.Trigger>
+    <Select.Content>
+      {#each Object.entries(IMAGE_MODELS) as option}
+        <Select.Item value={option[0]} label={option[1][0]} title={option[1][1]} />
+      {/each}
+    </Select.Content>
+  </Select.Root>
   <Switch id="auto_image" bind:checked={$auto_gen_image} />
   <label for="auto_image" class="text-sm">Auto Generate Image</label>
 </div>

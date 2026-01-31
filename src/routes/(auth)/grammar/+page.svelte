@@ -15,6 +15,7 @@
   import { project_map_q_options, text_data_q_options } from '~/state/main_app/data.svelte';
   import Icon from '~/tools/Icon.svelte';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
+  import * as Select from '$lib/components/ui/select';
 
   let langugae = $state('Hindi');
   let shloka = $state('');
@@ -151,21 +152,31 @@
   </div>
   <label class="flex items-center gap-2">
     <span class="label-text text-xs font-semibold">Model</span>
-    <select bind:value={model} class="select w-36 px-1 pr-1.5 text-xs">
-      {#each MODELS_LIST as model_key}
-        <option value={model_key}>{MODEL_NAMES[model_key]}</option>
-      {/each}
-    </select>
+    <Select.Root type="single" bind:value={model as any}>
+      <Select.Trigger class="w-36 px-1 pr-1.5 text-xs">
+        {MODEL_NAMES[model]}
+      </Select.Trigger>
+      <Select.Content>
+        {#each MODELS_LIST as model_key}
+          <Select.Item value={model_key}>{MODEL_NAMES[model_key]}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
   </label>
   {#if !load_text_source}
     <div transition:slide class="space-y-3">
       <label class="flex items-center gap-2">
         <span class="label-text text-sm">Language</span>
-        <select bind:value={langugae} class="select w-28 text-sm">
-          {#each LANGUAGES as lang}
-            <option value={lang}>{lang}</option>
-          {/each}
-        </select>
+        <Select.Root type="single" bind:value={langugae as any}>
+          <Select.Trigger class="w-28 text-sm">
+            {langugae}
+          </Select.Trigger>
+          <Select.Content>
+            {#each LANGUAGES as lang}
+              <Select.Item value={lang}>{lang}</Select.Item>
+            {/each}
+          </Select.Content>
+        </Select.Root>
       </label>
       <textarea class="textarea h-52" bind:value={shloka}></textarea>
     </div>
@@ -173,12 +184,17 @@
     <div class="flex items-center justify-start space-x-6">
       <label class="flex items-center gap-2">
         <span class="text-base font-semibold">Project</span>
-        <select bind:value={selected_project_key} class="select w-44 px-1.5 py-1 text-sm">
-          <option value={null}>Select Project</option>
-          {#each PROJECT_LIST as project}
-            <option value={project.key}>{project.name}</option>
-          {/each}
-        </select>
+        <Select.Root type="single" bind:value={selected_project_key as any}>
+          <Select.Trigger class="w-44 px-1.5 py-1 text-sm">
+            {PROJECT_LIST.find((p) => p.key === selected_project_key)?.name ?? 'Select Project'}
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Item value={null!}>Select Project</Select.Item>
+            {#each PROJECT_LIST as project}
+              <Select.Item value={project.key}>{project.name}</Select.Item>
+            {/each}
+          </Select.Content>
+        </Select.Root>
       </label>
     </div>
     {#if selected_project_key && project_info && project && $project_map_q.isSuccess}
@@ -238,24 +254,41 @@
           options: false | option_type[];
           text_level_state_index: number;
         })}
-          <select
-            transition:fade
-            class={`select inline-block w-40 p-1 text-sm ring-2`}
-            bind:value={selected_text_levels[text_level_state_index]}
+          <Select.Root
+            type="single"
+            value={selected_text_levels[text_level_state_index]?.toString() ?? ''}
+            onValueChange={(v) => {
+              selected_text_levels[text_level_state_index] = v ? parseInt(v) : null;
+            }}
           >
-            <option value={null}>Select</option>
-            {#if !options}
-              {#if initial_option && initial_option.value}
-                <option value={initial_option.value} selected
-                  >{initial_option.value}. {initial_option.text}</option
-                >
+            <Select.Trigger class="flex h-10 w-40 p-1 text-sm">
+              {selected_text_levels[text_level_state_index]
+                ? `${selected_text_levels[text_level_state_index]}. ${
+                    options
+                      ? (options.find(
+                          (o) => o.value === selected_text_levels[text_level_state_index]
+                        )?.text ?? '')
+                      : (initial_option?.text ?? '')
+                  }`
+                : 'Select'}
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Item value="">Select</Select.Item>
+              {#if !options}
+                {#if initial_option && initial_option.value}
+                  <Select.Item value={initial_option.value.toString()}>
+                    {initial_option.value}. {initial_option.text}
+                  </Select.Item>
+                {/if}
+              {:else}
+                {#each options as option}
+                  <Select.Item value={option.value!.toString()}
+                    >{option.value}. {option.text}</Select.Item
+                  >
+                {/each}
               {/if}
-            {:else}
-              {#each options as option}
-                <option value={option.value}>{option.value}. {option.text}</option>
-              {/each}
-            {/if}
-          </select>
+            </Select.Content>
+          </Select.Root>
         {/snippet}
       </div>
     {/if}
@@ -270,20 +303,30 @@
         >
           <Icon src={TiArrowBackOutline} class="-mt-1 text-lg" />
         </button>
-        <select
-          class="select inline-block w-20 p-1 text-sm ring-2"
-          bind:value={shloka_number}
+        <Select.Root
+          type="single"
+          value={shloka_number.toString()}
+          onValueChange={(v) => {
+            shloka_number = parseInt(v) || 0;
+          }}
           disabled={$text_data_q.isFetching}
         >
-          {#if $text_data_q.isSuccess && !$text_data_q.isFetching}
-            {#each Array(total_count) as _, index}
-              <option value={index}
-                >{index}{$text_data_q.data![index]?.shloka_num &&
-                  ` - ${$text_data_q.data![index].shloka_num}`}</option
-              >
-            {/each}
-          {/if}
-        </select>
+          <Select.Trigger class="inline-flex h-9 w-20 p-1 text-sm">
+            {shloka_number}{$text_data_q.isSuccess && $text_data_q.data?.[shloka_number]?.shloka_num
+              ? ` - ${$text_data_q.data[shloka_number].shloka_num}`
+              : ''}
+          </Select.Trigger>
+          <Select.Content>
+            {#if $text_data_q.isSuccess && !$text_data_q.isFetching}
+              {#each Array(total_count) as _, index}
+                <Select.Item value={index.toString()}>
+                  {index}{$text_data_q.data![index]?.shloka_num &&
+                    ` - ${$text_data_q.data![index].shloka_num}`}
+                </Select.Item>
+              {/each}
+            {/if}
+          </Select.Content>
+        </Select.Root>
         <button
           class="btn p-0"
           onclick={() => {

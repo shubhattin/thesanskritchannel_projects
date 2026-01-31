@@ -23,6 +23,7 @@
   import * as Tabs from '$lib/components/ui/tabs';
   import * as Accordion from '$lib/components/ui/accordion';
   import { Switch } from '$lib/components/ui/switch';
+  import * as Select from '$lib/components/ui/select';
   import ImageDownloader from './ImageDownloader.svelte';
   import { DEFAULT_SHLOKA_CONFIG_SHARED, get_image_font_info } from './settings';
   import { IoOptions } from 'svelte-icons-pack/io';
@@ -76,20 +77,29 @@
     >
       <Icon src={TiArrowBackOutline} class="-mt-1 text-lg" />
     </button>
-    <select
-      class="inline-block w-20 rounded-md border border-input bg-background p-1 text-sm"
-      bind:value={$image_shloka}
+    <Select.Root
+      type="single"
+      value={$image_shloka.toString()}
+      onValueChange={(v) => {
+        $image_shloka = parseInt(v) || 0;
+      }}
       disabled={$image_rendering_state}
     >
-      {#if $image_text_data_q.isSuccess && !$image_text_data_q.isFetching}
-        {#each Array(total_count) as _, index}
-          <option value={index}
-            >{index}{$image_text_data_q.data![index]?.shloka_num &&
-              ` - ${$image_text_data_q.data![index].shloka_num}`}</option
-          >
-        {/each}
-      {/if}
-    </select>
+      <Select.Trigger class="inline-flex w-20 p-1 text-sm">
+        {$image_shloka}{$image_text_data_q.data?.[$image_shloka]?.shloka_num &&
+          ` - ${$image_text_data_q.data![$image_shloka].shloka_num}`}
+      </Select.Trigger>
+      <Select.Content>
+        {#if $image_text_data_q.isSuccess && !$image_text_data_q.isFetching}
+          {#each Array(total_count) as _, index}
+            <Select.Item value={index.toString()}>
+              {index}{$image_text_data_q.data![index]?.shloka_num &&
+                ` - ${$image_text_data_q.data![index].shloka_num}`}
+            </Select.Item>
+          {/each}
+        {/if}
+      </Select.Content>
+    </Select.Root>
     <button
       class="p-0"
       onclick={() => {
@@ -102,15 +112,23 @@
   </div>
   <label class="inline-block space-x-1">
     <Icon src={LanguageIcon} class="text-xl" />
-    <select
-      class="inline-block w-24 rounded-md border border-input bg-background p-1 text-sm"
-      bind:value={$image_lang}
+    <Select.Root
+      type="single"
+      value={$image_lang.toString()}
+      onValueChange={(v) => {
+        $image_lang = parseInt(v) || 0;
+      }}
       disabled={$image_trans_data_q.isFetching || !$image_trans_data_q.isSuccess}
     >
-      {#each LANG_LIST as lang, i (lang)}
-        <option value={LANG_LIST_IDS[i]}>{lang}</option>
-      {/each}
-    </select>
+      <Select.Trigger class="inline-flex w-24 p-1 text-sm">
+        {LANG_LIST[LANG_LIST_IDS.indexOf($image_lang)] ?? 'English'}
+      </Select.Trigger>
+      <Select.Content>
+        {#each LANG_LIST as lang, i (lang)}
+          <Select.Item value={LANG_LIST_IDS[i].toString()}>{lang}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
   </label>
   <ImageDownloader />
   <Switch bind:checked={$shaded_background_image_status} />

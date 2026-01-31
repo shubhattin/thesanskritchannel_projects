@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
   import { authClient, useSession } from '~/lib/auth-client';
+  import { Button } from '$lib/components/ui/button';
 
   const query_client = useQueryClient();
 
@@ -51,17 +52,20 @@
         <div>
           User has {sessions.length} sessions
         </div>
-        <button
+        <Button
+          variant="destructive"
+          size="sm"
           disabled={$revoke_user_session_mut.isPending}
           ondblclick={revoke_user_sessions_func}
-          class="btn bg-error-500 mt-1 rounded-md px-1.5 py-0.5 text-sm font-semibold"
-          >Revoke All Sessions</button
+          class="mt-1"
         >
+          Revoke All Sessions
+        </Button>
       {:else}
         <div>User has no sessions</div>
       {/if}
     {:else}
-      <div class="placeholder h-6 w-40 animate-pulse"></div>
+      <div class="h-6 w-40 animate-pulse rounded bg-muted"></div>
     {/if}
   </div>
 {/if}

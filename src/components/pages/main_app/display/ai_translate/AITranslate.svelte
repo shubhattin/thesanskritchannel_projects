@@ -27,6 +27,7 @@
   import { LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { get_project_from_id } from '~/state/project_list';
+  import { Button } from '$lib/components/ui/button';
 
   const query_client = useQueryClient();
 
@@ -134,17 +135,13 @@
       return `This will translate the untranslated shlokas to ${$trans_lang !== 0 ? LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] : 'English'} which you can edit and then save.`;
     }}
   >
-    <!-- description={`This will translate the untranslated shlokas to ${$trans_lang !== 0 ? LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] : 'English'} which you can edit and then save.`} -->
-    <button
-      disabled={$translate_sarga_mut.isPending}
-      class="btn bg-surface-600 dark:bg-surface-600 ml-3 inline-block rounded-lg px-2 py-1 text-white"
-    >
+    <Button variant="secondary" disabled={$translate_sarga_mut.isPending} class="ml-3">
       <Icon src={AIIcon} class="-mt-1 mr-1 text-2xl" />
       Translate with AI
-    </button>
+    </Button>
   </ConfirmModal>
   <select
-    class="select ml-3 inline-block w-20 px-1 py-1 text-xs outline-hidden"
+    class="ml-3 inline-block w-24 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
     bind:value={selected_model}
     title={TEXT_MODEL_LIST[selected_model][1]}
   >

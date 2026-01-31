@@ -38,6 +38,8 @@
   import { CgClose } from 'svelte-icons-pack/cg';
   import { slide } from 'svelte/transition';
   import { get_result_from_trigger_run_id } from '~/tools/trigger';
+  import { Button } from '$lib/components/ui/button';
+  import { Textarea } from '$lib/components/ui/textarea';
 
   let base_prompts = image_tool_prompts as {
     main_prompt: {
@@ -333,7 +335,7 @@
     </button>
     <select
       disabled={$text_data_q.isFetching}
-      class="select inline-block w-20 px-1 text-sm ring-2"
+      class="inline-block w-20 rounded-md border border-input bg-background px-1 text-sm shadow-xs outline-none focus-visible:border-ring dark:bg-input/30"
       bind:value={$index}
     >
       {#each Array(total_count) as _, index}
@@ -355,18 +357,18 @@
       <Icon src={TiArrowForwardOutline} class="-mt-1 text-lg" />
     </button>
   </span>
-  <button
+  <Button
     onclick={async () => {
       await $image_prompt_q.refetch();
-      // ^ this regetch is not a reliable alternative to onSuccess
+      // ^ this refetch is not a reliable alternative to onSuccess
     }}
     disabled={$image_prompt_q.isFetching}
-    class="btn bg-surface-600 dark:bg-surface-600 rounded-md px-2 py-1 font-bold text-white"
+    size="sm"
   >
     Generate Image Prompt
-  </button>
+  </Button>
   <select
-    class="select ml-2.5 inline-block w-20 px-1.5 py-1 text-xs ring-2 outline-hidden"
+    class="ml-2.5 inline-block w-20 rounded-md border border-input bg-background px-1.5 py-1 text-xs shadow-xs outline-none focus-visible:border-ring dark:bg-input/30"
     bind:value={selected_text_model}
     title={TEXT_MODEL_LIST[selected_text_model][1]}
   >
@@ -374,9 +376,14 @@
       <option value={key} title={value[1]}>{value[0]}</option>
     {/each}
   </select>
-  <button class="btn p-0 text-white hover:text-red-500" onclick={() => ($ai_tool_opened = false)}>
+  <Button
+    variant="ghost"
+    size="icon"
+    class="text-white hover:text-red-500"
+    onclick={() => ($ai_tool_opened = false)}
+  >
     <Icon src={CgClose} class="text-xl" />
-  </button>
+  </Button>
   {#if show_prompt_time_status && $image_prompt_q.isSuccess && $image_prompt_q.data.image_prompt}
     <span class="ml-4 text-xs text-stone-500 select-none dark:text-stone-300">
       <Icon src={OiStopwatch16} class="text-base" />
@@ -385,8 +392,10 @@
   {/if}
 </div>
 <div class="mb-3">
-  <button
-    class="btn space-x-2 px-1 py-0.5 text-sm opacity-80 outline-hidden"
+  <Button
+    variant="ghost"
+    size="sm"
+    class="space-x-2 opacity-80"
     onclick={() => (base_prompt_display = !base_prompt_display)}
   >
     {#if !base_prompt_display}
@@ -395,14 +404,10 @@
       <Icon src={BsChevronUp} class="mb-1 text-lg" />
     {/if}
     Edit Base Prompt
-  </button>
+  </Button>
   {#if base_prompt_display}
     <div in:slide out:slide class="mt-1.5">
-      <textarea
-        class="textarea h-36 border-2 px-1 py-0 text-sm"
-        bind:value={base_prompt_text}
-        spellcheck="false"
-      ></textarea>
+      <Textarea class="h-36 px-1 py-0 text-sm" bind:value={base_prompt_text} spellcheck="false" />
     </div>
   {/if}
 </div>
@@ -422,7 +427,7 @@
 </div>
 <div class="flex space-x-3">
   <select
-    class="select w-24 px-1.5 py-1 text-sm ring-2"
+    class="w-24 rounded-md border border-input bg-background px-1.5 py-1 text-sm shadow-xs outline-none focus-visible:border-ring dark:bg-input/30"
     bind:value={image_model}
     title={IMAGE_MODELS[image_model][1]}
   >
@@ -439,19 +444,17 @@
   {:else}
     <div class="space-x-3">
       <span class="font-bold">Image Prompt</span>
-      <button
-        disabled={$image_q.isFetching}
-        onclick={generate_image}
-        class="btn-hover bg-tertiary-800 dark:bg-tertiary-800 rounded-md px-1.5 py-0 font-bold text-white"
-        >Generate Image</button
+      <Button disabled={$image_q.isFetching} onclick={generate_image} size="sm" variant="secondary"
+        >Generate Image</Button
       >
-      <button
-        class="btn-hover p-0 outline-hidden"
+      <Button
+        variant="ghost"
+        size="icon"
         title="Copy Image Prompt"
         onclick={() => copy_text_to_clipboard($image_prompt)}
       >
         <Icon src={BsCopy} class="text-lg" />
-      </button>
+      </Button>
       {#if $image_q.isFetching}
         <ProgressRing
           value={(image_gen_time_taken / IMAGE_MODELS[image_model][2]) * 100}
@@ -469,14 +472,11 @@
         </span>
       {/if}
     </div>
-    <textarea
-      class={cl_join(
-        'textarea h-36 border-2 px-1 py-0 text-sm',
-        image_prompt_request_error && 'input-error'
-      )}
+    <Textarea
+      class={cl_join('h-36 px-1 py-0 text-sm', image_prompt_request_error && 'border-destructive')}
       spellcheck="false"
       bind:value={$image_prompt}
-    ></textarea>
+    />
     {#if $image_q.data}
       {#if $image_q.isFetching || !$image_q.isSuccess}
         <div class="placeholder h-96 animate-pulse rounded-md"></div>
@@ -495,12 +495,9 @@
                     width={1024}
                   />
                   <div class="flex items-center justify-center space-x-3">
-                    <button
-                      onclick={() => download_image(image)}
-                      class="btn bg-surface-600 dark:bg-surface-500 rounded-md px-1 py-1 outline-hidden"
-                    >
-                      <Icon src={BsDownload} class="text-xl text-white" />
-                    </button>
+                    <Button onclick={() => download_image(image)} variant="secondary" size="icon">
+                      <Icon src={BsDownload} class="text-xl" />
+                    </Button>
                   </div>
                 </div>
               {:else}

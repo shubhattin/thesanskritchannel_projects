@@ -9,6 +9,9 @@
   import MediaTypeIcon from './MediaTypeIcon.svelte';
   import { AiOutlineDelete } from 'svelte-icons-pack/ai';
   import ConfirmPopover from '~/components/PopoverModals/ConfirmPopover.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
 
   type link_info_type = Awaited<ReturnType<typeof client.media.get_media_list.query>>[0];
 
@@ -60,10 +63,17 @@
     }
   });
 
-  let media_type = $derived<media_list_type>(link_info.media_type as media_list_type);
-  let lang_id = $derived(link_info.lang_id);
-  let url = $derived(link_info.link);
-  let name = $derived(link_info.name);
+  let media_type = $state<media_list_type>(link_info.media_type as media_list_type);
+  let lang_id = $state(link_info.lang_id);
+  let url = $state(link_info.link);
+  let name = $state(link_info.name);
+
+  $effect(() => {
+    media_type = link_info.media_type as media_list_type;
+    lang_id = link_info.lang_id;
+    url = link_info.link;
+    name = link_info.name;
+  });
 
   const del_link_func = () => {
     $del_media_link_mut.mutate({
@@ -90,74 +100,88 @@
 </script>
 
 <div class="dark:text-warning-500 text-center text-lg font-bold text-amber-700">
-  Add Media Links
+  Edit Media Link
 </div>
-<form onsubmit={update_link_func} class="space-y-1.5">
+<form onsubmit={update_link_func} class="space-y-4">
   <div>
     <ConfirmPopover
-      description="Are you sere to delete this link ?"
+      description="Are you sure to delete this link?"
       popup_state={false}
       placement="bottom"
       close_on_confirm={true}
       confirm_func={del_link_func}
       z_index={999}
     >
-      <button
+      <Button
         type="button"
         disabled={$del_media_link_mut.isPending}
-        class="btn flex gap-1 bg-rose-400 px-1 py-0.5 font-semibold"
+        variant="destructive"
+        size="sm"
       >
         <Icon src={AiOutlineDelete} class="text-xl" />
         <span>Delete Link</span>
-      </button>
+      </Button>
     </ConfirmPopover>
   </div>
-  <label class="block">
-    <span class="label-text block font-semibold">Type</span>
-    <div class="space-x-1">
+
+  <div class="space-y-2">
+    <Label for="edit-media-type" class="font-semibold">Type</Label>
+    <div class="flex items-center gap-2">
       <MediaTypeIcon {media_type} />
-      <select required bind:value={media_type} class="select inline-block w-28 ring-2">
+      <select
+        id="edit-media-type"
+        required
+        bind:value={media_type}
+        class="flex h-9 w-32 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
+      >
         {#each Object.entries(MEDIA_TYPE_LIST) as [key, value]}
           <option value={key}>{value}</option>
         {/each}
       </select>
     </div>
-  </label>
-  <label class="block">
-    <span class="label-text font-semibold">Language</span>
-    <select required bind:value={lang_id} class="select w-36 ring-2">
+  </div>
+
+  <div class="space-y-2">
+    <Label for="edit-language" class="font-semibold">Language</Label>
+    <select
+      id="edit-language"
+      required
+      bind:value={lang_id}
+      class="flex h-9 w-40 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
+    >
       {#each Object.entries(lang_list_obj) as [lang, id]}
         <option value={id}>{lang}</option>
       {/each}
     </select>
-  </label>
-  <label class="block">
-    <span class="label-text font-semibold">Name</span>
-    <input
+  </div>
+
+  <div class="space-y-2">
+    <Label for="edit-name" class="font-semibold">Name</Label>
+    <Input
+      id="edit-name"
       required
       minlength={4}
       bind:value={name}
       type="text"
       placeholder="Name"
-      class="input w-52 ring-2"
+      class="w-52"
     />
-  </label>
-  <label class="block">
-    <span class="label-text font-semibold">URL</span>
-    <input
+  </div>
+
+  <div class="space-y-2">
+    <Label for="edit-url" class="font-semibold">URL</Label>
+    <Input
+      id="edit-url"
       required
       minlength={10}
       bind:value={url}
       type="url"
       placeholder="URL"
-      class="input w-52 ring-2"
+      class="w-52"
     />
-  </label>
-  <button
-    disabled={$update_media_link_mut.isPending}
-    type="submit"
-    class="btn bg-primary-500 block px-2 py-1 font-bold text-white"
-  >
+  </div>
+
+  <Button disabled={$update_media_link_mut.isPending} type="submit" class="w-full">
     Update Link
-  </button>
+  </Button>
 </form>

@@ -54,6 +54,7 @@
   import { loadLocalConfig } from './load_local_config';
   import AiImageGenerator from './ai_image_tool/AIImageGenerator.svelte';
   import { preloadScriptData, type ScriptLangType } from 'lipilekhika';
+  import { Button } from '$lib/components/ui/button';
 
   const query_client = useQueryClient();
 
@@ -261,7 +262,7 @@
   Script
   <Icon src={LanguageIcon} class="text-2xl sm:text-4xl" />
   <select
-    class="select inline-block h-10 w-32 px-2 py-1 text-sm sm:h-12 sm:w-40 sm:py-0 sm:text-base"
+    class="inline-block h-10 w-32 rounded-md border border-input bg-background px-2 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 sm:h-12 sm:w-40 sm:text-base dark:bg-input/30"
     disabled={$viewing_script_selection !== BASE_SCRIPT && $viewing_script_mut.isPending}
     bind:value={$viewing_script_selection}
   >
@@ -331,7 +332,7 @@
   <label class="block space-x-2 sm:space-x-3">
     <span class="text-sm font-bold sm:text-base">Select {name}</span>
     <select
-      class={`${get_text_font_class($viewing_script)} select inline-block h-10 w-44 px-2 py-1 sm:h-12 sm:w-52`}
+      class={`${get_text_font_class($viewing_script)} inline-block h-10 w-44 rounded-md border border-input bg-background px-2 py-1 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 sm:h-12 sm:w-52 dark:bg-input/30`}
       disabled={$editing_status_on}
       bind:value={$selected_text_levels[text_level_state_index]}
     >
@@ -361,38 +362,35 @@
   <div class="space-x-1 sm:space-x-3">
     {#if $project_state.levels > 1}
       {#if $selected_text_levels[0] !== 1}
-        <button
+        <Button
           onclick={() => $selected_text_levels[0]!--}
-          in:scale
-          out:slide
+          variant="secondary"
+          size="sm"
           disabled={$editing_status_on}
-          class={'btn bg-tertiary-800 rounded-lg px-1 py-1 pt-1.5 text-sm font-bold text-white sm:px-2 sm:py-1 sm:text-sm'}
         >
           <Icon class="-mt-1 text-xl" src={TiArrowBackOutline} />
           Previous
-        </button>
+        </Button>
       {/if}
       {#if $selected_text_levels[0] !== $list_count}
-        <button
+        <Button
           onclick={() => ($selected_text_levels[0]! += 1)}
-          in:scale
-          out:slide
+          variant="secondary"
+          size="sm"
           disabled={$editing_status_on}
-          class={'btn bg-tertiary-800 rounded-lg px-1 py-1 pt-1.5 text-sm font-bold text-white sm:px-2 sm:py-1 sm:text-sm'}
         >
           Next
           <Icon class="-mt-1 text-xl" src={TiArrowForwardOutline} />
-        </button>
+        </Button>
       {/if}
     {/if}
     {#if !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
       {#if !$view_translation_status}
-        <button
+        <Button
           onclick={() => {
             $view_translation_status = true;
           }}
-          class="btn bg-primary-800 dark:bg-primary-700 rounded-lg px-2 py-1 text-sm font-bold text-white sm:text-sm"
-          >View Translations</button
+          size="sm">View Translations</Button
         >
         {@render btn_multi()}
       {:else}
@@ -402,7 +400,7 @@
             <Icon src={LanguageIcon} class="text-xl sm:text-2xl" />
             <select
               disabled={$editing_status_on || $viewing_script_mut.isPending}
-              class="select inline-block w-24 px-1 py-1 text-sm sm:w-32 sm:px-2 sm:text-base"
+              class="inline-block w-24 rounded-md border border-input bg-background px-2 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-32 sm:text-base dark:bg-input/30"
               bind:value={$trans_lang_selection}
             >
               <!-- $trans_lang_mut.isPending || -->
@@ -420,22 +418,26 @@
                 ? $user_project_info_q.data.languages!.map((l) => l.lang_id)
                 : []}
             {#if $trans_lang !== 0 && ($user_info.role === 'admin' || languages.indexOf($trans_lang) !== -1)}
-              <button
+              <Button
                 onclick={() => ($editing_status_on = true)}
-                class="btn bg-secondary-700 dark:bg-secondary-800 my-1 inline-block rounded-lg px-1 py-1 text-sm font-bold text-white sm:px-2 sm:text-sm"
+                variant="secondary"
+                size="sm"
+                class="my-1"
               >
                 <Icon src={BiEdit} class="text-xl sm:text-2xl" />
                 Edit
-              </button>
+              </Button>
             {:else if $trans_lang === 0 && ($user_info.role === 'admin' || languages.indexOf(1) !== -1)}
               <!-- 1 -> English -->
-              <button
+              <Button
                 onclick={() => ($editing_status_on = true)}
-                class="btn bg-secondary-700 dark:bg-secondary-800 my-1 inline-block rounded-lg px-1 py-1 text-sm font-bold text-white sm:px-2 sm:text-sm"
+                variant="secondary"
+                size="sm"
+                class="my-1"
               >
                 <Icon src={BiEdit} class="text-xl sm:text-2xl" />
                 Edit English
-              </button>
+              </Button>
             {/if}
           {/if}
           {@render btn_multi()}
@@ -444,12 +446,12 @@
     {/if}
     {#snippet btn_multi()}
       {#await import('./multimedia/MultiMediaLinks.svelte')}
-        <button class="btn p-0 outline-none select-none">
+        <Button variant="ghost" size="icon" class="outline-none">
           <Icon
             src={MultimediaIcon}
             class="text-2xl text-orange-600 sm:text-3xl dark:text-amber-200"
           />
-        </button>
+        </Button>
       {:then MultiMediaLinks}
         <MultiMediaLinks.default />
       {/await}
@@ -470,19 +472,20 @@
       <select
         disabled={!$edit_language_typer_status}
         bind:value={$sanskrit_mode}
-        class="select w-28 px-1 py-1 text-sm text-clip"
+        class="w-28 rounded-md border border-input bg-background px-1 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
       >
         <option value={1}>rAm ➔ {$sanskrit_mode_texts.data[0]}</option>
         <option value={0}>rAm ➔ {$sanskrit_mode_texts.data[1]}</option>
       </select>
     {/if}
-    <button
-      class="btn rounded-md p-0 text-sm outline-hidden"
-      title={'Language Typing Assistance'}
+    <Button
+      variant="ghost"
+      size="icon"
+      title="Language Typing Assistance"
       onclick={() => ($typing_assistance_modal_opened = true)}
     >
       <Icon src={BiHelpCircle} class="mt-1 text-3xl text-sky-500 dark:text-sky-400" />
-    </button>
+    </Button>
     <span class="mt-2 hidden text-center text-sm text-stone-500 sm:inline-block dark:text-stone-400"
       >Use <span class="font-semibold">Alt+x</span> to toggle</span
     >

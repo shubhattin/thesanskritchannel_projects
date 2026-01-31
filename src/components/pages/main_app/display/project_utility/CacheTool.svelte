@@ -7,6 +7,10 @@
   import { writable } from 'svelte/store';
   import Icon from '~/tools/Icon.svelte';
   import { BiSearchAlt } from 'svelte-icons-pack/bi';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
+  import { Checkbox } from '$lib/components/ui/checkbox';
 
   const current_text_cache_invalidate_mut = client_q.cache.invalidate_cache.mutation({
     onSuccess() {
@@ -75,16 +79,24 @@
 <div class="dark:text-warning-500 text-center text-lg font-bold text-amber-700">
   Cache Invalidation Tool
 </div>
-<button
-  class="btn bg-surface-600 dark:bg-surface-600 px-2 py-0.5 text-sm font-semibold text-white"
+<Button
+  variant="secondary"
+  size="sm"
   onclick={() => {
     invalidate_cache_confirm_modal_state = true;
-  }}>Invalidate Text Cache (Current)</button
+  }}
 >
+  Invalidate Text Cache (Current)
+</Button>
+
 <div class="space-y-2">
-  <div class="mt-4 space-y-0.5">
-    <span class="label-text font-semibold">Cache Name</span>
-    <select class="select w-44 px-1 py-0.5 text-sm" bind:value={selected_cache_name}>
+  <div class="mt-4 space-y-1">
+    <Label for="cache-name" class="font-semibold">Cache Name</Label>
+    <select
+      id="cache-name"
+      class="flex h-9 w-48 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
+      bind:value={selected_cache_name}
+    >
       {#each Object.entries(REDIS_CACHE_KEYS_CLIENT) as [cache_name]}
         <option value={cache_name}>{cache_name}</option>
       {/each}
@@ -115,13 +127,13 @@
 
 {#snippet cache_tool(cache_name: typeof selected_cache_name)}
   {@const function_args = REDIS_CACHES_ARGUMENTS_LIST[cache_name]}
-  <div class="space-y-1">
+  <div class="space-y-2">
     {#each function_args as arg, i}
       <div class="flex items-center space-x-2">
-        <span class="label-text font-semibold">{arg}</span>
-        <input
+        <Label class="font-semibold">{arg}</Label>
+        <Input
           type="text"
-          class="input w-16 px-1.5 py-0.5 text-sm ring-2"
+          class="w-20"
           oninput={({ currentTarget: { value } }) => {
             $cache_arguments[i] = value;
             cache_arguments = cache_arguments;
@@ -137,46 +149,54 @@
       <div>
         <div class="text-sm">
           Key: <code class="font-semibold">{cache_key}</code>
-          <button
-            class="btn block gap-1 px-1.5 py-0.5 text-lg"
+          <Button
+            variant="ghost"
+            size="sm"
             disabled={$list_cache_q.isFetching}
             onclick={() => {
               $list_cache_q.refetch();
-            }}><Icon src={BiSearchAlt} /> Search</button
+            }}
           >
+            <Icon src={BiSearchAlt} /> Search
+          </Button>
         </div>
       </div>
     </div>
   {/if}
   <div class="mt-2">
     {#if $list_cache_q.isFetching}
-      <div class="placeholder h-36 w-full animate-pulse"></div>
+      <div class="h-36 w-full animate-pulse rounded bg-muted"></div>
     {:else if $list_cache_q.isSuccess}
       {@const cache_list = $list_cache_q.data.sort()}
       {#if cache_list.length > 0}
         <div class="max-h-[60%] space-y-1 overflow-scroll px-0.5 text-sm">
           {#each cache_list as cache_key (cache_key)}
             <label class="flex items-center space-x-2">
-              <input
-                class="checkbox"
-                type="checkbox"
-                name="cache_keys"
-                value={cache_key}
-                bind:group={$selected_cache_keys}
+              <Checkbox
+                checked={$selected_cache_keys.includes(cache_key)}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    $selected_cache_keys = [...$selected_cache_keys, cache_key];
+                  } else {
+                    $selected_cache_keys = $selected_cache_keys.filter((k) => k !== cache_key);
+                  }
+                }}
               />
               <span>{cache_key}</span>
             </label>
           {/each}
-          <button
+          <Button
             ondblclick={() => {
               $invalidate_cache_mut.mutate({
                 cache_keys: $selected_cache_keys
               });
             }}
-            class="btn bg-primary-600 dark:bg-primary-500 mt-1.5 px-1.5 py-0.5 text-sm font-semibold text-white"
             disabled={$selected_cache_keys.length === 0 || $invalidate_cache_mut.isPending}
-            >Invalidate Selected Cache</button
+            class="mt-1.5"
+            size="sm"
           >
+            Invalidate Selected Cache
+          </Button>
         </div>
       {:else}
         <div class="text-sm text-gray-500 dark:text-gray-400">No Cache Found</div>

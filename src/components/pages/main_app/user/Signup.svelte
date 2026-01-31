@@ -2,17 +2,20 @@
   import { signIn } from '~/lib/auth-client';
   import Icon from '~/tools/Icon.svelte';
   import { GoogleIcon } from '~/components/icons';
+  import { Button } from '$lib/components/ui/button';
 </script>
 
 <div class="mt-4 flex flex-col items-center justify-center">
-  <button
+  <Button
+    variant="secondary"
     onclick={async () => {
       await signIn.social({
         provider: 'google',
         callbackURL: window.location.href
       });
     }}
-    class="btn preset-outlined-secondary-700-300 flex gap-2 rounded-lg font-semibold"
-    ><Icon src={GoogleIcon} class="inline-block text-[1.25rem]" />Sigup with Google</button
   >
+    <Icon src={GoogleIcon} class="inline-block text-[1.25rem]" />
+    Signup with Google
+  </Button>
 </div>

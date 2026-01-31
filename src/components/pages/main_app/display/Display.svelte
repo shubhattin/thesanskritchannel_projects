@@ -38,6 +38,8 @@
   import * as Popover from '$lib/components/ui/popover';
   import * as Tabs from '$lib/components/ui/tabs';
   import BulkEdit from './bulk/BulkEdit.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Textarea } from '$lib/components/ui/textarea';
   import AiTranslate from './ai_translate/AITranslate.svelte';
   import {
     clearTypingContextOnKeyDown,
@@ -300,16 +302,16 @@
     {#if $editing_status_on && $english_edit_status}
       <div transition:slide>
         {#if !$trans_en_data_q.data?.has(i)}
-          <button
+          <Button
+            size="icon-sm"
             onclick={async () => {
               await update_trans_lang_data(i, '');
               $added_translations_indexes.push(i);
               $added_translations_indexes = $added_translations_indexes;
             }}
-            class="btn bg-surface-500 dark:bg-surface-500 rounded-md px-1 py-[0.05rem] font-bold text-white"
           >
             <Icon src={RiSystemAddLargeLine} />
-          </button>
+          </Button>
         {:else}
           {@render edit_textarea_elm($trans_en_data_q.data, en_trans_text_font_info)}
         {/if}
@@ -338,16 +340,16 @@
     {#if $editing_status_on && !$english_edit_status}
       <div transition:slide>
         {#if !$trans_lang_data_q.data?.has(i)}
-          <button
+          <Button
+            size="icon-sm"
             onclick={async () => {
               await update_trans_lang_data(i, '');
               $added_translations_indexes.push(i);
               $added_translations_indexes = $added_translations_indexes;
             }}
-            class="btn bg-surface-500 dark:bg-surface-500 my-[0.05rem] rounded-md px-1 py-0 font-bold text-white"
           >
             <Icon src={RiSystemAddLargeLine} />
-          </button>
+          </Button>
         {:else}
           {@render edit_textarea_elm($trans_lang_data_q.data, trans_text_font_info)}
         {/if}
@@ -376,7 +378,7 @@
     lang_data: typeof $trans_lang_data_q.data,
     font_info: ReturnType<typeof get_font_family_and_size>
   )}
-    <textarea
+    <Textarea
       value={lang_data?.get(i)}
       oninput={(e) => input_func(i, e.currentTarget.value)}
       onbeforeinput={(e) =>
@@ -390,10 +392,9 @@
         )}
       onblur={() => ctx.clearContext()}
       onkeydown={(e) => clearTypingContextOnKeyDown(e, ctx)}
-      class="textarea h-28 w-full border-[2.5px] md:h-24"
-      style:font-size={`${font_info.size}rem`}
-      style:font-family={font_info.family}
+      class="h-28 w-full md:h-24"
+      style={`font-size: ${font_info.size}rem; font-family: ${font_info.family};`}
       onkeyup={detect_shortcut_pressed}
-    ></textarea>
+    />
   {/snippet}
 {/snippet}

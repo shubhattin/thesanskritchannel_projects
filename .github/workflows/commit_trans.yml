@@ -26,7 +26,7 @@ jobs:
       - name: Load Translations
         run: |
           cd src/db/scripts/
-          bunx tsx backup_db_data.ts --no-sql-backup --no-zip-backup
+          bun backup_db_data.ts --no-sql-backup --no-zip-backup
       - name: Organize Translations
         run: |
           bunx vite-node src/tests/organize_translation_folder.ts

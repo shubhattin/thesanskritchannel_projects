@@ -30,7 +30,7 @@ jobs:
       - name: Load Translations and DB Dump
         run: |
           cd src/db/scripts/
-          bunx tsx backup_db_data.ts
+          bun backup_db_data.ts
 
       - uses: actions/upload-artifact@v4
         with:

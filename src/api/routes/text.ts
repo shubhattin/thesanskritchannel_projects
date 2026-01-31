@@ -57,6 +57,48 @@ const get_text_data_route = publicProcedure
     return data;
   });
 
+const DEFAULT_PAGE_LIMIT = 500;
+export const search_text_in_texts_route = publicProcedure
+  .input(
+    z.object({
+      project_key: z.string().optional(),
+      path_params: z.number().int().array().optional(),
+      search_text: z.string().min(3).max(500),
+      limit: z.number().int().min(1).max(100).default(DEFAULT_PAGE_LIMIT),
+      offset: z.number().int().min(0).default(0)
+    })
+  )
+  .query(async ({ input: { project_key, search_text, path_params, limit, offset } }) => {
+    const data = await db.query.texts.findMany({
+      where: (tbl, { and, eq, ilike }) => {
+        const conditions = [ilike(tbl.text, `%${search_text}%`)];
+        if (project_key) {
+          const project_id = get_project_from_key(project_key as project_keys_type).id;
+          conditions.push(eq(tbl.project_id, project_id));
+        }
+        if (typeof path_params !== 'undefined') {
+          conditions.push(eq(tbl.path, path_params.join(':')));
+        }
+        return and(...conditions);
+      },
+      orderBy: (tbl, { asc }) => [asc(tbl.project_id), asc(tbl.path), asc(tbl.index)],
+      limit: limit + 1,
+      offset
+    });
+    const hasMore = data.length > limit;
+    const items = hasMore ? data.slice(0, limit) : data;
+    return {
+      items,
+      page: {
+        limit,
+        offset,
+        nextOffset: hasMore ? offset + limit : null,
+        hasMore
+      }
+    };
+  });
+
 export const text_router = t.router({
-  get_text_data: get_text_data_route
+  get_text_data: get_text_data_route,
+  search_text_in_texts: search_text_in_texts_route
 });

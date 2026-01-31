@@ -33,4 +33,13 @@
       </a>
     {/each}
   </div>
+
+  <div class="mt-8 flex justify-center">
+    <a
+      class="btn rounded-full bg-sky-600 p-2 text-base font-semibold text-white shadow-lg shadow-sky-300/40 transition hover:bg-sky-700 dark:bg-slate-700 dark:text-white dark:shadow-slate-900/40"
+      href="/search"
+    >
+      Search
+    </a>
+  </div>
 </main>

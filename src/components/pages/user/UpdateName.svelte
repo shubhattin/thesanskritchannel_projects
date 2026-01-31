@@ -64,11 +64,11 @@
       <div class="space-x-1 sm:space-x-2">
         <button
           disabled={!is_edited || $update_name_mut.isPending}
-          class="btn rounded-lg bg-secondary-600 px-2 py-1 text-sm font-semibold text-white dark:bg-secondary-700"
+          class="btn bg-secondary-600 dark:bg-secondary-700 rounded-lg px-2 py-1 text-sm font-semibold text-white"
           onclick={update_user_name_func}>Update</button
         >
         <button
-          class="btn rounded-lg bg-error-600 px-2 py-1 text-sm font-semibold text-white"
+          class="btn bg-error-600 rounded-lg px-2 py-1 text-sm font-semibold text-white"
           onclick={() => (update_name_modal_status = false)}>Cancel</button
         >
       </div>

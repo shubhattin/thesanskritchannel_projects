@@ -190,7 +190,7 @@
       {#snippet content()}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
-          class="z-70 space-y-1 card rounded-lg bg-slate-100 p-1 shadow-xl dark:bg-surface-900"
+          class="card dark:bg-surface-900 z-70 space-y-1 rounded-lg bg-slate-100 p-1 shadow-xl"
           onmouseenter={() => (text_portion_hovered = true)}
           onmouseleave={() => {
             copy_btn_popup_state = false;
@@ -316,7 +316,7 @@
               $added_translations_indexes.push(i);
               $added_translations_indexes = $added_translations_indexes;
             }}
-            class="btn rounded-md bg-surface-500 px-1 py-[0.05rem] font-bold text-white dark:bg-surface-500"
+            class="btn bg-surface-500 dark:bg-surface-500 rounded-md px-1 py-[0.05rem] font-bold text-white"
           >
             <Icon src={RiSystemAddLargeLine} />
           </button>
@@ -354,7 +354,7 @@
               $added_translations_indexes.push(i);
               $added_translations_indexes = $added_translations_indexes;
             }}
-            class="my-[0.05rem] btn rounded-md bg-surface-500 px-1 py-0 font-bold text-white dark:bg-surface-500"
+            class="btn bg-surface-500 dark:bg-surface-500 my-[0.05rem] rounded-md px-1 py-0 font-bold text-white"
           >
             <Icon src={RiSystemAddLargeLine} />
           </button>

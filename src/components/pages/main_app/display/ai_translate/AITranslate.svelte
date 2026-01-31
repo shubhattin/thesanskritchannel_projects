@@ -137,7 +137,7 @@
     <!-- description={`This will translate the untranslated shlokas to ${$trans_lang !== 0 ? LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] : 'English'} which you can edit and then save.`} -->
     <button
       disabled={$translate_sarga_mut.isPending}
-      class="ml-3 btn inline-block rounded-lg bg-surface-600 px-2 py-1 text-white dark:bg-surface-600"
+      class="btn bg-surface-600 dark:bg-surface-600 ml-3 inline-block rounded-lg px-2 py-1 text-white"
     >
       <Icon src={AIIcon} class="-mt-1 mr-1 text-2xl" />
       Translate with AI

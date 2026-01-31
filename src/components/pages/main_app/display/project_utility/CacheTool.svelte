@@ -72,11 +72,11 @@
   });
 </script>
 
-<div class="text-center text-lg font-bold text-amber-700 dark:text-warning-500">
+<div class="dark:text-warning-500 text-center text-lg font-bold text-amber-700">
   Cache Invalidation Tool
 </div>
 <button
-  class="btn bg-surface-600 px-2 py-0.5 text-sm font-semibold text-white dark:bg-surface-600"
+  class="btn bg-surface-600 dark:bg-surface-600 px-2 py-0.5 text-sm font-semibold text-white"
   onclick={() => {
     invalidate_cache_confirm_modal_state = true;
   }}>Invalidate Text Cache (Current)</button
@@ -150,7 +150,7 @@
   {/if}
   <div class="mt-2">
     {#if $list_cache_q.isFetching}
-      <div class="h-36 placeholder w-full animate-pulse"></div>
+      <div class="placeholder h-36 w-full animate-pulse"></div>
     {:else if $list_cache_q.isSuccess}
       {@const cache_list = $list_cache_q.data.sort()}
       {#if cache_list.length > 0}
@@ -173,7 +173,7 @@
                 cache_keys: $selected_cache_keys
               });
             }}
-            class="mt-1.5 btn bg-primary-600 px-1.5 py-0.5 text-sm font-semibold text-white dark:bg-primary-500"
+            class="btn bg-primary-600 dark:bg-primary-500 mt-1.5 px-1.5 py-0.5 text-sm font-semibold text-white"
             disabled={$selected_cache_keys.length === 0 || $invalidate_cache_mut.isPending}
             >Invalidate Selected Cache</button
           >

@@ -200,7 +200,7 @@
         >
       </div>
     {:else}
-      <div class="mt-2 text-warning-600 dark:text-warning-500">
+      <div class="text-warning-600 dark:text-warning-500 mt-2">
         This account has not been added to Projects Portal scope.
       </div>
       <div class="space-x-2">
@@ -214,7 +214,7 @@
           description="Sure to Approve this User ?"
         >
           <span
-            class="mt-1.5 btn gap-1 bg-primary-500 px-2 py-1 text-sm font-bold text-white dark:bg-primary-600"
+            class="btn bg-primary-500 dark:bg-primary-600 mt-1.5 gap-1 px-2 py-1 text-sm font-bold text-white"
           >
             <Icon src={AiOutlinePlus} class="text-xl" />
             Add to Projects Portal Scope
@@ -274,7 +274,7 @@
         {#if current_project_info}
           {@const url = `/${current_project_info.key}`}
           <a
-            class="ml-1.5 btn p-0 hover:text-blue-600 dark:hover:text-blue-500"
+            class="btn ml-1.5 p-0 hover:text-blue-600 dark:hover:text-blue-500"
             href={url}
             target="_blank"
             rel="noopener noreferrer"
@@ -339,7 +339,7 @@
     {/if}
   {/if}
 {:else}
-  <div class="h-40 placeholder w-full animate-pulse rounded-md"></div>
+  <div class="placeholder h-40 w-full animate-pulse rounded-md"></div>
 {/if}
 
 {#snippet add_project(new_list = false)}
@@ -355,7 +355,7 @@
       {#snippet trigger()}
         <span
           class={cl_join(
-            'btn gap-1 rounded-md bg-primary-500 px-1 py-0.5 font-semibold text-white dark:bg-primary-600',
+            'btn bg-primary-500 dark:bg-primary-600 gap-1 rounded-md px-1 py-0.5 font-semibold text-white',
             new_list && 'px-2'
           )}
         >
@@ -401,13 +401,13 @@
       {#if admin_edit}
         {#if new_list}
           <button
-            class="btn gap-1 rounded-md bg-primary-500 px-1.5 py-0.5 text-sm dark:bg-primary-600"
+            class="btn bg-primary-500 dark:bg-primary-600 gap-1 rounded-md px-1.5 py-0.5 text-sm"
           >
             <Icon src={BsPlusLg} class="text-xl" />
             Add Language
           </button>
         {:else}
-          <button class="ml-1.5 btn p-0">
+          <button class="btn ml-1.5 p-0">
             <Icon src={FiEdit3} class="text-xl" />
           </button>
         {/if}
@@ -424,7 +424,7 @@
           langugae_select_popover = false;
           add_language_to_project(parseInt(selected_project_id), selected_langs_ids);
         }}
-        class="mt-2 btn rounded-md bg-tertiary-500 px-2 py-1 text-white dark:bg-tertiary-600"
+        class="btn bg-tertiary-500 dark:bg-tertiary-600 mt-2 rounded-md px-2 py-1 text-white"
         >Update</button
       >
     {/snippet}

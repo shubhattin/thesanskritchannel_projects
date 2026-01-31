@@ -366,7 +366,7 @@
           in:scale
           out:slide
           disabled={$editing_status_on}
-          class={'btn rounded-lg bg-tertiary-800 px-1 py-1 pt-1.5 text-sm font-bold text-white sm:px-2 sm:py-1 sm:text-sm'}
+          class={'btn bg-tertiary-800 rounded-lg px-1 py-1 pt-1.5 text-sm font-bold text-white sm:px-2 sm:py-1 sm:text-sm'}
         >
           <Icon class="-mt-1 text-xl" src={TiArrowBackOutline} />
           Previous
@@ -378,7 +378,7 @@
           in:scale
           out:slide
           disabled={$editing_status_on}
-          class={'btn rounded-lg bg-tertiary-800 px-1 py-1 pt-1.5 text-sm font-bold text-white sm:px-2 sm:py-1 sm:text-sm'}
+          class={'btn bg-tertiary-800 rounded-lg px-1 py-1 pt-1.5 text-sm font-bold text-white sm:px-2 sm:py-1 sm:text-sm'}
         >
           Next
           <Icon class="-mt-1 text-xl" src={TiArrowForwardOutline} />
@@ -391,7 +391,7 @@
           onclick={() => {
             $view_translation_status = true;
           }}
-          class="btn rounded-lg bg-primary-800 px-2 py-1 text-sm font-bold text-white sm:text-sm dark:bg-primary-700"
+          class="btn bg-primary-800 dark:bg-primary-700 rounded-lg px-2 py-1 text-sm font-bold text-white sm:text-sm"
           >View Translations</button
         >
         {@render btn_multi()}
@@ -422,7 +422,7 @@
             {#if $trans_lang !== 0 && ($user_info.role === 'admin' || languages.indexOf($trans_lang) !== -1)}
               <button
                 onclick={() => ($editing_status_on = true)}
-                class="my-1 btn inline-block rounded-lg bg-secondary-700 px-1 py-1 text-sm font-bold text-white sm:px-2 sm:text-sm dark:bg-secondary-800"
+                class="btn bg-secondary-700 dark:bg-secondary-800 my-1 inline-block rounded-lg px-1 py-1 text-sm font-bold text-white sm:px-2 sm:text-sm"
               >
                 <Icon src={BiEdit} class="text-xl sm:text-2xl" />
                 Edit
@@ -431,7 +431,7 @@
               <!-- 1 -> English -->
               <button
                 onclick={() => ($editing_status_on = true)}
-                class="my-1 btn inline-block rounded-lg bg-secondary-700 px-1 py-1 text-sm font-bold text-white sm:px-2 sm:text-sm dark:bg-secondary-800"
+                class="btn bg-secondary-700 dark:bg-secondary-800 my-1 inline-block rounded-lg px-1 py-1 text-sm font-bold text-white sm:px-2 sm:text-sm"
               >
                 <Icon src={BiEdit} class="text-xl sm:text-2xl" />
                 Edit English

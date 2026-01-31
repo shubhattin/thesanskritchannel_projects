@@ -312,9 +312,9 @@
     </button>
   {/if}
   {#if is_fetching && !analysis_result}
-    <div class="rounded=md h-96 placeholder animate-pulse"></div>
+    <div class="rounded=md placeholder h-96 animate-pulse"></div>
   {:else if analysis_result}
-    <div class="prose text-sm prose-neutral dark:prose-invert" in:fade>
+    <div class="prose prose-neutral dark:prose-invert text-sm" in:fade>
       <Markdown source={analysis_result} />
     </div>
     {#if !is_fetching}

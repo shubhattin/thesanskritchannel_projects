@@ -171,7 +171,7 @@
             >
               {#if $usage_table.isFetching}
                 <div class="h-full w-full space-y-1">
-                  <div class="h-full placeholder w-full animate-pulse rounded-lg"></div>
+                  <div class="placeholder h-full w-full animate-pulse rounded-lg"></div>
                   <div class="placeholder animate-pulse rounded-md"></div>
                 </div>
               {:else if $usage_table.isSuccess}

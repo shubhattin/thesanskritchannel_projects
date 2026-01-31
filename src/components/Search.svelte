@@ -103,7 +103,7 @@
 
 <div
   class={cl_join(
-    'flex w-full max-w-2xl flex-col gap-4 rounded-3xl border border-stone-200 bg-white/70 p-4 shadow-xl dark:border-surface-700 dark:bg-slate-900/80',
+    'dark:border-surface-700 flex w-full max-w-2xl flex-col gap-4 rounded-3xl border border-stone-200 bg-white/70 p-4 shadow-xl dark:bg-slate-900/80',
     'lg:p-6'
   )}
 >
@@ -240,20 +240,20 @@
     <div class="max-h-[65vh] overflow-y-auto pr-1">
       {#if !started}
         <div
-          class="rounded-md border border-dashed border-stone-300 p-3 text-sm text-stone-600 dark:border-surface-700 dark:text-stone-400"
+          class="dark:border-surface-700 rounded-md border border-dashed border-stone-300 p-3 text-sm text-stone-600 dark:text-stone-400"
         >
           Enter a query and submit to start searching.
         </div>
       {:else if $search_q.isFetching}
         <div class="space-y-2">
           {#each Array(6) as _, i (i)}
-            <div class="rounded-md border border-stone-200 p-3 dark:border-surface-700">
-              <div class="h-3 w-28 animate-pulse rounded bg-stone-300/70 dark:bg-surface-700"></div>
+            <div class="dark:border-surface-700 rounded-md border border-stone-200 p-3">
+              <div class="dark:bg-surface-700 h-3 w-28 animate-pulse rounded bg-stone-300/70"></div>
               <div
-                class="mt-2 h-3 w-full animate-pulse rounded bg-stone-300/50 dark:bg-surface-700"
+                class="dark:bg-surface-700 mt-2 h-3 w-full animate-pulse rounded bg-stone-300/50"
               ></div>
               <div
-                class="mt-2 h-3 w-4/5 animate-pulse rounded bg-stone-300/40 dark:bg-surface-700"
+                class="dark:bg-surface-700 mt-2 h-3 w-4/5 animate-pulse rounded bg-stone-300/40"
               ></div>
             </div>
           {/each}
@@ -267,13 +267,13 @@
         </div>
       {:else if $search_q.isSuccess}
         {#if $search_q.data.items.length === 0}
-          <div class="rounded-md border border-stone-200 p-3 text-sm dark:border-surface-700">
+          <div class="dark:border-surface-700 rounded-md border border-stone-200 p-3 text-sm">
             No results.
           </div>
         {:else}
           <div class="space-y-2">
             {#each $search_q.data.items as row (row.project_id + ':' + row.path + ':' + row.index)}
-              <div class="rounded-md border border-stone-200 p-3 dark:border-surface-700">
+              <div class="dark:border-surface-700 rounded-md border border-stone-200 p-3">
                 <div class="text-xs text-stone-600 dark:text-stone-400">
                   project {row.project_id} · path {row.path} · index {row.index}{#if row.shloka_num}
                     · shloka {row.shloka_num}
@@ -285,7 +285,7 @@
           </div>
         {/if}
       {:else}
-        <div class="rounded-md border border-stone-200 p-3 text-sm dark:border-surface-700">
+        <div class="dark:border-surface-700 rounded-md border border-stone-200 p-3 text-sm">
           Submit a search to see results.
         </div>
       {/if}

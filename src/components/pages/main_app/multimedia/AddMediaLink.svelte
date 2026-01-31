@@ -52,7 +52,7 @@
   };
 </script>
 
-<div class="text-center text-lg font-bold text-amber-700 dark:text-warning-500">
+<div class="dark:text-warning-500 text-center text-lg font-bold text-amber-700">
   Add Media Links
 </div>
 <form onsubmit={add_link_func} class="space-y-2">
@@ -100,7 +100,7 @@
   <button
     disabled={$add_media_link_mut.isPending}
     type="submit"
-    class="btn block bg-primary-500 px-2 py-1 font-bold text-white"
+    class="btn bg-primary-500 block px-2 py-1 font-bold text-white"
   >
     <Icon src={RiSystemAddLargeFill} class="-mt-1 text-xl" />
     Add Link

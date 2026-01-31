@@ -119,7 +119,7 @@
   <span class="flex flex-col items-center justify-center">
     <button
       onclick={reset_func}
-      class="btn-hover rounded-md bg-surface-700 px-1.5 py-1 text-xs font-bold text-white dark:bg-surface-500"
+      class="btn-hover bg-surface-700 dark:bg-surface-500 rounded-md px-1.5 py-1 text-xs font-bold text-white"
       >Reset</button
     >
   </span>

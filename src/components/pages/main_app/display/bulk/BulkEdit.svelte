@@ -175,7 +175,7 @@
           'If you are adding to an empty non translated shloka it should be fine.'}
       >
         <button
-          class="btn gap-1 rounded-lg bg-tertiary-700 px-1 py-1 font-bold text-white dark:bg-tertiary-600"
+          class="btn bg-tertiary-700 dark:bg-tertiary-600 gap-1 rounded-lg px-1 py-1 font-bold text-white"
         >
           <Icon src={OiSync16} class="-my-1 text-lg" />
           Sync to Main
@@ -190,7 +190,7 @@
 <textarea
   style:font-size={`${trans_text_font_info.size}rem`}
   style:font-family={trans_text_font_info.family}
-  class="mt-2.5 textarea h-[60vh] border-2"
+  class="textarea mt-2.5 h-[60vh] border-2"
   bind:value={$bulk_text_data}
   onbeforeinput={(e) =>
     handleTypingBeforeInputEvent(

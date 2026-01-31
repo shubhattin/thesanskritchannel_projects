@@ -63,7 +63,7 @@
       onmouseover={preload_component}
       onfocus={preload_component}
       class={cl_join(
-        '-mt-1 btn rounded-md px-1 py-1 font-semibold outline-hidden select-none hover:bg-gray-200 sm:px-2 dark:hover:bg-gray-700',
+        'btn -mt-1 rounded-md px-1 py-1 font-semibold outline-hidden select-none hover:bg-gray-200 sm:px-2 dark:hover:bg-gray-700',
         'mr-3 sm:mr-3'
       )}
     >

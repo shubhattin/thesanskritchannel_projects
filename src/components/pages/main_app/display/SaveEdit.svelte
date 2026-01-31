@@ -119,7 +119,7 @@
   out:scale
   disabled={$save_data.isPending ||
     $added_translations_indexes.length + $edited_translations_indexes.size === 0}
-  class="btn rounded-lg bg-primary-700 px-1 py-1 text-white dark:bg-primary-700"
+  class="btn bg-primary-700 dark:bg-primary-700 rounded-lg px-1 py-1 text-white"
   onclick={() => (save_popup_state = true)}
 >
   <Icon src={FiSave} class="text-2xl" />
@@ -147,7 +147,7 @@
   in:slide
   out:scale
   disabled={$cancel_edit_data.isPending}
-  class="ml-3 btn rounded-lg bg-error-700 px-1 py-1 font-semibold text-white dark:bg-error-600"
+  class="btn bg-error-700 dark:bg-error-600 ml-3 rounded-lg px-1 py-1 font-semibold text-white"
   onclick={() => {
     if ($edited_translations_indexes.size + $added_translations_indexes.length === 0) {
       $cancel_edit_data.mutate();

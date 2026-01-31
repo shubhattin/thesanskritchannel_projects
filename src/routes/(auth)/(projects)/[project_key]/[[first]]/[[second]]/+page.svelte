@@ -105,7 +105,7 @@
                   'block w-full gap-0 rounded-md px-1.5 py-1 text-center text-sm font-semibold text-white',
                   project.key === project_key
                     ? 'bg-primary-500 dark:bg-primary-600'
-                    : 'bg-slate-400 hover:bg-primary-500/80 dark:bg-slate-800 dark:hover:bg-primary-600/80'
+                    : 'hover:bg-primary-500/80 dark:hover:bg-primary-600/80 bg-slate-400 dark:bg-slate-800'
                 )}
                 onclick={() => {
                   project_selected_popover = false;

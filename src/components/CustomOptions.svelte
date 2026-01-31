@@ -53,20 +53,20 @@
   <Accordion collapsible>
     <Accordion.Item value="options">
       {#snippet lead()}
-        <span class="text-foreground text-sm font-medium tracking-wide"
+        <span class="text-sm font-medium tracking-wide text-foreground"
           >Custom Transliteration Options</span
         >
       {/snippet}
       {#snippet control()}{/snippet}
       {#snippet panel()}
         {#if availableOptions.length === 0}
-          <p class="text-muted-foreground text-sm">No options available for this combination.</p>
+          <p class="text-sm text-muted-foreground">No options available for this combination.</p>
         {:else}
           <div class="space-y-4" transition:slide>
             {#each availableOptions as option (option)}
               <div class="flex items-center justify-between gap-4">
                 <label
-                  class="text-foreground flex cursor-pointer items-center gap-x-2 text-sm sm:gap-x-4"
+                  class="flex cursor-pointer items-center gap-x-2 text-sm text-foreground sm:gap-x-4"
                 >
                   <Switch
                     name={option}

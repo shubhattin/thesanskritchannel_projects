@@ -360,7 +360,7 @@
       // ^ this regetch is not a reliable alternative to onSuccess
     }}
     disabled={$image_prompt_q.isFetching}
-    class="btn rounded-md bg-surface-600 px-2 py-1 font-bold text-white dark:bg-surface-600"
+    class="btn bg-surface-600 dark:bg-surface-600 rounded-md px-2 py-1 font-bold text-white"
   >
     Generate Image Prompt
   </button>
@@ -438,14 +438,14 @@
 </div>
 {#if $image_prompt_q.data !== undefined || $image_prompt_q.isFetching}
   {#if $image_prompt_q.isFetching || !$image_prompt_q.isSuccess}
-    <div class="h-80 placeholder animate-pulse rounded-md"></div>
+    <div class="placeholder h-80 animate-pulse rounded-md"></div>
   {:else}
     <div class="space-x-3">
       <span class="font-bold">Image Prompt</span>
       <button
         disabled={$image_q.isFetching}
         onclick={generate_image}
-        class="btn-hover rounded-md bg-tertiary-800 px-1.5 py-0 font-bold text-white dark:bg-tertiary-800"
+        class="btn-hover bg-tertiary-800 dark:bg-tertiary-800 rounded-md px-1.5 py-0 font-bold text-white"
         >Generate Image</button
       >
       <button
@@ -483,7 +483,7 @@
     ></textarea>
     {#if $image_q.data}
       {#if $image_q.isFetching || !$image_q.isSuccess}
-        <div class="h-96 placeholder animate-pulse rounded-md"></div>
+        <div class="placeholder h-96 animate-pulse rounded-md"></div>
       {:else}
         <div>
           <section class="mb-10 grid grid-cols-2 gap-3">
@@ -501,7 +501,7 @@
                   <div class="flex items-center justify-center space-x-3">
                     <button
                       onclick={() => download_image(image)}
-                      class="btn rounded-md bg-surface-600 px-1 py-1 outline-hidden dark:bg-surface-500"
+                      class="btn bg-surface-600 dark:bg-surface-500 rounded-md px-1 py-1 outline-hidden"
                     >
                       <Icon src={BsDownload} class="text-xl text-white" />
                     </button>

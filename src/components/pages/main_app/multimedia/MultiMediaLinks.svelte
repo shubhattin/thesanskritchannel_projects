@@ -40,7 +40,7 @@
   {/snippet}
   {#snippet content()}
     {#if $media_list_q.isFetching}
-      <div class="h-15 placeholder w-30 animate-pulse"></div>
+      <div class="placeholder h-15 w-30 animate-pulse"></div>
     {:else if !$media_list_q.isFetching && $media_list_q.isSuccess}
       {@const media_list = $media_list_q.data}
       {#if media_list.length === 0}

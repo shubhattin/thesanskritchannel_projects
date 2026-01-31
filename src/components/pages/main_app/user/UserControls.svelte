@@ -95,7 +95,7 @@
           >
             <button
               disabled={$editing_status_on}
-              class="btn rounded-md bg-error-600 px-2 py-0 pb-0.5 pl-1 text-sm font-bold text-white sm:text-base"
+              class="btn bg-error-600 rounded-md px-2 py-0 pb-0.5 pl-1 text-sm font-bold text-white sm:text-base"
             >
               <Icon class="text-2xl" src={BiLogOut} />
               <span>Logout</span>
@@ -105,7 +105,7 @@
         {#if user_info.role !== 'admin' && $user_project_info_q.isSuccess}
           <button
             class={cl_join(
-              'mb-1 btn block p-0 text-sm outline-hidden select-none hover:text-gray-500 dark:hover:text-gray-400',
+              'btn mb-1 block p-0 text-sm outline-hidden select-none hover:text-gray-500 dark:hover:text-gray-400',
               $user_project_info_q.isFetching && 'animate-spin'
             )}
             onclick={() => {
@@ -116,7 +116,7 @@
             <Icon src={LuRefreshCw} class="text-lg" />
           </button>
           {#if $user_project_info_q.isFetching}
-            <div class="h-5 placeholder w-full animate-pulse"></div>
+            <div class="placeholder h-5 w-full animate-pulse"></div>
           {:else if $is_current_app_scope}
             {@const langs = $user_project_info_q.data.languages!}
             {#if langs && langs.length > 0}
@@ -127,12 +127,12 @@
                 </span>
               </div>
             {:else}
-              <div class="text-sm text-warning-600 dark:text-warning-500">
+              <div class="text-warning-600 dark:text-warning-500 text-sm">
                 No languages assigned
               </div>
             {/if}
           {:else}
-            <div class="text-sm text-warning-600 dark:text-warning-500">
+            <div class="text-warning-600 dark:text-warning-500 text-sm">
               You account is not added to Projects Portal scope by Admin
             </div>
           {/if}
@@ -148,7 +148,7 @@
           >
             <button
               disabled={$editing_status_on}
-              class="btn block rounded-md bg-primary-800 px-1.5 py-0 font-bold text-white dark:bg-primary-900"
+              class="btn bg-primary-800 dark:bg-primary-900 block rounded-md px-1.5 py-0 font-bold text-white"
             >
               <Icon src={OiSync16} class="my-1 mb-1 text-lg" />
               <span class="text-xs">Sync Translations from DB</span>

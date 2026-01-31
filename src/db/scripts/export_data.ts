@@ -1,4 +1,4 @@
-import { dbClient_ext as db, queryClient } from './client';
+import { dbClient_ext as db } from './client';
 import { readFile } from 'fs/promises';
 import { dbMode, take_input } from '~/tools/kry.server';
 import {
@@ -135,9 +135,7 @@ const main = async () => {
     console.log(chalk.red('✗ Error while resetting SERIAL:'), chalk.yellow(e));
   }
 };
-main().then(() => {
-  queryClient.end();
-});
+main().then(() => {});
 
 async function confirm_environemnt() {
   let confirmation: string = await take_input(`Are you sure INSERT in ${dbMode} ? `);

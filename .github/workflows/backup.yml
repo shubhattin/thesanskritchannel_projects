@@ -35,5 +35,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: db_backup
-          path: src/db/scripts/backup/translation.csv
+          path: |
+            src/db/scripts/backup/translations.csv
+            src/db/scripts/backup/texts.csv
           retention-days: 60

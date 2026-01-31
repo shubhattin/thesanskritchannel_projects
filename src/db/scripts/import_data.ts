@@ -1,4 +1,4 @@
-import { dbClient_ext as db, queryClient } from './client';
+import { dbClient_ext as db } from './client';
 import { writeFile } from 'fs/promises';
 import { dbMode, make_dir, take_input } from '../../tools/kry.server';
 
@@ -39,10 +39,7 @@ const isMainModule = () => {
     return false;
   }
 };
-if (isMainModule())
-  import_data().then(() => {
-    queryClient.end();
-  });
+if (isMainModule()) import_data().then(() => {});
 
 async function confirm_environemnt() {
   let confirmation: string = await take_input(`Are you sure SELECT from ${dbMode} ? `);

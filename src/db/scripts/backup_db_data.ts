@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { execSync } from 'child_process';
 import { import_data } from './import_data';
 import * as dotenv from 'dotenv';
-import { queryClient } from './client';
 import {
   S3Client,
   PutObjectCommand,
@@ -14,7 +13,7 @@ import {
   type _Object
 } from '@aws-sdk/client-s3';
 import mime from 'mime-types';
-import { TranslationSchemaZod } from '../../db/schema_zod';
+import { TextSchemaZod, TranslationSchemaZod } from '../../db/schema_zod';
 import { json2csv } from 'json-2-csv';
 import ms from 'ms';
 
@@ -71,15 +70,19 @@ async function backup_data() {
   }
 
   await import_data(false).then(() => {
-    queryClient.end();
     fs.copyFileSync('./out/db_data.json', './backup/db_data.json');
   });
+  const text_data = TextSchemaZod.array().parse(
+    JSON.parse(fs.readFileSync('./backup/db_data.json', 'utf-8'))['texts']
+  );
   const trans_data = TranslationSchemaZod.array().parse(
-    JSON.parse(fs.readFileSync('./backup/db_data.json', 'utf-8'))['translation']
+    JSON.parse(fs.readFileSync('./backup/db_data.json', 'utf-8'))['translations']
   );
   if (BACKUP_SQL) {
-    const csv = json2csv(trans_data);
-    fs.writeFileSync(`./backup/translation.csv`, csv);
+    const trans_csv = json2csv(trans_data);
+    fs.writeFileSync(`./backup/translations.csv`, trans_csv);
+    const text_csv = json2csv(text_data);
+    fs.writeFileSync(`./backup/texts.csv`, text_csv);
   }
   if (!argv.includes('--no-zip-backup')) {
     console.log('Zipping backup files');

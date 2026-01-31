@@ -3,7 +3,7 @@ name = "yojanam"
 version = "0.1.0"
 description = "etadyojanam"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = "==3.10.*"
 dependencies = [
     "jinja2>=3.1.6",
     "pydantic>=2.10.6",

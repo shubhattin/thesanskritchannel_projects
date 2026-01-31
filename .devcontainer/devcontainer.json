@@ -1,5 +1,5 @@
 {
   "name": "Container",
   "initializeCommand": "echo 'Skipping default npm install'",
-  "postCreateCommand": "git config --global pull.rebase false && npm i -g pnpm tsx && pnpm install && mkdir .venv && pip install uv && uv sync"
+  "postCreateCommand": "git config --global pull.rebase false && (command -v bun >/dev/null 2>&1 || (curl -fsSL https://bun.sh/install | bash)) && export BUN_INSTALL=\"$HOME/.bun\" && export PATH=\"$BUN_INSTALL/bin:$PATH\" && bun install --frozen-lockfile && (command -v uv >/dev/null 2>&1 || (curl -LsSf https://astral.sh/uv/install.sh | sh)) && export PATH=\"$HOME/.local/bin:$PATH\" && uv python install 3.10 && uv sync --frozen"
 }

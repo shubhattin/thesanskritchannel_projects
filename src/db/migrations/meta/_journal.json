@@ -61,8 +61,15 @@
     {
       "idx": 8,
       "version": "7",
-      "when": 1769827077041,
-      "tag": "0008_quick_princess_powerful",
+      "when": 1769827415739,
+      "tag": "0008_material_sue_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1769827546111,
+      "tag": "0009_add_trgm_text_index",
       "breakpoints": true
     }
   ]

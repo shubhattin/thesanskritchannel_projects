@@ -9,14 +9,16 @@ export const import_data = async (confirm_env = true) => {
 
   const user_project_join = await db.query.user_project_join.findMany();
   const user_project_language_join = await db.query.user_project_language_join.findMany();
-  const translation = await db.query.translation.findMany();
+  const translations = await db.query.translations.findMany();
+  const texts = await db.query.texts.findMany();
   const other = await db.query.other.findMany();
   const media_attachment = await db.query.media_attachment.findMany();
 
   const json_data = {
     user_project_join,
     user_project_language_join,
-    translation,
+    translations,
+    texts,
     other,
     media_attachment
   };

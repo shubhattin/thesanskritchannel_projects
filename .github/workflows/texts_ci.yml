@@ -27,7 +27,7 @@ jobs:
       - name: Run the script
         run: uv run ./helper_cli --gen-json-all
 
-      - name: Use iNode.js
+      - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20

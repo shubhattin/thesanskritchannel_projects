@@ -1,4 +1,3 @@
-import { relations } from 'drizzle-orm';
 import {
   pgTable,
   text,
@@ -9,9 +8,26 @@ import {
   index,
   jsonb
 } from 'drizzle-orm/pg-core';
+// import { relations } from 'drizzle-orm';
 
-export const translation = pgTable(
-  'translation',
+export const texts = pgTable(
+  'texts',
+  {
+    project_id: integer().notNull(),
+    path: text().notNull(),
+    index: integer().notNull(),
+    shloka_num: integer(),
+    text: text().default('').notNull()
+  },
+  ({ project_id, path, index }) => [
+    primaryKey({
+      columns: [project_id, path, index]
+    })
+  ]
+);
+
+export const translations = pgTable(
+  'translations',
   {
     project_id: integer().notNull(),
     lang_id: integer().notNull(),

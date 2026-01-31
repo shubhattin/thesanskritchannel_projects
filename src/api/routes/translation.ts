@@ -7,7 +7,7 @@ import {
   t
 } from '~/api/trpc_init';
 import { db } from '~/db/db';
-import { translation } from '~/db/schema';
+import { translations } from '~/db/schema';
 import type { shloka_list_type } from '~/state/data_types';
 import { delay } from '~/tools/delay';
 import { env } from '$env/dynamic/private';
@@ -32,6 +32,8 @@ export const get_text_data_func = async (key: string, path_params: number[]) => 
     `data/${project_id}. ${key}/data` +
     (path_params.length !== 0 ? `/${path_params.join('/')}.json` : `.json`);
   if (import.meta.env.DEV) {
+    // on DEV use local files directly
+    // changes on local will be synced to the db and redis in PROD
     const fs = await import('fs');
     return JSON.parse(fs.readFileSync('./' + loc, 'utf8')) as shloka_list_type;
   }
@@ -40,21 +42,15 @@ export const get_text_data_func = async (key: string, path_params: number[]) => 
     REDIS_CACHE_KEYS.text_data(project_id, path_params)
   );
   if (cache) return cache;
-  // raw.githubusercontent.com is faster but imposes a cache of 5 mins so currently using this
-  const req = await fetch(
-    `https://api.github.com/repos/shubhattin/thesanskritchannel_projects/contents/${loc}`,
-    {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        Authorization: `Bearer ${env.GITHUB_API_KEY}`,
-        'X-GitHub-Api-Version': '2022-11-28'
-      }
-    }
-  );
-  const base_64_data = (await req.json())['content'];
-  const buffer = Buffer.from(base_64_data, 'base64');
-  const decoded_content = buffer.toString('utf-8');
-  const data = JSON.parse(decoded_content) as shloka_list_type;
+  const data = await db.query.texts.findMany({
+    columns: {
+      text: true,
+      index: true,
+      shloka_num: true
+    },
+    where: (tbl, { eq, and }) =>
+      and(eq(tbl.project_id, project_id), eq(tbl.path, path_params.join(':')))
+  });
   // set cache in background and return data immediately
   waitUntil(
     redis.set(REDIS_CACHE_KEYS.text_data(project_id, path_params), data, {
@@ -104,7 +100,7 @@ const get_translation_route = publicProcedure
     }
     if (cache) data = cache;
     else {
-      data = await db.query.translation.findMany({
+      data = await db.query.translations.findMany({
         columns: {
           index: true,
           text: true
@@ -159,14 +155,14 @@ const edit_translation_route = protectedAppScopeProcedure
         const existing_indexes = new Set(
           (
             await tx
-              .select({ index: translation.index })
-              .from(translation)
+              .select({ index: translations.index })
+              .from(translations)
               .where(
                 and(
-                  eq(translation.project_id, project_id),
-                  eq(translation.lang_id, lang_id),
-                  eq(translation.path, path),
-                  inArray(translation.index, indexes)
+                  eq(translations.project_id, project_id),
+                  eq(translations.lang_id, lang_id),
+                  eq(translations.path, path),
+                  inArray(translations.index, indexes)
                 )
               )
           ).map((v) => v.index)
@@ -178,7 +174,7 @@ const edit_translation_route = protectedAppScopeProcedure
         await Promise.all([
           // add entries
           add_entries.length > 0 &&
-            tx.insert(translation).values(
+            tx.insert(translations).values(
               add_entries.map(([index, i]) => ({
                 project_id,
                 lang_id,
@@ -190,14 +186,14 @@ const edit_translation_route = protectedAppScopeProcedure
           // update entries
           ...update_entries.map(([index, dataIndex]) =>
             tx
-              .update(translation)
+              .update(translations)
               .set({ text: data[dataIndex] })
               .where(
                 and(
-                  eq(translation.project_id, project_id),
-                  eq(translation.lang_id, lang_id),
-                  eq(translation.path, path),
-                  eq(translation.index, index)
+                  eq(translations.project_id, project_id),
+                  eq(translations.lang_id, lang_id),
+                  eq(translations.path, path),
+                  eq(translations.index, index)
                 )
               )
           )
@@ -227,7 +223,7 @@ const get_all_langs_translation_route = protectedAppScopeProcedure
       get_project_info_from_id(project_id).levels
     );
     const path = path_params.join(':');
-    const data = await db.query.translation.findMany({
+    const data = await db.query.translations.findMany({
       columns: {
         index: true,
         text: true,

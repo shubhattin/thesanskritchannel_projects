@@ -11,6 +11,11 @@ import { fetch_post } from '~/tools/fetch';
 import dotenv from 'dotenv';
 dotenv.config();
 
+type GroupedKey = {
+  project_id: number;
+  path_params_list: number[][];
+};
+
 async function main() {
   let files = new Set<string>();
   if (process.argv.slice(2).includes('--last-commit')) {
@@ -24,7 +29,7 @@ async function main() {
   }
 
   const invalidation_keys = get_invalidation_keys_for_files(files);
-
+  // console.log(invalidation_keys);
   if (invalidation_keys.length === 0) {
     console.log(chalk.bold(`✅ No cache to invalidate`));
     return;
@@ -42,7 +47,10 @@ async function main() {
 }
 
 const get_invalidation_keys_for_files = (files: Set<string>) => {
-  const invalidation_keys: string[] = [];
+  const invalidation_keys: {
+    project_id: number;
+    path_params: number[];
+  }[] = [];
 
   files.forEach((file) => {
     if (!/^data\/\d(\d)?\. \S+$/.test(file)) return;
@@ -53,7 +61,7 @@ const get_invalidation_keys_for_files = (files: Set<string>) => {
     const { levels } = project_info;
     if (levels === 1) {
       if (file.endsWith('data.json')) {
-        invalidation_keys.push(REDIS_CACHE_KEYS_CLIENT.text_data(project_id, []));
+        invalidation_keys.push({ project_id, path_params: [] });
       }
       return;
     }
@@ -64,19 +72,31 @@ const get_invalidation_keys_for_files = (files: Set<string>) => {
       .split('/')
       .splice(3)
       .map((v) => Number(v));
-    invalidation_keys.push(REDIS_CACHE_KEYS_CLIENT.text_data(project_id, path_params));
+    invalidation_keys.push({ project_id, path_params });
   });
 
-  return invalidation_keys;
+  const grouped_keys: GroupedKey[] = [];
+  const all_project_ids = new Set<number>();
+  for (const key of invalidation_keys) {
+    all_project_ids.add(key.project_id);
+  }
+  for (const project_id of all_project_ids) {
+    const path_params_list = invalidation_keys
+      .filter((key) => key.project_id === project_id)
+      .map((key) => key.path_params);
+    grouped_keys.push({ project_id, path_params_list });
+  }
+  return grouped_keys;
 };
 
-const invalidate_keys = async (invalidation_keys: string[]) => {
+const invalidate_keys = async (invalidation_keys: GroupedKey[]) => {
   if (process.argv.slice(2).includes('--verbose')) {
     console.log(chalk.blue.bold('Keys to be Invalidated: '));
     invalidation_keys.forEach((key) => {
-      console.log(key);
+      key.path_params_list.forEach((path_params) => {
+        console.log(REDIS_CACHE_KEYS_CLIENT.text_data(key.project_id, path_params));
+      });
     });
-    console.log();
   }
 
   const credential_schema = z.object({

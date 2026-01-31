@@ -100,6 +100,7 @@ const main = async () => {
   }
 
   console.log(`Total texts: ${texts.length}`);
+  fs.mkdirSync('./out', { recursive: true });
   fs.writeFileSync('./out/texts.json', JSON.stringify(texts, null, 2));
 };
 

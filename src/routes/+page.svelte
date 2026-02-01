@@ -38,10 +38,24 @@
 
   <div class="mt-8 flex justify-center">
     <a
-      class="btn rounded-full bg-sky-600 p-2 text-base font-semibold text-white shadow-lg shadow-sky-300/40 transition hover:bg-sky-700 dark:bg-slate-700 dark:text-white dark:shadow-slate-900/40"
       href="/search"
+      class="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-6 py-3 text-base font-semibold tracking-wide text-primary transition hover:border-secondary hover:bg-muted/70 focus-visible:ring focus-visible:ring-ring/70 focus-visible:outline-none"
+      aria-label="Search across Sanskrit texts"
     >
-      Search
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-5 w-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
+      </svg>
+      <span>Search across texts</span>
     </a>
   </div>
 </main>

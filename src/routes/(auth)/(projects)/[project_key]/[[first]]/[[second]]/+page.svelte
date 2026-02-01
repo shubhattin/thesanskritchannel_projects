@@ -22,6 +22,7 @@
   import { BsChevronDown, BsChevronUp, BsThreeDots } from 'svelte-icons-pack/bs';
   import Icon from '~/tools/Icon.svelte';
   import { fade } from 'svelte/transition';
+  import { AiOutlineHome } from 'svelte-icons-pack/ai';
 
   let { data }: { data: PageData } = $props();
 
@@ -95,6 +96,19 @@
         </Popover.Trigger>
         <Popover.Content side="bottom" class="w-auto space-y-2 p-2">
           <div class="space-y-2">
+            <button
+              class={cl_join(
+                'block w-full gap-0 rounded-md px-1.5 py-1 text-center text-sm font-semibold',
+                'border border-border bg-card text-foreground transition-colors duration-150 hover:border-accent hover:bg-accent hover:text-accent-foreground'
+              )}
+              onclick={() => {
+                project_selected_popover = false;
+                goto(`/`);
+              }}
+            >
+              <Icon src={AiOutlineHome} class="-mt-1 mr-1 size-5" />
+              Home
+            </button>
             {#each PROJECT_LIST as project, i}
               <button
                 class={cl_join(

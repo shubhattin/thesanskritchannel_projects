@@ -179,6 +179,22 @@
     return options.map((v, i) => ({ ...v, text: transliterate_texts[i] }));
   };
 
+  const transliterate_selected_label = async (
+    options: false | option_type[],
+    initial_option: option_type,
+    selected_value: number | null,
+    script: script_list_type
+  ) => {
+    if (!selected_value) return 'Select';
+    const selected_text = options
+      ? (options.find((o) => o.value === selected_value)?.text ?? '')
+      : (initial_option.text ?? '');
+    if (!selected_text) return `${selected_value}.`;
+    if (!browser || script === BASE_SCRIPT) return `${selected_value}. ${selected_text}`;
+    const text_tr = await transliterate_custom(selected_text, BASE_SCRIPT, script);
+    return `${selected_value}. ${text_tr}`;
+  };
+
   let trans_lang_selection = writable(0);
   $trans_lang = $trans_lang_selection;
   const trans_lang_mut = createMutation({
@@ -348,14 +364,13 @@
       <Select.Trigger
         class={`${get_text_font_class($viewing_script)} inline-flex h-10 w-44 px-2 py-1 sm:h-12 sm:w-52`}
       >
-        {$selected_text_levels[text_level_state_index]
-          ? `${$selected_text_levels[text_level_state_index]}. ${
-              options
-                ? (options.find((o) => o.value === $selected_text_levels[text_level_state_index])
-                    ?.text ?? '')
-                : (initial_option.text ?? '')
-            }`
-          : 'Select'}
+        {#await transliterate_selected_label(options, initial_option, $selected_text_levels[text_level_state_index], $viewing_script)}
+          {$selected_text_levels[text_level_state_index]
+            ? $selected_text_levels[text_level_state_index] + '. ' + initial_option.text
+            : 'Select'}
+        {:then label}
+          {label}
+        {/await}
       </Select.Trigger>
       <Select.Content>
         <Select.Item value="">Select</Select.Item>

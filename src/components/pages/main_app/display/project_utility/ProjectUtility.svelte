@@ -11,7 +11,7 @@
     project_state
   } from '~/state/main_app/state.svelte';
   import { createMutation } from '@tanstack/svelte-query';
-  import { RiDocumentFileExcel2Line } from 'svelte-icons-pack/ri';
+  import { RiDocumentFileExcel2Line, RiSystemSearchLine } from 'svelte-icons-pack/ri';
   import { transliterate_xlxs_file } from '~/tools/excel/transliterate_xlsx_file';
   import { client, client_q } from '~/api/client';
   import Icon from '~/tools/Icon.svelte';
@@ -131,6 +131,13 @@
     <Icon class="mx-[0.17rem] text-lg sm:mx-0 sm:text-2xl" src={BsThreeDots} />
   </Popover.Trigger>
   <Popover.Content side="bottom" class="w-auto space-y-1 p-1 text-sm">
+    <a
+      class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
+      href="/search"
+    >
+      <Icon src={RiSystemSearchLine} class="-mt-1 mr-1 size-5" />
+      Search
+    </a>
     {#if user_info}
       <button
         class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"

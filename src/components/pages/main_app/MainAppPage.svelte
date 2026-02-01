@@ -505,7 +505,11 @@
     {#if $sanskrit_mode_texts.isSuccess && !$sanskrit_mode_texts.isFetching}
       <Select.Root
         type="single"
-        bind:value={$sanskrit_mode as any}
+        value={$sanskrit_mode.toString()}
+        onValueChange={(value) => {
+          if (!value) return;
+          $sanskrit_mode = Number(value);
+        }}
         disabled={!$edit_language_typer_status}
       >
         <Select.Trigger class="w-28 text-sm">
@@ -514,8 +518,8 @@
             : 'rAm ➔ ' + $sanskrit_mode_texts.data[1]}
         </Select.Trigger>
         <Select.Content>
-          <Select.Item value={1 as any}>rAm ➔ {$sanskrit_mode_texts.data[0]}</Select.Item>
-          <Select.Item value={0 as any}>rAm ➔ {$sanskrit_mode_texts.data[1]}</Select.Item>
+          <Select.Item value="1">rAm ➔ {$sanskrit_mode_texts.data[0]}</Select.Item>
+          <Select.Item value="0">rAm ➔ {$sanskrit_mode_texts.data[1]}</Select.Item>
         </Select.Content>
       </Select.Root>
     {/if}

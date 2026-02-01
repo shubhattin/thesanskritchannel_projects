@@ -79,7 +79,7 @@
     </Tabs.List>
     {#each ['admin', 'project_scope', 'non_project_scope'] as tabValue (tabValue)}
       <Tabs.Content value={tabValue}>
-        {@const users = get_filtered_users()!}
+        {@const users = get_filtered_users() ?? []}
         {@const user = users.find((user) => user.id === $selected_user_id)}
         {#key $selected_user_type}
           {#if users.length === 0}
@@ -118,7 +118,7 @@
                     <div class="mt-2 text-base font-semibold">{user.name}</div>
                     <a
                       class="text-xs text-muted-foreground sm:text-sm"
-                      href={`emailto:${user.email}`}>{user.email}</a
+                      href={`mailto:${user.email}`}>{user.email}</a
                     >
                     <RevokeSessions user_id={user.id} />
                   {/if}

@@ -307,6 +307,7 @@
         {#if !$trans_en_data_q.data?.has(i)}
           <Button
             size="icon-sm"
+            aria-label="Add Translation"
             onclick={async () => {
               await update_trans_lang_data(i, '');
               $added_translations_indexes.push(i);

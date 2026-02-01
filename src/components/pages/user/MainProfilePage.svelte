@@ -112,7 +112,7 @@
       <Icon src={LuRefreshCw} class="text-lg" />
     </button>
   </div>
-  <a class="text-sm text-muted-foreground sm:text-base" href={`emailto:${user.email}`}
+  <a class="text-sm text-muted-foreground sm:text-base" href={`mailto:${user.email}`}
     >{user.email}</a
   >
   <div class="mt-3">

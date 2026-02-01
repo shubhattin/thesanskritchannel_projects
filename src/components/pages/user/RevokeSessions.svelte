@@ -44,7 +44,7 @@
 
 {#if user_info?.is_maintainer}
   <div class="mt-8">
-    <div class="text-warning-500 dark:text-warning-400 mb-1.5 text-base font-semibold">
+    <div class="mb-1.5 text-base font-semibold text-amber-700 dark:text-amber-400">
       User Sessions
     </div>
     {#if !$userSessions_q.isFetching && $userSessions_q.isSuccess}

@@ -192,7 +192,7 @@
   {@const data = $projects_info.data}
   {#if admin_edit}
     <div class="text-base font-semibold">{user_info.name}</div>
-    <a class="text-xs text-muted-foreground sm:text-sm" href={`emailto:${user_info.email}`}
+    <a class="text-xs text-muted-foreground sm:text-sm" href={`maillto:${user_info.email}`}
       >{user_info.email}</a
     >
   {/if}

@@ -122,7 +122,7 @@
     <div class="flex items-center gap-2">
       <MediaTypeIcon {media_type} />
       <Select.Root type="single" bind:value={media_type}>
-        <Select.Trigger class="w-full text-sm">
+        <Select.Trigger id="edit-media-type" class="w-full text-sm">
           {MEDIA_TYPE_LIST[media_type] ?? 'Select Type'}
         </Select.Trigger>
         <Select.Content>
@@ -144,7 +144,7 @@
         lang_id = parseInt(v) || 0;
       }}
     >
-      <Select.Trigger class="w-full text-sm">
+      <Select.Trigger id="edit-language" class="w-full text-sm">
         {Object.entries(lang_list_obj).find(([, id]) => id === lang_id)?.[0] ?? 'English'}
       </Select.Trigger>
       <Select.Content>

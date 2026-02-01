@@ -120,7 +120,7 @@
           onclick={() => (app_bar_popover_status = false)}
         >
           <Icon src={SiGithub} class="-mt-1 mr-1 text-xl" />
-          <span>Projects's Github Page</span>
+          <span>Project's Github Page</span>
         </a>
         <div class="flex items-center gap-3 rounded-md px-2 py-1">
           <span class="mt-1">Set Theme</span>
@@ -132,7 +132,10 @@
 </header>
 
 <Dialog.Root bind:open={support_modal_status}>
-  <Dialog.Content class="w-80 max-w-[calc(100vw-2rem)] bg-card p-3">
+  <Dialog.Content
+    class="w-80 max-w-[calc(100vw-2rem)] bg-card p-3"
+    aria-label="Support Our Projects"
+  >
     {#await preload_component() then SupportOptions}
       <SupportOptions.default />
     {/await}

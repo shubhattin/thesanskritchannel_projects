@@ -16,6 +16,7 @@
   import Icon from '~/tools/Icon.svelte';
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
   import * as Select from '$lib/components/ui/select';
+  import { Skeleton } from '$lib/components/ui/skeleton';
 
   interface Props {
     sync_lang_script: string;
@@ -168,8 +169,8 @@
           >
             {#if $usage_table.isFetching}
               <div class="h-full w-full space-y-1">
-                <div class="h-full w-full animate-pulse rounded-lg bg-muted"></div>
-                <div class="h-4 animate-pulse rounded-md bg-muted"></div>
+                <Skeleton class="h-full w-full rounded-lg bg-muted" />
+                <Skeleton class="h-4 bg-muted" />
               </div>
             {:else if $usage_table.isSuccess}
               {@const { url, height, width } = $usage_table.data}
@@ -199,15 +200,15 @@
                 {#each ['Svara', 'Vyanjana', 'Other', 'Script-specific Characters'] as title (title)}
                   <div>
                     <div class="mb-2 flex items-center justify-between gap-2">
-                      <div class="h-6 w-32 animate-pulse rounded-md bg-muted"></div>
+                      <Skeleton class="h-6 w-32 bg-muted" />
                     </div>
                     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                       {#each Array.from({ length: 12 }) as _, idx (title + idx)}
                         <div class="rounded-lg border border-border bg-card p-3">
-                          <div class="h-6 w-14 animate-pulse rounded bg-muted"></div>
+                          <Skeleton class="h-6 w-14 bg-muted" />
                           <div class="mt-2 flex flex-wrap gap-1">
-                            <div class="h-4 w-8 animate-pulse rounded bg-muted opacity-70"></div>
-                            <div class="h-4 w-10 animate-pulse rounded bg-muted opacity-60"></div>
+                            <Skeleton class="h-4 w-8 bg-muted opacity-70" />
+                            <Skeleton class="h-4 w-10 bg-muted opacity-60" />
                           </div>
                         </div>
                       {/each}
@@ -405,9 +406,9 @@
                 <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                   {#each Array.from({ length: 12 }) as _, idx (idx)}
                     <div class="rounded-lg border border-border bg-card p-3">
-                      <div class="h-6 w-14 animate-pulse rounded bg-muted"></div>
+                      <Skeleton class="h-6 w-14 bg-muted" />
                       <div class="mt-2"></div>
-                      <div class="h-6 w-14 animate-pulse rounded bg-muted opacity-70"></div>
+                      <Skeleton class="h-6 w-14 bg-muted opacity-70" />
                     </div>
                   {/each}
                 </div>

@@ -40,6 +40,7 @@
   import { get_result_from_trigger_run_id } from '~/tools/trigger';
   import { Button } from '$lib/components/ui/button';
   import { Textarea } from '$lib/components/ui/textarea';
+  import { Skeleton } from '$lib/components/ui/skeleton';
   import * as Select from '$lib/components/ui/select';
 
   let base_prompts = image_tool_prompts as {
@@ -455,7 +456,7 @@
 </div>
 {#if $image_prompt_q.data !== undefined || $image_prompt_q.isFetching}
   {#if $image_prompt_q.isFetching || !$image_prompt_q.isSuccess}
-    <div class="placeholder h-80 animate-pulse rounded-md"></div>
+    <Skeleton class="h-80" />
   {:else}
     <div class="space-x-3">
       <span class="font-bold">Image Prompt</span>
@@ -494,7 +495,7 @@
     />
     {#if $image_q.data}
       {#if $image_q.isFetching || !$image_q.isSuccess}
-        <div class="placeholder h-96 animate-pulse rounded-md"></div>
+        <Skeleton class="h-96" />
       {:else}
         <div>
           <section class="mb-10 grid grid-cols-2 gap-3">

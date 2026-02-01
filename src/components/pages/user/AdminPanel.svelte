@@ -10,6 +10,7 @@
   import { fetch_get } from '~/tools/fetch';
   import { user_info } from '~/state/user.svelte';
   import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
+  import { Skeleton } from '$lib/components/ui/skeleton';
 
   const users_list = createQuery({
     queryKey: ['users_list'],
@@ -130,5 +131,5 @@
     {/each}
   </Tabs.Root>
 {:else}
-  <div class="h-96 animate-pulse rounded-md bg-muted"></div>
+  <Skeleton class="h-96" />
 {/if}

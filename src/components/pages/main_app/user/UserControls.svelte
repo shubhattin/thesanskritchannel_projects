@@ -21,6 +21,7 @@
   import { client } from '~/api/client';
   import { cn } from '$lib/utils';
   import { is_current_app_scope } from '~/state/user.svelte';
+  import { Skeleton } from '$lib/components/ui/skeleton';
 
   const session = useSession();
 
@@ -106,7 +107,7 @@
             <Icon src={LuRefreshCw} class="text-lg" />
           </button>
           {#if $user_project_info_q.isFetching}
-            <div class="h-5 w-full animate-pulse rounded bg-muted"></div>
+            <Skeleton class="h-5 w-full bg-muted" />
           {:else if $is_current_app_scope}
             {@const langs = $user_project_info_q.data.languages!}
             {#if langs && langs.length > 0}

@@ -13,6 +13,7 @@
   import { FiEdit2 } from 'svelte-icons-pack/fi';
   import EditMediaLink from './EditMediaLink.svelte';
   import Button from '~/lib/components/ui/button/button.svelte';
+  import { Skeleton } from '$lib/components/ui/skeleton';
 
   const media_list_q = $derived(
     client_q.media.get_media_list.query({
@@ -36,7 +37,7 @@
   </Popover.Trigger>
   <Popover.Content side="bottom" class="w-auto space-y-1 p-1.5">
     {#if $media_list_q.isFetching}
-      <div class="h-15 w-30 animate-pulse rounded bg-muted"></div>
+      <Skeleton class="h-15 w-30 bg-muted" />
     {:else if !$media_list_q.isFetching && $media_list_q.isSuccess}
       {@const media_list = $media_list_q.data}
       {#if media_list.length === 0}

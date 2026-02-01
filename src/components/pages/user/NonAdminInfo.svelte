@@ -16,6 +16,7 @@
   import { Checkbox } from '$lib/components/ui/checkbox';
   import { Label } from '$lib/components/ui/label';
   import { Button } from '$lib/components/ui/button';
+  import { Skeleton } from '$lib/components/ui/skeleton';
   import { OiLinkExternal16 } from 'svelte-icons-pack/oi';
   import RevokeSessions from './RevokeSessions.svelte';
   import ms from 'ms';
@@ -349,7 +350,7 @@
     {/if}
   {/if}
 {:else}
-  <div class="h-40 w-full animate-pulse rounded-md bg-muted"></div>
+  <Skeleton class="h-40 w-full" />
 {/if}
 
 {#snippet add_project(new_list = false)}

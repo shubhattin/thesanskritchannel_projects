@@ -2,6 +2,7 @@
   import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
   import { authClient, useSession } from '~/lib/auth-client';
   import { Button } from '$lib/components/ui/button';
+  import { Skeleton } from '$lib/components/ui/skeleton';
 
   const query_client = useQueryClient();
 
@@ -65,7 +66,7 @@
         <div>User has no sessions</div>
       {/if}
     {:else}
-      <div class="h-6 w-40 animate-pulse rounded bg-muted"></div>
+      <Skeleton class="h-6 w-40 bg-muted" />
     {/if}
   </div>
 {/if}

@@ -12,6 +12,7 @@
   import { Label } from '$lib/components/ui/label';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Select from '$lib/components/ui/select';
+  import { Skeleton } from '$lib/components/ui/skeleton';
 
   const current_text_cache_invalidate_mut = client_q.cache.invalidate_cache.mutation({
     onSuccess() {
@@ -167,7 +168,7 @@
   {/if}
   <div class="mt-2">
     {#if $list_cache_q.isFetching}
-      <div class="h-36 w-full animate-pulse rounded bg-muted"></div>
+      <Skeleton class="h-36 w-full" />
     {:else if $list_cache_q.isSuccess}
       {@const cache_list = $list_cache_q.data.sort()}
       {#if cache_list.length > 0}

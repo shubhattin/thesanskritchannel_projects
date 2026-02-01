@@ -16,6 +16,7 @@
   import Icon from '~/tools/Icon.svelte';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
   import * as Select from '$lib/components/ui/select';
+  import { Skeleton } from '$lib/components/ui/skeleton';
 
   let langugae = $state('Hindi');
   let shloka = $state('');
@@ -355,7 +356,7 @@
     </button>
   {/if}
   {#if is_fetching && !analysis_result}
-    <div class="rounded=md placeholder h-96 animate-pulse"></div>
+    <Skeleton class="h-96" />
   {:else if analysis_result}
     <div class="prose prose-neutral dark:prose-invert text-sm" in:fade>
       <Markdown source={analysis_result} />

@@ -98,10 +98,10 @@
             {#each PROJECT_LIST as project, i}
               <button
                 class={cl_join(
-                  'block w-full gap-0 rounded-md px-1.5 py-1 text-center text-sm font-semibold text-white',
+                  'block w-full gap-0 rounded-md px-1.5 py-1 text-center text-sm font-semibold',
                   project.key === project_key
-                    ? 'bg-primary'
-                    : 'bg-muted-foreground/50 hover:bg-primary/80'
+                    ? 'border border-primary bg-primary text-primary-foreground shadow'
+                    : 'border border-border bg-card text-foreground transition-colors duration-150 hover:border-accent hover:bg-accent hover:text-accent-foreground'
                 )}
                 onclick={() => {
                   project_selected_popover = false;

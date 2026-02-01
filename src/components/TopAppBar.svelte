@@ -60,7 +60,7 @@
       {/if}
     {/if}
   </div>
-  <div class="flex items-center gap-2">
+  <div class="flex items-center gap-x-2 sm:gap-x-4">
     {@render end?.()}
     <button
       onclick={() => {
@@ -69,8 +69,8 @@
       onmouseover={preload_component}
       onfocus={preload_component}
       class={cn(
-        'flex items-center gap-1 rounded-md px-1 py-1 font-semibold outline-none select-none hover:bg-muted sm:px-2',
-        'mr-2 sm:mr-3'
+        'flex items-center gap-1 rounded-md px-1 py-1 font-semibold transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring focus-visible:ring-ring/70 sm:px-2',
+        ''
       )}
     >
       <Icon src={ContributeIcon} class="text-3xl" />
@@ -97,19 +97,16 @@
           target="_blank"
           rel="noopener noreferrer"
           href="https://lipilekhika.in/app"
-          class="group flex items-center gap-2 rounded-md px-2 py-1 text-sm font-bold hover:bg-muted sm:text-base"
+          class="flex items-center gap-2 rounded-md bg-muted/20 px-2 py-1 text-sm font-bold transition-colors hover:rounded-lg hover:bg-accent/30 hover:text-accent-foreground sm:text-base"
         >
-          <Icon
-            src={SiConvertio}
-            class="text-2xl group-hover:fill-cyan-600 dark:group-hover:fill-zinc-400"
-          />
+          <Icon src={SiConvertio} class="text-2xl" />
           <span>Lipi Parivartak</span>
         </a>
         <a
           href="https://www.youtube.com/c/thesanskritchannel"
           target="_blank"
           rel="noopener noreferrer"
-          class="flex items-center gap-1 rounded-md px-2 py-1 text-sm hover:bg-muted sm:text-base"
+          class="flex items-center gap-1 rounded-md bg-muted/20 px-2 py-1 text-sm transition-colors hover:rounded-lg hover:bg-accent/30 hover:text-accent-foreground sm:text-base"
           onclick={() => (app_bar_popover_status = false)}
         >
           <Icon src={YoutubeIcon} class="mt-0 text-2xl text-[red]" />
@@ -119,13 +116,10 @@
           href="https://github.com/shubhattin/thesanskritchannel_projects"
           target="_blank"
           rel="noopener noreferrer"
-          class="group flex items-center gap-1 rounded-md px-2 py-1 text-sm hover:bg-muted"
+          class="flex items-center gap-1 rounded-md bg-muted/20 px-2 py-1 text-sm transition-colors hover:rounded-lg hover:bg-accent/30 hover:text-accent-foreground"
           onclick={() => (app_bar_popover_status = false)}
         >
-          <Icon
-            src={SiGithub}
-            class="-mt-1 mr-1 text-xl group-hover:fill-indigo-700 dark:group-hover:fill-zinc-400"
-          />
+          <Icon src={SiGithub} class="-mt-1 mr-1 text-xl" />
           <span>Projects's Github Page</span>
         </a>
         <div class="flex items-center gap-3 rounded-md px-2 py-1">
@@ -138,7 +132,7 @@
 </header>
 
 <Dialog.Root bind:open={support_modal_status}>
-  <Dialog.Content class="max-w-lg p-4">
+  <Dialog.Content class="w-80 max-w-[calc(100vw-2rem)] bg-card p-3">
     {#await preload_component() then SupportOptions}
       <SupportOptions.default />
     {/await}

@@ -12,14 +12,16 @@
     {#each PROJECT_LIST as project}
       <a
         href={'/' + project.key}
-        class="btn block rounded-lg p-6 shadow-md transition-shadow hover:shadow-lg"
+        class="btn group block rounded-lg border border-border bg-card p-6 shadow-md transition duration-200 ease-out hover:-translate-y-1 hover:border-secondary hover:bg-muted/20 hover:shadow-lg focus-visible:ring focus-visible:ring-ring/70 focus-visible:outline-none"
       >
         <h2 class="mb-2 text-xl font-semibold">
           {project.name}
-          <div class="text-base text-stone-500 dark:text-stone-400">{project.name_dev}</div>
+          <div class="text-base text-muted-foreground">{project.name_dev}</div>
         </h2>
-        <p class="mb-4 text-gray-600">{project.description}</p>
-        <div class="flex items-center text-blue-600 dark:text-blue-400">
+        <p class="mb-4 text-sm text-muted-foreground">{project.description}</p>
+        <div
+          class="flex items-center text-primary transition-colors duration-200 group-hover:text-secondary-foreground"
+        >
           <span>Explore</span>
           <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path

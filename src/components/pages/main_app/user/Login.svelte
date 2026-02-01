@@ -14,8 +14,10 @@
         callbackURL: window.location.href
       });
     }}
+    size="lg"
+    class="text-base"
   >
-    <Icon src={GoogleIcon} class="inline-block text-[1.25rem]" />
+    <Icon src={GoogleIcon} class="inline-block size-5" />
     Signin with Google
   </Button>
 </div>

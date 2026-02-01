@@ -132,9 +132,8 @@
   </Popover.Trigger>
   <Popover.Content side="bottom" class="w-auto space-y-1 p-1 text-sm">
     {#if user_info}
-      <Button
-        variant="ghost"
-        class="w-full justify-start px-2 py-1 text-sm font-normal"
+      <button
+        class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
         onclick={() => {
           $download_excel_file.mutate();
           utility_popover_state = false;
@@ -145,11 +144,10 @@
           src={RiDocumentFileExcel2Line}
         />
         Download Excel File
-      </Button>
+      </button>
     {/if}
-    <Button
-      variant="ghost"
-      class="w-full justify-start px-2 py-1 text-sm font-normal"
+    <button
+      class="flex w-full items-center justify-start gap-2 rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
       onclick={() => {
         utility_popover_state = false;
         image_tool_opened.set(true);
@@ -157,11 +155,10 @@
     >
       <Icon src={BiImage} class="-mt-1 fill-sky-500 text-2xl dark:fill-sky-400" />
       Image Tool
-    </Button>
+    </button>
     {#if user_info && user_info.role === 'admin'}
-      <Button
-        variant="ghost"
-        class="w-full justify-start px-2 py-1 text-sm font-normal"
+      <button
+        class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
         onclick={() => {
           utility_popover_state = false;
           $ai_tool_opened = true;
@@ -173,11 +170,10 @@
           class="-mt-1 mr-1 fill-blue-500 text-2xl dark:fill-blue-400"
         />
         AI Image Generator
-      </Button>
+      </button>
     {/if}
-    <Button
-      variant="ghost"
-      class="w-full justify-start px-2 py-1 text-sm font-normal"
+    <button
+      class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
       onclick={() => {
         utility_popover_state = false;
         $download_text_file.mutate();
@@ -185,11 +181,10 @@
     >
       <Icon src={TrOutlineFileTypeTxt} class="mr-1 text-2xl" />
       Download Text File
-    </Button>
+    </button>
     {#if user_info && user_info.role === 'admin'}
-      <Button
-        variant="ghost"
-        class="w-full justify-start px-2 py-1 text-sm font-normal"
+      <button
+        class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
         onclick={() => {
           cache_tool_modal_opened = true;
           utility_popover_state = false;
@@ -197,7 +192,7 @@
       >
         <Icon src={OiCache16} class="-mt-1 mr-1 text-xl text-yellow-600 dark:text-yellow-400" />
         Cache Tool
-      </Button>
+      </button>
     {/if}
   </Popover.Content>
 </Popover.Root>

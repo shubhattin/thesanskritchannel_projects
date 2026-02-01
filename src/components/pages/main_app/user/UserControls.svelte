@@ -173,7 +173,7 @@
 </Popover.Root>
 
 <Dialog.Root bind:open={$pass_enterer_status}>
-  <Dialog.Content class="max-w-sm">
+  <Dialog.Content class="w-80 max-w-[calc(100vw-2rem)] p-3">
     <div class="m-2 mb-3">
       <Login />
     </div>
@@ -181,7 +181,7 @@
 </Dialog.Root>
 
 <Dialog.Root bind:open={$user_create_modal_status}>
-  <Dialog.Content class="max-w-sm">
+  <Dialog.Content class="w-80 max-w-[calc(100vw-2rem)] p-3">
     <div class="m-2 mb-3">
       <Signup />
     </div>

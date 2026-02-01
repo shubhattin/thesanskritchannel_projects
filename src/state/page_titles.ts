@@ -16,6 +16,10 @@ export const PAGE_TITLES: Record<
     title: 'User Profile',
     classes: 'text-lg font-semibold mt-1'
   },
+  '/search': {
+    title: 'Search',
+    classes: 'text-xl font-bold'
+  },
   '/': {
     title: '',
     classes: 'text-xl font-bold'

@@ -10,6 +10,12 @@
   import { Label } from '$lib/components/ui/label';
   import * as Select from '$lib/components/ui/select';
   import { Skeleton } from '$lib/components/ui/skeleton';
+  import { Switch } from '$lib/components/ui/switch';
+  import {
+    clearTypingContextOnKeyDown,
+    createTypingContext,
+    handleTypingBeforeInputEvent
+  } from 'lipilekhika/typing';
 
   let started = $state(false);
   let validation_error = $state<string | null>(null);
@@ -35,6 +41,8 @@
   };
 
   const get_project_key_from_id = (id: number) => PROJECT_LIST.find((p) => p.id === id)?.key;
+  const get_project_name_from_id = (id: number) =>
+    PROJECT_LIST.find((p) => p.id === id)?.name ?? `Project ${id}`;
 
   const search_q = $derived(
     createQuery(
@@ -48,12 +56,13 @@
           LIMIT
         ],
         enabled: false,
+        placeholderData: (prev) => prev,
         queryFn: async () => {
           const q = submitted_search_text.trim();
           if (q.length < 3) {
             return {
               items: [],
-              page: { limit: LIMIT, offset, nextOffset: null, hasMore: false }
+              page: { limit: LIMIT, offset, nextOffset: null, hasMore: false, totalCount: 0 }
             };
           }
 
@@ -98,73 +107,127 @@
     await $search_q.refetch();
   };
 
+  const go_to_page = async (pageNumber: number) => {
+    if (!started) return;
+    const nextOffset = Math.max(0, (pageNumber - 1) * LIMIT);
+    offset = nextOffset;
+    await tick();
+    await $search_q.refetch();
+  };
+
   const go_to_offset = async (nextOffset: number) => {
     if (!started) return;
     offset = Math.max(0, nextOffset);
     await tick();
     await $search_q.refetch();
   };
+
+  const currentPage = $derived(Math.floor(offset / LIMIT) + 1);
+  const totalPages = $derived(
+    Math.max(0, Math.ceil((($search_q.data?.page.totalCount as number | undefined) ?? 0) / LIMIT))
+  );
+  const showingStart = $derived(started ? offset + 1 : 0);
+  const showingEnd = $derived(offset + ($search_q.data?.items.length ?? 0));
+
+  // Lipi-Lekhika typing (Sanskrit / Devanagari)
+  let typing_enabled = $state(true);
+  let ctx = $derived(
+    createTypingContext('Devanagari', {
+      includeInherentVowel: true
+    })
+  );
+  $effect(() => {
+    ctx.ready;
+  });
 </script>
 
-<div
-  class={cl_join(
-    'flex w-full max-w-2xl flex-col gap-4 rounded-3xl border border-stone-200 bg-white/70 p-4 shadow-xl dark:border-border dark:bg-slate-900/80',
-    'lg:p-6'
-  )}
->
-  <div class="flex items-start justify-between gap-3">
-    <div>
-      <div class="text-lg font-bold">Search</div>
-      <div class="text-sm text-stone-600 dark:text-stone-400">
-        Press Enter or click Search. (Min 3 chars.)
-      </div>
-    </div>
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="space-y-2">
+    <h1 class="text-3xl font-bold tracking-tight">Search</h1>
+    <p class="text-muted-foreground">Search across Sanskrit texts.</p>
   </div>
 
-  <form
-    class="space-y-3"
-    bind:this={form_el}
-    onsubmit={(e) => {
-      e.preventDefault();
-      const fd = new FormData(e.currentTarget as HTMLFormElement);
-      submit_search({
-        q: String(fd.get('search_text') ?? ''),
-        project_id: Number(fd.get('project_id') ?? project_id),
-        path_filter: String(fd.get('path_filter') ?? '')
-      });
-    }}
-  >
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <div class="space-y-1">
-        <Label for="project-select" class="text-sm font-semibold">Project</Label>
-        <Select.Root
-          type="single"
-          value={project_id.toString()}
-          onValueChange={(v) => {
-            project_id = parseInt(v) || 0;
-          }}
-        >
-          <Select.Trigger id="project-select" class="w-full">
-            {PROJECT_LIST.find((p) => p.id === project_id)?.name ?? 'All'}
-          </Select.Trigger>
-          <Select.Content>
-            {#each PROJECT_LIST as project (project.id)}
-              <Select.Item value={project.id.toString()} label={project.name} />
-            {/each}
-            <Select.Item value="0" label="All" />
-          </Select.Content>
-        </Select.Root>
-        <input type="hidden" name="project_id" value={project_id} />
+  <!-- Search Form -->
+  <div class="rounded-lg border bg-card p-6">
+    <form
+      class="space-y-4"
+      bind:this={form_el}
+      onsubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget as HTMLFormElement);
+        submit_search({
+          q: String(fd.get('search_text') ?? ''),
+          project_id: Number(fd.get('project_id') ?? project_id),
+          path_filter: String(fd.get('path_filter') ?? '')
+        });
+      }}
+    >
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="space-y-2">
+          <Label for="project-select" class="text-sm font-medium">Project</Label>
+          <Select.Root
+            type="single"
+            value={project_id.toString()}
+            onValueChange={(v) => {
+              project_id = parseInt(v) || 0;
+            }}
+          >
+            <Select.Trigger id="project-select" class="w-full">
+              {PROJECT_LIST.find((p) => p.id === project_id)?.name ?? 'All'}
+            </Select.Trigger>
+            <Select.Content>
+              {#each PROJECT_LIST as project (project.id)}
+                <Select.Item value={project.id.toString()} label={project.name} />
+              {/each}
+              <Select.Item value="0" label="All" />
+            </Select.Content>
+          </Select.Root>
+          <input type="hidden" name="project_id" value={project_id} />
+        </div>
+
+        <div class="space-y-2">
+          <Label for="path-filter" class="text-sm font-medium">Path filter</Label>
+          <Input
+            id="path-filter"
+            name="path_filter"
+            placeholder="e.g. 1:2"
+            bind:value={path_filter}
+            onkeydown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                form_el?.requestSubmit();
+              }
+            }}
+          />
+        </div>
       </div>
 
-      <div class="space-y-1">
-        <Label for="path-filter" class="text-sm font-semibold">Path filter</Label>
+      <div class="space-y-2">
+        <div class="flex items-center justify-between gap-3">
+          <Label for="search-text" class="text-sm font-medium">Search text</Label>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-muted-foreground select-none">Typing</span>
+            <Switch checked={typing_enabled} onCheckedChange={(v) => (typing_enabled = v)} />
+          </div>
+        </div>
         <Input
-          id="path-filter"
-          name="path_filter"
-          placeholder="e.g. 1:2"
-          bind:value={path_filter}
+          id="search-text"
+          name="search_text"
+          placeholder="Type to search..."
+          bind:value={search_text}
+          onbeforeinput={(e) =>
+            handleTypingBeforeInputEvent(
+              ctx,
+              e,
+              (newValue) => {
+                search_text = newValue;
+              },
+              typing_enabled
+            )}
+          onblur={() => ctx.clearContext()}
           onkeydown={(e) => {
+            clearTypingContextOnKeyDown(e, ctx);
             if (e.key === 'Enter') {
               e.preventDefault();
               form_el?.requestSubmit();
@@ -172,62 +235,63 @@
           }}
         />
       </div>
-    </div>
 
-    <div class="space-y-1">
-      <Label for="search-text" class="text-sm font-semibold">Search text</Label>
-      <Input
-        id="search-text"
-        name="search_text"
-        placeholder="Type something..."
-        bind:value={search_text}
-        onkeydown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            form_el?.requestSubmit();
-          }
-        }}
-      />
-    </div>
-
-    <div class="flex items-center justify-between gap-3">
-      <div class="text-sm">
-        {#if validation_error}
-          <span class="text-red-600 dark:text-red-400">{validation_error}</span>
-        {:else if started && $search_q.isFetching}
-          <span class="text-stone-600 dark:text-stone-400">Searching…</span>
-        {:else}
-          <span class="text-stone-600 dark:text-stone-400"> </span>
-        {/if}
+      <div class="flex items-center justify-between gap-3 pt-2">
+        <div class="text-sm">
+          {#if validation_error}
+            <span class="text-destructive">{validation_error}</span>
+          {:else if started && $search_q.isFetching}
+            <span class="text-muted-foreground">Searching…</span>
+          {:else}
+            <span class="text-muted-foreground">&nbsp;</span>
+          {/if}
+        </div>
+        <Button type="submit" disabled={$search_q.isFetching}>
+          {$search_q.isFetching ? 'Searching…' : 'Search'}
+        </Button>
       </div>
-      <Button type="submit" disabled={$search_q.isFetching}>
-        {$search_q.isFetching ? 'Searching…' : 'Search'}
-      </Button>
-    </div>
-  </form>
+    </form>
+  </div>
 
-  <div class="min-h-0 flex-1 space-y-2">
-    <div class="flex items-center justify-between">
-      <div class="text-sm font-semibold">Results</div>
-      <div class="text-xs text-stone-600 dark:text-stone-400">
+  <!-- Results Section -->
+  <div class="space-y-4">
+    <div class="flex items-center justify-between border-b pb-3">
+      <h2 class="text-xl font-semibold">Results</h2>
+      <div class="text-sm text-muted-foreground">
         {#if started}
-          {$search_q.isFetching
-            ? 'Loading'
-            : $search_q.isSuccess
-              ? `${$search_q.data.items.length} found`
-              : ''}
+          {#if $search_q.isFetching}
+            <span class="animate-pulse">Loading...</span>
+          {:else if $search_q.isSuccess}
+            <span
+              >{$search_q.data.items.length} result{$search_q.data.items.length !== 1 ? 's' : ''} on this
+              page</span
+            >
+          {/if}
         {:else}
-          Not started
+          <span>Enter a query to start</span>
         {/if}
       </div>
     </div>
 
-    {#if started && $search_q.isSuccess}
-      <div class="flex items-center justify-between gap-2">
-        <div class="text-xs text-stone-600 dark:text-stone-400">
-          Page {Math.floor(offset / LIMIT) + 1}
-          <span class="opacity-60">·</span>
-          Showing {offset + 1}-{offset + $search_q.data.items.length}
+    {#if started && ($search_q.data || $search_q.isSuccess)}
+      <div
+        class="flex flex-col items-center justify-between gap-3 rounded-lg border bg-muted/50 p-3 sm:flex-row"
+      >
+        <div class="text-sm text-muted-foreground">
+          {#if totalPages > 0}
+            <span class="font-medium">Page {currentPage} of {totalPages}</span>
+          {:else}
+            <span class="font-medium">Page {currentPage}</span>
+          {/if}
+          {#if $search_q.data}
+            <span class="mx-2 opacity-50">•</span>
+            <span>
+              Showing {showingStart}-{showingEnd}
+              {#if $search_q.data.page.totalCount}
+                of <span class="font-medium">{$search_q.data.page.totalCount}</span>
+              {/if}
+            </span>
+          {/if}
         </div>
         <div class="flex items-center gap-2">
           <Button
@@ -239,12 +303,33 @@
           >
             Prev
           </Button>
+          {#if totalPages > 0}
+            <Select.Root
+              type="single"
+              value={currentPage.toString()}
+              onValueChange={(v) => {
+                const p = parseInt(v);
+                if (Number.isFinite(p)) go_to_page(p);
+              }}
+              disabled={$search_q.isFetching}
+            >
+              <Select.Trigger class="w-28" aria-label="Jump to page">
+                Page {currentPage}
+              </Select.Trigger>
+              <Select.Content>
+                {#each Array(totalPages) as _, idx (idx)}
+                  <Select.Item value={(idx + 1).toString()} label={`Page ${idx + 1}`} />
+                {/each}
+              </Select.Content>
+            </Select.Root>
+          {/if}
           <Button
             type="button"
             variant="outline"
             size="sm"
-            disabled={!$search_q.data.page.hasMore || $search_q.isFetching}
-            onclick={() => go_to_offset($search_q.data.page.nextOffset ?? offset + LIMIT)}
+            disabled={$search_q.isFetching ||
+              (totalPages > 0 ? currentPage >= totalPages : !$search_q.data?.page.hasMore)}
+            onclick={() => go_to_offset($search_q.data?.page.nextOffset ?? offset + LIMIT)}
           >
             Next
           </Button>
@@ -252,52 +337,60 @@
       </div>
     {/if}
 
-    <div class="max-h-[65vh] overflow-y-auto pr-1">
+    <div class="min-h-[60vh]">
       {#if !started}
-        <div
-          class="rounded-md border border-dashed border-stone-300 p-3 text-sm text-stone-600 dark:border-border dark:text-stone-400"
-        >
-          Enter a query and submit to start searching.
+        <div class="flex h-64 items-center justify-center rounded-lg border border-dashed">
+          <div class="text-center text-muted-foreground">
+            <p class="text-sm">Enter a query and click Search to begin</p>
+          </div>
         </div>
       {:else if $search_q.isFetching}
-        <div class="space-y-2">
+        <div class="space-y-3">
           {#each Array(6) as _, i (i)}
-            <div class="rounded-md border border-stone-200 p-3 dark:border-border">
-              <Skeleton class="h-3 w-28 bg-stone-300/70 dark:bg-muted" />
-              <Skeleton class="mt-2 h-3 w-full bg-stone-300/50 dark:bg-muted" />
-              <Skeleton class="mt-2 h-3 w-4/5 bg-stone-300/40 dark:bg-muted" />
+            <div class="rounded-lg border bg-card p-4">
+              <Skeleton class="h-4 w-32 bg-muted" />
+              <Skeleton class="mt-3 h-4 w-full bg-muted" />
+              <Skeleton class="mt-2 h-4 w-4/5 bg-muted" />
             </div>
           {/each}
         </div>
       {:else if $search_q.isError}
-        <div
-          class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-200"
-        >
-          <div class="font-semibold">Search failed</div>
-          <div class="mt-1 text-xs opacity-80">{String($search_q.error)}</div>
+        <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+          <div class="font-semibold text-destructive">Search failed</div>
+          <div class="mt-1 text-sm text-destructive/80">{String($search_q.error)}</div>
         </div>
       {:else if $search_q.isSuccess}
         {#if $search_q.data.items.length === 0}
-          <div class="rounded-md border border-stone-200 p-3 text-sm dark:border-border">
-            No results.
+          <div class="flex h-64 items-center justify-center rounded-lg border">
+            <div class="text-center text-muted-foreground">
+              <p class="text-sm">No results found</p>
+              <p class="mt-1 text-xs">Try adjusting your search query or filters</p>
+            </div>
           </div>
         {:else}
-          <div class="space-y-2">
+          <div class="space-y-3">
             {#each $search_q.data.items as row (row.project_id + ':' + row.path + ':' + row.index)}
-              <div class="rounded-md border border-stone-200 p-3 dark:border-border">
-                <div class="text-xs text-stone-600 dark:text-stone-400">
-                  project {row.project_id} · path {row.path} · index {row.index}{#if row.shloka_num}
-                    · shloka {row.shloka_num}
+              <div class="rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50">
+                <div class="mb-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  <span class="rounded-md bg-muted px-2 py-0.5"
+                    >{get_project_name_from_id(row.project_id)}</span
+                  >
+                  <span class="rounded-md bg-muted px-2 py-0.5">Path {row.path}</span>
+                  <span class="rounded-md bg-muted px-2 py-0.5">Index {row.index}</span>
+                  {#if row.shloka_num}
+                    <span class="rounded-md bg-muted px-2 py-0.5">Shloka {row.shloka_num}</span>
                   {/if}
                 </div>
-                <div class="mt-1 text-sm whitespace-pre-wrap">{row.text}</div>
+                <div class="text-sm leading-relaxed whitespace-pre-wrap">{row.text}</div>
               </div>
             {/each}
           </div>
         {/if}
       {:else}
-        <div class="rounded-md border border-stone-200 p-3 text-sm dark:border-border">
-          Submit a search to see results.
+        <div class="flex h-64 items-center justify-center rounded-lg border">
+          <div class="text-center text-muted-foreground">
+            <p class="text-sm">Ready to search</p>
+          </div>
         </div>
       {/if}
     </div>

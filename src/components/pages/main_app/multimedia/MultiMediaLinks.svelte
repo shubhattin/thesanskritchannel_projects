@@ -37,7 +37,7 @@
   </Popover.Trigger>
   <Popover.Content
     side="bottom"
-    class="w-96 max-h-96 overflow-y-auto overscroll-contain space-y-1 p-1.5"
+    class="max-h-96 w-96 space-y-1 overflow-y-auto overscroll-contain p-1.5"
   >
     {#if $media_list_q.isFetching}
       <Skeleton class="h-15 w-30 bg-muted" />
@@ -53,10 +53,10 @@
                 href={media.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex items-center space-x-2 whitespace-nowrap text-sm"
+                class="flex items-center space-x-2 text-sm whitespace-nowrap"
               >
                 <MediaTypeIcon media_type={media.media_type as media_list_type} />
-                <span class="flex-1 min-w-0 truncate">{media.name}</span>
+                <span class="min-w-0 flex-1 truncate">{media.name}</span>
               </a>
               {#if $user_info && $user_info.role === 'admin'}
                 <button

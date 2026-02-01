@@ -5,8 +5,6 @@
 
 <MetaTags title="Search" description="Search across Sanskrit texts" />
 
-<main class="container mx-auto px-4 py-8">
-  <div class="flex justify-center">
-    <Search />
-  </div>
+<main class="container mx-auto px-4 py-6">
+  <Search />
 </main>

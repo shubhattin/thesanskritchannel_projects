@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
+import { texts } from '~/db/schema';
 import type { shloka_list_type } from '~/state/data_types';
 import { delay } from '~/tools/delay';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { get_project_from_key, type project_keys_type } from '~/state/project_list';
 import ms from 'ms';
 import { waitUntil } from '@vercel/functions';
+import { and, eq, ilike, sql } from 'drizzle-orm';
 
 /** first and second here are like the ones in url */
 export const get_text_data_func = async (key: string, path_params: number[]) => {
@@ -57,7 +59,7 @@ const get_text_data_route = publicProcedure
     return data;
   });
 
-const DEFAULT_PAGE_LIMIT = 500;
+const DEFAULT_PAGE_LIMIT = 20;
 export const search_text_in_texts_route = publicProcedure
   .input(
     z.object({
@@ -69,31 +71,42 @@ export const search_text_in_texts_route = publicProcedure
     })
   )
   .query(async ({ input: { project_key, search_text, path_params, limit, offset } }) => {
-    const data = await db.query.texts.findMany({
-      where: (tbl, { and, eq, ilike }) => {
-        const conditions = [ilike(tbl.text, `%${search_text}%`)];
-        if (project_key) {
-          const project_id = get_project_from_key(project_key as project_keys_type).id;
-          conditions.push(eq(tbl.project_id, project_id));
-        }
-        if (typeof path_params !== 'undefined') {
-          conditions.push(eq(tbl.path, path_params.join(':')));
-        }
-        return and(...conditions);
-      },
-      orderBy: (tbl, { asc }) => [asc(tbl.project_id), asc(tbl.path), asc(tbl.index)],
-      limit: limit + 1,
-      offset
-    });
+    const conditions = [ilike(texts.text, `%${search_text}%`)];
+    if (project_key) {
+      const project_id = get_project_from_key(project_key as project_keys_type).id;
+      conditions.push(eq(texts.project_id, project_id));
+    }
+    if (typeof path_params !== 'undefined') {
+      conditions.push(eq(texts.path, path_params.join(':')));
+    }
+
+    const data = await db
+      .select({
+        project_id: texts.project_id,
+        path: texts.path,
+        index: texts.index,
+        shloka_num: texts.shloka_num,
+        text: texts.text,
+        totalCount: sql<number>`count(*) over()`
+      })
+      .from(texts)
+      .where(and(...conditions))
+      .orderBy(texts.project_id, texts.path, texts.index)
+      .limit(limit + 1)
+      .offset(offset);
+
     const hasMore = data.length > limit;
     const items = hasMore ? data.slice(0, limit) : data;
+    const totalCount = data.length ? Number(data[0].totalCount) : 0;
+
     return {
       items,
       page: {
         limit,
         offset,
         nextOffset: hasMore ? offset + limit : null,
-        hasMore
+        hasMore,
+        totalCount
       }
     };
   });

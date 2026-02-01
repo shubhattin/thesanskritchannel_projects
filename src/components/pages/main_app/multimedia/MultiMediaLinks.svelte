@@ -12,6 +12,7 @@
   import MediaTypeIcon from './MediaTypeIcon.svelte';
   import { FiEdit2 } from 'svelte-icons-pack/fi';
   import EditMediaLink from './EditMediaLink.svelte';
+  import Button from '~/lib/components/ui/button/button.svelte';
 
   const media_list_q = $derived(
     client_q.media.get_media_list.query({
@@ -29,7 +30,9 @@
 
 <Popover.Root bind:open={multimedia_popover_state}>
   <Popover.Trigger class="p-0 outline-none select-none">
-    <Icon src={MultimediaIcon} class="text-2xl text-orange-600 sm:text-3xl dark:text-amber-200" />
+    <Button variant="ghost" size="icon" class="outline-none">
+      <Icon src={MultimediaIcon} class="size-6 text-orange-600 sm:size-6 dark:text-amber-200" />
+    </Button>
   </Popover.Trigger>
   <Popover.Content side="bottom" class="w-auto space-y-1 p-1.5">
     {#if $media_list_q.isFetching}

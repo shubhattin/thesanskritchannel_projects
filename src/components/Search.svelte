@@ -9,6 +9,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as Select from '$lib/components/ui/select';
+  import { Skeleton } from '$lib/components/ui/skeleton';
 
   let started = $state(false);
   let validation_error = $state<string | null>(null);
@@ -262,11 +263,9 @@
         <div class="space-y-2">
           {#each Array(6) as _, i (i)}
             <div class="rounded-md border border-stone-200 p-3 dark:border-border">
-              <div class="h-3 w-28 animate-pulse rounded bg-stone-300/70 dark:bg-muted"></div>
-              <div
-                class="mt-2 h-3 w-full animate-pulse rounded bg-stone-300/50 dark:bg-muted"
-              ></div>
-              <div class="mt-2 h-3 w-4/5 animate-pulse rounded bg-stone-300/40 dark:bg-muted"></div>
+              <Skeleton class="h-3 w-28 bg-stone-300/70 dark:bg-muted" />
+              <Skeleton class="mt-2 h-3 w-full bg-stone-300/50 dark:bg-muted" />
+              <Skeleton class="mt-2 h-3 w-4/5 bg-stone-300/40 dark:bg-muted" />
             </div>
           {/each}
         </div>

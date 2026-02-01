@@ -391,7 +391,7 @@
       {#if $selected_text_levels[0] !== 1}
         <Button
           onclick={() => $selected_text_levels[0]!--}
-          variant="secondary"
+          variant="outline"
           size="sm"
           disabled={$editing_status_on}
         >
@@ -402,7 +402,7 @@
       {#if $selected_text_levels[0] !== $list_count}
         <Button
           onclick={() => ($selected_text_levels[0]! += 1)}
-          variant="secondary"
+          variant="outline"
           size="sm"
           disabled={$editing_status_on}
         >
@@ -417,8 +417,11 @@
           onclick={() => {
             $view_translation_status = true;
           }}
-          size="sm">View Translations</Button
+          class="rounded-md bg-orange-500 px-1 py-0 text-sm font-semibold text-white transition-colors hover:bg-orange-600 focus-visible:ring-orange-500 dark:bg-orange-600 dark:hover:bg-orange-700 dark:focus-visible:ring-orange-600"
+          size="sm"
         >
+          View Translations
+        </Button>
         {@render btn_multi()}
       {:else}
         <div class="mt-2 block space-x-1.5 sm:mt-0 sm:inline-block sm:space-x-2">
@@ -454,7 +457,7 @@
             {#if $trans_lang !== 0 && ($user_info.role === 'admin' || languages.indexOf($trans_lang) !== -1)}
               <Button
                 onclick={() => ($editing_status_on = true)}
-                variant="secondary"
+                variant="outline"
                 size="sm"
                 class="my-1"
               >
@@ -465,7 +468,7 @@
               <!-- 1 -> English -->
               <Button
                 onclick={() => ($editing_status_on = true)}
-                variant="secondary"
+                variant="outline"
                 size="sm"
                 class="my-1"
               >
@@ -481,10 +484,7 @@
     {#snippet btn_multi()}
       {#await import('./multimedia/MultiMediaLinks.svelte')}
         <Button variant="ghost" size="icon" class="outline-none">
-          <Icon
-            src={MultimediaIcon}
-            class="text-2xl text-orange-600 sm:text-3xl dark:text-amber-200"
-          />
+          <Icon src={MultimediaIcon} class="size-6 text-orange-600 sm:size-6 dark:text-amber-200" />
         </Button>
       {:then MultiMediaLinks}
         <MultiMediaLinks.default />

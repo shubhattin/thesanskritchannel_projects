@@ -140,10 +140,10 @@
   </span>
 </div>
 
-<Accordion.Root type="single" class="w-full">
+<Accordion.Root type="single" class="max-w-full">
   <Accordion.Item value="options">
-    <Accordion.Trigger class="flex items-center gap-2">
-      <Icon src={IoOptions} class="text-2xl" />
+    <Accordion.Trigger class="flex items-center justify-start gap-2 text-start">
+      <Icon src={IoOptions} class="-mt-1 text-2xl" />
       <span class="text-sm font-bold">Change Default Options</span>
     </Accordion.Trigger>
     <Accordion.Content>

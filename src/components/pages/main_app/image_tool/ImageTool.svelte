@@ -40,8 +40,19 @@
   import { transliterate_custom } from '~/tools/converter';
   import { deepCopy } from '~/tools/kry';
   import * as Select from '$lib/components/ui/select';
+  import Icon from '~/tools/Icon.svelte';
+  import { AiOutlineClose } from 'svelte-icons-pack/ai';
+  import { Button } from '$lib/components/ui/button';
+
+  type Props = {
+    onClose?: () => void;
+  };
+
+  let { onClose }: Props = $props();
 
   let mounted = $state(false);
+  let layout_el = $state<HTMLDivElement>(null!);
+  let layout_width = $state<number | null>(null);
 
   // in our case we dont need to initialize inside of onMount
   $image_selected_levels = $selected_text_levels;
@@ -61,15 +72,25 @@
   };
 
   onMount(() => {
-    update_scaling_factor();
-    window.addEventListener('resize', update_scaling_factor);
-    const unsub_func = () => {
-      window.removeEventListener('resize', update_scaling_factor);
+    const update_layout = () => {
+      layout_width = layout_el?.clientWidth ?? null;
+      update_scaling_factor();
     };
+
+    update_layout();
+    window.addEventListener('resize', update_layout);
+
+    const ro = new ResizeObserver(update_layout);
+    if (layout_el) ro.observe(layout_el);
+
     paint_init_convas().then(() => {
       mounted = true;
     });
-    return unsub_func;
+
+    return () => {
+      window.removeEventListener('resize', update_layout);
+      ro.disconnect();
+    };
   });
 
   $effect(() => {
@@ -86,8 +107,9 @@
   let canvas_element = $state<HTMLCanvasElement>(null!);
 
   function update_scaling_factor() {
-    // we can improve the method of calculating the scaling factor later on
-    const availableWidth = window.innerWidth * 0.8;
+    // size the canvas relative to the dialog width (not the full window)
+    const width_basis = layout_width ?? window.innerWidth;
+    const availableWidth = width_basis * 0.95;
     const availableHeight = window.innerHeight * 0.74;
     const scale = [availableWidth / IMAGE_DIMENSIONS[0], availableHeight / IMAGE_DIMENSIONS[1]];
     let min_value = Math.min(...scale);
@@ -222,127 +244,147 @@
   });
 </script>
 
-<div class="space-y-2">
-  <div class="space-x-2 text-sm">
-    <Select.Root type="single" bind:value={$image_script as any}>
-      <Select.Trigger class="inline-flex h-10 w-36 p-1 text-sm">
-        {$image_script}
-      </Select.Trigger>
-      <Select.Content>
-        {#each SCRIPT_LIST as lang (lang)}
-          {#if !['Normal'].includes(lang)}
-            <Select.Item value={lang}>{lang}</Select.Item>
-          {/if}
-        {/each}
-      </Select.Content>
-    </Select.Root>
-    <div class="inline-block space-x-1">
-      {#each { length: project_info.levels - 1 } as _, i}
-        {@const level_name = project_info.level_names[project_info.levels - i - 1]}
-        {#if project_info.levels === 3}
-          {@const map_info = $project_map_q.isSuccess && get_map_type($project_map_q.data, 3)}
-          {#if i === 0}
-            {@render selecter({
-              name: level_name,
-              text_level_state_index: 1,
-              options:
-                map_info &&
-                map_info.map((text_level) => ({
-                  text: text_level.name_dev,
-                  value: text_level.pos
-                }))
-            })}
-          {:else if i === 1 && !!$image_selected_levels[1]}
-            {@render selecter({
-              name: level_name,
-              text_level_state_index: 0,
-              options:
-                map_info &&
-                map_info[$image_selected_levels[1] - 1].list.map((text_level) => ({
-                  text: text_level.name_dev,
-                  value: text_level.pos
-                }))
-            })}
-          {/if}
-        {:else if project_info.levels === 2}
-          {@const map_info = $project_map_q.isSuccess && get_map_type($project_map_q.data, 2)}
-          {#if i == 0}
-            {@render selecter({
-              name: level_name,
-              text_level_state_index: 0,
-              options:
-                map_info &&
-                map_info.map((text_level) => ({
-                  text: text_level.name_dev,
-                  value: text_level.pos
-                }))
-            })}
-          {/if}
-        {/if}
-      {/each}
-
-      {#snippet selecter({
-        name,
-        options,
-        initial_option,
-        text_level_state_index
-      }: {
-        name: string;
-        initial_option?: option_type;
-        options: false | option_type[];
-        text_level_state_index: number;
-      })}
-        <Select.Root
-          type="single"
-          value={$image_selected_levels[text_level_state_index]?.toString() ?? ''}
-          onValueChange={(v) => {
-            $image_selected_levels[text_level_state_index] = v ? parseInt(v) : null;
-          }}
-          disabled={$editing_status_on}
-        >
-          <Select.Trigger
-            class={`${get_text_font_class($image_script)} inline-flex h-10 w-40 p-1 text-sm`}
-          >
-            {$image_selected_levels[text_level_state_index]
-              ? `${$image_selected_levels[text_level_state_index]}. ${
-                  options
-                    ? (options.find(
-                        (o) => o.value === $image_selected_levels[text_level_state_index]
-                      )?.text ?? '')
-                    : (initial_option?.text ?? '')
-                }`
-              : 'Select'}
+<div class="flex h-full flex-col space-y-4 overflow-hidden">
+  <!-- Controls Section -->
+  <div class="flex items-start justify-between gap-4">
+    <div bind:this={layout_el} class="flex-1 space-y-3">
+      <div class="flex flex-wrap items-center gap-2 text-sm">
+        <Select.Root type="single" bind:value={$image_script as any}>
+          <Select.Trigger class="inline-flex h-10 w-36 p-1 text-sm">
+            {$image_script}
           </Select.Trigger>
           <Select.Content>
-            <Select.Item value="">Select</Select.Item>
-            {#if !options}
-              {#if initial_option && initial_option.value}
-                <Select.Item value={initial_option.value.toString()}>
-                  {initial_option.value}. {initial_option.text}
-                </Select.Item>
+            {#each SCRIPT_LIST as lang (lang)}
+              {#if !['Normal'].includes(lang)}
+                <Select.Item value={lang}>{lang}</Select.Item>
               {/if}
-            {:else}
-              {#await transliterate_options(options, $viewing_script)}
-                {#each options as option}
-                  <Select.Item value={option.value!.toString()}
-                    >{option.value}. {option.text}</Select.Item
-                  >
-                {/each}
-              {:then options_tr}
-                {#each options_tr as option}
-                  <Select.Item value={option.value!.toString()}
-                    >{option.value}. {option.text}</Select.Item
-                  >
-                {/each}
-              {/await}
-            {/if}
+            {/each}
           </Select.Content>
         </Select.Root>
-      {/snippet}
+        <div class="inline-block space-x-1">
+          {#each { length: project_info.levels - 1 } as _, i}
+            {@const level_name = project_info.level_names[project_info.levels - i - 1]}
+            {#if project_info.levels === 3}
+              {@const map_info = $project_map_q.isSuccess && get_map_type($project_map_q.data, 3)}
+              {#if i === 0}
+                {@render selecter({
+                  name: level_name,
+                  text_level_state_index: 1,
+                  options:
+                    map_info &&
+                    map_info.map((text_level) => ({
+                      text: text_level.name_dev,
+                      value: text_level.pos
+                    }))
+                })}
+              {:else if i === 1 && !!$image_selected_levels[1]}
+                {@render selecter({
+                  name: level_name,
+                  text_level_state_index: 0,
+                  options:
+                    map_info &&
+                    map_info[$image_selected_levels[1] - 1].list.map((text_level) => ({
+                      text: text_level.name_dev,
+                      value: text_level.pos
+                    }))
+                })}
+              {/if}
+            {:else if project_info.levels === 2}
+              {@const map_info = $project_map_q.isSuccess && get_map_type($project_map_q.data, 2)}
+              {#if i == 0}
+                {@render selecter({
+                  name: level_name,
+                  text_level_state_index: 0,
+                  options:
+                    map_info &&
+                    map_info.map((text_level) => ({
+                      text: text_level.name_dev,
+                      value: text_level.pos
+                    }))
+                })}
+              {/if}
+            {/if}
+          {/each}
+
+          {#snippet selecter({
+            name,
+            options,
+            initial_option,
+            text_level_state_index
+          }: {
+            name: string;
+            initial_option?: option_type;
+            options: false | option_type[];
+            text_level_state_index: number;
+          })}
+            <Select.Root
+              type="single"
+              value={$image_selected_levels[text_level_state_index]?.toString() ?? ''}
+              onValueChange={(v) => {
+                $image_selected_levels[text_level_state_index] = v ? parseInt(v) : null;
+              }}
+              disabled={$editing_status_on}
+            >
+              <Select.Trigger
+                class={`${get_text_font_class($image_script)} inline-flex h-10 w-40 p-1 text-sm`}
+              >
+                {$image_selected_levels[text_level_state_index]
+                  ? `${$image_selected_levels[text_level_state_index]}. ${
+                      options
+                        ? (options.find(
+                            (o) => o.value === $image_selected_levels[text_level_state_index]
+                          )?.text ?? '')
+                        : (initial_option?.text ?? '')
+                    }`
+                  : 'Select'}
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="">Select</Select.Item>
+                {#if !options}
+                  {#if initial_option && initial_option.value}
+                    <Select.Item value={initial_option.value.toString()}>
+                      {initial_option.value}. {initial_option.text}
+                    </Select.Item>
+                  {/if}
+                {:else}
+                  {#await transliterate_options(options, $viewing_script)}
+                    {#each options as option}
+                      <Select.Item value={option.value!.toString()}
+                        >{option.value}. {option.text}</Select.Item
+                      >
+                    {/each}
+                  {:then options_tr}
+                    {#each options_tr as option}
+                      <Select.Item value={option.value!.toString()}
+                        >{option.value}. {option.text}</Select.Item
+                      >
+                    {/each}
+                  {/await}
+                {/if}
+              </Select.Content>
+            </Select.Root>
+          {/snippet}
+        </div>
+      </div>
+      <div class="max-w-4xl">
+        <ImageOptions />
+      </div>
     </div>
+    <!-- Close Button -->
+    {#if onClose}
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Close"
+        class="shrink-0 text-muted-foreground hover:text-foreground"
+        onclick={onClose}
+      >
+        <Icon src={AiOutlineClose} />
+      </Button>
+    {/if}
   </div>
-  <ImageOptions />
-</div>
-<div class="mt-2 space-y-2">
-  <canvas bind:this={canvas_element}></canvas>
+
+  <div class="mt-2 flex flex-1 justify-center space-y-2 overflow-auto">
+    <canvas bind:this={canvas_element}></canvas>
+  </div>
 </div>

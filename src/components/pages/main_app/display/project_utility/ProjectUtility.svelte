@@ -200,23 +200,10 @@
 <Dialog.Root bind:open={$image_tool_opened}>
   <Dialog.Content
     showCloseButton={false}
-    class="flex h-[95vh] w-[95vw] max-w-[95vw] flex-col gap-0 p-0"
+    class="flex h-[95vh] w-[80vw] max-w-5xl flex-col gap-0 overflow-hidden p-4 sm:w-[90vw] sm:max-w-6xl md:w-[86vw] lg:w-[65vw]"
   >
     {#await import('../../image_tool/ImageTool.svelte') then ImageTool}
-      <div class="flex w-full justify-end border-b p-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Close"
-          class="cursor-pointer text-muted-foreground hover:text-foreground"
-          onclick={() => ($image_tool_opened = false)}
-        >
-          <Icon src={AiOutlineClose} />
-        </Button>
-      </div>
-      <div class="flex-1 overflow-auto p-4">
-        <ImageTool.default />
-      </div>
+      <ImageTool.default onClose={() => ($image_tool_opened = false)} />
     {/await}
   </Dialog.Content>
 </Dialog.Root>

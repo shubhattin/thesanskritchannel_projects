@@ -34,7 +34,7 @@
 </script>
 
 <Dialog.Root bind:open={file_preview_opened}>
-  <Dialog.Content class="max-h-[95vh] max-w-[95vw] overflow-auto p-3">
+  <Dialog.Content class="h-[95vh] w-[95vw] max-w-[95vw] overflow-auto p-3 sm:max-w-[95vw]">
     <div class="flex justify-end">
       <button
         aria-label="Close"

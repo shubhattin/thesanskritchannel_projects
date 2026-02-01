@@ -35,7 +35,10 @@
       <Icon src={MultimediaIcon} class="size-6 text-orange-600 sm:size-6 dark:text-amber-200" />
     </Button>
   </Popover.Trigger>
-  <Popover.Content side="bottom" class="w-auto space-y-1 p-1.5">
+  <Popover.Content
+    side="bottom"
+    class="w-96 max-h-96 overflow-y-auto overscroll-contain space-y-1 p-1.5"
+  >
     {#if $media_list_q.isFetching}
       <Skeleton class="h-15 w-30 bg-muted" />
     {:else if !$media_list_q.isFetching && $media_list_q.isSuccess}
@@ -46,9 +49,14 @@
         <div class="space-y-0">
           {#each media_list as media (media.id)}
             <span class="group block space-x-1 rounded-md p-1 hover:bg-muted">
-              <a href={media.link} target="_blank" rel="noopener noreferrer" class="space-x-2">
+              <a
+                href={media.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center space-x-2 whitespace-nowrap text-sm"
+              >
                 <MediaTypeIcon media_type={media.media_type as media_list_type} />
-                <span>{media.name}</span>
+                <span class="flex-1 min-w-0 truncate">{media.name}</span>
               </a>
               {#if $user_info && $user_info.role === 'admin'}
                 <button

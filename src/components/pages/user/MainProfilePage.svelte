@@ -1,15 +1,16 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { Modal, Popover } from '@skeletonlabs/skeleton-svelte';
+  import * as Dialog from '$lib/components/ui/dialog';
+  import * as Popover from '$lib/components/ui/popover';
   import { CgMenuGridO } from 'svelte-icons-pack/cg';
-  import { BiLogOut, BiRename } from 'svelte-icons-pack/bi';
+  import { BiLogOut } from 'svelte-icons-pack/bi';
   import { signOut, authClient } from '~/lib/auth-client';
   import Icon from '~/tools/Icon.svelte';
   import NonAdminInfo from './NonAdminInfo.svelte';
   import AdminPanel from './AdminPanel.svelte';
   import { useQueryClient, useIsFetching } from '@tanstack/svelte-query';
   import { LuRefreshCw } from 'svelte-icons-pack/lu';
-  import { cl_join } from '~/tools/cl_join';
+  import { cn } from '$lib/utils';
   import UpdateName from './UpdateName.svelte';
 
   const query_client = useQueryClient();
@@ -59,62 +60,50 @@
 {#if user}
   <div>
     <span class="text-lg font-semibold sm:text-xl">{user.name}</span>
-    <Popover
-      open={dot_popover_status}
-      onOpenChange={(e) => (dot_popover_status = e.open)}
-      positioning={{ placement: 'bottom' }}
-      arrow={false}
-      contentBase="card z-50 rounded-lg px-1 py-1 shadow-xl bg-surface-100-900"
-      triggerBase="ml-2 sm:ml-6"
-    >
-      {#snippet trigger()}
-        <span
-          class="rounded-full outline-hidden select-none hover:text-gray-500 dark:hover:text-gray-400"
-        >
+    <Popover.Root bind:open={dot_popover_status}>
+      <Popover.Trigger class="ml-2 sm:ml-6">
+        <span class="rounded-full outline-none select-none hover:text-muted-foreground">
           <Icon src={CgMenuGridO} class="text-2xl" />
         </span>
-      {/snippet}
-      {#snippet content()}
+      </Popover.Trigger>
+      <Popover.Content side="bottom" class="w-auto p-1">
         <div class="flex flex-col items-center justify-center space-y-1">
           <UpdateName />
-          <Modal
-            open={logout_modal_status}
-            onOpenChange={(e) => (logout_modal_status = e.open)}
-            contentBase="card z-60 space-y-2 rounded-lg px-3 py-2 shadow-xl bg-surface-100-900"
-            backdropBackground="backdrop-blur-xs"
-          >
-            {#snippet trigger()}
+          <Dialog.Root bind:open={logout_modal_status}>
+            <Dialog.Trigger>
               <span
-                class="btn flex w-full gap-1 space-x-1 rounded-md px-1 py-0 hover:bg-gray-200 dark:hover:bg-gray-700"
+                class="flex w-full cursor-pointer items-center gap-1 rounded-md px-2 py-1 hover:bg-muted"
               >
                 <Icon class="text-2xl" src={BiLogOut} />
                 <span class="text-sm font-semibold">Logout</span>
               </span>
-            {/snippet}
-            {#snippet content()}
-              <div class="text-lg font-bold">Are you sure to logout ?</div>
-              <div class="space-x-2">
+            </Dialog.Trigger>
+            <Dialog.Content class="max-w-xs">
+              <Dialog.Header>
+                <Dialog.Title class="text-lg font-bold">Are you sure to logout?</Dialog.Title>
+              </Dialog.Header>
+              <div class="flex gap-2">
                 <button
-                  class="btn rounded-lg bg-surface-200 font-semibold dark:bg-surface-700"
+                  class="rounded-lg bg-muted px-4 py-2 font-semibold hover:bg-muted/80"
                   onclick={log_out}
                 >
                   Confirm
                 </button>
                 <button
                   onclick={() => (logout_modal_status = false)}
-                  class="btn rounded-lg preset-outlined-surface-800-200 font-semibold"
+                  class="rounded-lg border border-border px-4 py-2 font-semibold hover:bg-muted"
                 >
                   Cancel
                 </button>
               </div>
-            {/snippet}
-          </Modal>
+            </Dialog.Content>
+          </Dialog.Root>
         </div>
-      {/snippet}
-    </Popover>
+      </Popover.Content>
+    </Popover.Root>
     <button
-      class={cl_join(
-        'ml-3 btn p-0 text-sm outline-hidden select-none hover:text-gray-500 sm:ml-4 dark:hover:text-gray-400',
+      class={cn(
+        'ml-3 p-0 text-sm outline-none select-none hover:text-muted-foreground sm:ml-4',
         is_fetching && 'animate-spin'
       )}
       onclick={refresh_data}
@@ -123,7 +112,7 @@
       <Icon src={LuRefreshCw} class="text-lg" />
     </button>
   </div>
-  <a class="text-sm text-slate-500 sm:text-base dark:text-slate-400" href={`emailto:${user.email}`}
+  <a class="text-sm text-muted-foreground sm:text-base" href={`mailto:${user.email}`}
     >{user.email}</a
   >
   <div class="mt-3">

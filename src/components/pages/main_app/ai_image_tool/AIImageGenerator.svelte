@@ -16,7 +16,8 @@
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
   import { writable } from 'svelte/store';
   import image_tool_prompts from './image_tool_prompts.yaml';
-  import { Switch, ProgressRing } from '@skeletonlabs/skeleton-svelte';
+  import { Switch } from '$lib/components/ui/switch';
+  import { ProgressRing } from '$lib/components/ui/progress-ring';
   import { client } from '~/api/client';
   import { copy_text_to_clipboard, format_string_text, get_permutations } from '~/tools/kry';
   import { onDestroy, onMount, untrack } from 'svelte';
@@ -37,6 +38,10 @@
   import { CgClose } from 'svelte-icons-pack/cg';
   import { slide } from 'svelte/transition';
   import { get_result_from_trigger_run_id } from '~/tools/trigger';
+  import { Button } from '$lib/components/ui/button';
+  import { Textarea } from '$lib/components/ui/textarea';
+  import { Skeleton } from '$lib/components/ui/skeleton';
+  import * as Select from '$lib/components/ui/select';
 
   let base_prompts = image_tool_prompts as {
     main_prompt: {
@@ -107,10 +112,7 @@
   let image_model: image_models_type = $state('gpt-image-1');
   const IMAGE_MODELS: Record<image_models_type, [string, string, number]> = {
     'gpt-image-1': ['GPT', '$0.042 (₹3.5) / image', 23 + ADDITIONAL_IMAGE_GEN_DELAY_S],
-    'dall-e-3': ['DALL-E 3', '$0.04 (₹3.4) / image', 15 + ADDITIONAL_IMAGE_GEN_DELAY_S],
-    'sd3-core': ['SD3 Core', '$0.03 (₹2.5) / image', 16 + ADDITIONAL_IMAGE_GEN_DELAY_S]
-    // sdxl: ['SDXL', '$0.002 (₹0.17) / image'],
-    // 'dall-e-2': ['DALL-E 2', '$0.02 (₹1.68) / image']
+    'dall-e-3': ['DALL-E 3', '$0.04 (₹3.4) / image', 15 + ADDITIONAL_IMAGE_GEN_DELAY_S]
   };
 
   let additional_prompt_info = $derived(
@@ -330,20 +332,29 @@
     >
       <Icon src={TiArrowBackOutline} class="-mt-1 text-lg" />
     </button>
-    <select
+    <Select.Root
+      type="single"
+      value={$index.toString()}
+      onValueChange={(v) => {
+        $index = parseInt(v) || 0;
+      }}
       disabled={$text_data_q.isFetching}
-      class="select inline-block w-20 px-1 text-sm ring-2"
-      bind:value={$index}
     >
-      {#each Array(total_count) as _, index}
-        {#if !$text_data_q.isFetching && $text_data_q.isSuccess}
-          <option value={index}
-            >{index}{$text_data_q.data[index]?.shloka_num &&
-              ` - ${$text_data_q.data[index].shloka_num}`}</option
-          >
-        {/if}
-      {/each}
-    </select>
+      <Select.Trigger class="inline-flex w-20 px-1 text-sm">
+        {$index}{$text_data_q.data?.[$index]?.shloka_num &&
+          ` - ${$text_data_q.data[$index].shloka_num}`}
+      </Select.Trigger>
+      <Select.Content>
+        {#each Array(total_count) as _, index}
+          {#if !$text_data_q.isFetching && $text_data_q.isSuccess}
+            <Select.Item value={index.toString()}>
+              {index}{$text_data_q.data[index]?.shloka_num &&
+                ` - ${$text_data_q.data[index].shloka_num}`}
+            </Select.Item>
+          {/if}
+        {/each}
+      </Select.Content>
+    </Select.Root>
     <button
       class="btn-hover"
       onclick={() => {
@@ -354,28 +365,37 @@
       <Icon src={TiArrowForwardOutline} class="-mt-1 text-lg" />
     </button>
   </span>
-  <button
+  <Button
     onclick={async () => {
       await $image_prompt_q.refetch();
-      // ^ this regetch is not a reliable alternative to onSuccess
+      // ^ this refetch is not a reliable alternative to onSuccess
     }}
     disabled={$image_prompt_q.isFetching}
-    class="btn rounded-md bg-surface-600 px-2 py-1 font-bold text-white dark:bg-surface-600"
+    size="sm"
   >
     Generate Image Prompt
-  </button>
-  <select
-    class="select ml-2.5 inline-block w-20 px-1.5 py-1 text-xs ring-2 outline-hidden"
-    bind:value={selected_text_model}
-    title={TEXT_MODEL_LIST[selected_text_model][1]}
+  </Button>
+  <Select.Root type="single" bind:value={selected_text_model as any}>
+    <Select.Trigger
+      class="ml-2.5 inline-flex w-20 px-1.5 py-1 text-xs"
+      title={TEXT_MODEL_LIST[selected_text_model][1]}
+    >
+      {TEXT_MODEL_LIST[selected_text_model][0]}
+    </Select.Trigger>
+    <Select.Content>
+      {#each Object.entries(TEXT_MODEL_LIST) as [key, value]}
+        <Select.Item value={key} label={value[0]} title={value[1]} />
+      {/each}
+    </Select.Content>
+  </Select.Root>
+  <Button
+    variant="ghost"
+    size="icon"
+    class="text-white hover:text-red-500"
+    onclick={() => ($ai_tool_opened = false)}
   >
-    {#each Object.entries(TEXT_MODEL_LIST) as [key, value]}
-      <option value={key} title={value[1]}>{value[0]}</option>
-    {/each}
-  </select>
-  <button class="btn p-0 text-white hover:text-red-500" onclick={() => ($ai_tool_opened = false)}>
     <Icon src={CgClose} class="text-xl" />
-  </button>
+  </Button>
   {#if show_prompt_time_status && $image_prompt_q.isSuccess && $image_prompt_q.data.image_prompt}
     <span class="ml-4 text-xs text-stone-500 select-none dark:text-stone-300">
       <Icon src={OiStopwatch16} class="text-base" />
@@ -384,8 +404,10 @@
   {/if}
 </div>
 <div class="mb-3">
-  <button
-    class="btn space-x-2 px-1 py-0.5 text-sm opacity-80 outline-hidden"
+  <Button
+    variant="ghost"
+    size="sm"
+    class="space-x-2 opacity-80"
     onclick={() => (base_prompt_display = !base_prompt_display)}
   >
     {#if !base_prompt_display}
@@ -394,14 +416,10 @@
       <Icon src={BsChevronUp} class="mb-1 text-lg" />
     {/if}
     Edit Base Prompt
-  </button>
+  </Button>
   {#if base_prompt_display}
     <div in:slide out:slide class="mt-1.5">
-      <textarea
-        class="textarea h-36 border-2 px-1 py-0 text-sm"
-        bind:value={base_prompt_text}
-        spellcheck="false"
-      ></textarea>
+      <Textarea class="h-36 px-1 py-0 text-sm" bind:value={base_prompt_text} spellcheck="false" />
     </div>
   {/if}
 </div>
@@ -419,52 +437,46 @@
     {/each}
   </div>
 </div>
-<div class="flex space-x-3">
-  <select
-    class="select w-24 px-1.5 py-1 text-sm ring-2"
-    bind:value={image_model}
-    title={IMAGE_MODELS[image_model][1]}
-  >
-    {#each Object.entries(IMAGE_MODELS) as option}
-      <option class="text-sm" value={option[0]} title={option[1][1]}>{option[1][0]}</option>
-    {/each}
-  </select>
-  <Switch
-    name="auto_image"
-    stateFocused="outline-hidden select-none"
-    checked={$auto_gen_image}
-    onCheckedChange={(e) => ($auto_gen_image = e.checked)}>Auto Generate Image</Switch
-  >
+<div class="flex items-center space-x-3">
+  <Select.Root type="single" bind:value={image_model as any}>
+    <Select.Trigger class="w-24 px-1.5 py-1 text-sm" title={IMAGE_MODELS[image_model][1]}>
+      {IMAGE_MODELS[image_model][0]}
+    </Select.Trigger>
+    <Select.Content>
+      {#each Object.entries(IMAGE_MODELS) as option}
+        <Select.Item value={option[0]} label={option[1][0]} title={option[1][1]} />
+      {/each}
+    </Select.Content>
+  </Select.Root>
+  <Switch id="auto_image" bind:checked={$auto_gen_image} />
+  <label for="auto_image" class="text-sm">Auto Generate Image</label>
 </div>
 {#if $image_prompt_q.data !== undefined || $image_prompt_q.isFetching}
   {#if $image_prompt_q.isFetching || !$image_prompt_q.isSuccess}
-    <div class="h-80 placeholder animate-pulse rounded-md"></div>
+    <Skeleton class="h-80" />
   {:else}
     <div class="space-x-3">
       <span class="font-bold">Image Prompt</span>
-      <button
-        disabled={$image_q.isFetching}
-        onclick={generate_image}
-        class="btn-hover rounded-md bg-tertiary-800 px-1.5 py-0 font-bold text-white dark:bg-tertiary-800"
-        >Generate Image</button
+      <Button disabled={$image_q.isFetching} onclick={generate_image} size="sm" variant="secondary"
+        >Generate Image</Button
       >
-      <button
-        class="btn-hover p-0 outline-hidden"
+      <Button
+        variant="ghost"
+        size="icon"
         title="Copy Image Prompt"
         onclick={() => copy_text_to_clipboard($image_prompt)}
       >
         <Icon src={BsCopy} class="text-lg" />
-      </button>
+      </Button>
       {#if $image_q.isFetching}
         <ProgressRing
           value={(image_gen_time_taken / IMAGE_MODELS[image_model][2]) * 100}
           max={100}
           size="size-6"
-          strokeLinecap="butt"
-          classes="inline-block -mb-2"
-          meterBase="stroke-primary-500"
-          trackBase="stroke-primary-500/30"
           strokeWidth="15px"
+          class="-mb-2"
+          meterClass="stroke-primary"
+          trackClass="stroke-primary/30"
         />
       {:else if show_image_time_status && $image_q.isSuccess}
         <span class="ml-4 text-xs text-stone-500 select-none dark:text-stone-300">
@@ -473,17 +485,14 @@
         </span>
       {/if}
     </div>
-    <textarea
-      class={cl_join(
-        'textarea h-36 border-2 px-1 py-0 text-sm',
-        image_prompt_request_error && 'input-error'
-      )}
+    <Textarea
+      class={cl_join('h-36 px-1 py-0 text-sm', image_prompt_request_error && 'border-destructive')}
       spellcheck="false"
       bind:value={$image_prompt}
-    ></textarea>
+    />
     {#if $image_q.data}
       {#if $image_q.isFetching || !$image_q.isSuccess}
-        <div class="h-96 placeholder animate-pulse rounded-md"></div>
+        <Skeleton class="h-96" />
       {:else}
         <div>
           <section class="mb-10 grid grid-cols-2 gap-3">
@@ -499,12 +508,9 @@
                     width={1024}
                   />
                   <div class="flex items-center justify-center space-x-3">
-                    <button
-                      onclick={() => download_image(image)}
-                      class="btn rounded-md bg-surface-600 px-1 py-1 outline-hidden dark:bg-surface-500"
-                    >
-                      <Icon src={BsDownload} class="text-xl text-white" />
-                    </button>
+                    <Button onclick={() => download_image(image)} variant="secondary" size="icon">
+                      <Icon src={BsDownload} class="text-xl" />
+                    </Button>
                   </div>
                 </div>
               {:else}

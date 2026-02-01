@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { AppBar, Modal, Popover } from '@skeletonlabs/skeleton-svelte';
+  import * as Dialog from '$lib/components/ui/dialog';
+  import * as Popover from '$lib/components/ui/popover';
   import ThemeChanger from './ThemeChanger.svelte';
   import Icon from '~/tools/Icon.svelte';
   import { SiGithub } from 'svelte-icons-pack/si';
@@ -8,7 +9,7 @@
   import { PAGE_TITLES } from '~/state/page_titles';
   import type { Snippet } from 'svelte';
   import { ContributeIcon, SiConvertio, YoutubeIcon } from './icons';
-  import { cl_join } from '~/tools/cl_join';
+  import { cn } from '$lib/utils';
   import { BiArrowBack } from 'svelte-icons-pack/bi';
 
   let { start, headline, end }: { start?: Snippet; headline?: Snippet; end?: Snippet } = $props();
@@ -32,9 +33,11 @@
   const preload_component = () => import('~/components/SupportOptions.svelte');
 </script>
 
-<AppBar>
-  {#snippet lead()}
-    {@const page_title = get_page_title()}
+<!-- AppBar replacement -->
+<header
+  class="flex items-center justify-between bg-card px-3 py-2 shadow-sm sm:px-4 dark:bg-card/80"
+>
+  <div class="flex items-center gap-2">
     {#if start}
       {@render start()}
     {/if}
@@ -48,13 +51,16 @@
     {/if}
     {#if headline}
       {@render headline()}
-    {:else if page_title}
-      <span class={page_title.classes}>
-        {page_title.title}
-      </span>
+    {:else}
+      {@const page_title = get_page_title()}
+      {#if page_title}
+        <span class={page_title.classes}>
+          {page_title.title}
+        </span>
+      {/if}
     {/if}
-  {/snippet}
-  {#snippet trail()}
+  </div>
+  <div class="flex items-center gap-x-2 sm:gap-x-4">
     {@render end?.()}
     <button
       onclick={() => {
@@ -62,9 +68,9 @@
       }}
       onmouseover={preload_component}
       onfocus={preload_component}
-      class={cl_join(
-        '-mt-1 btn rounded-md px-1 py-1 font-semibold outline-hidden select-none hover:bg-gray-200 sm:px-2 dark:hover:bg-gray-700',
-        'mr-3 sm:mr-3'
+      class={cn(
+        'flex items-center gap-1 rounded-md px-1 py-1 font-semibold transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring focus-visible:ring-ring/70 sm:px-2',
+        ''
       )}
     >
       <Icon src={ContributeIcon} class="text-3xl" />
@@ -79,38 +85,28 @@
     >
       <Icon src={SiConvertio} class="text-2xl hover:fill-cyan-700 dark:hover:fill-zinc-400" />
     </a>
-    <Popover
-      open={app_bar_popover_status}
-      onOpenChange={(e) => (app_bar_popover_status = e.open)}
-      positioning={{ placement: 'bottom' }}
-      arrow={false}
-      contentBase="card z-50 space-y-1 rounded-lg px-3 py-1.5 shadow-xl bg-surface-100-900"
-      triggerBase="btn p-0 gap-0 outline-hidden select-none"
-    >
-      {#snippet trigger()}
+    <Popover.Root bind:open={app_bar_popover_status}>
+      <Popover.Trigger class="p-0 outline-none select-none">
         <Icon
           src={AiOutlineMenu}
-          class="text-3xl hover:text-gray-500 active:text-blue-600 dark:hover:text-gray-400 dark:active:text-blue-400"
+          class="text-3xl hover:text-muted-foreground active:text-blue-600 dark:active:text-blue-400"
         />
-      {/snippet}
-      {#snippet content()}
+      </Popover.Trigger>
+      <Popover.Content side="bottom" align="end" class="w-auto space-y-1 p-2">
         <a
           target="_blank"
           rel="noopener noreferrer"
           href="https://lipilekhika.in/app"
-          class="group flex space-x-2 rounded-md px-2 py-1 text-sm font-bold hover:bg-gray-200 sm:text-base dark:hover:bg-gray-700"
+          class="flex items-center gap-2 rounded-md bg-muted/20 px-2 py-1 text-sm font-bold transition-colors hover:rounded-lg hover:bg-accent/30 hover:text-accent-foreground sm:text-base"
         >
-          <Icon
-            src={SiConvertio}
-            class="text-2xl group-hover:fill-cyan-600 dark:group-hover:fill-zinc-400"
-          />
+          <Icon src={SiConvertio} class="text-2xl" />
           <span>Lipi Parivartak</span>
         </a>
         <a
           href="https://www.youtube.com/c/thesanskritchannel"
           target="_blank"
           rel="noopener noreferrer"
-          class="flex space-x-1 rounded-md px-2 py-1 text-sm hover:bg-gray-200 sm:text-base dark:hover:bg-gray-700"
+          class="flex items-center gap-1 rounded-md bg-muted/20 px-2 py-1 text-sm transition-colors hover:rounded-lg hover:bg-accent/30 hover:text-accent-foreground sm:text-base"
           onclick={() => (app_bar_popover_status = false)}
         >
           <Icon src={YoutubeIcon} class="mt-0 text-2xl text-[red]" />
@@ -120,33 +116,28 @@
           href="https://github.com/shubhattin/thesanskritchannel_projects"
           target="_blank"
           rel="noopener noreferrer"
-          class="group flex space-x-1 rounded-md px-2 py-1 text-sm hover:bg-gray-200 dark:hover:bg-gray-700"
+          class="flex items-center gap-1 rounded-md bg-muted/20 px-2 py-1 text-sm transition-colors hover:rounded-lg hover:bg-accent/30 hover:text-accent-foreground"
           onclick={() => (app_bar_popover_status = false)}
         >
-          <Icon
-            src={SiGithub}
-            class="-mt-1 mr-1 text-xl group-hover:fill-indigo-700 dark:group-hover:fill-zinc-400"
-          />
-          <span>Projects's Github Page</span>
+          <Icon src={SiGithub} class="-mt-1 mr-1 text-xl" />
+          <span>Project's Github Page</span>
         </a>
-        <div class="wont-close flex space-x-3 rounded-md px-2 py-1">
+        <div class="flex items-center gap-3 rounded-md px-2 py-1">
           <span class="mt-1">Set Theme</span>
           <ThemeChanger />
         </div>
-      {/snippet}
-    </Popover>
-  {/snippet}
-</AppBar>
+      </Popover.Content>
+    </Popover.Root>
+  </div>
+</header>
 
-<Modal
-  open={support_modal_status}
-  onOpenChange={(e) => (support_modal_status = e.open)}
-  contentBase="card z-40 px-3 py-2 shadow-xl rounded-md select-none outline-none bg-slate-100 dark:bg-surface-900"
-  backdropBackground="backdrop-blur-sm"
->
-  {#snippet content()}
+<Dialog.Root bind:open={support_modal_status}>
+  <Dialog.Content
+    class="w-80 max-w-[calc(100vw-2rem)] bg-card p-3"
+    aria-label="Support Our Projects"
+  >
     {#await preload_component() then SupportOptions}
       <SupportOptions.default />
     {/await}
-  {/snippet}
-</Modal>
+  </Dialog.Content>
+</Dialog.Root>

@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Modal } from '@skeletonlabs/skeleton-svelte';
+  import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import type { Snippet } from 'svelte';
-  import { cl_join } from '~/tools/cl_join';
+  import { cn } from '$lib/utils';
 
   let {
     children,
@@ -12,9 +12,7 @@
     cancel_func,
     confirm_func,
     close_on_confirm = false,
-    contentBase,
     class: className,
-    triggerBase,
     button_pos = 'center'
   }: {
     children?: Snippet;
@@ -24,68 +22,60 @@
     body_text?: () => string;
     body?: Snippet;
     popup_state: boolean;
-    contentBase?: string;
     close_on_confirm?: boolean;
     class?: string;
-    triggerBase?: string;
     button_pos?: 'left' | 'center' | 'right';
   } = $props();
 </script>
 
-<Modal
-  open={popup_state}
-  onOpenChange={(e) => {
-    popup_state = e.open;
-  }}
-  contentBase={cl_join(
-    'card z-70 space-y-2 p-2 rounded-lg shadow-xl dark:bg-surface-900 bg-zinc-100',
-    contentBase
-  )}
-  backdropClasses="backdrop-blur-xs"
-  triggerBase={cl_join(triggerBase)}
->
-  {#snippet trigger()}
-    {@render children?.()}
-  {/snippet}
-  {#snippet content()}
-    <div class={cl_join('text-lg font-bold', className)}>{title}</div>
-    {#if body}
-      <div class="my-2 mb-3">
-        {@render body()}
-      </div>
-    {:else if body_text}
-      <div class="my-2 mb-3">
-        {@html body_text()}
-      </div>
-    {/if}
-    <div
-      class={cl_join(
-        'flex  space-x-2',
-        button_pos === 'center' && 'items-center justify-center',
-        button_pos === 'right' && 'justify-end'
+<AlertDialog.Root bind:open={popup_state}>
+  {#if children}
+    <AlertDialog.Trigger>
+      {@render children()}
+    </AlertDialog.Trigger>
+  {/if}
+  <AlertDialog.Content class="max-w-md">
+    <AlertDialog.Header>
+      <AlertDialog.Title class={cn('text-lg font-bold', className)}>{title}</AlertDialog.Title>
+      {#if body}
+        <AlertDialog.Description>
+          <div class="my-2">
+            {@render body()}
+          </div>
+        </AlertDialog.Description>
+      {:else if body_text}
+        <AlertDialog.Description>
+          <div class="my-2">
+            {@html body_text()}
+          </div>
+        </AlertDialog.Description>
+      {/if}
+    </AlertDialog.Header>
+    <AlertDialog.Footer
+      class={cn(
+        'flex gap-2',
+        button_pos === 'center' && 'justify-center',
+        button_pos === 'right' && 'justify-end',
+        button_pos === 'left' && 'justify-start'
       )}
     >
-      <button
-        class={cl_join(
-          'btn rounded-lg bg-zinc-500 font-semibold text-white dark:bg-surface-700',
-          className
-        )}
+      <AlertDialog.Cancel
+        class="rounded-lg border border-border bg-background px-4 py-2 font-semibold hover:bg-muted"
+        onclick={() => {
+          cancel_func?.();
+        }}
+      >
+        Cancel
+      </AlertDialog.Cancel>
+      <AlertDialog.Action
+        class="rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground hover:bg-primary/90"
         onclick={() => {
           if (close_on_confirm) popup_state = false;
-          confirm_func && confirm_func();
+          confirm_func?.();
         }}
       >
         Confirm
-      </button>
-      <button
-        onclick={() => {
-          popup_state = false;
-          cancel_func && cancel_func();
-        }}
-        class={cl_join('btn rounded-lg preset-outlined-surface-800-200 font-semibold', className)}
-      >
-        Cancel
-      </button>
-    </div>
-  {/snippet}
-</Modal>
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>

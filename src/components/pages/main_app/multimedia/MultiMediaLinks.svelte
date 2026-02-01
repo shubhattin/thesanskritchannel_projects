@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Modal, Popover } from '@skeletonlabs/skeleton-svelte';
+  import * as Dialog from '$lib/components/ui/dialog';
+  import * as Popover from '$lib/components/ui/popover';
   import { CgAdd } from 'svelte-icons-pack/cg';
   import { client_q } from '~/api/client';
   import { MultimediaIcon } from '~/components/icons';
@@ -11,6 +12,8 @@
   import MediaTypeIcon from './MediaTypeIcon.svelte';
   import { FiEdit2 } from 'svelte-icons-pack/fi';
   import EditMediaLink from './EditMediaLink.svelte';
+  import Button from '~/lib/components/ui/button/button.svelte';
+  import { Skeleton } from '$lib/components/ui/skeleton';
 
   const media_list_q = $derived(
     client_q.media.get_media_list.query({
@@ -26,31 +29,23 @@
   let selected_edit_item = $state<NonNullable<typeof $media_list_q.data>[0] | null>(null!);
 </script>
 
-<Popover
-  open={multimedia_popover_state}
-  onOpenChange={(e) => (multimedia_popover_state = e.open)}
-  positioning={{ placement: 'bottom' }}
-  arrow={false}
-  contentBase={'card z-70 space-y-1 p-1.5 rounded-lg shadow-xl dark:bg-surface-900 bg-zinc-100 '}
->
-  {#snippet trigger()}
-    <span class="btn p-0 outline-none select-none">
-      <Icon src={MultimediaIcon} class="text-2xl text-orange-600 sm:text-3xl dark:text-amber-200" />
-    </span>
-  {/snippet}
-  {#snippet content()}
+<Popover.Root bind:open={multimedia_popover_state}>
+  <Popover.Trigger class="p-0 outline-none select-none">
+    <Button variant="ghost" size="icon" class="outline-none">
+      <Icon src={MultimediaIcon} class="size-6 text-orange-600 sm:size-6 dark:text-amber-200" />
+    </Button>
+  </Popover.Trigger>
+  <Popover.Content side="bottom" class="w-auto space-y-1 p-1.5">
     {#if $media_list_q.isFetching}
-      <div class="h-15 placeholder w-30 animate-pulse"></div>
+      <Skeleton class="h-15 w-30 bg-muted" />
     {:else if !$media_list_q.isFetching && $media_list_q.isSuccess}
       {@const media_list = $media_list_q.data}
       {#if media_list.length === 0}
-        <div class=" text-yellow-700 dark:text-amber-500">No multimedia links found</div>
+        <div class="text-amber-600 dark:text-amber-500">No multimedia links found</div>
       {:else}
         <div class="space-y-0">
           {#each media_list as media (media.id)}
-            <span
-              class="group block space-x-1 rounded-md p-1 hover:bg-gray-200 dark:hover:bg-gray-700"
-            >
+            <span class="group block space-x-1 rounded-md p-1 hover:bg-muted">
               <a href={media.link} target="_blank" rel="noopener noreferrer" class="space-x-2">
                 <MediaTypeIcon media_type={media.media_type as media_list_type} />
                 <span>{media.name}</span>
@@ -62,7 +57,7 @@
                     selected_edit_item = media;
                     link_edit_modal_opened = true;
                   }}
-                  class="btn inline-block p-0"
+                  class="inline-block p-0"
                 >
                   <Icon src={FiEdit2} class="text-xs" />
                 </button>
@@ -77,36 +72,24 @@
             multimedia_popover_state = false;
             link_add_modal_opened = true;
           }}
-          class="btn block rounded-md p-1 hover:bg-gray-200 dark:hover:bg-gray-700"
+          class="block rounded-md p-1 hover:bg-muted"
         >
-          <Icon src={CgAdd} class="text-xl " />
+          <Icon src={CgAdd} class="text-xl" />
           Add Links
         </button>
       {/if}
     {/if}
-  {/snippet}
-</Popover>
+  </Popover.Content>
+</Popover.Root>
 
-<Modal
-  contentBase="card z-40 space-y-2 rounded-lg px-4 py-3 shadow-xl dark:bg-surface-900 bg-stone-100"
-  triggerBase="btn p-0 outline-hidden select-none"
-  backdropBackground="backdrop-blur-sm"
-  open={link_add_modal_opened}
-  onOpenChange={(e) => (link_add_modal_opened = e.open)}
->
-  {#snippet content()}
+<Dialog.Root bind:open={link_add_modal_opened}>
+  <Dialog.Content class="max-w-md">
     <AddMediaLinks bind:modal_open_state={link_add_modal_opened} />
-  {/snippet}
-</Modal>
+  </Dialog.Content>
+</Dialog.Root>
 
-<Modal
-  contentBase="card z-40 space-y-2 rounded-lg px-4 py-3 shadow-xl dark:bg-surface-900 bg-stone-100"
-  triggerBase="btn p-0 outline-hidden select-none"
-  backdropBackground="backdrop-blur-md"
-  open={link_edit_modal_opened}
-  onOpenChange={(e) => (link_edit_modal_opened = e.open)}
->
-  {#snippet content()}
+<Dialog.Root bind:open={link_edit_modal_opened}>
+  <Dialog.Content class="max-w-md">
     <EditMediaLink bind:modal_open_state={link_edit_modal_opened} link_info={selected_edit_item!} />
-  {/snippet}
-</Modal>
+  </Dialog.Content>
+</Dialog.Root>

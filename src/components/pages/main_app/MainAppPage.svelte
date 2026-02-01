@@ -49,11 +49,13 @@
   } from '~/state/main_app/data.svelte';
   import { is_current_app_scope, user_info } from '~/state/user.svelte';
   import { BiEdit, BiHelpCircle } from 'svelte-icons-pack/bi';
-  import { Switch } from '@skeletonlabs/skeleton-svelte';
+  import { Switch } from '$lib/components/ui/switch';
   import { BsKeyboard } from 'svelte-icons-pack/bs';
   import { loadLocalConfig } from './load_local_config';
   import AiImageGenerator from './ai_image_tool/AIImageGenerator.svelte';
   import { preloadScriptData, type ScriptLangType } from 'lipilekhika';
+  import { Button } from '$lib/components/ui/button';
+  import * as Select from '$lib/components/ui/select';
 
   const query_client = useQueryClient();
 
@@ -260,15 +262,20 @@
 <label class="block space-x-2 text-sm sm:space-x-2 sm:text-base">
   Script
   <Icon src={LanguageIcon} class="text-2xl sm:text-4xl" />
-  <select
-    class="select inline-block h-10 w-32 px-2 py-1 text-sm sm:h-12 sm:w-40 sm:py-0 sm:text-base"
+  <Select.Root
+    type="single"
+    bind:value={$viewing_script_selection as any}
     disabled={$viewing_script_selection !== BASE_SCRIPT && $viewing_script_mut.isPending}
-    bind:value={$viewing_script_selection}
   >
-    {#each SCRIPT_LIST as lang (lang)}
-      <option value={lang}>{lang}</option>
-    {/each}
-  </select>
+    <Select.Trigger class="inline-flex h-10 w-32 px-2 py-1 text-sm sm:h-12 sm:w-40 sm:text-base">
+      {$viewing_script_selection}
+    </Select.Trigger>
+    <Select.Content>
+      {#each SCRIPT_LIST as lang (lang)}
+        <Select.Item value={lang}>{lang}</Select.Item>
+      {/each}
+    </Select.Content>
+  </Select.Root>
 </label>
 {#each { length: project_info.levels - 1 } as _, i}
   {@const level_name = project_info.level_names[project_info.levels - i - 1]}
@@ -330,30 +337,51 @@
 })}
   <label class="block space-x-2 sm:space-x-3">
     <span class="text-sm font-bold sm:text-base">Select {name}</span>
-    <select
-      class={`${get_text_font_class($viewing_script)} select inline-block h-10 w-44 px-2 py-1 sm:h-12 sm:w-52`}
+    <Select.Root
+      type="single"
+      value={$selected_text_levels[text_level_state_index]?.toString() ?? ''}
+      onValueChange={(v) => {
+        $selected_text_levels[text_level_state_index] = v ? parseInt(v) : null;
+      }}
       disabled={$editing_status_on}
-      bind:value={$selected_text_levels[text_level_state_index]}
     >
-      <option value={null}>Select</option>
-      {#if !options}
-        {#if initial_option.value}
-          <option value={initial_option.value} selected
-            >{initial_option.value}. {initial_option.text}</option
-          >
+      <Select.Trigger
+        class={`${get_text_font_class($viewing_script)} inline-flex h-10 w-44 px-2 py-1 sm:h-12 sm:w-52`}
+      >
+        {$selected_text_levels[text_level_state_index]
+          ? `${$selected_text_levels[text_level_state_index]}. ${
+              options
+                ? (options.find((o) => o.value === $selected_text_levels[text_level_state_index])
+                    ?.text ?? '')
+                : (initial_option.text ?? '')
+            }`
+          : 'Select'}
+      </Select.Trigger>
+      <Select.Content>
+        <Select.Item value="">Select</Select.Item>
+        {#if !options}
+          {#if initial_option.value}
+            <Select.Item value={initial_option.value.toString()}>
+              {initial_option.value}. {initial_option.text}
+            </Select.Item>
+          {/if}
+        {:else}
+          {#await transliterate_options(options, $viewing_script)}
+            {#each options as option}
+              <Select.Item value={option.value!.toString()}
+                >{option.value}. {option.text}</Select.Item
+              >
+            {/each}
+          {:then options_tr}
+            {#each options_tr as option}
+              <Select.Item value={option.value!.toString()}
+                >{option.value}. {option.text}</Select.Item
+              >
+            {/each}
+          {/await}
         {/if}
-      {:else}
-        {#await transliterate_options(options, $viewing_script)}
-          {#each options as option}
-            <option value={option.value}>{option.value}. {option.text}</option>
-          {/each}
-        {:then options_tr}
-          {#each options_tr as option}
-            <option value={option.value}>{option.value}. {option.text}</option>
-          {/each}
-        {/await}
-      {/if}
-    </select>
+      </Select.Content>
+    </Select.Root>
   </label>
 {/snippet}
 
@@ -361,58 +389,65 @@
   <div class="space-x-1 sm:space-x-3">
     {#if $project_state.levels > 1}
       {#if $selected_text_levels[0] !== 1}
-        <button
+        <Button
           onclick={() => $selected_text_levels[0]!--}
-          in:scale
-          out:slide
+          variant="outline"
+          size="sm"
           disabled={$editing_status_on}
-          class={'btn rounded-lg bg-tertiary-800 px-1 py-1 pt-1.5 text-sm font-bold text-white sm:px-2 sm:py-1 sm:text-sm'}
         >
           <Icon class="-mt-1 text-xl" src={TiArrowBackOutline} />
           Previous
-        </button>
+        </Button>
       {/if}
       {#if $selected_text_levels[0] !== $list_count}
-        <button
+        <Button
           onclick={() => ($selected_text_levels[0]! += 1)}
-          in:scale
-          out:slide
+          variant="outline"
+          size="sm"
           disabled={$editing_status_on}
-          class={'btn rounded-lg bg-tertiary-800 px-1 py-1 pt-1.5 text-sm font-bold text-white sm:px-2 sm:py-1 sm:text-sm'}
         >
           Next
           <Icon class="-mt-1 text-xl" src={TiArrowForwardOutline} />
-        </button>
+        </Button>
       {/if}
     {/if}
     {#if !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
       {#if !$view_translation_status}
-        <button
+        <Button
           onclick={() => {
             $view_translation_status = true;
           }}
-          class="btn rounded-lg bg-primary-800 px-2 py-1 text-sm font-bold text-white sm:text-sm dark:bg-primary-700"
-          >View Translations</button
+          class="rounded-md bg-orange-500 px-1 py-0 text-sm font-semibold text-white transition-colors hover:bg-orange-600 focus-visible:ring-orange-500 dark:bg-orange-600 dark:hover:bg-orange-700 dark:focus-visible:ring-orange-600"
+          size="sm"
         >
+          View Translations
+        </Button>
         {@render btn_multi()}
       {:else}
         <div class="mt-2 block space-x-1.5 sm:mt-0 sm:inline-block sm:space-x-2">
           <label class="mr-1 inline-block space-x-1.5 text-sm sm:mr-3 sm:space-x-4 sm:text-base">
             Translation
             <Icon src={LanguageIcon} class="text-xl sm:text-2xl" />
-            <select
+            <Select.Root
+              type="single"
+              value={$trans_lang_selection.toString()}
+              onValueChange={(v) => {
+                $trans_lang_selection = parseInt(v) || 0;
+              }}
               disabled={$editing_status_on || $viewing_script_mut.isPending}
-              class="select inline-block w-24 px-1 py-1 text-sm sm:w-32 sm:px-2 sm:text-base"
-              bind:value={$trans_lang_selection}
             >
-              <!-- $trans_lang_mut.isPending || -->
-              <option value={0}>English</option>
-              {#each LANG_LIST as lang, i (lang)}
-                {#if lang !== 'English'}
-                  <option value={LANG_LIST_IDS[i]}>{lang}</option>
-                {/if}
-              {/each}
-            </select>
+              <Select.Trigger class="inline-flex w-24 px-2 py-1 text-sm sm:w-32 sm:text-base">
+                {LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang_selection)] ?? 'English'}
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="0">English</Select.Item>
+                {#each LANG_LIST as lang, i (lang)}
+                  {#if lang !== 'English'}
+                    <Select.Item value={LANG_LIST_IDS[i].toString()}>{lang}</Select.Item>
+                  {/if}
+                {/each}
+              </Select.Content>
+            </Select.Root>
           </label>
           {#if !$editing_status_on && $user_info && $is_current_app_scope}
             {@const languages =
@@ -420,22 +455,26 @@
                 ? $user_project_info_q.data.languages!.map((l) => l.lang_id)
                 : []}
             {#if $trans_lang !== 0 && ($user_info.role === 'admin' || languages.indexOf($trans_lang) !== -1)}
-              <button
+              <Button
                 onclick={() => ($editing_status_on = true)}
-                class="my-1 btn inline-block rounded-lg bg-secondary-700 px-1 py-1 text-sm font-bold text-white sm:px-2 sm:text-sm dark:bg-secondary-800"
+                variant="outline"
+                size="sm"
+                class="my-1"
               >
                 <Icon src={BiEdit} class="text-xl sm:text-2xl" />
                 Edit
-              </button>
+              </Button>
             {:else if $trans_lang === 0 && ($user_info.role === 'admin' || languages.indexOf(1) !== -1)}
               <!-- 1 -> English -->
-              <button
+              <Button
                 onclick={() => ($editing_status_on = true)}
-                class="my-1 btn inline-block rounded-lg bg-secondary-700 px-1 py-1 text-sm font-bold text-white sm:px-2 sm:text-sm dark:bg-secondary-800"
+                variant="outline"
+                size="sm"
+                class="my-1"
               >
                 <Icon src={BiEdit} class="text-xl sm:text-2xl" />
                 Edit English
-              </button>
+              </Button>
             {/if}
           {/if}
           {@render btn_multi()}
@@ -444,12 +483,9 @@
     {/if}
     {#snippet btn_multi()}
       {#await import('./multimedia/MultiMediaLinks.svelte')}
-        <button class="btn p-0 outline-none select-none">
-          <Icon
-            src={MultimediaIcon}
-            class="text-2xl text-orange-600 sm:text-3xl dark:text-amber-200"
-          />
-        </button>
+        <Button variant="ghost" size="icon" class="outline-none">
+          <Icon src={MultimediaIcon} class="size-6 text-orange-600 sm:size-6 dark:text-amber-200" />
+        </Button>
       {:then MultiMediaLinks}
         <MultiMediaLinks.default />
       {/await}
@@ -458,31 +494,43 @@
 {/if}
 {#if $trans_lang !== 0 && $editing_status_on && !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
   <div class="flex space-x-2.5 sm:space-x-4">
-    <Switch
-      name="edit_lang"
-      checked={$edit_language_typer_status}
-      stateFocused="outline-hidden select-none"
-      onCheckedChange={(e) => ($edit_language_typer_status = e.checked)}
-    >
+    <div class="flex items-center gap-2">
+      <Switch
+        id="edit_lang"
+        bind:checked={$edit_language_typer_status}
+        class="focus:outline-none"
+      />
       <Icon src={BsKeyboard} class="text-4xl" />
-    </Switch>
+    </div>
     {#if $sanskrit_mode_texts.isSuccess && !$sanskrit_mode_texts.isFetching}
-      <select
+      <Select.Root
+        type="single"
+        value={$sanskrit_mode.toString()}
+        onValueChange={(value) => {
+          if (!value) return;
+          $sanskrit_mode = Number(value);
+        }}
         disabled={!$edit_language_typer_status}
-        bind:value={$sanskrit_mode}
-        class="select w-28 px-1 py-1 text-sm text-clip"
       >
-        <option value={1}>rAm ➔ {$sanskrit_mode_texts.data[0]}</option>
-        <option value={0}>rAm ➔ {$sanskrit_mode_texts.data[1]}</option>
-      </select>
+        <Select.Trigger class="w-28 text-sm">
+          {$sanskrit_mode === 1
+            ? 'rAm ➔ ' + $sanskrit_mode_texts.data[0]
+            : 'rAm ➔ ' + $sanskrit_mode_texts.data[1]}
+        </Select.Trigger>
+        <Select.Content>
+          <Select.Item value="1">rAm ➔ {$sanskrit_mode_texts.data[0]}</Select.Item>
+          <Select.Item value="0">rAm ➔ {$sanskrit_mode_texts.data[1]}</Select.Item>
+        </Select.Content>
+      </Select.Root>
     {/if}
-    <button
-      class="btn rounded-md p-0 text-sm outline-hidden"
-      title={'Language Typing Assistance'}
+    <Button
+      variant="ghost"
+      size="icon"
+      title="Language Typing Assistance"
       onclick={() => ($typing_assistance_modal_opened = true)}
     >
       <Icon src={BiHelpCircle} class="mt-1 text-3xl text-sky-500 dark:text-sky-400" />
-    </button>
+    </Button>
     <span class="mt-2 hidden text-center text-sm text-stone-500 sm:inline-block dark:text-stone-400"
       >Use <span class="font-semibold">Alt+x</span> to toggle</span
     >

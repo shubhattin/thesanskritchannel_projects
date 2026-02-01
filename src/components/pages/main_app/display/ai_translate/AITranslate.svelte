@@ -27,6 +27,8 @@
   import { LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { get_project_from_id } from '~/state/project_list';
+  import { Button } from '$lib/components/ui/button';
+  import * as Select from '$lib/components/ui/select';
 
   const query_client = useQueryClient();
 
@@ -134,24 +136,24 @@
       return `This will translate the untranslated shlokas to ${$trans_lang !== 0 ? LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] : 'English'} which you can edit and then save.`;
     }}
   >
-    <!-- description={`This will translate the untranslated shlokas to ${$trans_lang !== 0 ? LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] : 'English'} which you can edit and then save.`} -->
-    <button
-      disabled={$translate_sarga_mut.isPending}
-      class="ml-3 btn inline-block rounded-lg bg-surface-600 px-2 py-1 text-white dark:bg-surface-600"
-    >
+    <Button variant="secondary" disabled={$translate_sarga_mut.isPending} class="ml-3">
       <Icon src={AIIcon} class="-mt-1 mr-1 text-2xl" />
       Translate with AI
-    </button>
+    </Button>
   </ConfirmModal>
-  <select
-    class="select ml-3 inline-block w-20 px-1 py-1 text-xs outline-hidden"
-    bind:value={selected_model}
-    title={TEXT_MODEL_LIST[selected_model][1]}
-  >
-    {#each Object.entries(TEXT_MODEL_LIST) as [key, value]}
-      <option value={key} title={value[1]}>{value[0]}</option>
-    {/each}
-  </select>
+  <Select.Root type="single" bind:value={selected_model as any}>
+    <Select.Trigger
+      class="ml-3 inline-flex w-24 px-2 py-1 text-xs"
+      title={TEXT_MODEL_LIST[selected_model][1]}
+    >
+      {TEXT_MODEL_LIST[selected_model][0]}
+    </Select.Trigger>
+    <Select.Content>
+      {#each Object.entries(TEXT_MODEL_LIST) as [key, value]}
+        <Select.Item value={key} label={value[0]} title={value[1]} />
+      {/each}
+    </Select.Content>
+  </Select.Root>
 {:else if $editing_status_on && $translate_sarga_mut.isSuccess && show_time_status}
   <span class="ml-4 text-xs text-stone-500 select-none dark:text-stone-300">
     <Icon src={OiStopwatch16} class="text-base" />

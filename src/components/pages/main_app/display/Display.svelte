@@ -35,8 +35,11 @@
   import { get_font_family_and_size } from '~/tools/font_tools';
   import { LANG_LIST, LANG_LIST_IDS, type lang_list_type } from '~/state/lang_list';
   import { RiSystemAddLargeLine } from 'svelte-icons-pack/ri';
-  import { Popover, Tabs } from '@skeletonlabs/skeleton-svelte';
+  import * as Popover from '$lib/components/ui/popover';
+  import * as Tabs from '$lib/components/ui/tabs';
   import BulkEdit from './bulk/BulkEdit.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Textarea } from '$lib/components/ui/textarea';
   import AiTranslate from './ai_translate/AITranslate.svelte';
   import {
     clearTypingContextOnKeyDown,
@@ -168,14 +171,8 @@
 {/if}
 {#if !$editing_status_on}
   <div class="relative w-full">
-    <Popover
-      open={copy_btn_popup_state}
-      onOpenChange={(e) => (copy_btn_popup_state = e.open)}
-      positioning={{ placement: 'bottom-end' }}
-      arrow={false}
-      triggerBase={'btn absolute top-2 right-5 z-20 p-0 outline-hidden select-none'}
-    >
-      {#snippet trigger()}
+    <Popover.Root bind:open={copy_btn_popup_state}>
+      <Popover.Trigger class="absolute top-2 right-5 z-20 p-0 outline-none select-none">
         {#if text_portion_hovered}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <span
@@ -186,11 +183,11 @@
             <Icon src={OiCopy16} class="text-lg" />
           </span>
         {/if}
-      {/snippet}
-      {#snippet content()}
+      </Popover.Trigger>
+      <Popover.Content side="bottom" align="end" class="w-auto space-y-1 p-1">
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
-          class="z-70 space-y-1 card rounded-lg bg-slate-100 p-1 shadow-xl dark:bg-surface-900"
+          class="space-y-1"
           onmouseenter={() => (text_portion_hovered = true)}
           onmouseleave={() => {
             copy_btn_popup_state = false;
@@ -198,13 +195,13 @@
         >
           <button
             onclick={copy_sarga_shlokas_only}
-            class="btn block w-full rounded-md px-2 py-1 text-sm hover:bg-gray-200 dark:hover:bg-gray-700"
+            class="block w-full rounded-md px-2 py-1 text-sm hover:bg-muted"
           >
             Copy Shlokas
           </button>
           <button
             onclick={copy_sarga_with_transliteration_and_translation}
-            class="btn block w-full rounded-md px-2 py-1 text-xs hover:bg-gray-200 dark:hover:bg-gray-700"
+            class="block w-full rounded-md px-2 py-1 text-xs hover:bg-muted"
           >
             <div>Copy Shlokas</div>
             <div>with</div>
@@ -212,31 +209,29 @@
             <div>and Translation</div>
           </button>
         </div>
-      {/snippet}
-    </Popover>
+      </Popover.Content>
+    </Popover.Root>
   </div>
 {/if}
 
 {#if !$editing_status_on}
   {@render main()}
 {:else}
-  <Tabs
-    value={tab_edit_name}
-    onValueChange={(e) => (tab_edit_name = e.value as typeof tab_edit_name)}
-    base="mt-4"
-  >
-    {#snippet list()}
-      <Tabs.Control value={'main'}>Main</Tabs.Control>
-      <Tabs.Control value={'bulk'}><span class="text-sm">Batch Edit</span></Tabs.Control>
-    {/snippet}
-    {#snippet content()}
-      {#if tab_edit_name === 'main'}
-        {@render main()}
-      {:else}
-        <BulkEdit bind:tab_edit_name />
-      {/if}
-    {/snippet}
-  </Tabs>
+  <div class="mt-4">
+    {@render main()}
+  </div>
+  <!-- <Tabs.Root bind:value={tab_edit_name} class="mt-4">
+    <Tabs.List>
+      <Tabs.Trigger value="main">Main</Tabs.Trigger>
+      <Tabs.Trigger value="bulk"><span class="text-sm">Batch Edit</span></Tabs.Trigger>
+    </Tabs.List>
+    <Tabs.Content value="main">
+      {@render main()}
+    </Tabs.Content>
+    <Tabs.Content value="bulk">
+      <BulkEdit bind:tab_edit_name />
+    </Tabs.Content>
+  </Tabs.Root> -->
 {/if}
 {#snippet main()}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -310,16 +305,17 @@
     {#if $editing_status_on && $english_edit_status}
       <div transition:slide>
         {#if !$trans_en_data_q.data?.has(i)}
-          <button
+          <Button
+            size="icon-sm"
+            aria-label="Add Translation"
             onclick={async () => {
               await update_trans_lang_data(i, '');
               $added_translations_indexes.push(i);
               $added_translations_indexes = $added_translations_indexes;
             }}
-            class="btn rounded-md bg-surface-500 px-1 py-[0.05rem] font-bold text-white dark:bg-surface-500"
           >
             <Icon src={RiSystemAddLargeLine} />
-          </button>
+          </Button>
         {:else}
           {@render edit_textarea_elm($trans_en_data_q.data, en_trans_text_font_info)}
         {/if}
@@ -348,16 +344,16 @@
     {#if $editing_status_on && !$english_edit_status}
       <div transition:slide>
         {#if !$trans_lang_data_q.data?.has(i)}
-          <button
+          <Button
+            size="icon-sm"
             onclick={async () => {
               await update_trans_lang_data(i, '');
               $added_translations_indexes.push(i);
               $added_translations_indexes = $added_translations_indexes;
             }}
-            class="my-[0.05rem] btn rounded-md bg-surface-500 px-1 py-0 font-bold text-white dark:bg-surface-500"
           >
             <Icon src={RiSystemAddLargeLine} />
-          </button>
+          </Button>
         {:else}
           {@render edit_textarea_elm($trans_lang_data_q.data, trans_text_font_info)}
         {/if}
@@ -386,7 +382,7 @@
     lang_data: typeof $trans_lang_data_q.data,
     font_info: ReturnType<typeof get_font_family_and_size>
   )}
-    <textarea
+    <Textarea
       value={lang_data?.get(i)}
       oninput={(e) => input_func(i, e.currentTarget.value)}
       onbeforeinput={(e) =>
@@ -400,10 +396,9 @@
         )}
       onblur={() => ctx.clearContext()}
       onkeydown={(e) => clearTypingContextOnKeyDown(e, ctx)}
-      class="textarea h-28 w-full border-[2.5px] md:h-24"
-      style:font-size={`${font_info.size}rem`}
-      style:font-family={font_info.family}
+      class="h-28 w-full md:h-24"
+      style={`font-size: ${font_info.size}rem; font-family: ${font_info.family};`}
       onkeyup={detect_shortcut_pressed}
-    ></textarea>
+    />
   {/snippet}
 {/snippet}

@@ -21,8 +21,8 @@
   import { BsDownload } from 'svelte-icons-pack/bs';
   import Icon from '~/tools/Icon.svelte';
   import { render_all_texts } from './render_text';
-  import { Popover, ProgressRing } from '@skeletonlabs/skeleton-svelte';
-  import { cl_join } from '~/tools/cl_join';
+  import * as Popover from '$lib/components/ui/popover';
+  import { ProgressRing } from '$lib/components/ui/progress-ring';
   import { project_state } from '~/state/main_app/state.svelte';
   import { get_path_params } from '~/state/project_list';
 
@@ -155,74 +155,60 @@
 </script>
 
 {#if !$zip_download_state}
-  <Popover
-    positioning={{ placement: 'bottom' }}
-    arrow={false}
-    zIndex={'999'}
-    contentBase={cl_join(
-      'card space-y-0 rounded-md p-1 shadow-xl bg-stone-200 dark:bg-surface-900'
-    )}
-  >
-    {#snippet trigger()}
+  <Popover.Root>
+    <Popover.Trigger class="inline-flex rounded-lg p-1 text-sm">
       <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <span
-        ondblclick={() => download_image_as_png(true)}
-        class="btn inline-flex rounded-lg p-1 text-sm"
-      >
+      <span ondblclick={() => download_image_as_png(true)}>
         <Icon src={BsDownload} class="-mt-1 mr-1 text-2xl" />
       </span>
-    {/snippet}
-    {#snippet content()}
+    </Popover.Trigger>
+    <Popover.Content side="bottom" class="w-auto space-y-0 p-1">
       <div class="flex items-center justify-center space-x-2">
         <button
           onclick={() => download_image_as_svg()}
-          class="btn rounded-md p-1 text-sm hover:bg-gray-200 dark:hover:bg-gray-700"
+          class="rounded-md p-1 text-sm hover:bg-muted"
         >
           SVG
         </button>
         <button
           onclick={() => download_image_as_png(true)}
-          class="btn rounded-md p-1 text-sm hover:bg-gray-200 dark:hover:bg-gray-700"
+          class="rounded-md p-1 text-sm hover:bg-muted"
         >
           PNG
         </button>
         <button
           onclick={() => download_image_as_png(false)}
-          class="btn rounded-md p-1 text-xs hover:bg-gray-200 dark:hover:bg-gray-700"
+          class="rounded-md p-1 text-xs hover:bg-muted"
         >
           PNG (with background)
         </button>
       </div>
       <div class="flex items-center justify-center space-x-2">
-        <button
-          onclick={() => download_svg_zip()}
-          class="btn rounded-md p-1 text-sm hover:bg-gray-200 dark:hover:bg-gray-700"
-        >
+        <button onclick={() => download_svg_zip()} class="rounded-md p-1 text-sm hover:bg-muted">
           SVG Zip
         </button>
         <button
           onclick={() => download_png_zip(true)}
-          class="btn rounded-md p-1 text-sm hover:bg-gray-200 dark:hover:bg-gray-700"
+          class="rounded-md p-1 text-sm hover:bg-muted"
         >
           PNG Zip
         </button>
         <button
           onclick={() => download_png_zip(false)}
-          class="btn rounded-md p-1 text-xs hover:bg-gray-200 dark:hover:bg-gray-700"
+          class="rounded-md p-1 text-xs hover:bg-muted"
         >
           PNG Zip (with background)
         </button>
       </div>
-    {/snippet}
-  </Popover>
+    </Popover.Content>
+  </Popover.Root>
 {:else if $zip_download_state}
   <ProgressRing
     value={($zip_download_state[0] / $zip_download_state[1]) * 100}
     max={100}
     size="size-8"
-    strokeLinecap="butt"
-    meterBase="stroke-primary-500"
-    trackBase="stroke-primary-500/30"
     strokeWidth="17px"
+    meterClass="stroke-primary"
+    trackClass="stroke-primary/30"
   />
 {/if}

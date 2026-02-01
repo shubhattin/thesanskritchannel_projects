@@ -5,6 +5,11 @@
   import { PROJECT_LIST } from '~/state/project_list';
   import { queryClient } from '~/state/queryClient';
   import { cl_join } from '~/tools/cl_join';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
+  import * as Select from '$lib/components/ui/select';
+  import { Skeleton } from '$lib/components/ui/skeleton';
 
   let started = $state(false);
   let validation_error = $state<string | null>(null);
@@ -103,7 +108,7 @@
 
 <div
   class={cl_join(
-    'flex w-full max-w-2xl flex-col gap-4 rounded-3xl border border-stone-200 bg-white/70 p-4 shadow-xl dark:border-surface-700 dark:bg-slate-900/80',
+    'flex w-full max-w-2xl flex-col gap-4 rounded-3xl border border-stone-200 bg-white/70 p-4 shadow-xl dark:border-border dark:bg-slate-900/80',
     'lg:p-6'
   )}
 >
@@ -130,21 +135,33 @@
     }}
   >
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <label class="space-y-1">
-        <div class="text-sm font-semibold">Project</div>
-        <select name="project_id" class="select w-full p-2" bind:value={project_id}>
-          {#each PROJECT_LIST as project (project.id)}
-            <option value={project.id}>{project.name}</option>
-          {/each}
-          <option value={0}>All</option>
-        </select>
-      </label>
+      <div class="space-y-1">
+        <Label for="project-select" class="text-sm font-semibold">Project</Label>
+        <Select.Root
+          type="single"
+          value={project_id.toString()}
+          onValueChange={(v) => {
+            project_id = parseInt(v) || 0;
+          }}
+        >
+          <Select.Trigger id="project-select" class="w-full">
+            {PROJECT_LIST.find((p) => p.id === project_id)?.name ?? 'All'}
+          </Select.Trigger>
+          <Select.Content>
+            {#each PROJECT_LIST as project (project.id)}
+              <Select.Item value={project.id.toString()} label={project.name} />
+            {/each}
+            <Select.Item value="0" label="All" />
+          </Select.Content>
+        </Select.Root>
+        <input type="hidden" name="project_id" value={project_id} />
+      </div>
 
-      <label class="space-y-1">
-        <div class="text-sm font-semibold">Path filter</div>
-        <input
+      <div class="space-y-1">
+        <Label for="path-filter" class="text-sm font-semibold">Path filter</Label>
+        <Input
+          id="path-filter"
           name="path_filter"
-          class="input w-full p-2"
           placeholder="e.g. 1:2"
           bind:value={path_filter}
           onkeydown={(e) => {
@@ -154,14 +171,14 @@
             }
           }}
         />
-      </label>
+      </div>
     </div>
 
-    <label class="space-y-1">
-      <div class="text-sm font-semibold">Search text</div>
-      <input
+    <div class="space-y-1">
+      <Label for="search-text" class="text-sm font-semibold">Search text</Label>
+      <Input
+        id="search-text"
         name="search_text"
-        class="input w-full p-2"
         placeholder="Type something..."
         bind:value={search_text}
         onkeydown={(e) => {
@@ -171,7 +188,7 @@
           }
         }}
       />
-    </label>
+    </div>
 
     <div class="flex items-center justify-between gap-3">
       <div class="text-sm">
@@ -183,13 +200,9 @@
           <span class="text-stone-600 dark:text-stone-400"> </span>
         {/if}
       </div>
-      <button
-        class="btn rounded-md px-3 py-2 font-semibold"
-        type="submit"
-        disabled={$search_q.isFetching}
-      >
+      <Button type="submit" disabled={$search_q.isFetching}>
         {$search_q.isFetching ? 'Searching…' : 'Search'}
-      </button>
+      </Button>
     </div>
   </form>
 
@@ -217,22 +230,24 @@
           Showing {offset + 1}-{offset + $search_q.data.items.length}
         </div>
         <div class="flex items-center gap-2">
-          <button
+          <Button
             type="button"
-            class="btn rounded-md px-2 py-1 text-sm"
+            variant="outline"
+            size="sm"
             disabled={offset === 0 || $search_q.isFetching}
             onclick={() => go_to_offset(offset - LIMIT)}
           >
             Prev
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            class="btn rounded-md px-2 py-1 text-sm"
+            variant="outline"
+            size="sm"
             disabled={!$search_q.data.page.hasMore || $search_q.isFetching}
             onclick={() => go_to_offset($search_q.data.page.nextOffset ?? offset + LIMIT)}
           >
             Next
-          </button>
+          </Button>
         </div>
       </div>
     {/if}
@@ -240,21 +255,17 @@
     <div class="max-h-[65vh] overflow-y-auto pr-1">
       {#if !started}
         <div
-          class="rounded-md border border-dashed border-stone-300 p-3 text-sm text-stone-600 dark:border-surface-700 dark:text-stone-400"
+          class="rounded-md border border-dashed border-stone-300 p-3 text-sm text-stone-600 dark:border-border dark:text-stone-400"
         >
           Enter a query and submit to start searching.
         </div>
       {:else if $search_q.isFetching}
         <div class="space-y-2">
           {#each Array(6) as _, i (i)}
-            <div class="rounded-md border border-stone-200 p-3 dark:border-surface-700">
-              <div class="h-3 w-28 animate-pulse rounded bg-stone-300/70 dark:bg-surface-700"></div>
-              <div
-                class="mt-2 h-3 w-full animate-pulse rounded bg-stone-300/50 dark:bg-surface-700"
-              ></div>
-              <div
-                class="mt-2 h-3 w-4/5 animate-pulse rounded bg-stone-300/40 dark:bg-surface-700"
-              ></div>
+            <div class="rounded-md border border-stone-200 p-3 dark:border-border">
+              <Skeleton class="h-3 w-28 bg-stone-300/70 dark:bg-muted" />
+              <Skeleton class="mt-2 h-3 w-full bg-stone-300/50 dark:bg-muted" />
+              <Skeleton class="mt-2 h-3 w-4/5 bg-stone-300/40 dark:bg-muted" />
             </div>
           {/each}
         </div>
@@ -267,13 +278,13 @@
         </div>
       {:else if $search_q.isSuccess}
         {#if $search_q.data.items.length === 0}
-          <div class="rounded-md border border-stone-200 p-3 text-sm dark:border-surface-700">
+          <div class="rounded-md border border-stone-200 p-3 text-sm dark:border-border">
             No results.
           </div>
         {:else}
           <div class="space-y-2">
             {#each $search_q.data.items as row (row.project_id + ':' + row.path + ':' + row.index)}
-              <div class="rounded-md border border-stone-200 p-3 dark:border-surface-700">
+              <div class="rounded-md border border-stone-200 p-3 dark:border-border">
                 <div class="text-xs text-stone-600 dark:text-stone-400">
                   project {row.project_id} · path {row.path} · index {row.index}{#if row.shloka_num}
                     · shloka {row.shloka_num}
@@ -285,7 +296,7 @@
           </div>
         {/if}
       {:else}
-        <div class="rounded-md border border-stone-200 p-3 text-sm dark:border-surface-700">
+        <div class="rounded-md border border-stone-200 p-3 text-sm dark:border-border">
           Submit a search to see results.
         </div>
       {/if}

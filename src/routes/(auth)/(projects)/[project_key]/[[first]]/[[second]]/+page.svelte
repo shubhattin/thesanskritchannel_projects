@@ -16,7 +16,7 @@
   } from '~/state/project_list';
   import UserControls from '~/components/pages/main_app/user/UserControls.svelte';
   import MainAppPage from '~/components/pages/main_app/MainAppPage.svelte';
-  import { Popover } from '@skeletonlabs/skeleton-svelte';
+  import * as Popover from '$lib/components/ui/popover';
   import { cl_join } from '~/tools/cl_join';
   import { goto } from '$app/navigation';
   import { BsChevronDown, BsChevronUp, BsThreeDots } from 'svelte-icons-pack/bs';
@@ -82,13 +82,9 @@
 <div class="mt-2 space-y-2.5 sm:mt-4 sm:space-y-4">
   <div class="mb-0 flex w-full items-start justify-between sm:mb-2.5">
     <div class="flex items-center justify-start space-x-6">
-      <Popover
-        open={project_selected_popover}
-        onOpenChange={(e) => (project_selected_popover = e.open)}
-        contentBase="card z-50 space-y-2 p-2 rounded-lg shadow-xl dark:bg-surface-900 bg-slate-100"
-      >
-        {#snippet trigger()}
-          <div class="flex space-x-2 opacity-60 outline-hidden">
+      <Popover.Root bind:open={project_selected_popover}>
+        <Popover.Trigger class="outline-none">
+          <div class="flex space-x-2 opacity-60">
             {#if !project_selected_popover}
               <Icon src={BsChevronDown} class="mb-1 text-lg" />
             {:else}
@@ -96,16 +92,16 @@
             {/if}
             <span>{get_project_from_key(project_key).name}</span>
           </div>
-        {/snippet}
-        {#snippet content()}
+        </Popover.Trigger>
+        <Popover.Content side="bottom" class="w-auto space-y-2 p-2">
           <div class="space-y-2">
             {#each PROJECT_LIST as project, i}
               <button
                 class={cl_join(
-                  'block w-full gap-0 rounded-md px-1.5 py-1 text-center text-sm font-semibold text-white',
+                  'block w-full gap-0 rounded-md px-1.5 py-1 text-center text-sm font-semibold',
                   project.key === project_key
-                    ? 'bg-primary-500 dark:bg-primary-600'
-                    : 'bg-slate-400 hover:bg-primary-500/80 dark:bg-slate-800 dark:hover:bg-primary-600/80'
+                    ? 'border border-primary bg-primary text-primary-foreground shadow'
+                    : 'border border-border bg-card text-foreground transition-colors duration-150 hover:border-accent hover:bg-accent hover:text-accent-foreground'
                 )}
                 onclick={() => {
                   project_selected_popover = false;
@@ -114,8 +110,8 @@
               >
             {/each}
           </div>
-        {/snippet}
-      </Popover>
+        </Popover.Content>
+      </Popover.Root>
       {#if $text_data_present}
         <div transition:fade>
           {#await import('~/components/pages/main_app/display/project_utility/ProjectUtility.svelte')}

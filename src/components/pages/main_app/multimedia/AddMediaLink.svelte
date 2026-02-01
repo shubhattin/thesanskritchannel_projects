@@ -8,6 +8,10 @@
   import { useQueryClient } from '@tanstack/svelte-query';
   import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
   import MediaTypeIcon from './MediaTypeIcon.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
+  import * as Select from '$lib/components/ui/select';
 
   let { modal_open_state = $bindable() }: { modal_open_state: boolean } = $props();
 
@@ -52,57 +56,77 @@
   };
 </script>
 
-<div class="text-center text-lg font-bold text-amber-700 dark:text-warning-500">
+<div class="dark:text-warning-500 text-center text-lg font-bold text-amber-700">
   Add Media Links
 </div>
-<form onsubmit={add_link_func} class="space-y-2">
-  <label class="block">
-    <span class="label-text block font-semibold">Type</span>
-    <div class="space-x-1">
+<form onsubmit={add_link_func} class="space-y-4">
+  <div class="space-y-2">
+    <Label for="media-type" class="font-semibold">Type</Label>
+    <div class="flex items-center gap-2">
       <MediaTypeIcon {media_type} />
-      <select required bind:value={media_type} class="select inline-block w-28 ring-2">
-        {#each Object.entries(MEDIA_TYPE_LIST) as [key, value]}
-          <option value={key}>{value}</option>
-        {/each}
-      </select>
+      <Select.Root type="single" bind:value={media_type as any}>
+        <Select.Trigger id="media-type" class="w-full text-sm">
+          {MEDIA_TYPE_LIST[media_type] ?? 'Select Type'}
+        </Select.Trigger>
+        <Select.Content>
+          {#each Object.entries(MEDIA_TYPE_LIST) as [key, value]}
+            <Select.Item value={key}>{value}</Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
+      <input type="hidden" name="type" value={media_type} />
     </div>
-  </label>
-  <label class="block">
-    <span class="label-text font-semibold">Language</span>
-    <select required bind:value={lang_id} class="select w-36 ring-2">
-      {#each Object.entries(lang_list_obj) as [lang, id]}
-        <option value={id}>{lang}</option>
-      {/each}
-    </select>
-  </label>
-  <label class="block">
-    <span class="label-text font-semibold">Name</span>
-    <input
+  </div>
+
+  <div class="space-y-2">
+    <Label for="language" class="font-semibold">Language</Label>
+    <Select.Root
+      type="single"
+      value={lang_id.toString()}
+      onValueChange={(v) => {
+        lang_id = parseInt(v) || 0;
+      }}
+    >
+      <Select.Trigger id="language" class="w-full text-sm">
+        {Object.entries(lang_list_obj).find(([, id]) => id === lang_id)?.[0] ?? 'English'}
+      </Select.Trigger>
+      <Select.Content>
+        {#each Object.entries(lang_list_obj) as [lang, id]}
+          <Select.Item value={id.toString()}>{lang}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
+    <input type="hidden" name="lang_id" value={lang_id} />
+  </div>
+
+  <div class="space-y-2">
+    <Label for="name" class="font-semibold">Name</Label>
+    <Input
+      id="name"
       required
       minlength={4}
       bind:value={name}
       type="text"
       placeholder="Name"
-      class="input w-52 ring-2"
+      class="w-52"
     />
-  </label>
-  <label class="block">
-    <span class="label-text font-semibold">URL</span>
-    <input
+  </div>
+
+  <div class="space-y-2">
+    <Label for="url" class="font-semibold">URL</Label>
+    <Input
+      id="url"
       required
       minlength={10}
       bind:value={url}
       type="url"
       placeholder="URL"
-      class="input w-52 ring-2"
+      class="w-52"
     />
-  </label>
-  <button
-    disabled={$add_media_link_mut.isPending}
-    type="submit"
-    class="btn block bg-primary-500 px-2 py-1 font-bold text-white"
-  >
+  </div>
+
+  <Button disabled={$add_media_link_mut.isPending} type="submit" class="w-full">
     <Icon src={RiSystemAddLargeFill} class="-mt-1 text-xl" />
     Add Link
-  </button>
+  </Button>
 </form>

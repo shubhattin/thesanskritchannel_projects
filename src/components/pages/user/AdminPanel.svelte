@@ -1,6 +1,8 @@
 <script lang="ts">
   import { createQuery } from '@tanstack/svelte-query';
-  import { Segment, Tabs } from '@skeletonlabs/skeleton-svelte';
+  import * as Tabs from '$lib/components/ui/tabs';
+  import * as RadioGroup from '$lib/components/ui/radio-group';
+  import { Label } from '$lib/components/ui/label';
   import NonAdminInfo from './NonAdminInfo.svelte';
   import { selected_user_id, selected_user_type } from '~/components/pages/user/user_state.svelte';
   import RevokeSessions from './RevokeSessions.svelte';
@@ -8,6 +10,7 @@
   import { fetch_get } from '~/tools/fetch';
   import { user_info } from '~/state/user.svelte';
   import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
+  import { Skeleton } from '$lib/components/ui/skeleton';
 
   const users_list = createQuery({
     queryKey: ['users_list'],
@@ -64,69 +67,69 @@
 </script>
 
 {#if !$users_list.isFetching && $users_list.isSuccess}
-  <Tabs
-    value={$selected_user_type}
-    base="mt-6"
-    onValueChange={(e) => ($selected_user_type = e.value as typeof $selected_user_type)}
-  >
-    {#snippet list()}
-      <Tabs.Control labelClasses="rounded-md font-semibold" value="admin">Admin</Tabs.Control>
-      <Tabs.Control labelClasses="rounded-md font-semibold" value="project_scope"
-        >Projects Portal</Tabs.Control
+  <Tabs.Root bind:value={$selected_user_type} class="mt-6">
+    <Tabs.List>
+      <Tabs.Trigger value="admin" class="rounded-md font-semibold">Admin</Tabs.Trigger>
+      <Tabs.Trigger value="project_scope" class="rounded-md font-semibold"
+        >Projects Portal</Tabs.Trigger
       >
-      <Tabs.Control labelClasses="rounded-md font-semibold text-sm" value="non_project_scope"
-        >Others</Tabs.Control
+      <Tabs.Trigger value="non_project_scope" class="rounded-md text-sm font-semibold"
+        >Others</Tabs.Trigger
       >
-    {/snippet}
-    {#snippet content()}
-      {@const users = get_filtered_users()!}
-      {@const user = users.find((user) => user.id === $selected_user_id)}
-      {#key $selected_user_type}
-        {#if users.length === 0}
-          <div class="text-warning-600 dark:text-warning-500">No Users Found</div>
-        {:else}
-          <div
-            class="flex flex-col items-center justify-center space-y-2.5 sm:flex-row sm:items-start sm:justify-normal sm:space-x-3"
-          >
-            <div>
-              <Segment
-                name="size"
-                orientation="vertical"
-                onValueChange={(e) => ($selected_user_id = e.value!)}
-                gap="gap-y-1 sm:gap-y-1.5"
-              >
-                {#each users as user (user.id)}
-                  <Segment.Item labelClasses="text-base" value={user.id}>
-                    {get_string_trimmed(user.name)}
-                  </Segment.Item>
-                {/each}
-              </Segment>
-            </div>
-            <div class="mt-2 ml-0 w-full sm:ml-2">
-              {#if user}
-                {#if $selected_user_type === 'project_scope' || $selected_user_type === 'non_project_scope'}
-                  <NonAdminInfo
-                    user_info={user}
-                    admin_edit={true}
-                    user_is_current_app_scope={user.app_scopes.some(
-                      (scope) => scope.scope === CURRENT_APP_SCOPE
-                    )}
-                  />
-                {:else if $selected_user_type === 'admin'}
-                  <div class="mt-2 text-base font-semibold">{user.name}</div>
-                  <a
-                    class="text-xs text-slate-500 sm:text-sm dark:text-slate-400"
-                    href={`emailto:${user.email}`}>{user.email}</a
-                  >
-                  <RevokeSessions user_id={user.id} />
+    </Tabs.List>
+    {#each ['admin', 'project_scope', 'non_project_scope'] as tabValue (tabValue)}
+      <Tabs.Content value={tabValue}>
+        {@const users = get_filtered_users() ?? []}
+        {@const user = users.find((user) => user.id === $selected_user_id)}
+        {#key $selected_user_type}
+          {#if users.length === 0}
+            <div class="text-amber-600 dark:text-amber-500">No Users Found</div>
+          {:else}
+            <div
+              class="flex flex-col items-center justify-center gap-2.5 sm:flex-row sm:items-start sm:justify-normal sm:gap-3"
+            >
+              <div>
+                <RadioGroup.Root
+                  value={$selected_user_id ?? ''}
+                  onValueChange={(value) => ($selected_user_id = value ?? null)}
+                  class="flex flex-col gap-1 sm:gap-1.5"
+                >
+                  {#each users as user (user.id)}
+                    <div class="flex items-center gap-2">
+                      <RadioGroup.Item value={user.id} id={user.id} />
+                      <Label for={user.id} class="cursor-pointer text-base">
+                        {get_string_trimmed(user.name)}
+                      </Label>
+                    </div>
+                  {/each}
+                </RadioGroup.Root>
+              </div>
+              <div class="mt-2 ml-0 w-full sm:ml-2">
+                {#if user}
+                  {#if $selected_user_type === 'project_scope' || $selected_user_type === 'non_project_scope'}
+                    <NonAdminInfo
+                      user_info={user}
+                      admin_edit={true}
+                      user_is_current_app_scope={user.app_scopes.some(
+                        (scope) => scope.scope === CURRENT_APP_SCOPE
+                      )}
+                    />
+                  {:else if $selected_user_type === 'admin'}
+                    <div class="mt-2 text-base font-semibold">{user.name}</div>
+                    <a
+                      class="text-xs text-muted-foreground sm:text-sm"
+                      href={`mailto:${user.email}`}>{user.email}</a
+                    >
+                    <RevokeSessions user_id={user.id} />
+                  {/if}
                 {/if}
-              {/if}
+              </div>
             </div>
-          </div>
-        {/if}
-      {/key}
-    {/snippet}
-  </Tabs>
+          {/if}
+        {/key}
+      </Tabs.Content>
+    {/each}
+  </Tabs.Root>
 {:else}
-  <div class="h-96 placeholder animate-pulse rounded-md"></div>
+  <Skeleton class="h-96" />
 {/if}

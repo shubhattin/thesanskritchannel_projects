@@ -112,10 +112,7 @@
   let image_model: image_models_type = $state('gpt-image-1');
   const IMAGE_MODELS: Record<image_models_type, [string, string, number]> = {
     'gpt-image-1': ['GPT', '$0.042 (₹3.5) / image', 23 + ADDITIONAL_IMAGE_GEN_DELAY_S],
-    'dall-e-3': ['DALL-E 3', '$0.04 (₹3.4) / image', 15 + ADDITIONAL_IMAGE_GEN_DELAY_S],
-    'sd3-core': ['SD3 Core', '$0.03 (₹2.5) / image', 16 + ADDITIONAL_IMAGE_GEN_DELAY_S]
-    // sdxl: ['SDXL', '$0.002 (₹0.17) / image'],
-    // 'dall-e-2': ['DALL-E 2', '$0.02 (₹1.68) / image']
+    'dall-e-3': ['DALL-E 3', '$0.04 (₹3.4) / image', 15 + ADDITIONAL_IMAGE_GEN_DELAY_S]
   };
 
   let additional_prompt_info = $derived(
@@ -440,7 +437,7 @@
     {/each}
   </div>
 </div>
-<div class="flex space-x-3">
+<div class="flex items-center space-x-3">
   <Select.Root type="single" bind:value={image_model as any}>
     <Select.Trigger class="w-24 px-1.5 py-1 text-sm" title={IMAGE_MODELS[image_model][1]}>
       {IMAGE_MODELS[image_model][0]}

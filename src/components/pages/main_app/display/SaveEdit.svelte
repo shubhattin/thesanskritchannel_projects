@@ -23,6 +23,7 @@
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { lang_list_obj } from '~/state/lang_list';
+  import Button from '~/lib/components/ui/button/button.svelte';
 
   const query_client = useQueryClient();
 
@@ -114,17 +115,16 @@
     </div>
   {/snippet}
 </ConfirmModal>
-<button
-  in:slide
-  out:scale
+<Button
+  variant="default"
   disabled={$save_data.isPending ||
     $added_translations_indexes.length + $edited_translations_indexes.size === 0}
   class="btn bg-primary-700 dark:bg-primary-700 rounded-lg px-1 py-1 text-white"
   onclick={() => (save_popup_state = true)}
 >
-  <Icon src={FiSave} class="text-2xl" />
+  <Icon src={FiSave} class="size-6" />
   <span class="text-sm font-semibold sm:text-base">Save</span>
-</button>
+</Button>
 
 <ConfirmModal
   bind:popup_state={cancel_popup_state}
@@ -143,9 +143,9 @@
     </div>
   {/snippet}
 </ConfirmModal>
-<button
-  in:slide
-  out:scale
+<Button
+  variant="default"
+  size="sm"
   disabled={$cancel_edit_data.isPending}
   class="btn bg-error-700 dark:bg-error-600 ml-3 rounded-lg px-1 py-1 font-semibold text-white"
   onclick={() => {
@@ -156,6 +156,6 @@
     cancel_popup_state = true;
   }}
 >
-  <Icon src={AiOutlineClose} class="text-2xl" />
+  <Icon src={AiOutlineClose} class="size-6" />
   <span class="text-sm sm:text-base">Cancel</span>
-</button>
+</Button>

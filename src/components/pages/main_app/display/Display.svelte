@@ -217,7 +217,10 @@
 {#if !$editing_status_on}
   {@render main()}
 {:else}
-  <Tabs.Root bind:value={tab_edit_name} class="mt-4">
+  <div class="mt-4">
+    {@render main()}
+  </div>
+  <!-- <Tabs.Root bind:value={tab_edit_name} class="mt-4">
     <Tabs.List>
       <Tabs.Trigger value="main">Main</Tabs.Trigger>
       <Tabs.Trigger value="bulk"><span class="text-sm">Batch Edit</span></Tabs.Trigger>
@@ -228,7 +231,7 @@
     <Tabs.Content value="bulk">
       <BulkEdit bind:tab_edit_name />
     </Tabs.Content>
-  </Tabs.Root>
+  </Tabs.Root> -->
 {/if}
 {#snippet main()}
   <!-- svelte-ignore a11y_no_static_element_interactions -->

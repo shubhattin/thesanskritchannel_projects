@@ -39,7 +39,7 @@ export const translate_route_schema = {
   ])
 };
 
-export const available_models_schema = z.enum(['dall-e-3', 'gpt-image-1', 'sd3-core']);
+export const available_models_schema = z.enum(['dall-e-3', 'gpt-image-1']);
 
 const create_image_output_schema = <
   Model extends z.infer<typeof available_models_schema>,
@@ -61,11 +61,7 @@ const create_image_output_schema = <
 
 const image_schema = z.union([
   create_image_output_schema('dall-e-3', 'url', 'png'),
-  create_image_output_schema('gpt-image-1', 'b64_json', 'png'),
-  create_image_output_schema('sd3-core', 'b64_json', 'png').extend({
-    seed: z.int(),
-    finish_reason: z.string()
-  })
+  create_image_output_schema('gpt-image-1', 'b64_json', 'png')
 ]);
 
 export const image_gen_route_schema = {

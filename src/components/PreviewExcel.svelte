@@ -9,6 +9,14 @@
   import type { script_and_lang_list_type } from '~/state/lang_list';
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
   import * as Select from '$lib/components/ui/select';
+  import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+  } from '$lib/components/ui/table';
 
   type Props = {
     file_link: string;
@@ -76,35 +84,35 @@
         {#each workbook.worksheets as _, i}
           <Tabs.Content value={i.toString()}>
             {@const worksheet = workbook.worksheets[i]}
-            <div class="overflow-x-auto">
-              <table class="w-full border-collapse text-sm">
-                <thead>
-                  <tr>
-                    {#each Array(worksheet.columnCount) as _, colIdx}
-                      {@const row_value = worksheet.getCell(1, colIdx + 1).value}
-                      <th class="border border-border bg-muted px-2 py-1 text-center font-semibold"
-                        >{row_value ?? ''}</th
-                      >
-                    {/each}
-                  </tr>
-                </thead>
-                <tbody>
-                  {#each Array(worksheet.rowCount) as _, row_i}
-                    <tr>
-                      {#each Array(worksheet.columnCount) as _, column_i}
-                        {@const row_value =
-                          worksheet.getCell(row_i + 2, column_i + 1).value?.toLocaleString() ?? ''}
-                        {@const lang = get_lang_code_of_columnn(worksheet, column_i)}
-                        <td class="border border-border px-2 py-1">
-                          <pre
-                            class={`${get_text_font_class(lang)} max-w-72 scroll-m-0 ${overflow_behavior === 'scroll' ? 'overflow-auto' : 'overflow-hidden'} text-sm`}>{row_value}</pre>
-                        </td>
-                      {/each}
-                    </tr>
+            <Table class="border-collapse border border-border text-sm">
+              <TableHeader>
+                <TableRow>
+                  {#each Array(worksheet.columnCount) as _, colIdx}
+                    {@const row_value = worksheet.getCell(1, colIdx + 1).value}
+                    <TableHead
+                      class="border border-border bg-muted px-2 py-1 text-center font-semibold"
+                    >
+                      {row_value ?? ''}
+                    </TableHead>
                   {/each}
-                </tbody>
-              </table>
-            </div>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {#each Array(worksheet.rowCount) as _, row_i}
+                  <TableRow>
+                    {#each Array(worksheet.columnCount) as _, column_i}
+                      {@const row_value =
+                        worksheet.getCell(row_i + 2, column_i + 1).value?.toLocaleString() ?? ''}
+                      {@const lang = get_lang_code_of_columnn(worksheet, column_i)}
+                      <TableCell class="border border-border px-2 py-1">
+                        <pre
+                          class={`${get_text_font_class(lang)} max-w-72 scroll-m-0 ${overflow_behavior === 'scroll' ? 'overflow-auto' : 'overflow-hidden'} text-sm`}>{row_value}</pre>
+                      </TableCell>
+                    {/each}
+                  </TableRow>
+                {/each}
+              </TableBody>
+            </Table>
           </Tabs.Content>
         {/each}
       </Tabs.Root>

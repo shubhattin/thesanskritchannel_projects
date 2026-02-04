@@ -2,6 +2,8 @@ import os
 import json
 import random
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
 import requests
@@ -32,7 +34,7 @@ JITTER_S = 0.25
 # Backoff for retries (network errors, 429, and transient 5xx).
 MAX_BACKOFF_S = 25.0
 
-_LAST_REQUEST_AT = 0.0
+_thread_local = threading.local()
 
 
 def _ensure_parent_dir(path: str) -> None:
@@ -41,19 +43,45 @@ def _ensure_parent_dir(path: str) -> None:
         os.makedirs(parent, exist_ok=True)
 
 
-def _throttle() -> None:
+def _atomic_write(path: str, content: bytes) -> None:
+    _ensure_parent_dir(path)
+    tmp_path = f"{path}.tmp"
+    with open(tmp_path, "wb") as f:
+        f.write(content)
+    os.replace(tmp_path, path)
+
+
+class RateLimiter:
     """
-    Ensure a minimum spacing between outgoing requests, with jitter.
-    This helps avoid 'Connection reset by peer' from bursty traffic.
+    Global rate limiter shared across threads.
+
+    We space out request *start times* to avoid bursty traffic that can trigger
+    server-side connection resets. Multiple threads can still have requests in
+    flight, but the overall request rate is controlled.
     """
-    global _LAST_REQUEST_AT
-    now = time.monotonic()
-    wait = (_LAST_REQUEST_AT + MIN_REQUEST_INTERVAL_S) - now
-    if wait > 0:
-        time.sleep(wait)
-    if JITTER_S > 0:
-        time.sleep(random.random() * JITTER_S)
-    _LAST_REQUEST_AT = time.monotonic()
+
+    def __init__(self, min_interval_s: float, jitter_s: float):
+        self.min_interval_s = float(min_interval_s)
+        self.jitter_s = float(jitter_s)
+        self._lock = threading.Lock()
+        self._next_allowed_at = 0.0  # monotonic
+
+    def wait(self) -> None:
+        sleep_for = 0.0
+        with self._lock:
+            now = time.monotonic()
+            if now < self._next_allowed_at:
+                sleep_for = self._next_allowed_at - now
+                now = self._next_allowed_at
+            self._next_allowed_at = now + self.min_interval_s
+
+        if sleep_for > 0:
+            time.sleep(sleep_for)
+        if self.jitter_s > 0:
+            time.sleep(random.random() * self.jitter_s)
+
+
+GLOBAL_RATE_LIMITER = RateLimiter(MIN_REQUEST_INTERVAL_S, JITTER_S)
 
 
 def _build_session() -> requests.Session:
@@ -76,7 +104,16 @@ def _build_session() -> requests.Session:
     return session
 
 
-SESSION = _build_session()
+def _get_session() -> requests.Session:
+    """
+    requests.Session is not guaranteed to be thread-safe. Use one session per
+    worker thread to keep pooling benefits safely.
+    """
+    session = getattr(_thread_local, "session", None)
+    if session is None:
+        session = _build_session()
+        _thread_local.session = session
+    return session
 
 
 class RetryableHTTPStatus(Exception):
@@ -109,9 +146,11 @@ def get_with_retry(url: str) -> requests.Response:
     last_exc: Optional[Exception] = None
 
     for attempt in range(1, MAX_ATTEMPTS + 1):
-        _throttle()
+        GLOBAL_RATE_LIMITER.wait()
         try:
-            resp = SESSION.get(url, timeout=DEFAULT_TIMEOUT, allow_redirects=True)
+            resp = _get_session().get(
+                url, timeout=DEFAULT_TIMEOUT, allow_redirects=True
+            )
             if _is_retryable_status(resp.status_code):
                 raise RetryableHTTPStatus(
                     status_code=resp.status_code,
@@ -157,10 +196,28 @@ def get_with_retry(url: str) -> requests.Response:
 
 
 @app.command()
-def get_links_json():
+def get_links_json(
+    download_workers: int = typer.Option(
+        8,
+        "--download-workers",
+        "-w",
+        help="Thread pool size for downloading HTML files (5-10 recommended).",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Redownload and overwrite existing HTML files.",
+    ),
+):
     """
     Get links for all the mandalas and the corresponding suktas under them
     """
+    download_workers = max(1, int(download_workers))
+
+    overall_failed: list[dict] = []
+    total_downloaded = 0
+    total_skipped = 0
+
     mandala_links: list[str] = []
     MANDA_LIST_CACHE_FILE = "json_url_cache/shakala_samhita_mandala_list.json"
     if os.path.exists(MANDA_LIST_CACHE_FILE):
@@ -214,10 +271,85 @@ def get_links_json():
                 _ensure_parent_dir(SUKTA_CACHE_FILE)
                 with open(SUKTA_CACHE_FILE, "w") as f:
                     json.dump(sukat_list, f, indent=2)
-        for sukta_index, sukta_link in enumerate(sukat_list):
-            HTML_SAVE_URL = (
-                f"../raw_data/1/1/{mandala_index + 1}/{sukta_index + 1}.html"
+
+        console.print(
+            f"[cyan]Downloading HTML for mandala {mandala_index + 1} "
+            f"({len(sukat_list)} suktas) with {download_workers} threads...[/]"
+        )
+
+        def _download_one(
+            m_idx: int, s_idx: int, page_url: str
+        ) -> tuple[str, int, int, str]:
+            save_path = f"../raw_data/1/1/{m_idx + 1}/{s_idx + 1}.html"
+            if (
+                (not force)
+                and os.path.exists(save_path)
+                and os.path.getsize(save_path) > 0
+            ):
+                return ("skipped", m_idx, s_idx, save_path)
+
+            resp = get_with_retry(page_url)
+            _atomic_write(save_path, resp.content)
+            return ("downloaded", m_idx, s_idx, save_path)
+
+        mandala_failed: list[dict] = []
+        mandala_downloaded = 0
+        mandala_skipped = 0
+
+        with ThreadPoolExecutor(max_workers=download_workers) as executor:
+            future_to_ctx = {
+                executor.submit(
+                    _download_one, mandala_index, sukta_index, sukta_link
+                ): (sukta_index, sukta_link)
+                for sukta_index, sukta_link in enumerate(sukat_list)
+            }
+            for future in as_completed(future_to_ctx):
+                sukta_index, sukta_link = future_to_ctx[future]
+                try:
+                    status, m_idx, s_idx, save_path = future.result()
+                    if status == "downloaded":
+                        mandala_downloaded += 1
+                    else:
+                        mandala_skipped += 1
+                except Exception as e:
+                    save_path = (
+                        f"../raw_data/1/1/{mandala_index + 1}/{sukta_index + 1}.html"
+                    )
+                    mandala_failed.append(
+                        {
+                            "mandala": mandala_index + 1,
+                            "sukta": sukta_index + 1,
+                            "url": sukta_link,
+                            "path": save_path,
+                            "error": type(e).__name__,
+                        }
+                    )
+                    console.print(
+                        f"[red]Failed mandala {mandala_index + 1} sukta {sukta_index + 1}[/] "
+                        f"{type(e).__name__}: {sukta_link}"
+                    )
+
+        total_downloaded += mandala_downloaded
+        total_skipped += mandala_skipped
+        overall_failed.extend(mandala_failed)
+
+        console.print(
+            f"[green]Mandala {mandala_index + 1}[/]: "
+            f"downloaded={mandala_downloaded}, skipped={mandala_skipped}, failed={len(mandala_failed)}"
+        )
+
+    if overall_failed:
+        console.print(
+            f"[red bold]Download finished with failures: {len(overall_failed)}[/]"
+        )
+        for item in overall_failed:
+            console.print(
+                f"[red]- mandala {item['mandala']}, sukta {item['sukta']}, error={item['error']}[/]"
             )
+    else:
+        console.print(
+            f"[green bold]All downloads complete.[/] downloaded={total_downloaded}, skipped={total_skipped}"
+        )
 
 
 if __name__ == "__main__":

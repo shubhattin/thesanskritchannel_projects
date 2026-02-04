@@ -37,7 +37,14 @@
     };
   }
   function set_selected_text_levels() {
-    if (levels === 2) {
+    if (levels === 5) {
+      $selected_text_levels = [
+        data.fourth ?? null,
+        data.third ?? null,
+        data.second ?? null,
+        data.first ?? null
+      ];
+    } else if (levels === 2) {
       $selected_text_levels = [data.first ?? null, null];
     } else if (levels === 3) {
       $selected_text_levels = [data.second ?? null, data.first ?? null];

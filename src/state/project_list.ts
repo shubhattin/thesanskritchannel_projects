@@ -3,6 +3,7 @@ import type {
   tyoe_2_map_type,
   type_1_map_type,
   type_3_map_type,
+  type_4_map_type,
   type_5_map_type
 } from './data_types';
 
@@ -102,7 +103,11 @@ export const get_map_type = <T extends extendted_map_type['levels']>(
     ? tyoe_2_map_type
     : T extends 3
       ? type_3_map_type
-      : never => {
+      : T extends 4
+        ? type_4_map_type
+        : T extends 5
+          ? type_5_map_type
+          : never => {
   return map_info as any;
 };
 type project_info_type = {

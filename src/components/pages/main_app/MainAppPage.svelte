@@ -63,12 +63,20 @@
     first,
     first_name,
     second,
-    second_name
+    second_name,
+    third,
+    third_name,
+    fourth,
+    fourth_name
   }: {
     first?: number;
     first_name?: string;
     second?: number;
     second_name?: string;
+    third?: number;
+    third_name?: string;
+    fourth?: number;
+    fourth_name?: string;
   } = $props();
 
   let mounted = $state(false);
@@ -111,31 +119,49 @@
 
   type option_type = { text?: string; value?: number };
 
-  const get_link = (project_key: project_keys_type, first?: number, second?: number) => {
+  const get_link = (project_key: project_keys_type, path_params: (number | null | undefined)[]) => {
     let link = `/${project_key}`;
-    if (first) {
-      link += `/${first}`;
-      if (second) {
-        link += `/${second}`;
-      }
+    for (const p of path_params) {
+      if (!p) break;
+      link += `/${p}`;
     }
     return link;
   };
 
-  $effect(() => {
-    let link = window.location.pathname;
-    if (project_info.levels === 3) {
-      let second_value = $selected_text_levels[0]!;
-      if (window.location.pathname.split('/').length >= 3) {
-        const current_level_1_state = parseInt(window.location.pathname.split('/')[2]);
-        if (current_level_1_state !== $selected_text_levels[1]) {
-          second_value = null!;
-        }
-      }
-      link = get_link($project_state.project_key!, $selected_text_levels[1]!, second_value);
-    } else if (project_info.levels === 2) {
-      link = get_link($project_state.project_key!, $selected_text_levels[0]!);
+  const get_map_list_at_depth = (
+    project_map: any,
+    levels: number,
+    selected: (number | null)[],
+    depth: number
+  ): any[] | null => {
+    // depth: 0 -> root list (highest selector), 1 -> list under highest selection, etc.
+    let node: any = project_map;
+    for (let d = 0; d < depth; d++) {
+      const sel = selected[levels - 2 - d];
+      if (!sel) return null;
+      node = node?.[sel - 1]?.list;
+      if (!node) return null;
     }
+    return Array.isArray(node) ? node : null;
+  };
+
+  const get_initial_option_for_state_index = (levels: number, state_index: number) => {
+    // state_index is lower->higher (0 is lowest route param, levels-2 is highest route param)
+    const depth_from_highest = levels - 2 - state_index; // 0 => first, 1 => second, 2 => third, 3 => fourth
+    const vals = [first, second, third, fourth];
+    const names = [first_name, second_name, third_name, fourth_name];
+    return {
+      value: vals[depth_from_highest],
+      text: names[depth_from_highest]
+    } satisfies option_type;
+  };
+
+  $effect(() => {
+    if (!browser) return;
+    let link = window.location.pathname;
+    const levels = project_info.levels;
+    const path_params = $selected_text_levels.slice(0, levels - 1).reverse(); // higher -> lower
+    link = get_link($project_state.project_key!, path_params);
     if (window.location.pathname !== link) goto(link);
   });
 
@@ -295,48 +321,25 @@
 </label>
 {#each { length: project_info.levels - 1 } as _, i}
   {@const level_name = project_info.level_names[project_info.levels - i - 1]}
-  {#if project_info.levels === 3}
-    {@const map_info = $project_map_q.isSuccess && get_map_type($project_map_q.data, 3)}
-    {#if i === 0}
-      {@render selecter({
-        name: level_name,
-        text_level_state_index: 1,
-        initial_option: { value: first, text: first_name },
-        options:
-          map_info &&
-          map_info.map((text_level) => ({
+  {@const text_level_state_index = project_info.levels - i - 2}
+  {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
+  {@const list_at_depth =
+    map_root && get_map_list_at_depth(map_root, project_info.levels, $selected_text_levels, i)}
+  {#if i === 0 || list_at_depth}
+    {@render selecter({
+      name: level_name,
+      text_level_state_index,
+      initial_option: get_initial_option_for_state_index(
+        project_info.levels,
+        text_level_state_index
+      ),
+      options: list_at_depth
+        ? list_at_depth.map((text_level: any) => ({
             text: text_level.name_dev,
             value: text_level.pos
           }))
-      })}
-    {:else if i === 1 && !!first}
-      {@render selecter({
-        name: level_name,
-        text_level_state_index: 0,
-        initial_option: { value: second, text: second_name },
-        options:
-          map_info &&
-          map_info[first - 1].list.map((text_level) => ({
-            text: text_level.name_dev,
-            value: text_level.pos
-          }))
-      })}
-    {/if}
-  {:else if project_info.levels === 2}
-    {@const map_info = $project_map_q.isSuccess && get_map_type($project_map_q.data, 2)}
-    {#if i == 0}
-      {@render selecter({
-        name: level_name,
-        text_level_state_index: 0,
-        initial_option: { value: first, text: first_name },
-        options:
-          map_info &&
-          map_info.map((text_level) => ({
-            text: text_level.name_dev,
-            value: text_level.pos
-          }))
-      })}
-    {/if}
+        : false
+    })}
   {/if}
 {/each}
 
@@ -357,7 +360,12 @@
       type="single"
       value={$selected_text_levels[text_level_state_index]?.toString() ?? ''}
       onValueChange={(v) => {
-        $selected_text_levels[text_level_state_index] = v ? parseInt(v) : null;
+        const next_value = v ? parseInt(v) : null;
+        $selected_text_levels[text_level_state_index] = next_value;
+        // If a higher level changes, clear all dependent lower levels.
+        for (let i = 0; i < text_level_state_index; i++) {
+          $selected_text_levels[i] = null;
+        }
       }}
       disabled={$editing_status_on}
     >

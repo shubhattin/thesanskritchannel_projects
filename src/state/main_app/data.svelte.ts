@@ -201,17 +201,18 @@ export let get_total_count = (selected_text_levels: (number | null)[]) => {
   if (!_project_map_q.isSuccess) return 0;
   const project_map = _project_map_q.data;
 
-  let total_count = 0;
-  if (levels === 2) {
-    total_count = get_map_type(project_map, 2)[selected_text_levels[0]! - 1].total;
-  } else if (levels === 3) {
-    total_count = get_map_type(project_map, 3)[selected_text_levels[1]! - 1].list[
-      selected_text_levels[0]! - 1
-    ].total;
-  } else if (levels === 1) {
-    total_count = get_map_type(project_map, 1).total;
+  if (levels === 1) return get_map_type(project_map, 1).total;
+  if (!selected_text_levels[0]) return 0;
+  if (levels === 2) return (project_map as any)[selected_text_levels[0] - 1]?.total ?? 0;
+
+  let node: any = project_map;
+  for (let idx = levels - 2; idx >= 1; idx--) {
+    const sel = selected_text_levels[idx];
+    if (!sel) return 0;
+    node = node?.[sel - 1]?.list;
+    if (!node) return 0;
   }
-  return total_count;
+  return node?.[selected_text_levels[0] - 1]?.total ?? 0;
 };
 
 export const get_last_level_name = (selected_text_levels: (number | null)[]) => {
@@ -226,19 +227,26 @@ export const get_last_level_name = (selected_text_levels: (number | null)[]) => 
   let nor = '';
   const project_map = _project_map_q.data;
 
-  if (levels === 2) {
-    dev = get_map_type(project_map, 2)[selected_text_levels[0]! - 1].name_dev;
-    nor = get_map_type(project_map, 2)[selected_text_levels[0]! - 1].name_nor;
-  } else if (levels === 3) {
-    dev = get_map_type(project_map, 3)[selected_text_levels[1]! - 1].list[
-      selected_text_levels[0]! - 1
-    ].name_dev;
-    nor = get_map_type(project_map, 3)[selected_text_levels[1]! - 1].list[
-      selected_text_levels[0]! - 1
-    ].name_nor;
-  } else if (levels === 1) {
+  if (levels === 1) {
     dev = get_map_type(project_map, 1).name_dev;
     nor = get_map_type(project_map, 1).name_nor;
+  } else if (selected_text_levels[0]) {
+    if (levels === 2) {
+      const last = (project_map as any)[selected_text_levels[0] - 1];
+      dev = last?.name_dev ?? '';
+      nor = last?.name_nor ?? '';
+    } else {
+      let node: any = project_map;
+      for (let idx = levels - 2; idx >= 1; idx--) {
+        const sel = selected_text_levels[idx];
+        if (!sel) break;
+        node = node?.[sel - 1]?.list;
+        if (!node) break;
+      }
+      const last = node?.[selected_text_levels[0] - 1];
+      dev = last?.name_dev ?? '';
+      nor = last?.name_nor ?? '';
+    }
   }
 
   return {

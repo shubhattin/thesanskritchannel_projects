@@ -25,10 +25,7 @@ async function main() {
   const data: {
     [project: string]: {
       [lang: string]: {
-        [second: number]: {
-          [first: number]: Map<number, string>;
-        };
-        // ^ the keys are not number even if we make in number as that is how javascript is
+        [file_path: string]: Map<number, string>;
       };
     };
   } = {};
@@ -47,46 +44,40 @@ async function main() {
       if (levels > 1) fs.mkdirSync(`./data/translations/${project_id}. ${project_key}/${lang_nm}`);
     }
 
-    const path_params = trans.path.split(':').map((v) => parseInt(v));
-    let second = 0;
-    let first = 0;
+    const path_params =
+      trans.path && trans.path.trim().length
+        ? trans.path
+            .split(':')
+            .map((v) => parseInt(v))
+            .filter((v) => Number.isFinite(v))
+        : [];
 
-    if (levels === 3) {
-      second = path_params[0];
-      first = path_params[1];
-    } else if (levels === 2) {
-      first = path_params[0];
-    }
+    const base = `./data/translations/${project_id}. ${project_key}`;
+    const file_path = (() => {
+      if (path_params.length === 0) return `${base}/${lang_nm}.yaml`;
+      const last = path_params[path_params.length - 1];
+      const dir_parts = path_params.slice(0, -1);
+      const dir = dir_parts.length ? `/${dir_parts.join('/')}` : '';
+      return `${base}/${lang_nm}${dir}/${last}.yaml`;
+    })();
 
-    if (!data[project_key][lang_nm][second]) {
-      data[project_key][lang_nm][second] = {};
-      if (second !== 0)
-        fs.mkdirSync(`./data/translations/${project_id}. ${project_key}/${lang_nm}/${second}`);
+    // Ensure directories exist for this file_path.
+    const folder = file_path.split('/').slice(0, -1).join('/');
+    if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
+
+    if (!data[project_key][lang_nm][file_path]) {
+      data[project_key][lang_nm][file_path] = new Map();
     }
-    if (!data[project_key][lang_nm][second][first]) {
-      data[project_key][lang_nm][second][first] = new Map();
-    }
-    data[project_key][lang_nm][second][first].set(trans.index, trans.text);
+    data[project_key][lang_nm][file_path].set(trans.index, trans.text);
   }
 
   for (const project_key in data) {
-    const project_id = get_project_from_key(project_key as project_keys_type).id;
     for (const lang in data[project_key]) {
-      for (const second in data[project_key][lang]) {
-        for (const first in data[project_key][lang][second]) {
-          const trans_data = data[project_key][lang][second][first];
-          const file_path =
-            `./data/translations/${project_id}. ${project_key}` +
-            (() => {
-              if (first === '0' && second === '0') return `/${lang}.yaml`;
-              else if (second === '0') return `/${lang}/${first}.yaml`;
-              else return `/${lang}/${second}/${first}.yaml`;
-            })();
-
-          fs.writeFileSync(file_path, js_yaml.dump(Object.fromEntries(trans_data), { indent: 2 }), {
-            encoding: 'utf-8'
-          });
-        }
+      for (const file_path in data[project_key][lang]) {
+        const trans_data = data[project_key][lang][file_path];
+        fs.writeFileSync(file_path, js_yaml.dump(Object.fromEntries(trans_data), { indent: 2 }), {
+          encoding: 'utf-8'
+        });
       }
     }
   }

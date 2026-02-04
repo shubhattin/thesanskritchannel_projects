@@ -62,6 +62,23 @@
   const project_info = $derived(get_project_info_from_key($project_state.project_key!));
   type option_type = { text?: string; value?: number };
 
+  const get_map_list_at_depth = (
+    project_map: any,
+    levels: number,
+    selected: (number | null)[],
+    depth: number
+  ): any[] | null => {
+    // depth: 0 -> root list (highest selector), 1 -> list under highest selection, etc.
+    let node: any = project_map;
+    for (let d = 0; d < depth; d++) {
+      const sel = selected[levels - 2 - d];
+      if (!sel) return null;
+      node = node?.[sel - 1]?.list;
+      if (!node) return null;
+    }
+    return Array.isArray(node) ? node : null;
+  };
+
   const transliterate_options = async (options: option_type[], script: script_list_type) => {
     const transliterate_texts = await transliterate_custom(
       options.map((v) => v.text!),
@@ -264,45 +281,22 @@
         <div class="inline-block space-x-1">
           {#each { length: project_info.levels - 1 } as _, i}
             {@const level_name = project_info.level_names[project_info.levels - i - 1]}
-            {#if project_info.levels === 3}
-              {@const map_info = $project_map_q.isSuccess && get_map_type($project_map_q.data, 3)}
-              {#if i === 0}
-                {@render selecter({
-                  name: level_name,
-                  text_level_state_index: 1,
-                  options:
-                    map_info &&
-                    map_info.map((text_level) => ({
+            {@const text_level_state_index = project_info.levels - i - 2}
+            {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
+            {@const list_at_depth =
+              map_root &&
+              get_map_list_at_depth(map_root, project_info.levels, $image_selected_levels, i)}
+            {#if i === 0 || list_at_depth}
+              {@render selecter({
+                name: level_name,
+                text_level_state_index,
+                options: list_at_depth
+                  ? list_at_depth.map((text_level: any) => ({
                       text: text_level.name_dev,
                       value: text_level.pos
                     }))
-                })}
-              {:else if i === 1 && !!$image_selected_levels[1]}
-                {@render selecter({
-                  name: level_name,
-                  text_level_state_index: 0,
-                  options:
-                    map_info &&
-                    map_info[$image_selected_levels[1] - 1].list.map((text_level) => ({
-                      text: text_level.name_dev,
-                      value: text_level.pos
-                    }))
-                })}
-              {/if}
-            {:else if project_info.levels === 2}
-              {@const map_info = $project_map_q.isSuccess && get_map_type($project_map_q.data, 2)}
-              {#if i == 0}
-                {@render selecter({
-                  name: level_name,
-                  text_level_state_index: 0,
-                  options:
-                    map_info &&
-                    map_info.map((text_level) => ({
-                      text: text_level.name_dev,
-                      value: text_level.pos
-                    }))
-                })}
-              {/if}
+                  : false
+              })}
             {/if}
           {/each}
 
@@ -321,7 +315,12 @@
               type="single"
               value={$image_selected_levels[text_level_state_index]?.toString() ?? ''}
               onValueChange={(v) => {
-                $image_selected_levels[text_level_state_index] = v ? parseInt(v) : null;
+                const next_value = v ? parseInt(v) : null;
+                $image_selected_levels[text_level_state_index] = next_value;
+                // If a higher level changes, clear all dependent lower levels.
+                for (let i = 0; i < text_level_state_index; i++) {
+                  $image_selected_levels[i] = null;
+                }
               }}
               disabled={$editing_status_on}
             >

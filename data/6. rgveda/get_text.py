@@ -92,7 +92,7 @@ def _output_txt_path(html_path: Path) -> Path:
     return Path(OUTPUT_TEXT_FOLDER) / rel.with_suffix(".txt")
 
 
-def process_one(html_path: Path, *, force: bool) -> tuple[bool, Path]:
+def process_one(html_path: Path) -> Path:
     out_path = _output_txt_path(html_path)
 
     html_text = _read_text(html_path)
@@ -113,7 +113,7 @@ def process_one(html_path: Path, *, force: bool) -> tuple[bool, Path]:
         extracted = extracted.replace(k, v)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(extracted, encoding="utf-8")
-    return (True, out_path)
+    return out_path
 
 
 @app.command()
@@ -150,20 +150,14 @@ def main(
         return
 
     wrote = 0
-    skipped = 0
     empty = 0
     for p in html_files:
-        changed, out_path = process_one(p, force=force)
-        # if not changed:
-        #     skipped += 1
-        #     continue
+        out_path = process_one(p)
         wrote += 1
         if out_path.stat().st_size == 0:
             empty += 1
 
-    console.print(
-        f"[green]Done.[/] wrote={wrote}, skipped={skipped}, empty_outputs={empty}"
-    )
+    console.print(f"[green]Done.[/] wrote={wrote}, empty_outputs={empty}")
 
 
 if __name__ == "__main__":

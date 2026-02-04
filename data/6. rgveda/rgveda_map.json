@@ -1,0 +1,16 @@
+[
+    {
+        "name_dev": "शाकल",
+        "name_nor": "shAkala",
+        "pos": 1,
+        "list": [
+            {
+                "name_dev": "शाकलसंहिता",
+                "name_nor": "shAkalaSangHita",
+                "pos": 1,
+                "list_count": 10,
+                "list": []
+            }
+        ]
+    }
+]

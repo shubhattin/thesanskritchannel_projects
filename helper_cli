@@ -22,6 +22,7 @@ TEXT_LIST = [
     ["Narayaneeyam", "narayaneeyam", 3, "extract.py"],
     ["Shiva Tandava Stotram", "shivatandavastotram", 4, "extract.py"],
     ["Saundarya Lahari", "saundaryalahari", 5, "extract.py"],
+    ["Rigveda", "rgveda", 6, "extract.py"],
 ]
 
 
@@ -35,7 +36,7 @@ def generate_text_json_func(choice_index: int):
 
 def generate_text_json_list():
     for i, option in enumerate(TEXT_LIST):
-        print(f"[blue]{i+1}. {option[0]}[/]")
+        print(f"[blue]{i + 1}. {option[0]}[/]")
     print(f"[blue]e. Exit[/]")
     CHOICES = [str(i + 1) for i in range(len(TEXT_LIST))]
     CHOICES.append("e")
@@ -53,7 +54,7 @@ def main():
         return
     print("[bold yellow]Generate JSON Files for:[/]")
     for i, option in enumerate(OPTIONS):
-        print(f"[blue]{i+1}. {option[0]}[/]")
+        print(f"[blue]{i + 1}. {option[0]}[/]")
     print(f"[blue]e. Exit[/]")
     CHOICES = [str(i + 1) for i in range(len(OPTIONS))]
     CHOICES.append("e")

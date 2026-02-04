@@ -1,12 +1,19 @@
 import { z } from 'zod';
-import type { tyoe_2_map_type, type_1_map_type, type_3_map_type } from './data_types';
+import type {
+  tyoe_2_map_type,
+  type_1_map_type,
+  type_3_map_type,
+  type_4_map_type,
+  type_5_map_type
+} from './data_types';
 
 const PROJECT_KEYS = [
   'ramayanam',
   'bhagavadgita',
   'narayaneeyam',
   'shivatandavastotram',
-  'saundaryalahari'
+  'saundaryalahari',
+  'rgveda'
 ] as const;
 export const project_keys_enum_schema = z.enum(PROJECT_KEYS);
 export type project_keys_type = z.infer<typeof project_keys_enum_schema>;
@@ -52,6 +59,12 @@ export const PROJECT_LIST: project_type[] = [
     name: 'Saundarya Lahari',
     name_dev: 'सौन्दर्यलहरी',
     key: 'saundaryalahari'
+  },
+  {
+    id: 6,
+    name: 'Rgveda',
+    name_dev: 'ऋग्वेद',
+    key: 'rgveda'
   }
 ];
 
@@ -75,6 +88,10 @@ export type extendted_map_type =
   | {
       levels: 3;
       map_info: () => Promise<type_3_map_type>;
+    }
+  | {
+      levels: 5;
+      map_info: () => Promise<type_5_map_type>;
     };
 
 export const get_map_type = <T extends extendted_map_type['levels']>(
@@ -86,7 +103,11 @@ export const get_map_type = <T extends extendted_map_type['levels']>(
     ? tyoe_2_map_type
     : T extends 3
       ? type_3_map_type
-      : never => {
+      : T extends 4
+        ? type_4_map_type
+        : T extends 5
+          ? type_5_map_type
+          : never => {
   return map_info as any;
 };
 type project_info_type = {
@@ -124,6 +145,11 @@ export const PROJECT_INFO: project_info_type = {
     level_names: ['Shloka'],
     map_info: async () =>
       (await import('@data/5. saundaryalahari/saundaryalahari_map.json')).default
+  },
+  rgveda: {
+    levels: 5,
+    level_names: ['Mantra', 'Sukta', 'Mandala', 'Bhaga', 'Shakha'],
+    map_info: async () => (await import('@data/6. rgveda/rgveda_map.json')).default
   }
 };
 

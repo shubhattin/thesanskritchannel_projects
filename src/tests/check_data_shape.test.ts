@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
 import { get_project_from_key, PROJECT_INFO, type project_keys_type } from '~/state/project_list';
-import { type_1_map_schema, type_2_map_schema, type_3_map_schema } from '~/state/data_types';
+import {
+  type_1_map_schema,
+  type_2_map_schema,
+  type_3_map_schema,
+  type_4_map_schema,
+  type_5_map_schema
+} from '~/state/data_types';
 import { type } from 'arktype';
 
 const ShlokaList = type({
@@ -24,6 +30,11 @@ describe('Checking correct shape of data', () => {
         type_2_map_schema.parse(data);
       } else if (levels === 3) {
         type_3_map_schema.parse(data);
+        // @ts-ignore
+      } else if (levels === 4) {
+        type_4_map_schema.parse(data);
+      } else if (levels === 5) {
+        type_5_map_schema.parse(data);
       }
     }
   });

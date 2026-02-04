@@ -29,7 +29,13 @@ export const import_data = async (confirm_env = true) => {
     PREVIEW: 'db_data_preview.json',
     LOCAL: 'db_data.json'
   }[dbMode];
+  const texts_file_name = {
+    PROD: 'texts_prod.json',
+    PREVIEW: 'texts_preview.json',
+    LOCAL: 'texts.json'
+  }[dbMode];
   await writeFile(`./out/${out_file_name}`, JSON.stringify(json_data, null, 2));
+  await writeFile(`./out/${texts_file_name}`, JSON.stringify(json_data.texts, null, 2));
 };
 
 const isMainModule = () => {

@@ -148,7 +148,7 @@ def get_with_retry(url: str) -> requests.Response:
                 f"[yellow]{type(e).__name__} for {url} (attempt {attempt}/{MAX_ATTEMPTS}); retrying in {delay:.2f}s[/]"
             )
             time.sleep(delay)
-        except requests.exceptions.HTTPError as e:
+        except requests.exceptions.HTTPError:
             # Non-retryable HTTP error: surface it.
             raise
 
@@ -180,20 +180,33 @@ def get_links_json():
         with open(MANDA_LIST_CACHE_FILE, "w") as f:
             json.dump(mandala_links, f, indent=2)
 
-    for i, mandala_link in enumerate(mandala_links):
-        SUKTA_CACHE_FILE = f"json_url_cache/sukta/{i + 1}.json"
+    for mandala_index, mandala_link in enumerate(mandala_links):
+        SUKTA_CACHE_FILE = f"json_url_cache/sukta/{mandala_index + 1}.json"
         sukat_list: list[str] = []
         if os.path.exists(SUKTA_CACHE_FILE):
             with open(SUKTA_CACHE_FILE, "r") as f:
                 sukat_list = json.load(f)
         else:
-            console.print(f"Fetching suktas for mandala {i + 1}", mandala_link)
+            CSS_SELECTORS = [
+                "html body.wp-singular.page-template.page-template-mandal-template.page-template-mandal-template-php.page.page-id-343.page-parent.page-child.parent-pageid-38.wp-theme-vedic.class-name.groovy_menu_1-4-3.single-author div#page.hfeed.site div#main.site-main div#primary.content-area div#content.site-content div.container div.row div.col-lg-3.col-md-3.col-sm-3 div.row div.primewp-side-widget.widget.primewp-box.widget_black_studio_tinymce div.primewp-box-inside div.primewp-widget-header div ul.mandalbtn.mandallinks-scrolling > li > a",
+                "html body.wp-singular.page-template.page-template-mandal-2.page-template-mandal-2-php.page.page-id-4013.page-child.parent-pageid-38.wp-theme-vedic.class-name.groovy_menu_1-4-3.single-author div#page.hfeed.site div#main.site-main div#primary.content-area div#content.site-content div.container div.row div.col-lg-3.col-md-3.col-sm-3 div.row div.primewp-side-widget.widget.primewp-box.widget_black_studio_tinymce div.primewp-box-inside div.primewp-widget-header ul.mandalbtn.mandallinks-scrolling > li > a",
+                "html body.wp-singular.page-template.page-template-mandal-3.page-template-mandal-3-php.page.page-id-4030.page-child.parent-pageid-38.wp-theme-vedic.class-name.groovy_menu_1-4-3.single-author div#page.hfeed.site div#main.site-main div#primary.content-area div#content.site-content div.container div.row div.con-box div.col-lg-12.col-md-12.col-sm-12 div.PT10 div.col-lg-3.col-md-3.col-sm-3 div.newbg ul.mandalbtn.mandallinks-scrolling > li > a",
+                "html body.wp-singular.page-template.page-template-mandal-4.page-template-mandal-4-php.page.page-id-4034.page-parent.page-child.parent-pageid-38.wp-theme-vedic.class-name.groovy_menu_1-4-3.single-author div#page.hfeed.site div#main.site-main div#primary.content-area div#content.site-content div.container div.row div.con-box div.col-lg-12.col-md-12.col-sm-12 div.PT10 div.col-lg-3.col-md-3.col-sm-3 div.newbg ul.mandalbtn.mandallinks-scrolling > li > a",
+                "html body.wp-singular.page-template.page-template-mandal-5.page-template-mandal-5-php.page.page-id-4048.page-child.parent-pageid-38.wp-theme-vedic.class-name.groovy_menu_1-4-3.single-author div#page.hfeed.site div#main.site-main div#primary.content-area div#content.site-content div.container div.row div.con-box div.col-lg-12.col-md-12.col-sm-12 div.PT10 div.col-lg-3.col-md-3.col-sm-3 div.newbg ul.mandalbtn.mandallinks-scrolling > li > a",
+                "html body.wp-singular.page-template.page-template-mandal-6.page-template-mandal-6-php.page.page-id-4075.page-parent.page-child.parent-pageid-38.wp-theme-vedic.class-name.groovy_menu_1-4-3.single-author div#page.hfeed.site div#main.site-main div#primary.content-area div#content.site-content div.container div.row div.con-box div.col-lg-12.col-md-12.col-sm-12 div.PT10 div.col-lg-3.col-md-3.col-sm-3 div.newbg ul.mandalbtn.mandallinks-scrolling > li > a",
+                "html body.wp-singular.page-template.page-template-mandal-7.page-template-mandal-7-php.page.page-id-4079.page-parent.page-child.parent-pageid-7887.wp-theme-vedic.class-name.groovy_menu_1-4-3.single-author div#page.hfeed.site div#main.site-main div#primary.content-area div#content.site-content div.container div.row div.con-box div.col-lg-12.col-md-12.col-sm-12 div.PT10 div.col-lg-3.col-md-3.col-sm-3 div.newbg ul.mandalbtn.mandallinks-scrolling > li > a",
+                "html body.wp-singular.page-template.page-template-mandal-8.page-template-mandal-8-php.page.page-id-4096.page-parent.page-child.parent-pageid-38.wp-theme-vedic.class-name.groovy_menu_1-4-3.single-author div#page.hfeed.site div#main.site-main div#primary.content-area div#content.site-content div.container div.row div.con-box div.col-lg-12.col-md-12.col-sm-12 div.PT10 div.col-lg-3.col-md-3.col-sm-3 div.newbg ul.mandalbtn.mandallinks-scrolling > li > a",
+                "html body.wp-singular.page-template.page-template-mandal-9.page-template-mandal-9-php.page.page-id-4105.page-parent.page-child.parent-pageid-38.wp-theme-vedic.class-name.groovy_menu_1-4-3.single-author div#page.hfeed.site div#main.site-main div#primary.content-area div#content.site-content div.container div.row div.con-box div.col-lg-12.col-md-12.col-sm-12 div.PT10 div.col-lg-3.col-md-3.col-sm-3 div.newbg ul.mandalbtn.mandallinks-scrolling > li > a",
+                "html body.wp-singular.page-template.page-template-mandal-10.page-template-mandal-10-php.page.page-id-4109.page-parent.page-child.parent-pageid-38.wp-theme-vedic.class-name.groovy_menu_1-4-3.single-author div#page.hfeed.site div#main.site-main div#primary.content-area div#content.site-content div.container div.row div.con-box div.col-lg-12.col-md-12.col-sm-12 div.PT10 div.col-lg-3.col-md-3.col-sm-3 div.newbg ul.mandalbtn.mandallinks-scrolling > li > a",
+            ]
+            console.print(
+                f"Fetching suktas for mandala {mandala_index + 1}",
+                mandala_link,
+            )
             req = get_with_retry(mandala_link)
             html = PyQuery(req.text)
-            sukta_list = html(
-                "html body.wp-singular.page-template.page-template-mandal-template.page-template-mandal-template-php.page.page-id-343.page-parent.page-child.parent-pageid-38.wp-theme-vedic.class-name.groovy_menu_1-4-3.single-author div#page.hfeed.site div#main.site-main div#primary.content-area div#content.site-content div.container div.row div.col-lg-3.col-md-3.col-sm-3 div.row div.primewp-side-widget.widget.primewp-box.widget_black_studio_tinymce div.primewp-box-inside div.primewp-widget-header div ul.mandalbtn.mandallinks-scrolling > li > a"
-            )
-            for sukta in sukta_list.items():
+            sukta_links = html(CSS_SELECTORS[mandala_index])
+            for sukta in sukta_links.items():
                 url = str(get_with_retry(HOSTNAME + sukta.attr("href")).url)
                 console.print(sukta.attr("href"), url)
                 sukat_list.append(url)
@@ -201,6 +214,10 @@ def get_links_json():
                 _ensure_parent_dir(SUKTA_CACHE_FILE)
                 with open(SUKTA_CACHE_FILE, "w") as f:
                     json.dump(sukat_list, f, indent=2)
+        for sukta_index, sukta_link in enumerate(sukat_list):
+            HTML_SAVE_URL = (
+                f"../raw_data/1/1/{mandala_index + 1}/{sukta_index + 1}.html"
+            )
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Convert extracted Rigveda text files into structured JSON.
+Convert extracted Rigveda text files into JSON shloka lists.
 
 Input hierarchy (mirrors raw_data):
   text_data/<...>/*.txt
@@ -9,7 +9,8 @@ Input hierarchy (mirrors raw_data):
 Output hierarchy:
   data/<...>/*.json
 
-This script is intentionally offline-only (no downloading).
+Each output JSON is a list of objects matching `src/state/data_types.ts`:
+  { "text": string, "index": int, "shloka_num": number | null }
 """
 
 from __future__ import annotations
@@ -43,7 +44,8 @@ _DEV_TO_INT = {
     "९": 9,
 }
 
-_VERSE_NUM_RE = re.compile(r"॥\s*([०-९]+)\s*॥")
+# Matches the common ending marker: ...॥१॥, ...॥ १ ॥ etc.
+_SHLOKA_NUM_RE = re.compile(r"॥\s*([०-९]+)\s*॥\s*$")
 
 
 def _dev_digits_to_int(s: str) -> Optional[int]:
@@ -58,39 +60,24 @@ def _dev_digits_to_int(s: str) -> Optional[int]:
     return val
 
 
-def parse_txt_to_records(txt: str) -> list[dict]:
+def parse_txt_to_shloka_list(txt: str) -> list[dict]:
     """
-    Convert the text of one sukta page into a JSON-serializable list of records.
+    Parse one .txt file into a list of {text,index,shloka_num}.
 
-    Record shape (kept close to ramayanam style):
-      { "text": str, "index": int, "verse_num": int | null, "text_clean": str }
+    - index: 0-based line index after trimming empty lines
+    - shloka_num: parsed from a trailing "॥n॥" if present, else null
     """
     lines = [ln.strip() for ln in txt.splitlines()]
     lines = [ln for ln in lines if ln]
-    records: list[dict] = []
 
+    out: list[dict] = []
     for idx, line in enumerate(lines):
-        verse_num: Optional[int] = None
-        text_clean = line
-
-        m = _VERSE_NUM_RE.search(line)
+        shloka_num: Optional[int] = None
+        m = _SHLOKA_NUM_RE.search(line)
         if m:
-            verse_num = _dev_digits_to_int(m.group(1))
-            # If the number appears at the end, also provide a cleaned version.
-            # We keep original line untouched in `text`.
-            if m.end() == len(line):
-                text_clean = line[: m.start()].rstrip()
-
-        records.append(
-            {
-                "text": line,
-                "index": idx,
-                "verse_num": verse_num,
-                "text_clean": text_clean,
-            }
-        )
-
-    return records
+            shloka_num = _dev_digits_to_int(m.group(1))
+        out.append({"text": line, "index": idx, "shloka_num": shloka_num})
+    return out
 
 
 def _output_json_path(txt_path: Path) -> Path:
@@ -104,7 +91,7 @@ def process_one(txt_path: Path, *, force: bool) -> tuple[bool, Path]:
         return (False, out_path)
 
     txt = txt_path.read_text(encoding="utf-8", errors="replace")
-    records = parse_txt_to_records(txt)
+    records = parse_txt_to_shloka_list(txt)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(

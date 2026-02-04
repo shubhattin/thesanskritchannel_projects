@@ -101,7 +101,16 @@ def process_one(html_path: Path, *, force: bool) -> tuple[bool, Path]:
     extracted = re.sub(r"(?=\S)॥", " ॥", extracted)
     # Remove number padding
     extracted = re.sub(r"(?<=\d)\s॥", "॥", extracted)
+    REPLACEMENTS = {
+        "     ": " ",
+        "    ": " ",
+        "   ": " ",
+        "  ": " ",
+        " ": " ",
+    }
     # TODO: Decide whether to keep : for Halant or use an actual halant
+    for k, v in REPLACEMENTS.items():
+        extracted = extracted.replace(k, v)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(extracted, encoding="utf-8")
     return (True, out_path)

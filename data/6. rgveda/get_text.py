@@ -109,6 +109,7 @@ def process_one(html_path: Path) -> Path:
         " ": " ",
     }
     # TODO: Decide whether to keep : for Halant or use an actual halant
+    # This is based on confirmation of font support eg: न॑ः क॒ः
     for k, v in REPLACEMENTS.items():
         extracted = extracted.replace(k, v)
     out_path.parent.mkdir(parents=True, exist_ok=True)

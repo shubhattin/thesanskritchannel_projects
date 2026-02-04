@@ -47,6 +47,7 @@ _DEV_TO_INT = {
 
 # Matches the common ending marker: ...॥१॥, ...॥ १ ॥ etc.
 _SHLOKA_NUM_RE = re.compile(r"॥\s*([०-९]+)\s*॥\s*$")
+_SHLOKA_MARKER_RE = re.compile(r"॥\s*[०-९]+\s*॥")
 
 _LATIN_TO_DEV = str.maketrans(
     {
@@ -76,23 +77,87 @@ def _dev_digits_to_int(s: str) -> Optional[int]:
     return val
 
 
+def _format_shloka_text(txt: str) -> str:
+    """
+    Format one shloka-unit for consistent display/grouping.
+
+    Rules:
+    - Insert a newline after a single virAma `।` (danda) so each half-line becomes its own line
+      *within the same shloka text*.
+
+    Notes:
+    - We intentionally do not touch `:` since it is used as halant in some sources.
+    """
+    # Normalize newlines first.
+    txt = txt.replace("\r\n", "\n").replace("\r", "\n")
+
+    # Flatten existing line breaks within a shloka into spaces.
+    txt = re.sub(r"[ \t]*\n[ \t]*", " ", txt)
+    txt = re.sub(r"[ \t]+", " ", txt)
+
+    # Add a newline after single danda. Consume optional whitespace after danda to avoid dangling
+    # spaces at the start of the next line.
+    txt = re.sub(r"।[ \t]*", "।\n", txt)
+
+    # Trim spaces around each half-line.
+    return "\n".join(ln.strip() for ln in txt.splitlines()).strip()
+
+
 def parse_txt_to_shloka_list(txt: str) -> list[dict]:
     """
     Parse one .txt file into a list of {text,index,shloka_num}.
 
-    - index: 0-based line index after trimming empty lines
-    - shloka_num: parsed from a trailing "॥n॥" if present, else null
+    Rigveda text_data files typically have:
+    - A first "metadata" line (rishi/devata/chandas) which should remain as a single record
+      with shloka_num = null.
+    - Following content that should be grouped into shloka units, where a shloka ends when
+      we encounter a pUrnA-virAma-with-number closing marker like `॥१॥`.
+
+    Within each shloka text, a newline is inserted after `।` to keep the two pAdas separated
+    while still remaining in the same shloka record.
     """
-    lines = [ln.strip() for ln in txt.splitlines()]
-    lines = [ln for ln in lines if ln]
+    txt = txt.replace("\r\n", "\n").replace("\r", "\n")
+    lines = [ln.strip() for ln in txt.splitlines() if ln.strip()]
+    if not lines:
+        return []
 
     out: list[dict] = []
-    for idx, line in enumerate(lines):
+
+    # 1) Keep the first line as-is (do not split/group it by danda).
+    out.append({"text": lines[0], "index": 0, "shloka_num": None})
+
+    body = "\n".join(lines[1:]).strip()
+    if not body:
+        return out
+
+    # 2) Group remaining content by the `॥<dev-digits>॥` closing marker.
+    last_end = 0
+    idx = 1
+    for m in _SHLOKA_MARKER_RE.finditer(body):
+        chunk = body[last_end : m.end()].strip()
+        last_end = m.end()
+        if not chunk:
+            continue
+
+        formatted = _format_shloka_text(chunk)
         shloka_num: Optional[int] = None
-        m = _SHLOKA_NUM_RE.search(line)
-        if m:
-            shloka_num = _dev_digits_to_int(m.group(1))
-        out.append({"text": line, "index": idx, "shloka_num": shloka_num})
+        num_m = _SHLOKA_NUM_RE.search(formatted)
+        if num_m:
+            shloka_num = _dev_digits_to_int(num_m.group(1))
+
+        out.append({"text": formatted, "index": idx, "shloka_num": shloka_num})
+        idx += 1
+
+    # Any trailing text after the last marker (rare) is kept as a final record.
+    tail = body[last_end:].strip()
+    if tail:
+        formatted = _format_shloka_text(tail)
+        shloka_num: Optional[int] = None
+        num_m = _SHLOKA_NUM_RE.search(formatted)
+        if num_m:
+            shloka_num = _dev_digits_to_int(num_m.group(1))
+        out.append({"text": formatted, "index": idx, "shloka_num": shloka_num})
+
     return out
 
 

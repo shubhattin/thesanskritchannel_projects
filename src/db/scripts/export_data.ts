@@ -36,6 +36,11 @@ const main = async () => {
     PREVIEW: 'db_data_preview.json',
     LOCAL: 'db_data.json'
   }[dbMode];
+  const texts_file_name = {
+    PROD: 'texts_prod.json',
+    PREVIEW: 'texts_preview.json',
+    LOCAL: 'texts.json'
+  }[dbMode];
 
   const data = z
     .object({
@@ -47,6 +52,12 @@ const main = async () => {
       media_attachment: MediaAttachmentSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
+
+  const texts_data = TextSchemaZod.array().parse(
+    JSON.parse((await readFile(`./out/${texts_file_name}`)).toString())
+  );
+
+  data.texts = texts_data;
 
   // deleting all the tables initially
   try {
@@ -90,7 +101,7 @@ const main = async () => {
     for (const chunk of chunks) {
       await db.insert(texts).values(chunk);
     }
-    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`text`'));
+    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`texts`'));
   } catch (e) {
     console.log(chalk.red('✗ Error while inserting text:'), chalk.yellow(e));
   }
@@ -101,7 +112,10 @@ const main = async () => {
     for (const chunk of chunks) {
       await db.insert(translations).values(chunk);
     }
-    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`translation`'));
+    console.log(
+      chalk.green('✓ Successfully added values into table'),
+      chalk.blue('`translations`')
+    );
   } catch (e) {
     console.log(chalk.red('✗ Error while inserting translation:'), chalk.yellow(e));
   }

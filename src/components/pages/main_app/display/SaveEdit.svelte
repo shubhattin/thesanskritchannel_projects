@@ -144,7 +144,7 @@
   {/snippet}
 </ConfirmModal>
 <Button
-  variant="default"
+  variant="destructive"
   size="sm"
   disabled={$cancel_edit_data.isPending}
   class="btn bg-error-700 dark:bg-error-600 ml-3 rounded-lg px-1 py-1 font-semibold text-white"

@@ -9,15 +9,7 @@ import { get_project_from_key, type project_keys_type } from '~/state/project_li
 import ms from 'ms';
 import { waitUntil } from '@vercel/functions';
 import { and, eq, like, sql } from 'drizzle-orm';
-
-export const VEDIC_SVARAS = ['॒', '॑', '᳚', '᳛'] as const;
-
-/**
- * Acts as a sanitization function to remove the vedic svara chihna for `search_text` column
- */
-export const remove_vedic_svara_chihnAni = (text: string) => {
-  return text.replace(new RegExp(`[${VEDIC_SVARAS.join('')}]`, 'g'), '');
-};
+import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
 
 /** first and second here are like the ones in url */
 export const get_text_data_func = async (key: string, path_params: number[]) => {
@@ -80,7 +72,7 @@ export const search_text_in_texts_route = publicProcedure
     })
   )
   .query(async ({ input: { project_key, search_text, path_params, limit, offset } }) => {
-    const conditions = [like(texts.text, `%${search_text}%`)];
+    const conditions = [like(texts.text_search, `%${search_text}%`)];
     if (project_key) {
       const project_id = get_project_from_key(project_key as project_keys_type).id;
       conditions.push(eq(texts.project_id, project_id));

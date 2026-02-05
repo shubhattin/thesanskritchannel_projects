@@ -50,7 +50,6 @@ export type type_5_map_type = z.infer<typeof type_5_map_schema>;
 
 export const shloka_schema = z.object({
   text: z.string().describe('Shloka Text'),
-  text_search: z.string().describe('Shloka Text for Search'),
   index: z.int().describe('Index starting from 0'),
   shloka_num: z.number().nullable().describe('Shloka Number')
 });

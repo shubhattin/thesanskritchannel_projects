@@ -26,6 +26,10 @@ from rich.console import Console
 app = typer.Typer(add_completion=False)
 console = Console()
 
+
+VEDIC_SVARAS = ["॒", "॑", "᳚", "᳛"]
+VISARGA = "ः"
+
 BASE_DIR = Path(__file__).resolve().parent
 RAW_DATA_FOLDER = str(BASE_DIR / "raw_data")
 OUTPUT_TEXT_FOLDER = str(BASE_DIR / "text_data")
@@ -101,15 +105,17 @@ def process_one(html_path: Path) -> Path:
     extracted = re.sub(r"(?=\S)॥", " ॥", extracted)
     # Remove number padding
     extracted = re.sub(r"(?<=\d)\s॥", "॥", extracted)
+    for vedic_svara in VEDIC_SVARAS:
+        extracted = extracted.replace(vedic_svara + ":", VISARGA + vedic_svara)
+        # Replacing the incorrect halant usage which might have been there
     REPLACEMENTS = {
         "     ": " ",
         "    ": " ",
         "   ": " ",
         "  ": " ",
         " ": " ",
+        ":": VISARGA,
     }
-    # TODO: Decide whether to keep : for Halant or use an actual halant
-    # This is based on confirmation of font support eg: न॑ः क॒ः
     for k, v in REPLACEMENTS.items():
         extracted = extracted.replace(k, v)
     out_path.parent.mkdir(parents=True, exist_ok=True)

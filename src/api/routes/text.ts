@@ -8,7 +8,7 @@ import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { get_project_from_key, type project_keys_type } from '~/state/project_list';
 import ms from 'ms';
 import { waitUntil } from '@vercel/functions';
-import { and, eq, ilike, sql } from 'drizzle-orm';
+import { and, eq, ilike, like, sql } from 'drizzle-orm';
 
 /** first and second here are like the ones in url */
 export const get_text_data_func = async (key: string, path_params: number[]) => {
@@ -77,7 +77,7 @@ export const search_text_in_texts_route = publicProcedure
       conditions.push(eq(texts.project_id, project_id));
     }
     if (typeof path_params !== 'undefined') {
-      conditions.push(eq(texts.path, path_params.join(':')));
+      conditions.push(like(texts.path, `${path_params.join(':')}%`));
     }
 
     const data = await db

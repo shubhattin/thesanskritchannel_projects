@@ -59,7 +59,7 @@
         placeholderData: (prev) => prev,
         queryFn: async () => {
           const q = submitted_search_text.trim();
-          if (q.length < 3) {
+          if (q.length < 1) {
             return {
               items: [],
               page: { limit: LIMIT, offset, nextOffset: null, hasMore: false, totalCount: 0 }
@@ -90,9 +90,9 @@
     const q = (args?.q ?? search_text).trim();
     validation_error = null;
 
-    if (q.length < 3) {
+    if (q.length < 1) {
       started = false;
-      validation_error = 'Type at least 3 characters to search.';
+      validation_error = 'Type at least 1 character to search.';
       return;
     }
 

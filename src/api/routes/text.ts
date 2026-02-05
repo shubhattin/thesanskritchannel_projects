@@ -65,7 +65,7 @@ export const search_text_in_texts_route = publicProcedure
     z.object({
       project_key: z.string().optional(),
       path_params: z.int().array().optional(),
-      search_text: z.string().min(3).max(500),
+      search_text: z.string().min(1).max(500),
       limit: z.int().min(1).max(100).default(DEFAULT_PAGE_LIMIT),
       offset: z.int().min(0).default(0)
     })

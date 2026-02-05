@@ -1,6 +1,6 @@
 {
-  "id": "e5cda02c-2647-489b-8578-744107d6dff4",
-  "prevId": "6bb9702d-89e7-4fcb-95c8-e0af1b523aa4",
+  "id": "26411cbc-0afc-42dd-819f-893b0e2d88eb",
+  "prevId": "a1b35ebb-6896-4c0b-afae-1203e15c4bca",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -117,12 +117,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "lang_id": {
-          "name": "lang_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
         "path": {
           "name": "path",
           "type": "text",
@@ -135,8 +129,21 @@
           "primaryKey": false,
           "notNull": true
         },
+        "shloka_num": {
+          "name": "shloka_num",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "text": {
           "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "text_search": {
+          "name": "text_search",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -146,11 +153,10 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "texts_project_id_lang_id_path_index_pk": {
-          "name": "texts_project_id_lang_id_path_index_pk",
+        "texts_project_id_path_index_pk": {
+          "name": "texts_project_id_path_index_pk",
           "columns": [
             "project_id",
-            "lang_id",
             "path",
             "index"
           ]

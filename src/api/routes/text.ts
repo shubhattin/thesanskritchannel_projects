@@ -10,6 +10,15 @@ import ms from 'ms';
 import { waitUntil } from '@vercel/functions';
 import { and, eq, like, sql } from 'drizzle-orm';
 
+export const VEDIC_SVARAS = ['॒', '॑', '᳚', '᳛'] as const;
+
+/**
+ * Acts as a sanitization function to remove the vedic svara chihna for `search_text` column
+ */
+export const remove_vedic_svara_chihnAni = (text: string) => {
+  return text.replace(new RegExp(`[${VEDIC_SVARAS.join('')}]`, 'g'), '');
+};
+
 /** first and second here are like the ones in url */
 export const get_text_data_func = async (key: string, path_params: number[]) => {
   // Add Caching to load in PROD

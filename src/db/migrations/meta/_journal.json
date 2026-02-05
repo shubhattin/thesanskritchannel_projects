@@ -61,22 +61,15 @@
     {
       "idx": 8,
       "version": "7",
-      "when": 1769827415739,
-      "tag": "0008_material_sue_storm",
+      "when": 1770308696396,
+      "tag": "0008_misty_mercury",
       "breakpoints": true
     },
     {
       "idx": 9,
       "version": "7",
-      "when": 1769827546111,
-      "tag": "0009_add_trgm_text_index",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1769830303406,
-      "tag": "0010_last_vargas",
+      "when": 1770308760923,
+      "tag": "0009_0x_add_trigram_search",
       "breakpoints": true
     }
   ]

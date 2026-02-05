@@ -4,6 +4,7 @@ import { get_project_info_from_key, PROJECT_LIST } from '../../state/project_lis
 import { TextSchemaZod } from '../schema_zod';
 import fs from 'node:fs';
 import path from 'node:path';
+import { remove_vedic_svara_chihnAni } from '~/utils/normalize_text';
 
 const text_schema = z.object({
   text: z.string(),
@@ -69,7 +70,8 @@ const main = async () => {
           path: '',
           text: text.text,
           index: text.index,
-          shloka_num: text.shloka_num
+          shloka_num: text.shloka_num,
+          text_search: remove_vedic_svara_chihnAni(text.text)
         });
         project_text_count += 1;
       }
@@ -89,7 +91,8 @@ const main = async () => {
             path: db_path,
             text: text.text,
             index: text.index,
-            shloka_num: text.shloka_num
+            shloka_num: text.shloka_num,
+            text_search: remove_vedic_svara_chihnAni(text.text)
           });
           project_text_count += 1;
         }

@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 --> statement-breakpoint
 
 -- create a GIN trigram index on the "text" column for fast substring / similarity search
-CREATE INDEX IF NOT EXISTS texts_text_trgm_idx
+CREATE INDEX IF NOT EXISTS texts_text_search_trgm_idx
 ON "texts"
-USING GIN ("text" gin_trgm_ops);
+USING GIN ("text_search" gin_trgm_ops);
 --> statement-breakpoint

@@ -7,6 +7,7 @@ import { texts } from '~/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import { shloka_list_schema } from '~/state/data_types';
+import { remove_vedic_svara_chihnAni } from '~/utils/normalize_text';
 
 const CACHE_KEY_DB_NAME = 'cache_verify_key';
 
@@ -54,7 +55,8 @@ export const POST: RequestHandler = async ({ url, request }) => {
                 path,
                 index: s.index,
                 shloka_num: s.shloka_num,
-                text: s.text
+                text: s.text,
+                text_search: remove_vedic_svara_chihnAni(s.text)
               }))
             );
           }

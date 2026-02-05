@@ -20,6 +20,7 @@ import {
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 import chalk from 'chalk';
+import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
 
 const main = async () => {
   /*
@@ -42,19 +43,26 @@ const main = async () => {
     LOCAL: 'texts.json'
   }[dbMode];
 
+  const intermedia_text_schema = TextSchemaZod.omit({ text_search: true });
   const data = z
     .object({
       user_project_join: UserProjectJoinSchemaZod.array(),
       user_project_language_join: UserProjectLanguageJoinSchemaZod.array(),
       translations: TranslationSchemaZod.array(),
-      texts: TextSchemaZod.array(),
+      texts: intermedia_text_schema.array(),
       other: OtherSchemaZod.array(),
       media_attachment: MediaAttachmentSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
+  const texts_data_intermediate = intermedia_text_schema
+    .array()
+    .parse(JSON.parse((await readFile(`./out/${texts_file_name}`)).toString()));
   const texts_data = TextSchemaZod.array().parse(
-    JSON.parse((await readFile(`./out/${texts_file_name}`)).toString())
+    texts_data_intermediate.map((text) => ({
+      ...text,
+      text_search: remove_vedic_svara_chihnAni(text.text)
+    }))
   );
 
   data.texts = texts_data;

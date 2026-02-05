@@ -1,10 +1,11 @@
 CREATE TABLE "texts" (
 	"project_id" integer NOT NULL,
-	"lang_id" integer NOT NULL,
 	"path" text NOT NULL,
 	"index" integer NOT NULL,
+	"shloka_num" integer,
 	"text" text DEFAULT '' NOT NULL,
-	CONSTRAINT "texts_project_id_lang_id_path_index_pk" PRIMARY KEY("project_id","lang_id","path","index")
+	"text_search" text DEFAULT '' NOT NULL,
+	CONSTRAINT "texts_project_id_path_index_pk" PRIMARY KEY("project_id","path","index")
 );
 --> statement-breakpoint
 ALTER TABLE "translation" RENAME TO "translations";--> statement-breakpoint

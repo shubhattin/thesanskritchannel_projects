@@ -17,7 +17,9 @@ export const texts = pgTable(
     path: text().notNull(),
     index: integer().notNull(),
     shloka_num: integer(),
-    text: text().default('').notNull()
+    text: text().default('').notNull(),
+    /** Used for search queries (trigram search) */
+    text_search: text().default('').notNull()
   },
   ({ project_id, path, index }) => [
     primaryKey({

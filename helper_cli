@@ -22,7 +22,7 @@ TEXT_LIST = [
     ["Narayaneeyam", "narayaneeyam", 3, "extract.py"],
     ["Shiva Tandava Stotram", "shivatandavastotram", 4, "extract.py"],
     ["Saundarya Lahari", "saundaryalahari", 5, "extract.py"],
-    ["Rigveda", "rgveda", 6, "extract.py"],
+    ["Rigveda", "rgveda", 6, "get_json_data.py"],
 ]
 
 

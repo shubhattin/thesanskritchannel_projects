@@ -280,7 +280,7 @@ def get_links_json(
         def _download_one(
             m_idx: int, s_idx: int, page_url: str
         ) -> tuple[str, int, int, str]:
-            save_path = f"../raw_data/1/1/{m_idx + 1}/{s_idx + 1}.html"
+            save_path = f"../../raw_data/1/1/{m_idx + 1}/{s_idx + 1}.html"
             if (
                 (not force)
                 and os.path.exists(save_path)
@@ -313,7 +313,7 @@ def get_links_json(
                         mandala_skipped += 1
                 except Exception as e:
                     save_path = (
-                        f"../raw_data/1/1/{mandala_index + 1}/{sukta_index + 1}.html"
+                        f"../../raw_data/1/1/{mandala_index + 1}/{sukta_index + 1}.html"
                     )
                     mandala_failed.append(
                         {

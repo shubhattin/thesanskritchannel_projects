@@ -13,7 +13,8 @@ const PROJECT_KEYS = [
   'narayaneeyam',
   'shivatandavastotram',
   'saundaryalahari',
-  'rgveda'
+  'rgveda',
+  'yajurveda'
 ] as const;
 export const project_keys_enum_schema = z.enum(PROJECT_KEYS);
 export type project_keys_type = z.infer<typeof project_keys_enum_schema>;
@@ -65,6 +66,12 @@ export const PROJECT_LIST: project_type[] = [
     name: 'Rgveda',
     name_dev: 'ऋग्वेद',
     key: 'rgveda'
+  },
+  {
+    id: 7,
+    name: 'Yajurveda',
+    name_dev: 'यजुर्वेद',
+    key: 'yajurveda'
   }
 ];
 
@@ -150,6 +157,11 @@ export const PROJECT_INFO: project_info_type = {
     levels: 5,
     level_names: ['Mantra', 'Sukta', 'Mandala', 'Bhaga', 'Shakha'],
     map_info: async () => (await import('@data/6. rgveda/rgveda_map.json')).default
+  },
+  yajurveda: {
+    levels: 5,
+    level_names: ['Mantra', 'Adhyaya', 'Anuvaka', 'Bhaga', 'Shakha'],
+    map_info: async () => (await import('@data/7. yajurveda/yajurveda_map.json')).default
   }
 };
 

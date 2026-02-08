@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Literal
 import shubhlipi as sh
 from pydantic import BaseModel
 import yaml
@@ -65,22 +65,45 @@ def is_permitted_dev_char(char: str):
     )
 
 
+class ShlokaLevelInfo(BaseModel):
+    type: Literal["shloka"] = "shloka"
+    shloka_count: int
+    total: int
+    shloka_count_expected: int | None = None
+
+
+class ListLevelInfo(BaseModel):
+    type: Literal["list"] = "list"
+    list_name: str
+    list_count: int
+    list_count_expected: Optional[int] = None
+
+
 class SargaInfo(BaseModel):
+    # Lowest level for Ramayanam map (3 levels total): Kanda -> Sarga -> (shloka info)
     name_dev: str
     name_nor: str
     pos: int
-    shloka_count: int
-    shloka_count_expected: int | None = None
-    total: int
+    info: ShlokaLevelInfo
+    # required by TS recursive schema; for shloka nodes this is always empty
+    list: list[object]
 
 
 class KAndaInfo(BaseModel):
     name_dev: str
     name_nor: str
     pos: int
-    list_count: int
-    list_count_expected: Optional[int] = None
+    info: ListLevelInfo
     list: list[SargaInfo]
+
+
+class TextInfo(BaseModel):
+    # Root object: holds the text name and list of kandas
+    name_dev: str
+    name_nor: str
+    pos: int
+    info: ListLevelInfo
+    list: list[KAndaInfo]
 
 
 class ShlokaInfo(BaseModel):
@@ -89,7 +112,9 @@ class ShlokaInfo(BaseModel):
     shloka_num: int | None = None
 
 
-DATA = [KAndaInfo(**data) for data in sh.load_json(sh.read("ramayanam_map.json"))]
+DATA_ROOT = TextInfo(**sh.load_json(sh.read("ramayanam_map.json")))
+# Back-compat for scripts that iterate kandas directly
+DATA = DATA_ROOT.list
 SANSKRIT_NUMBER_NAMES: list[list[int | str]] = yaml.safe_load(sh.read("numbers.yaml"))
 
 TEMPLATE_FOLDER = "template"

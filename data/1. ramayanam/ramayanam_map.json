@@ -5,7 +5,8 @@
   "info": {
     "type": "list",
     "list_name": "Kanda",
-    "list_count": 7
+    "list_count": 7,
+    "list_count_expected": null
   },
   "list": [
     {

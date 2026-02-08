@@ -15,6 +15,7 @@ from watchdog.events import FileSystemEventHandler
 from run_tests import run_tests
 from common import (
     DATA,
+    DATA_ROOT,
     DOUBLE_VIRAMA,
     SINGLE_VIRAMA,
     NUMBERS,
@@ -171,8 +172,8 @@ def get_shloka_json(path: str):
     shloka_list.append(ShlokaInfo(text=get_last_line(), index=index, shloka_num=None))
 
     # Updating the shloka count of the sarga
-    sarga_info.shloka_count = len(shloka_list) - 2
-    sarga_info.total = len(shloka_list)
+    sarga_info.info.shloka_count = len(shloka_list) - 2
+    sarga_info.info.total = len(shloka_list)
 
     out_folder = f"{OUTPUT_DATA_FOLDER}/{kANDa_num}/{sarga_num}.json"
     serializable_list = [shloka.model_dump() for shloka in shloka_list]
@@ -246,9 +247,13 @@ def main(
         end_time = time.time()
 
         # saving the DATA back into ramayanam_map.json
+        # keep list counts in sync with current structure
+        DATA_ROOT.info.list_count = len(DATA_ROOT.list)
+        for k in DATA_ROOT.list:
+            k.info.list_count = len(k.list)
         sh.write(
             "ramayanam_map.json",
-            sh.dump_json([kANDa.model_dump() for kANDa in DATA], 2),
+            sh.dump_json(DATA_ROOT.model_dump(), 2),
         )
         if log_time:
             console.log(f"[white bold]Time: {round(end_time - start_time)}s[/]")

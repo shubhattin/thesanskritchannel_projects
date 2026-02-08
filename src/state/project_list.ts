@@ -18,7 +18,7 @@ type project_type = {
   name_dev: string;
   description?: string;
   key: project_keys_type;
-  get_map?: () => Promise<recursive_list_type>;
+  get_map: () => Promise<recursive_list_type>;
 };
 
 // ALWAYS BE CAREFUL BEFORE CHANGING THIS LIST
@@ -71,7 +71,9 @@ export const PROJECT_LIST: project_type[] = [
     id: 6,
     name: 'Rgveda',
     name_dev: 'ऋग्वेद',
-    key: 'rgveda'
+    key: 'rgveda',
+    get_map: async () =>
+      (await import('@data/6. rgveda/rgveda_map.json')).default as recursive_list_type
   }
 ];
 

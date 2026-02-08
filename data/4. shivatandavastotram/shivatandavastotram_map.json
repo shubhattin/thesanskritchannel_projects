@@ -2,6 +2,10 @@
     "name_dev": "शिवताण्डवस्तोत्रम्",
     "name_nor": "shivatANDavastotram",
     "pos": 1,
-    "shloka_count": 18,
-    "total": 20
+    "level_name": "Shloka",
+    "info": {
+        "type": "shloka",
+        "shloka_count": 18,
+        "shloka_count_expected": 20
+    }
 }

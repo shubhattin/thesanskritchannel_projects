@@ -35,13 +35,17 @@ export const PROJECT_LIST: project_type[] = [
     id: 2,
     name: 'Bhagavad Gita',
     name_dev: 'श्रीमद्भगवद्गीता',
-    key: 'bhagavadgita'
+    key: 'bhagavadgita',
+    get_map: async () =>
+      (await import('@data/2. bhagavadgita/bhagavadgita_map.json')).default as recursive_list_type
   },
   {
     id: 3,
     name: 'Narayaneeyam',
     name_dev: 'नारायणीयम्',
-    key: 'narayaneeyam'
+    key: 'narayaneeyam',
+    get_map: async () =>
+      (await import('@data/3. narayaneeyam/narayaneeyam_map.json')).default as recursive_list_type
   },
   {
     id: 4,

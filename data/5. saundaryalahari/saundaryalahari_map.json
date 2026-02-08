@@ -2,10 +2,10 @@
     "name_dev": "सौन्दर्यलहरी",
     "name_nor": "saundaryalaharI",
     "pos": 1,
-    "level_name": "Shloka",
+    "list": [],
     "info": {
         "type": "shloka",
         "shloka_count": 100,
-        "shloka_count_expected": 105
+        "total": 105
     }
 }

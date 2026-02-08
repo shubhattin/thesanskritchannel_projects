@@ -1,6 +1,5 @@
 import re
 import os
-from rich import print
 import shubhlipi as sh
 from common import in_dev_range, DOUBLE_VIRAMA, SINGLE_VIRAMA
 
@@ -58,12 +57,12 @@ def update_gita_map():
     g_map = sh.load_json(sh.read("bhagavadgita_map.json"))
     for i in range(1, 19):
         data = sh.load_json(sh.read(f"data/{i}.json"))
-        g_map[i - 1]["total"] = len(data)
+        g_map["list"][i - 1]["info"]["total"] = len(data)
         shloka_count = 0
         for shloka in data:
             if shloka["shloka_num"]:
                 shloka_count = shloka["shloka_num"]
-        g_map[i - 1]["shloka_count"] = shloka_count
+        g_map["list"][i - 1]["info"]["shloka_count"] = shloka_count
     sh.write("bhagavadgita_map.json", sh.dump_json(g_map, 2))
 
 

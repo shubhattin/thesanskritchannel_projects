@@ -1,702 +1,1112 @@
-[
-  {
-    "name_dev": "भगवतः स्वरूपं माहात्म्यं च",
-    "name_nor": "bhagavataH svarUpaM mAhAtmyaM cha",
-    "shloka_count": 10,
-    "pos": 1,
-    "total": 15
-  },
-  {
-    "name_dev": "रूपमाधुर्यं भक्तिमहत्त्वम् च",
-    "name_nor": "rUpamAdhuryaM bhaktimahattvam cha",
-    "shloka_count": 10,
-    "pos": 2,
-    "total": 14
-  },
-  {
-    "name_dev": "भक्ति प्रार्थना",
-    "name_nor": "bhakti prArthanA",
-    "shloka_count": 10,
-    "pos": 3,
-    "total": 14
-  },
-  {
-    "name_dev": "अष्टाङ्ग योगः तत्सिद्धि प्रकारः च",
-    "name_nor": "aShTAnga yOgaH tatsiddhi prakAraH cha",
-    "shloka_count": 10,
-    "pos": 4,
-    "total": 14
-  },
-  {
-    "name_dev": "विराट् पुरुष उत्पत्तिः",
-    "name_nor": "virAT puruSha utpattiH",
-    "shloka_count": 10,
-    "pos": 5,
-    "total": 14
-  },
-  {
-    "name_dev": "विराट्  स्वरूप वर्णनम्",
-    "name_nor": "virAT  svarUpa varNanam",
-    "shloka_count": 10,
-    "pos": 6,
-    "total": 14
-  },
-  {
-    "name_dev": "ब्रह्मणः तपः वैकुण्ठ दर्शनं च",
-    "name_nor": "brahmaNaH tapaH vaikuNTha darshanaM cha",
-    "shloka_count": 10,
-    "pos": 7,
-    "total": 14
-  },
-  {
-    "name_dev": "नैमित्तिक प्रळयः ब्रह्माविर्भावः च",
-    "name_nor": "naimittika praLayaH brahmAvirbhAvaH cha",
-    "shloka_count": 10,
-    "pos": 8,
-    "total": 14
-  },
-  {
-    "name_dev": "ब्रह्मण: तप: भुवन निर्मिति: च",
-    "name_nor": "brahmaNa: tapa: bhuvana nirmiti: cha",
-    "shloka_count": 10,
-    "pos": 9,
-    "total": 14
-  },
-  {
-    "name_dev": "सृष्टि भेदाः",
-    "name_nor": "sRShTi bhEdAH",
-    "shloka_count": 10,
-    "pos": 10,
-    "total": 14
-  },
-  {
-    "name_dev": "हिरण्याक्षस्य हिरण्यकशिपोः च उत्पत्तिः",
-    "name_nor": "hiraNyAkShasya hiraNyakashipOH cha utpattiH",
-    "shloka_count": 10,
-    "pos": 11,
-    "total": 14
-  },
-  {
-    "name_dev": "वराह अवतारः",
-    "name_nor": "varAha avatAraH",
-    "shloka_count": 10,
-    "pos": 12,
-    "total": 14
-  },
-  {
-    "name_dev": "हिरण्याक्ष वध:",
-    "name_nor": "hiraNyAkSha vadha:",
-    "shloka_count": 10,
-    "pos": 13,
-    "total": 14
-  },
-  {
-    "name_dev": "कपिल अवतार:",
-    "name_nor": "kapila avatAra:",
-    "shloka_count": 10,
-    "pos": 14,
-    "total": 14
-  },
-  {
-    "name_dev": "कपिल उपदेश: ",
-    "name_nor": "kapila upadEsha: ",
-    "shloka_count": 10,
-    "pos": 15,
-    "total": 14
-  },
-  {
-    "name_dev": "नर नारायणयो: अवतार: दक्ष याग: च",
-    "name_nor": "nara nArAyaNayO: avatAra: dakSha yAga: cha",
-    "shloka_count": 10,
-    "pos": 16,
-    "total": 14
-  },
-  {
-    "name_dev": "ध्रुव चरितम्",
-    "name_nor": "dhruva charitam",
-    "shloka_count": 10,
-    "pos": 17,
-    "total": 14
-  },
-  {
-    "name_dev": "पृथु चरितम्",
-    "name_nor": "pRthu charitam",
-    "shloka_count": 10,
-    "pos": 18,
-    "total": 14
-  },
-  {
-    "name_dev": "प्रचेतसाम्  कथा",
-    "name_nor": "prachEtasAm  kathA",
-    "shloka_count": 10,
-    "pos": 19,
-    "total": 14
-  },
-  {
-    "name_dev": " ऋषभ योगीश्वर चरितम्",
-    "name_nor": " RShabha yOgIshvara charitam",
-    "shloka_count": 10,
-    "pos": 20,
-    "total": 14
-  },
-  {
-    "name_dev": "नव वर्षाणि सप्त द्वीपादाय:  च",
-    "name_nor": "nava varShANi sapta dvIpAdAya:  cha",
-    "shloka_count": 10,
-    "pos": 21,
-    "total": 14
-  },
-  {
-    "name_dev": "अजामिल मोक्ष:",
-    "name_nor": "ajAmila mOkSha:",
-    "shloka_count": 10,
-    "pos": 22,
-    "total": 14
-  },
-  {
-    "name_dev": "दक्ष चरितम् चित्रकेतु उपाख्यानम् च",
-    "name_nor": "dakSha charitam chitrakEtu upAkhyAnam cha",
-    "shloka_count": 10,
-    "pos": 23,
-    "total": 14
-  },
-  {
-    "name_dev": "प्रह्लाद चरितम्",
-    "name_nor": "prahlAda charitam",
-    "shloka_count": 10,
-    "pos": 24,
-    "total": 14
-  },
-  {
-    "name_dev": "नरसिंह अवतार:",
-    "name_nor": "narasiMha avatAra:",
-    "shloka_count": 10,
-    "pos": 25,
-    "total": 14
-  },
-  {
-    "name_dev": "गजेन्द्र मोक्ष:",
-    "name_nor": "gajEndra mOkSha:",
-    "shloka_count": 10,
-    "pos": 26,
-    "total": 14
-  },
-  {
-    "name_dev": "क्षीराब्धि मथनं कूर्मावतार: च",
-    "name_nor": "kShIrAbdhi mathanaM kUrmAvatAra: cha",
-    "shloka_count": 10,
-    "pos": 27,
-    "total": 14
-  },
-  {
-    "name_dev": "लक्ष्मी स्वयंवर: अमृत प्रादुर्भाव: च",
-    "name_nor": "lakShmI svayaMvara: amRta prAdurbhAva: cha",
-    "shloka_count": 10,
-    "pos": 28,
-    "total": 14
-  },
-  {
-    "name_dev": "अमृत आहरणम् असुर निग्रह: च",
-    "name_nor": "amRta AharaNam asura nigraha: cha",
-    "shloka_count": 10,
-    "pos": 29,
-    "total": 14
-  },
-  {
-    "name_dev": "वामन अवतार:",
-    "name_nor": "vAmana avatAra:",
-    "shloka_count": 10,
-    "pos": 30,
-    "total": 14
-  },
-  {
-    "name_dev": "बलि दर्प उच्छेद:",
-    "name_nor": "bali darpa uchChEda:",
-    "shloka_count": 10,
-    "pos": 31,
-    "total": 14
-  },
-  {
-    "name_dev": "मत्स्य अवतार:",
-    "name_nor": "matsya avatAra:",
-    "shloka_count": 10,
-    "pos": 32,
-    "total": 14
-  },
-  {
-    "name_dev": "अम्बरीष चरितम्",
-    "name_nor": "ambarISha charitam",
-    "shloka_count": 10,
-    "pos": 33,
-    "total": 14
-  },
-  {
-    "name_dev": "श्रीमद् रामायणम् हनुमत् समागम पर्यन्तम्",
-    "name_nor": "shrImad rAmAyaNam hanumat samAgama paryantam",
-    "shloka_count": 10,
-    "pos": 34,
-    "total": 14
-  },
-  {
-    "name_dev": "श्रीमद् रामायणम् सुग्रीव सख्यात् प्रभृति",
-    "name_nor": "shrImad rAmAyaNam sugrIva sakhyAt prabhRti",
-    "shloka_count": 10,
-    "pos": 35,
-    "total": 14
-  },
-  {
-    "name_dev": "परशुराम चरितम्",
-    "name_nor": "parashurAma charitam",
-    "shloka_count": 10,
-    "pos": 36,
-    "total": 14
-  },
-  {
-    "name_dev": "श्रीकृष्ण अवतार प्रस्ताव:",
-    "name_nor": "shrIkRShNa avatAra prastAva:",
-    "shloka_count": 10,
-    "pos": 37,
-    "total": 14
-  },
-  {
-    "name_dev": "श्रीकृष्ण अवतार:",
-    "name_nor": "shrIkRShNa avatAra:",
-    "shloka_count": 10,
-    "pos": 38,
-    "total": 14
-  },
-  {
-    "name_dev": "योगमाया प्रादुर्भाव: कृष्ण जन्म उत्सव: च",
-    "name_nor": "yOgamAyA prAdurbhAva: kRShNa janma utsava: cha",
-    "shloka_count": 10,
-    "pos": 39,
-    "total": 14
-  },
-  {
-    "name_dev": "पूतना मोक्ष:",
-    "name_nor": "pUtanA mOkSha:",
-    "shloka_count": 10,
-    "pos": 40,
-    "total": 14
-  },
-  {
-    "name_dev": "पूतना देह दाह: कृष्ण लालन आह्लाद: च",
-    "name_nor": "pUtanA dEha dAha: kRShNa lAlana AhlAda: cha",
-    "shloka_count": 10,
-    "pos": 41,
-    "total": 14
-  },
-  {
-    "name_dev": "शकट असुर निग्रह:",
-    "name_nor": "shakaTa asura nigraha:",
-    "shloka_count": 10,
-    "pos": 42,
-    "total": 14
-  },
-  {
-    "name_dev": "तृणावर्त वध:",
-    "name_nor": "tRNAvarta vadha:",
-    "shloka_count": 10,
-    "pos": 43,
-    "total": 14
-  },
-  {
-    "name_dev": "नामकरणम् जातक फल कथनं च",
-    "name_nor": "nAmakaraNam jAtaka phala kathanaM cha",
-    "shloka_count": 10,
-    "pos": 44,
-    "total": 14
-  },
-  {
-    "name_dev": "बाल लीला",
-    "name_nor": "bAla lIlA",
-    "shloka_count": 10,
-    "pos": 45,
-    "total": 14
-  },
-  {
-    "name_dev": "श्री कृष्णस्य वदने यशोदया लोकानां दर्शनम्",
-    "name_nor": "shrI kRShNasya vadanE yashOdayA lOkAnAM darshanam",
-    "shloka_count": 10,
-    "pos": 46,
-    "total": 14
-  },
-  {
-    "name_dev": "उलूखल बन्धनम्",
-    "name_nor": "ulUkhala bandhanam",
-    "shloka_count": 10,
-    "pos": 47,
-    "total": 14
-  },
-  {
-    "name_dev": "नलकूबर मणिग्रीवयो: शाप मोक्ष:",
-    "name_nor": "nalakUbara maNigrIvayO: shApa mOkSha:",
-    "shloka_count": 10,
-    "pos": 48,
-    "total": 14
-  },
-  {
-    "name_dev": "वृन्दावन प्रवेश: ",
-    "name_nor": "vRndAvana pravEsha: ",
-    "shloka_count": 10,
-    "pos": 49,
-    "total": 14
-  },
-  {
-    "name_dev": "वत्सासुर बकासुरयो: वध:",
-    "name_nor": "vatsAsura bakAsurayO: vadha:",
-    "shloka_count": 10,
-    "pos": 50,
-    "total": 14
-  },
-  {
-    "name_dev": "अघासुर निग्रह: वनभोजनम् च",
-    "name_nor": "aghAsura nigraha: vanabhOjanam cha",
-    "shloka_count": 10,
-    "pos": 51,
-    "total": 14
-  },
-  {
-    "name_dev": "ब्रह्म गर्व शमनम्",
-    "name_nor": "brahma garva shamanam",
-    "shloka_count": 10,
-    "pos": 52,
-    "total": 14
-  },
-  {
-    "name_dev": "धेनुकासुर वध:",
-    "name_nor": "dhEnukAsura vadha:",
-    "shloka_count": 10,
-    "pos": 53,
-    "total": 14
-  },
-  {
-    "name_dev": "कालिय विष बाधितानां गो गोपानां उज्जीवनम्",
-    "name_nor": "kAliya viSha bAdhitAnAM gO gOpAnAM ujjIvanam",
-    "shloka_count": 10,
-    "pos": 54,
-    "total": 14
-  },
-  {
-    "name_dev": "कालिय मर्दनम्",
-    "name_nor": "kAliya mardanam",
-    "shloka_count": 10,
-    "pos": 55,
-    "total": 14
-  },
-  {
-    "name_dev": "कालिय अनुग्रह:",
-    "name_nor": "kAliya anugraha:",
-    "shloka_count": 10,
-    "pos": 56,
-    "total": 14
-  },
-  {
-    "name_dev": "प्रलंबासुर वध:",
-    "name_nor": "pralaMbAsura vadha:",
-    "shloka_count": 10,
-    "pos": 57,
-    "total": 14
-  },
-  {
-    "name_dev": "दावाग्नि मोक्ष: ऋतु वर्णनम् च",
-    "name_nor": "dAvAgni mOkSha: Rtu varNanam cha",
-    "shloka_count": 10,
-    "pos": 58,
-    "total": 14
-  },
-  {
-    "name_dev": "वेणु गान वर्णनम्",
-    "name_nor": "vENu gAna varNanam",
-    "shloka_count": 10,
-    "pos": 59,
-    "total": 14
-  },
-  {
-    "name_dev": "गोपि वस्त्र अपहरणम्",
-    "name_nor": "gOpi vastra apaharaNam",
-    "shloka_count": 10,
-    "pos": 60,
-    "total": 14
-  },
-  {
-    "name_dev": "विप्र पत्नी अनुग्रह:",
-    "name_nor": "vipra patnI anugraha:",
-    "shloka_count": 10,
-    "pos": 61,
-    "total": 14
-  },
-  {
-    "name_dev": "गोवर्द्धन बलि:",
-    "name_nor": "gOvarddhana bali:",
-    "shloka_count": 10,
-    "pos": 62,
-    "total": 14
-  },
-  {
-    "name_dev": "गोवर्द्धन उद्धारणम्",
-    "name_nor": "gOvarddhana uddhAraNam",
-    "shloka_count": 10,
-    "pos": 63,
-    "total": 14
-  },
-  {
-    "name_dev": "गोविन्द अभिषेक:",
-    "name_nor": "gOvinda abhiShEka:",
-    "shloka_count": 10,
-    "pos": 64,
-    "total": 14
-  },
-  {
-    "name_dev": "गोपीनां भगवत् समीप गमनम्",
-    "name_nor": "gOpInAM bhagavat samIpa gamanam",
-    "shloka_count": 10,
-    "pos": 65,
-    "total": 14
-  },
-  {
-    "name_dev": "गोपी जन आह्लादनम्",
-    "name_nor": "gOpI jana AhlAdanam",
-    "shloka_count": 10,
-    "pos": 66,
-    "total": 14
-  },
-  {
-    "name_dev": "भगवत: तिरोधानम् पुन: प्रादुर्भाव: च",
-    "name_nor": "bhagavata: tirOdhAnam puna: prAdurbhAva: cha",
-    "shloka_count": 10,
-    "pos": 67,
-    "total": 14
-  },
-  {
-    "name_dev": "गोपिकानां परम आह्लाद:",
-    "name_nor": "gOpikAnAM parama AhlAda:",
-    "shloka_count": 10,
-    "pos": 68,
-    "total": 14
-  },
-  {
-    "name_dev": "रास क्रीडा",
-    "name_nor": "rAsa krIDA",
-    "shloka_count": 10,
-    "pos": 69,
-    "total": 14
-  },
-  {
-    "name_dev": "सुदर्शन शाप मोक्ष: शङ्खचूड वध: अरिष्ट वध: च",
-    "name_nor": "sudarshana shApa mOkSha: shankhachUDa vadha: ariShTa vadha: cha",
-    "shloka_count": 10,
-    "pos": 70,
-    "total": 14
-  },
-  {
-    "name_dev": "केशि वध: व्योमासुर वध: च",
-    "name_nor": "kEshi vadha: vyOmAsura vadha: cha",
-    "shloka_count": 10,
-    "pos": 71,
-    "total": 14
-  },
-  {
-    "name_dev": "अक्रूर आगमनम्",
-    "name_nor": "akrUra Agamanam",
-    "shloka_count": 10,
-    "pos": 72,
-    "total": 14
-  },
-  {
-    "name_dev": "भगवत: मधुरापुर यात्रा",
-    "name_nor": "bhagavata: madhurApura yAtrA",
-    "shloka_count": 10,
-    "pos": 73,
-    "total": 14
-  },
-  {
-    "name_dev": "भगवत: मधुरापुरी प्रवेश:",
-    "name_nor": "bhagavata: madhurApurI pravEsha:",
-    "shloka_count": 10,
-    "pos": 74,
-    "total": 14
-  },
-  {
-    "name_dev": "कंस वध:",
-    "name_nor": "kaMsa vadha:",
-    "shloka_count": 10,
-    "pos": 75,
-    "total": 14
-  },
-  {
-    "name_dev": "उद्धव दूत्यं",
-    "name_nor": "uddhava dUtyaM",
-    "shloka_count": 10,
-    "pos": 76,
-    "total": 14
-  },
-  {
-    "name_dev": "उपश्लोक उत्पत्ति:  जरासन्धादि युद्धं च",
-    "name_nor": "upashlOka utpatti:  jarAsandhAdi yuddhaM cha",
-    "shloka_count": 10,
-    "pos": 77,
-    "total": 14
-  },
-  {
-    "name_dev": "द्वारका वास: रुक्मिणी सन्देश प्राप्ति: च",
-    "name_nor": "dvArakA vAsa: rukmiNI sandEsha prApti: cha",
-    "shloka_count": 10,
-    "pos": 78,
-    "total": 14
-  },
-  {
-    "name_dev": "रुक्मिणी हरणम्",
-    "name_nor": "rukmiNI haraNam",
-    "shloka_count": 10,
-    "pos": 79,
-    "total": 14
-  },
-  {
-    "name_dev": "स्यमन्तक उपाख्यानम्",
-    "name_nor": "syamantaka upAkhyAnam",
-    "shloka_count": 10,
-    "pos": 80,
-    "total": 14
-  },
-  {
-    "name_dev": "कालिन्दी आदिपरिग्रह: पारिजात हरणं च",
-    "name_nor": "kAlindI Adiparigraha: pArijAta haraNaM cha",
-    "shloka_count": 10,
-    "pos": 81,
-    "total": 14
-  },
-  {
-    "name_dev": "बाणयुद्धम् नृग मोक्ष: च",
-    "name_nor": "bANayuddham nRga mOkSha: cha",
-    "shloka_count": 10,
-    "pos": 82,
-    "total": 14
-  },
-  {
-    "name_dev": "पौण्ड्रक वध: विविध वध: च",
-    "name_nor": "pauNDraka vadha: vividha vadha: cha",
-    "shloka_count": 10,
-    "pos": 83,
-    "total": 14
-  },
-  {
-    "name_dev": "समन्तपञ्चक यात्रा बन्धुमित्रादि समागम: च",
-    "name_nor": "samantapanchaka yAtrA bandhumitrAdi samAgama: cha",
-    "shloka_count": 10,
-    "pos": 84,
-    "total": 14
-  },
-  {
-    "name_dev": "जरासन्ध वध: शिशुपाल वध: च",
-    "name_nor": "jarAsandha vadha: shishupAla vadha: cha",
-    "shloka_count": 10,
-    "pos": 85,
-    "total": 14
-  },
-  {
-    "name_dev": "साल्वादि वध: भारत युद्धं च",
-    "name_nor": "sAlvAdi vadha: bhArata yuddhaM cha",
-    "shloka_count": 10,
-    "pos": 86,
-    "total": 14
-  },
-  {
-    "name_dev": "कुचेल वृत्तान्त:",
-    "name_nor": "kuchEla vRttAnta:",
-    "shloka_count": 10,
-    "pos": 87,
-    "total": 14
-  },
-  {
-    "name_dev": "श्री सन्तान गोपाल:",
-    "name_nor": "shrI santAna gOpAla:",
-    "shloka_count": 10,
-    "pos": 88,
-    "total": 14
-  },
-  {
-    "name_dev": "वृकासुर कथा भृगु परीक्षणं च",
-    "name_nor": "vRkAsura kathA bhRgu parIkShaNaM cha",
-    "shloka_count": 10,
-    "pos": 89,
-    "total": 14
-  },
-  {
-    "name_dev": "विष्णु महत्त्व स्थापनम्",
-    "name_nor": "viShNu mahattva sthApanam",
-    "shloka_count": 10,
-    "pos": 90,
-    "total": 14
-  },
-  {
-    "name_dev": "भक्ति महत्त्वम्",
-    "name_nor": "bhakti mahattvam",
-    "shloka_count": 10,
-    "pos": 91,
-    "total": 14
-  },
-  {
-    "name_dev": "कर्म मिश्र भक्ति:",
-    "name_nor": "karma mishra bhakti:",
-    "shloka_count": 10,
-    "pos": 92,
-    "total": 14
-  },
-  {
-    "name_dev": "चतुर्विंशति: गुरव:",
-    "name_nor": "chaturviMshati: gurava:",
-    "shloka_count": 10,
-    "pos": 93,
-    "total": 14
-  },
-  {
-    "name_dev": "तत्त्व ज्ञान उत्पत्ति:",
-    "name_nor": "tattva jnAna utpatti:",
-    "shloka_count": 10,
-    "pos": 94,
-    "total": 14
-  },
-  {
-    "name_dev": "ध्यान योग:",
-    "name_nor": "dhyAna yOga:",
-    "shloka_count": 10,
-    "pos": 95,
-    "total": 14
-  },
-  {
-    "name_dev": "भगवत् विभूतय: ज्ञान कर्म भक्ति योग: च",
-    "name_nor": "bhagavat vibhUtaya: jnAna karma bhakti yOga: cha",
-    "shloka_count": 10,
-    "pos": 96,
-    "total": 14
-  },
-  {
-    "name_dev": "मार्कण्डेय चरितम्",
-    "name_nor": "mArkaNDEya charitam",
-    "shloka_count": 10,
-    "pos": 97,
-    "total": 14
-  },
-  {
-    "name_dev": "निष्कल ब्रह्म उपासनम्",
-    "name_nor": "niShkala brahma upAsanam",
-    "shloka_count": 10,
-    "pos": 98,
-    "total": 14
-  },
-  {
-    "name_dev": "वेद स्तुति:",
-    "name_nor": "vEda stuti:",
-    "shloka_count": 10,
-    "pos": 99,
-    "total": 14
-  },
-  {
-    "name_dev": "केश आदि पाद वर्णनम्",
-    "name_nor": "kEsha Adi pAda varNanam",
-    "shloka_count": 10,
-    "pos": 100,
-    "total": 14
-  }
-]
+{
+  "name_dev": "नारायणीयम्",
+  "name_nor": "nArAyaNIyam",
+  "pos": 1,
+  "info": {
+    "type": "list",
+    "list_name": "Dashaka",
+    "list_count": 100
+  },
+  "list": [
+    {
+      "name_dev": "भगवतः स्वरूपं माहात्म्यं च",
+      "name_nor": "bhagavataH svarUpaM mAhAtmyaM cha",
+      "pos": 1,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 15
+      }
+    },
+    {
+      "name_dev": "रूपमाधुर्यं भक्तिमहत्त्वम् च",
+      "name_nor": "rUpamAdhuryaM bhaktimahattvam cha",
+      "pos": 2,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "भक्ति प्रार्थना",
+      "name_nor": "bhakti prArthanA",
+      "pos": 3,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "अष्टाङ्ग योगः तत्सिद्धि प्रकारः च",
+      "name_nor": "aShTAnga yOgaH tatsiddhi prakAraH cha",
+      "pos": 4,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "विराट् पुरुष उत्पत्तिः",
+      "name_nor": "virAT puruSha utpattiH",
+      "pos": 5,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "विराट्  स्वरूप वर्णनम्",
+      "name_nor": "virAT  svarUpa varNanam",
+      "pos": 6,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "ब्रह्मणः तपः वैकुण्ठ दर्शनं च",
+      "name_nor": "brahmaNaH tapaH vaikuNTha darshanaM cha",
+      "pos": 7,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "नैमित्तिक प्रळयः ब्रह्माविर्भावः च",
+      "name_nor": "naimittika praLayaH brahmAvirbhAvaH cha",
+      "pos": 8,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "ब्रह्मण: तप: भुवन निर्मिति: च",
+      "name_nor": "brahmaNa: tapa: bhuvana nirmiti: cha",
+      "pos": 9,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "सृष्टि भेदाः",
+      "name_nor": "sRShTi bhEdAH",
+      "pos": 10,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "हिरण्याक्षस्य हिरण्यकशिपोः च उत्पत्तिः",
+      "name_nor": "hiraNyAkShasya hiraNyakashipOH cha utpattiH",
+      "pos": 11,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "वराह अवतारः",
+      "name_nor": "varAha avatAraH",
+      "pos": 12,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "हिरण्याक्ष वध:",
+      "name_nor": "hiraNyAkSha vadha:",
+      "pos": 13,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "कपिल अवतार:",
+      "name_nor": "kapila avatAra:",
+      "pos": 14,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "कपिल उपदेश: ",
+      "name_nor": "kapila upadEsha: ",
+      "pos": 15,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "नर नारायणयो: अवतार: दक्ष याग: च",
+      "name_nor": "nara nArAyaNayO: avatAra: dakSha yAga: cha",
+      "pos": 16,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "ध्रुव चरितम्",
+      "name_nor": "dhruva charitam",
+      "pos": 17,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "पृथु चरितम्",
+      "name_nor": "pRthu charitam",
+      "pos": 18,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "प्रचेतसाम्  कथा",
+      "name_nor": "prachEtasAm  kathA",
+      "pos": 19,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": " ऋषभ योगीश्वर चरितम्",
+      "name_nor": " RShabha yOgIshvara charitam",
+      "pos": 20,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "नव वर्षाणि सप्त द्वीपादाय:  च",
+      "name_nor": "nava varShANi sapta dvIpAdAya:  cha",
+      "pos": 21,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "अजामिल मोक्ष:",
+      "name_nor": "ajAmila mOkSha:",
+      "pos": 22,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "दक्ष चरितम् चित्रकेतु उपाख्यानम् च",
+      "name_nor": "dakSha charitam chitrakEtu upAkhyAnam cha",
+      "pos": 23,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "प्रह्लाद चरितम्",
+      "name_nor": "prahlAda charitam",
+      "pos": 24,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "नरसिंह अवतार:",
+      "name_nor": "narasiMha avatAra:",
+      "pos": 25,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "गजेन्द्र मोक्ष:",
+      "name_nor": "gajEndra mOkSha:",
+      "pos": 26,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "क्षीराब्धि मथनं कूर्मावतार: च",
+      "name_nor": "kShIrAbdhi mathanaM kUrmAvatAra: cha",
+      "pos": 27,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "लक्ष्मी स्वयंवर: अमृत प्रादुर्भाव: च",
+      "name_nor": "lakShmI svayaMvara: amRta prAdurbhAva: cha",
+      "pos": 28,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "अमृत आहरणम् असुर निग्रह: च",
+      "name_nor": "amRta AharaNam asura nigraha: cha",
+      "pos": 29,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "वामन अवतार:",
+      "name_nor": "vAmana avatAra:",
+      "pos": 30,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "बलि दर्प उच्छेद:",
+      "name_nor": "bali darpa uchChEda:",
+      "pos": 31,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "मत्स्य अवतार:",
+      "name_nor": "matsya avatAra:",
+      "pos": 32,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "अम्बरीष चरितम्",
+      "name_nor": "ambarISha charitam",
+      "pos": 33,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "श्रीमद् रामायणम् हनुमत् समागम पर्यन्तम्",
+      "name_nor": "shrImad rAmAyaNam hanumat samAgama paryantam",
+      "pos": 34,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "श्रीमद् रामायणम् सुग्रीव सख्यात् प्रभृति",
+      "name_nor": "shrImad rAmAyaNam sugrIva sakhyAt prabhRti",
+      "pos": 35,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "परशुराम चरितम्",
+      "name_nor": "parashurAma charitam",
+      "pos": 36,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "श्रीकृष्ण अवतार प्रस्ताव:",
+      "name_nor": "shrIkRShNa avatAra prastAva:",
+      "pos": 37,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "श्रीकृष्ण अवतार:",
+      "name_nor": "shrIkRShNa avatAra:",
+      "pos": 38,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "योगमाया प्रादुर्भाव: कृष्ण जन्म उत्सव: च",
+      "name_nor": "yOgamAyA prAdurbhAva: kRShNa janma utsava: cha",
+      "pos": 39,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "पूतना मोक्ष:",
+      "name_nor": "pUtanA mOkSha:",
+      "pos": 40,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "पूतना देह दाह: कृष्ण लालन आह्लाद: च",
+      "name_nor": "pUtanA dEha dAha: kRShNa lAlana AhlAda: cha",
+      "pos": 41,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "शकट असुर निग्रह:",
+      "name_nor": "shakaTa asura nigraha:",
+      "pos": 42,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "तृणावर्त वध:",
+      "name_nor": "tRNAvarta vadha:",
+      "pos": 43,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "नामकरणम् जातक फल कथनं च",
+      "name_nor": "nAmakaraNam jAtaka phala kathanaM cha",
+      "pos": 44,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "बाल लीला",
+      "name_nor": "bAla lIlA",
+      "pos": 45,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "श्री कृष्णस्य वदने यशोदया लोकानां दर्शनम्",
+      "name_nor": "shrI kRShNasya vadanE yashOdayA lOkAnAM darshanam",
+      "pos": 46,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "उलूखल बन्धनम्",
+      "name_nor": "ulUkhala bandhanam",
+      "pos": 47,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "नलकूबर मणिग्रीवयो: शाप मोक्ष:",
+      "name_nor": "nalakUbara maNigrIvayO: shApa mOkSha:",
+      "pos": 48,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "वृन्दावन प्रवेश: ",
+      "name_nor": "vRndAvana pravEsha: ",
+      "pos": 49,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "वत्सासुर बकासुरयो: वध:",
+      "name_nor": "vatsAsura bakAsurayO: vadha:",
+      "pos": 50,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "अघासुर निग्रह: वनभोजनम् च",
+      "name_nor": "aghAsura nigraha: vanabhOjanam cha",
+      "pos": 51,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "ब्रह्म गर्व शमनम्",
+      "name_nor": "brahma garva shamanam",
+      "pos": 52,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "धेनुकासुर वध:",
+      "name_nor": "dhEnukAsura vadha:",
+      "pos": 53,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "कालिय विष बाधितानां गो गोपानां उज्जीवनम्",
+      "name_nor": "kAliya viSha bAdhitAnAM gO gOpAnAM ujjIvanam",
+      "pos": 54,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "कालिय मर्दनम्",
+      "name_nor": "kAliya mardanam",
+      "pos": 55,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "कालिय अनुग्रह:",
+      "name_nor": "kAliya anugraha:",
+      "pos": 56,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "प्रलंबासुर वध:",
+      "name_nor": "pralaMbAsura vadha:",
+      "pos": 57,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "दावाग्नि मोक्ष: ऋतु वर्णनम् च",
+      "name_nor": "dAvAgni mOkSha: Rtu varNanam cha",
+      "pos": 58,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "वेणु गान वर्णनम्",
+      "name_nor": "vENu gAna varNanam",
+      "pos": 59,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "गोपि वस्त्र अपहरणम्",
+      "name_nor": "gOpi vastra apaharaNam",
+      "pos": 60,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "विप्र पत्नी अनुग्रह:",
+      "name_nor": "vipra patnI anugraha:",
+      "pos": 61,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "गोवर्द्धन बलि:",
+      "name_nor": "gOvarddhana bali:",
+      "pos": 62,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "गोवर्द्धन उद्धारणम्",
+      "name_nor": "gOvarddhana uddhAraNam",
+      "pos": 63,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "गोविन्द अभिषेक:",
+      "name_nor": "gOvinda abhiShEka:",
+      "pos": 64,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "गोपीनां भगवत् समीप गमनम्",
+      "name_nor": "gOpInAM bhagavat samIpa gamanam",
+      "pos": 65,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "गोपी जन आह्लादनम्",
+      "name_nor": "gOpI jana AhlAdanam",
+      "pos": 66,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "भगवत: तिरोधानम् पुन: प्रादुर्भाव: च",
+      "name_nor": "bhagavata: tirOdhAnam puna: prAdurbhAva: cha",
+      "pos": 67,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "गोपिकानां परम आह्लाद:",
+      "name_nor": "gOpikAnAM parama AhlAda:",
+      "pos": 68,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "रास क्रीडा",
+      "name_nor": "rAsa krIDA",
+      "pos": 69,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "सुदर्शन शाप मोक्ष: शङ्खचूड वध: अरिष्ट वध: च",
+      "name_nor": "sudarshana shApa mOkSha: shankhachUDa vadha: ariShTa vadha: cha",
+      "pos": 70,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "केशि वध: व्योमासुर वध: च",
+      "name_nor": "kEshi vadha: vyOmAsura vadha: cha",
+      "pos": 71,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "अक्रूर आगमनम्",
+      "name_nor": "akrUra Agamanam",
+      "pos": 72,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "भगवत: मधुरापुर यात्रा",
+      "name_nor": "bhagavata: madhurApura yAtrA",
+      "pos": 73,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "भगवत: मधुरापुरी प्रवेश:",
+      "name_nor": "bhagavata: madhurApurI pravEsha:",
+      "pos": 74,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "कंस वध:",
+      "name_nor": "kaMsa vadha:",
+      "pos": 75,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "उद्धव दूत्यं",
+      "name_nor": "uddhava dUtyaM",
+      "pos": 76,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "उपश्लोक उत्पत्ति:  जरासन्धादि युद्धं च",
+      "name_nor": "upashlOka utpatti:  jarAsandhAdi yuddhaM cha",
+      "pos": 77,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "द्वारका वास: रुक्मिणी सन्देश प्राप्ति: च",
+      "name_nor": "dvArakA vAsa: rukmiNI sandEsha prApti: cha",
+      "pos": 78,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "रुक्मिणी हरणम्",
+      "name_nor": "rukmiNI haraNam",
+      "pos": 79,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "स्यमन्तक उपाख्यानम्",
+      "name_nor": "syamantaka upAkhyAnam",
+      "pos": 80,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "कालिन्दी आदिपरिग्रह: पारिजात हरणं च",
+      "name_nor": "kAlindI Adiparigraha: pArijAta haraNaM cha",
+      "pos": 81,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "बाणयुद्धम् नृग मोक्ष: च",
+      "name_nor": "bANayuddham nRga mOkSha: cha",
+      "pos": 82,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "पौण्ड्रक वध: विविध वध: च",
+      "name_nor": "pauNDraka vadha: vividha vadha: cha",
+      "pos": 83,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "समन्तपञ्चक यात्रा बन्धुमित्रादि समागम: च",
+      "name_nor": "samantapanchaka yAtrA bandhumitrAdi samAgama: cha",
+      "pos": 84,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "जरासन्ध वध: शिशुपाल वध: च",
+      "name_nor": "jarAsandha vadha: shishupAla vadha: cha",
+      "pos": 85,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "साल्वादि वध: भारत युद्धं च",
+      "name_nor": "sAlvAdi vadha: bhArata yuddhaM cha",
+      "pos": 86,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "कुचेल वृत्तान्त:",
+      "name_nor": "kuchEla vRttAnta:",
+      "pos": 87,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "श्री सन्तान गोपाल:",
+      "name_nor": "shrI santAna gOpAla:",
+      "pos": 88,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "वृकासुर कथा भृगु परीक्षणं च",
+      "name_nor": "vRkAsura kathA bhRgu parIkShaNaM cha",
+      "pos": 89,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "विष्णु महत्त्व स्थापनम्",
+      "name_nor": "viShNu mahattva sthApanam",
+      "pos": 90,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "भक्ति महत्त्वम्",
+      "name_nor": "bhakti mahattvam",
+      "pos": 91,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "कर्म मिश्र भक्ति:",
+      "name_nor": "karma mishra bhakti:",
+      "pos": 92,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "चतुर्विंशति: गुरव:",
+      "name_nor": "chaturviMshati: gurava:",
+      "pos": 93,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "तत्त्व ज्ञान उत्पत्ति:",
+      "name_nor": "tattva jnAna utpatti:",
+      "pos": 94,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "ध्यान योग:",
+      "name_nor": "dhyAna yOga:",
+      "pos": 95,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "भगवत् विभूतय: ज्ञान कर्म भक्ति योग: च",
+      "name_nor": "bhagavat vibhUtaya: jnAna karma bhakti yOga: cha",
+      "pos": 96,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "मार्कण्डेय चरितम्",
+      "name_nor": "mArkaNDEya charitam",
+      "pos": 97,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "निष्कल ब्रह्म उपासनम्",
+      "name_nor": "niShkala brahma upAsanam",
+      "pos": 98,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "वेद स्तुति:",
+      "name_nor": "vEda stuti:",
+      "pos": 99,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    },
+    {
+      "name_dev": "केश आदि पाद वर्णनम्",
+      "name_nor": "kEsha Adi pAda varNanam",
+      "pos": 100,
+      "list": [],
+      "info": {
+        "type": "shloka",
+        "shloka_count": 10,
+        "total": 14
+      }
+    }
+  ]
+}

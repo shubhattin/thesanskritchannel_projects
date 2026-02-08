@@ -15,13 +15,13 @@ const recursive_list_type = z.object({
       // shloka, mantra and others are used as the same thing to mean
       shloka_count: z.int(),
       total: z.int().describe('Total Number of text lines/padas/units'),
-      shloka_count_expected: z.int().optional().describe('Expected Shloka Count')
+      shloka_count_expected: z.int().optional().nullable().describe('Expected Shloka Count')
     }),
     z.object({
       type: z.literal('list'),
       list_name: z.string().describe('Level/ListType Name'),
       list_count: z.int(),
-      list_count_expected: z.int().optional().describe('Expected List Count')
+      list_count_expected: z.int().optional().nullable().describe('Expected List Count')
     })
   ])
 });

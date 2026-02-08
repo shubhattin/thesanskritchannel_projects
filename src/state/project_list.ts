@@ -29,7 +29,9 @@ export const PROJECT_LIST: project_type[] = [
     id: 1,
     name: 'Valmiki Ramayanam',
     name_dev: 'श्रीमद्रामायणम्',
-    key: 'ramayanam'
+    key: 'ramayanam',
+    get_map: async () =>
+      (await import('@data/1. ramayanam/ramayanam_map.json')).default as recursive_list_type
   },
   {
     id: 2,

@@ -1,3 +1,4 @@
+from typing import Optional
 import shubhlipi as sh
 from pydantic import BaseModel
 import yaml
@@ -70,6 +71,7 @@ class SargaInfo(BaseModel):
     pos: int
     shloka_count: int
     shloka_count_expected: int | None = None
+    total: int
 
 
 class KAndaInfo(BaseModel):
@@ -77,7 +79,7 @@ class KAndaInfo(BaseModel):
     name_nor: str
     pos: int
     list_count: int
-    list_count_expected: int | None = None
+    list_count_expected: Optional[int] = None
     list: list[SargaInfo]
 
 
@@ -88,7 +90,7 @@ class ShlokaInfo(BaseModel):
 
 
 DATA = [KAndaInfo(**data) for data in sh.load_json(sh.read("ramayanam_map.json"))]
-SANSKRIT_NUMBER_NAMES: list[list[int, str]] = yaml.safe_load(sh.read("numbers.yaml"))
+SANSKRIT_NUMBER_NAMES: list[list[int | str]] = yaml.safe_load(sh.read("numbers.yaml"))
 
 TEMPLATE_FOLDER = "template"
 

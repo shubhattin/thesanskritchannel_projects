@@ -149,7 +149,7 @@ def get_shloka_text(kANDa_num: str, sarga_num: str, to_recreate_text_folder=Fals
 
 
 @app.command()
-def main(use_existing_text: bool = None):
+def main(use_existing_text: bool | None = None):
     CHOICES = ["1", "2"]
     DEFAULT_CHOICE = "1"
     choice: str = ""
@@ -197,7 +197,7 @@ def main(use_existing_text: bool = None):
             get_shloka_text(kANDa_num, sarga_num, choice == "2")
     end_time = time.time()
     if not use_existing_text:
-        console.print(f"[white bold]Time: {round(end_time-start_time)}s[/]")
+        console.print(f"[white bold]Time: {round(end_time - start_time)}s[/]")
 
 
 if __name__ == "__main__":

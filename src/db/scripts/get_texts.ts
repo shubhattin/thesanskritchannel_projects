@@ -56,13 +56,7 @@ const main = async () => {
     // console.log(`Processing ${project.key}...`);
     const level1_file = `../../../data/${project.id}. ${project.key}/data.json`;
     if (fs.existsSync(level1_file)) {
-      const data = text_schema
-        .array()
-        .parse(
-          JSON.parse(
-            fs.readFileSync(level1_file, 'utf-8')
-          )
-        );
+      const data = text_schema.array().parse(JSON.parse(fs.readFileSync(level1_file, 'utf-8')));
       let project_text_count = 0;
       for (const text of data) {
         texts.push({

@@ -122,7 +122,8 @@
     project_map: any,
     selected: (number | null)[]
   ) => {
-    if (levels === 1) return project_map?.info?.type === 'shloka' ? project_map.info.total ?? 0 : 0;
+    if (levels === 1)
+      return project_map?.info?.type === 'shloka' ? (project_map.info.total ?? 0) : 0;
     for (let i = 0; i < levels - 1; i++) if (!selected[i]) return 0;
     const path_params = selected.slice(0, levels - 1).reverse() as number[];
     const node = get_node_at_path(project_map, path_params);

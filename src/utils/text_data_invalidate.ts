@@ -1,7 +1,4 @@
-import {
-  get_project_from_key,
-  type project_keys_type
-} from '~/state/project_list';
+import { get_project_from_key, type project_keys_type } from '~/state/project_list';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import simpleGit from 'simple-git';
 import { z } from 'zod';

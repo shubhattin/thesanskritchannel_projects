@@ -288,8 +288,7 @@
             {@const text_level_state_index = levels - i - 2}
             {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
             {@const list_at_depth =
-              map_root &&
-              get_map_list_at_depth(map_root, levels, $image_selected_levels, i)}
+              map_root && get_map_list_at_depth(map_root, levels, $image_selected_levels, i)}
             {#if i === 0 || list_at_depth}
               {@render selecter({
                 name: level_name,

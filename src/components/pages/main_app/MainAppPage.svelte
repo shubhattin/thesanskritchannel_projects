@@ -30,9 +30,7 @@
     typing_assistance_modal_opened,
     image_tool_opened
   } from '~/state/main_app/state.svelte';
-  import {
-    type project_keys_type
-  } from '~/state/project_list';
+  import { type project_keys_type } from '~/state/project_list';
   import { transliterate_custom } from '~/tools/converter';
   import { delay } from '~/tools/delay';
   import { get_script_for_lang, get_text_font_class } from '~/tools/font_tools';
@@ -324,14 +322,15 @@
 {#each { length: levels - 1 } as _, i}
   {@const level_name = level_names[levels - i - 1]}
   {@const text_level_state_index = levels - i - 2}
+  {@const initial_option = get_initial_option_for_state_index(levels, text_level_state_index)}
   {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
   {@const list_at_depth =
     map_root && get_map_list_at_depth(map_root, levels, $selected_text_levels, i)}
-  {#if i === 0 || list_at_depth}
+  {#if i === 0 || list_at_depth || initial_option.value}
     {@render selecter({
       name: level_name,
       text_level_state_index,
-      initial_option: get_initial_option_for_state_index(levels, text_level_state_index),
+      initial_option,
       options: list_at_depth
         ? list_at_depth.map((text_level: any) => ({
             text: text_level.name_dev,

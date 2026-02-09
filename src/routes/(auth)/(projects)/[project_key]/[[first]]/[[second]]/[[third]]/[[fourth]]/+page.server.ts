@@ -75,6 +75,7 @@ export const load: PageServerLoad = async (opts) => {
       text = await get_text_data_func(project_key, path_params);
     }
   }
+  // console.log(level_names);
   return {
     project_key,
     levels,

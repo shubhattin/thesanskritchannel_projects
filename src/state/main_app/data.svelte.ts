@@ -199,7 +199,7 @@ export let get_total_count = (selected_text_levels: (number | null)[]) => {
   if (!_project_map_q.isSuccess) return 0;
   const project_map = _project_map_q.data;
 
-  if (levels === 1) return project_map?.info?.type === 'shloka' ? project_map.info.total ?? 0 : 0;
+  if (levels === 1) return project_map?.info?.type === 'shloka' ? (project_map.info.total ?? 0) : 0;
 
   // need complete selection to compute leaf total
   for (let i = 0; i < levels - 1; i++) if (!selected_text_levels[i]) return 0;

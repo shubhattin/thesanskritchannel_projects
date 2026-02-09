@@ -56,23 +56,11 @@
   const query_client = useQueryClient();
 
   let {
-    first,
-    first_name,
-    second,
-    second_name,
-    third,
-    third_name,
-    fourth,
-    fourth_name
+    path_params = [],
+    path_names = []
   }: {
-    first?: number;
-    first_name?: string;
-    second?: number;
-    second_name?: string;
-    third?: number;
-    third_name?: string;
-    fourth?: number;
-    fourth_name?: string;
+    path_params?: number[];
+    path_names?: (string | undefined)[];
   } = $props();
 
   let mounted = $state(false);
@@ -148,12 +136,10 @@
 
   const get_initial_option_for_state_index = (levels: number, state_index: number) => {
     // state_index is lower->higher (0 is lowest route param, levels-2 is highest route param)
-    const depth_from_highest = levels - 2 - state_index; // 0 => first, 1 => second, 2 => third, 3 => fourth
-    const vals = [first, second, third, fourth];
-    const names = [first_name, second_name, third_name, fourth_name];
+    const depth_from_highest = levels - 2 - state_index;
     return {
-      value: vals[depth_from_highest],
-      text: names[depth_from_highest]
+      value: path_params[depth_from_highest],
+      text: path_names[depth_from_highest]
     } satisfies option_type;
   };
 

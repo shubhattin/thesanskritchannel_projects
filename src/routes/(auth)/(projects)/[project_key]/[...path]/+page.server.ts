@@ -1,7 +1,6 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import {
-  clamp_levels_for_route,
   get_level_names_from_map,
   get_levels_from_map,
   get_project_from_key,
@@ -11,12 +10,21 @@ import { z } from 'zod';
 import { get_text_data_func } from '~/api/routes/text';
 import type { shloka_list_type } from '~/state/data_types';
 
-const params_schema = z.object({
-  first: z.coerce.number().int().optional(),
-  second: z.coerce.number().int().optional(),
-  third: z.coerce.number().int().optional(),
-  fourth: z.coerce.number().int().optional()
-});
+const path_params_schema = z.array(z.coerce.number().int());
+
+const parse_path_params = (path: string | undefined) => {
+  if (!path) return [];
+  let segments = path.split('/');
+  if (segments.length === 1 && segments[0] === '') segments = [];
+  if (segments.some((seg) => seg.trim().length === 0)) {
+    error(404, `Not found`);
+  }
+  const parsed = path_params_schema.safeParse(segments);
+  if (!parsed.success) {
+    error(404, `Not found`);
+  }
+  return parsed.data;
+};
 
 export const load: PageServerLoad = async (opts) => {
   const { params, isDataRequest } = opts;
@@ -27,25 +35,17 @@ export const load: PageServerLoad = async (opts) => {
   const project_key = project_key_.data;
   const project = get_project_from_key(project_key);
   const project_map = await project.get_map();
-  const levels = clamp_levels_for_route(get_levels_from_map(project_map));
+  const levels = get_levels_from_map(project_map);
   const level_names = get_level_names_from_map(project_map).slice(0, levels);
-  const { first, second, third, fourth } = params_schema.parse(params);
+  const path_params = parse_path_params(params.path);
 
   let text: shloka_list_type | undefined = undefined;
-  let first_name: string | undefined = undefined;
-  let second_name: string | undefined = undefined;
-  let third_name: string | undefined = undefined;
-  let fourth_name: string | undefined = undefined;
   let list_count: number | null = null;
+  let path_names: (string | undefined)[] = [];
 
-  // Validate path param shape early (no skipping levels, no extra levels).
-  if (!first && (second || third || fourth)) error(404, `Not found`);
-  if (!second && (third || fourth)) error(404, `Not found`);
-  if (!third && fourth) error(404, `Not found`);
-
-  const raw_params = [first, second, third, fourth];
-  const path_params = raw_params.filter((v): v is number => typeof v === 'number');
-  if (path_params.length > levels - 1) error(404, `Not found`);
+  if (path_params.length > levels - 1) {
+    error(404, `Not found`);
+  }
 
   if (levels === 1) {
     text = await get_text_data_func(project_key, []);
@@ -64,10 +64,7 @@ export const load: PageServerLoad = async (opts) => {
       }
       if (i === path_params.length - 1) list_count = list.length;
       node = list[sel - 1];
-      if (i === 0) first_name = node?.name_dev;
-      else if (i === 1) second_name = node?.name_dev;
-      else if (i === 2) third_name = node?.name_dev;
-      else if (i === 3) fourth_name = node?.name_dev;
+      path_names.push(node?.name_dev);
     }
 
     // Only fetch text when the selection is complete (leaf list selected).
@@ -75,19 +72,12 @@ export const load: PageServerLoad = async (opts) => {
       text = await get_text_data_func(project_key, path_params);
     }
   }
-  // console.log(level_names);
   return {
     project_key,
     levels,
     level_names,
-    first_name,
-    first,
-    second_name,
-    second,
-    third_name,
-    third,
-    fourth_name,
-    fourth,
+    path_params,
+    path_names,
     text,
     list_count
   };

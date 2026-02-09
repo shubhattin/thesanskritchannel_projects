@@ -91,9 +91,8 @@ export const get_project_from_key = (key: project_keys_type) => {
   return PROJECT_LIST[PROJECT_KEYS.indexOf(key)];
 };
 
-export const clamp_levels_for_route = (levels: number, max_levels = 5) => {
-  // current route supports `[[first]]..[[fourth]]` => at most 5 levels including leaf(shloka)
-  return Math.min(levels, max_levels);
+export const clamp_levels_for_route = (levels: number) => {
+  return levels;
 };
 
 export const get_levels_from_map = (map: recursive_list_type): number => {

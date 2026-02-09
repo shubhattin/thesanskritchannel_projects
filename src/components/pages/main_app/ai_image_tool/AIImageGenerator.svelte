@@ -34,7 +34,7 @@
   import { delay } from '~/tools/delay';
   import pretty_ms from 'pretty-ms';
   import ms from 'ms';
-  import { get_project_from_id, get_project_info_from_key } from '~/state/project_list';
+  import { get_project_from_id } from '~/state/project_list';
   import { CgClose } from 'svelte-icons-pack/cg';
   import { slide } from 'svelte/transition';
   import { get_result_from_trigger_run_id } from '~/tools/trigger';
@@ -118,13 +118,12 @@
   let additional_prompt_info = $derived(
     format_string_text(base_prompts.additional_prompt_info, {
       text_info: (() => {
-        const project_info = get_project_info_from_key($project_state.project_key!);
-        const { levels } = project_info;
+        const { levels, level_names } = $project_state;
         const path_params = $selected_text_levels.slice(0, levels - 1);
-        const level_names = project_info.level_names.slice(1);
+        const list_level_names = level_names.slice(1);
         return path_params
           .map((param, index) => {
-            const level_name = level_names[index];
+            const level_name = list_level_names[index];
             return `${level_name} ${param}`;
           })
           .join(', ');

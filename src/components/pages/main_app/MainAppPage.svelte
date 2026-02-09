@@ -31,8 +31,6 @@
     image_tool_opened
   } from '~/state/main_app/state.svelte';
   import {
-    get_map_type,
-    get_project_info_from_key,
     type project_keys_type
   } from '~/state/project_list';
   import { transliterate_custom } from '~/tools/converter';
@@ -115,7 +113,8 @@
     $project_map_q.data;
   });
 
-  const project_info = $derived(get_project_info_from_key($project_state.project_key!));
+  const levels = $derived($project_state.levels);
+  const level_names = $derived($project_state.level_names);
 
   type option_type = { text?: string; value?: number };
 
@@ -139,10 +138,14 @@
     for (let d = 0; d < depth; d++) {
       const sel = selected[levels - 2 - d];
       if (!sel) return null;
-      node = node?.[sel - 1]?.list;
+      if (node?.info?.type !== 'list') return null;
+      const list: any[] = node.list ?? [];
+      if (!(sel >= 1 && sel <= list.length)) return null;
+      node = list[sel - 1];
       if (!node) return null;
     }
-    return Array.isArray(node) ? node : null;
+    if (node?.info?.type !== 'list') return null;
+    return Array.isArray(node.list) ? node.list : null;
   };
 
   const get_initial_option_for_state_index = (levels: number, state_index: number) => {
@@ -159,7 +162,6 @@
   $effect(() => {
     if (!browser) return;
     let link = window.location.pathname;
-    const levels = project_info.levels;
     const path_params = $selected_text_levels.slice(0, levels - 1).reverse(); // higher -> lower
     link = get_link($project_state.project_key!, path_params);
     if (window.location.pathname !== link) goto(link);
@@ -319,20 +321,17 @@
     </Select.Content>
   </Select.Root>
 </label>
-{#each { length: project_info.levels - 1 } as _, i}
-  {@const level_name = project_info.level_names[project_info.levels - i - 1]}
-  {@const text_level_state_index = project_info.levels - i - 2}
+{#each { length: levels - 1 } as _, i}
+  {@const level_name = level_names[levels - i - 1]}
+  {@const text_level_state_index = levels - i - 2}
   {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
   {@const list_at_depth =
-    map_root && get_map_list_at_depth(map_root, project_info.levels, $selected_text_levels, i)}
+    map_root && get_map_list_at_depth(map_root, levels, $selected_text_levels, i)}
   {#if i === 0 || list_at_depth}
     {@render selecter({
       name: level_name,
       text_level_state_index,
-      initial_option: get_initial_option_for_state_index(
-        project_info.levels,
-        text_level_state_index
-      ),
+      initial_option: get_initial_option_for_state_index(levels, text_level_state_index),
       options: list_at_depth
         ? list_at_depth.map((text_level: any) => ({
             text: text_level.name_dev,

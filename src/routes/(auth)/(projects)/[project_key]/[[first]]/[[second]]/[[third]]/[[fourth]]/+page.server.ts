@@ -1,6 +1,12 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { project_keys_enum_schema, get_project_info_from_key } from '~/state/project_list';
+import {
+  clamp_levels_for_route,
+  get_level_names_from_map,
+  get_levels_from_map,
+  get_project_from_key,
+  project_keys_enum_schema
+} from '~/state/project_list';
 import { z } from 'zod';
 import { get_text_data_func } from '~/api/routes/text';
 import type { shloka_list_type } from '~/state/data_types';
@@ -19,11 +25,10 @@ export const load: PageServerLoad = async (opts) => {
     error(404, `Not found`);
   }
   const project_key = project_key_.data;
-  const project_info = get_project_info_from_key(project_key);
-  const { levels, level_names } = project_info;
-  // `project_info.levels` is currently typed as 1|2|3|5 in `PROJECT_INFO`,
-  // but routes may temporarily exist for level-4 projects as well.
-  const levels_num = levels as number;
+  const project = get_project_from_key(project_key);
+  const project_map = await project.get_map();
+  const levels = clamp_levels_for_route(get_levels_from_map(project_map));
+  const level_names = get_level_names_from_map(project_map).slice(0, levels);
   const { first, second, third, fourth } = params_schema.parse(params);
 
   let text: shloka_list_type | undefined = undefined;
@@ -31,105 +36,49 @@ export const load: PageServerLoad = async (opts) => {
   let second_name: string | undefined = undefined;
   let third_name: string | undefined = undefined;
   let fourth_name: string | undefined = undefined;
-  let list_count: number | undefined = undefined;
+  let list_count: number | null = null;
 
   // Validate path param shape early (no skipping levels, no extra levels).
   if (!first && (second || third || fourth)) error(404, `Not found`);
   if (!second && (third || fourth)) error(404, `Not found`);
   if (!third && fourth) error(404, `Not found`);
-  if (levels_num < 5 && fourth) error(404, `Not found`);
-  if (levels_num < 4 && third) error(404, `Not found`);
-  if (levels_num < 3 && second) error(404, `Not found`);
-  if (levels_num < 2 && first) error(404, `Not found`);
+
+  const raw_params = [first, second, third, fourth];
+  const path_params = raw_params.filter((v): v is number => typeof v === 'number');
+  if (path_params.length > levels - 1) error(404, `Not found`);
 
   if (levels === 1) {
     text = await get_text_data_func(project_key, []);
-  } else if (levels === 2) {
-    if (first) {
-      const text_map = await project_info.map_info();
-      if (!(first >= 1 && first <= text_map.length)) {
-        error(404, `${level_names[1]} Not found`);
+  } else if (path_params.length > 0) {
+    // Traverse dynamic map for names and validation.
+    let node: any = project_map;
+    for (let i = 0; i < path_params.length; i++) {
+      if (node?.info?.type !== 'list') {
+        error(404, `Not found`);
       }
-      first_name = text_map[first - 1].name_dev;
-      if (!isDataRequest) text = await get_text_data_func(project_key, [first]);
-      list_count = text_map.length;
+      const list: any[] = node.list ?? [];
+      const sel = path_params[i]!;
+      const level_name = level_names[levels - 1 - i] ?? 'Level';
+      if (!(sel >= 1 && sel <= list.length)) {
+        error(404, `${level_name} Not found`);
+      }
+      if (i === path_params.length - 1) list_count = list.length;
+      node = list[sel - 1];
+      if (i === 0) first_name = node?.name_dev;
+      else if (i === 1) second_name = node?.name_dev;
+      else if (i === 2) third_name = node?.name_dev;
+      else if (i === 3) fourth_name = node?.name_dev;
     }
-  } else if (levels === 3) {
-    if (first) {
-      const text_map = await project_info.map_info();
-      if (!(first >= 1 && first <= text_map.length)) {
-        error(404, `${level_names[2]} Not found`);
-      }
-      first_name = text_map[first - 1].name_dev;
-      if (second) {
-        const second_list = text_map[first - 1].list;
-        if (!(second >= 1 && second <= second_list.length)) {
-          error(404, `${level_names[1]} Not found`);
-        }
-        second_name = second_list[second - 1].name_dev;
-        if (!isDataRequest) text = await get_text_data_func(project_key, [first, second]);
-        list_count = second_list.length;
-      }
-    }
-  } else if (levels_num === 4) {
-    if (first) {
-      const text_map = await (project_info as any).map_info();
-      if (!(first >= 1 && first <= text_map.length)) {
-        error(404, `${level_names[3]} Not found`);
-      }
-      first_name = text_map[first - 1].name_dev;
-      if (second) {
-        const second_list = text_map[first - 1].list;
-        if (!(second >= 1 && second <= second_list.length)) {
-          error(404, `${level_names[2]} Not found`);
-        }
-        second_name = second_list[second - 1].name_dev;
-        if (third) {
-          const third_list = second_list[second - 1].list;
-          if (!(third >= 1 && third <= third_list.length)) {
-            error(404, `${level_names[1]} Not found`);
-          }
-          third_name = third_list[third - 1].name_dev;
-          if (!isDataRequest) text = await get_text_data_func(project_key, [first, second, third]);
-          list_count = third_list.length;
-        }
-      }
-    }
-  } else if (levels === 5) {
-    if (first) {
-      const text_map = await project_info.map_info();
-      if (!(first >= 1 && first <= text_map.length)) {
-        error(404, `${level_names[4]} Not found`);
-      }
-      first_name = text_map[first - 1].name_dev;
-      if (second) {
-        const second_list = text_map[first - 1].list;
-        if (!(second >= 1 && second <= second_list.length)) {
-          error(404, `${level_names[3]} Not found`);
-        }
-        second_name = second_list[second - 1].name_dev;
-        if (third) {
-          const third_list = second_list[second - 1].list;
-          if (!(third >= 1 && third <= third_list.length)) {
-            error(404, `${level_names[2]} Not found`);
-          }
-          third_name = third_list[third - 1].name_dev;
-          if (fourth) {
-            const fourth_list = third_list[third - 1].list;
-            if (!(fourth >= 1 && fourth <= fourth_list.length)) {
-              error(404, `${level_names[1]} Not found`);
-            }
-            fourth_name = fourth_list[fourth - 1].name_dev;
-            if (!isDataRequest)
-              text = await get_text_data_func(project_key, [first, second, third, fourth]);
-            list_count = fourth_list.length;
-          }
-        }
-      }
+
+    // Only fetch text when the selection is complete (leaf list selected).
+    if (path_params.length === levels - 1 && !isDataRequest) {
+      text = await get_text_data_func(project_key, path_params);
     }
   }
   return {
     project_key,
+    levels,
+    level_names,
     first_name,
     first,
     second_name,

@@ -35,7 +35,6 @@
   import { shloka_configs, SPACE_ABOVE_REFERENCE_LINE } from './settings';
   import { render_all_texts } from './render_text';
   import ImageOptions from './ImageOptions.svelte';
-  import { get_map_type, get_project_info_from_key } from '~/state/project_list';
   import { get_starting_index, project_map_q } from '~/state/main_app/data.svelte';
   import { transliterate_custom } from '~/tools/converter';
   import { deepCopy } from '~/tools/kry';
@@ -59,7 +58,8 @@
   $image_script = $viewing_script;
   if ($trans_lang !== 0) $image_lang = $trans_lang;
 
-  const project_info = $derived(get_project_info_from_key($project_state.project_key!));
+  const levels = $derived($project_state.levels);
+  const level_names = $derived($project_state.level_names);
   type option_type = { text?: string; value?: number };
 
   const get_map_list_at_depth = (
@@ -73,10 +73,14 @@
     for (let d = 0; d < depth; d++) {
       const sel = selected[levels - 2 - d];
       if (!sel) return null;
-      node = node?.[sel - 1]?.list;
+      if (node?.info?.type !== 'list') return null;
+      const list: any[] = node.list ?? [];
+      if (!(sel >= 1 && sel <= list.length)) return null;
+      node = list[sel - 1];
       if (!node) return null;
     }
-    return Array.isArray(node) ? node : null;
+    if (node?.info?.type !== 'list') return null;
+    return Array.isArray(node.list) ? node.list : null;
   };
 
   const transliterate_options = async (options: option_type[], script: script_list_type) => {
@@ -116,7 +120,7 @@
 
   $effect(() => {
     if ($image_selected_levels) {
-      $image_shloka = get_starting_index(project_info.key!, $image_selected_levels);
+      $image_shloka = get_starting_index($project_state.project_key!, $image_selected_levels);
       // reset after change
     }
   });
@@ -279,13 +283,13 @@
           </Select.Content>
         </Select.Root>
         <div class="inline-block space-x-1">
-          {#each { length: project_info.levels - 1 } as _, i}
-            {@const level_name = project_info.level_names[project_info.levels - i - 1]}
-            {@const text_level_state_index = project_info.levels - i - 2}
+          {#each { length: levels - 1 } as _, i}
+            {@const level_name = level_names[levels - i - 1]}
+            {@const text_level_state_index = levels - i - 2}
             {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
             {@const list_at_depth =
               map_root &&
-              get_map_list_at_depth(map_root, project_info.levels, $image_selected_levels, i)}
+              get_map_list_at_depth(map_root, levels, $image_selected_levels, i)}
             {#if i === 0 || list_at_depth}
               {@render selecter({
                 name: level_name,

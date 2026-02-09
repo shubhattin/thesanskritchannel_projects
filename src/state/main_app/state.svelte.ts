@@ -15,10 +15,12 @@ export let project_state = writable<{
   project_key: project_keys_type | null;
   project_id: number | null;
   levels: number;
+  level_names: string[];
 }>({
   project_key: null,
   project_id: null,
-  levels: 0
+  levels: 0,
+  level_names: []
 });
 export let list_count = writable<number | null>(null);
 

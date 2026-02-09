@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
-import { get_project_from_key, PROJECT_INFO, type project_keys_type } from '~/state/project_list';
-import {
-  type_1_map_schema,
-  type_2_map_schema,
-  type_3_map_schema,
-  type_4_map_schema,
-  type_5_map_schema
-} from '~/state/data_types';
+import { PROJECT_LIST } from '~/state/project_list';
+import { recursive_list_schema } from '~/state/data_types';
 import { type } from 'arktype';
 
 const ShlokaList = type({
@@ -18,31 +12,16 @@ const ShlokaList = type({
 
 describe('Checking correct shape of data', () => {
   it('Checking correct Map Structure', () => {
-    for (let key in PROJECT_INFO) {
-      const id = get_project_from_key(key as project_keys_type).id;
-      const project_info = PROJECT_INFO[key as project_keys_type];
-      const { levels } = project_info;
-      const map_loc = `./data/${id}. ${key}/${key}_map.json`;
+    for (const project of PROJECT_LIST) {
+      const map_loc = `./data/${project.id}. ${project.key}/${project.key}_map.json`;
       const data = JSON.parse(fs.readFileSync(map_loc, 'utf-8'));
-      if (levels === 1) {
-        type_1_map_schema.parse(data);
-      } else if (levels === 2) {
-        type_2_map_schema.parse(data);
-      } else if (levels === 3) {
-        type_3_map_schema.parse(data);
-        // @ts-ignore
-      } else if (levels === 4) {
-        type_4_map_schema.parse(data);
-      } else if (levels === 5) {
-        type_5_map_schema.parse(data);
-      }
+      recursive_list_schema.parse(data);
     }
   });
   it('Checking Shloka Text Data', () => {
-    for (let key in PROJECT_INFO) {
-      const project_info = PROJECT_INFO[key as project_keys_type];
-      const id = get_project_from_key(key as project_keys_type).id;
-      const data_folder = `./data/${id}. ${key}/data`;
+    for (const project of PROJECT_LIST) {
+      const level1_file = `./data/${project.id}. ${project.key}/data.json`;
+      const data_folder = `./data/${project.id}. ${project.key}/data`;
 
       // Function to recursively process all JSON files in a directory
       const processDirectory = (dir: string) => {
@@ -65,12 +44,13 @@ describe('Checking correct shape of data', () => {
           }
         }
       };
-      if (project_info.levels > 1) processDirectory(data_folder);
-      else {
-        const out = ShlokaList(JSON.parse(fs.readFileSync(`${data_folder}.json`, 'utf-8')));
+      if (fs.existsSync(level1_file)) {
+        const out = ShlokaList(JSON.parse(fs.readFileSync(level1_file, 'utf-8')));
         if (out instanceof type.errors) {
-          throw new Error(`Validation failed for ${key}`);
+          throw new Error(`Validation failed for ${project.key}`);
         }
+      } else {
+        processDirectory(data_folder);
       }
     }
   });

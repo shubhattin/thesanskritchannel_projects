@@ -1,13 +1,13 @@
 import { z } from 'zod';
 
-const recursive_list_type = z.object({
+export const recursive_list_schema = z.object({
   name_dev: z.string().describe('Name in Devanagari'),
   name_nor: z.string().describe('Name in English(normalized)'),
   // Every text map starts with a top level where `name_dev` is actually the name of the text
   pos: z.int().describe('Position starting from 1'),
   // ^ this level name is "Text" specific, like Shloka/Mantra, Sarga, Kanda, Chapter, Mandala, Sukta, etc.
   get list() {
-    return recursive_list_type.array();
+    return recursive_list_schema.array();
   },
   info: z.discriminatedUnion('type', [
     z.object({
@@ -25,7 +25,7 @@ const recursive_list_type = z.object({
     })
   ])
 });
-export type recursive_list_type = z.infer<typeof recursive_list_type>;
+export type recursive_list_type = z.infer<typeof recursive_list_schema>;
 
 // export const type_1_map_schema = z.object({
 //   name_dev: z.string().describe('Name in Devanagari'),

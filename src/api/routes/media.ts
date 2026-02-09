@@ -17,9 +17,10 @@ const get_media_list_route = publicProcedure
     })
   )
   .query(async ({ input: { project_id, selected_text_levels } }) => {
+    const { levels } = await get_project_info_from_id(project_id);
     const path_params = get_path_params(
       selected_text_levels,
-      get_project_info_from_id(project_id).levels
+      levels
     );
     type return_type = {
       id: number;
@@ -62,9 +63,10 @@ const add_media_link_route = protectedAdminProcedure
   )
   .mutation(
     async ({ input: { project_id, lang_id, link, media_type, selected_text_levels, name } }) => {
+      const { levels } = await get_project_info_from_id(project_id);
       const path_params = get_path_params(
         selected_text_levels,
-        get_project_info_from_id(project_id).levels
+        levels
       );
       const path = path_params.join(':');
       const [inserted] = await Promise.all([
@@ -99,9 +101,10 @@ const update_media_link_route = protectedAdminProcedure
     async ({
       input: { project_id, selected_text_levels, id, lang_id, link, media_type, name }
     }) => {
+      const { levels } = await get_project_info_from_id(project_id);
       const path_params = get_path_params(
         selected_text_levels,
-        get_project_info_from_id(project_id).levels
+        levels
       );
       // const path = path_params.join(':');
 
@@ -127,9 +130,10 @@ const delete_media_link_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { link_id, project_id, selected_text_levels } }) => {
+    const { levels } = await get_project_info_from_id(project_id);
     const path_params = get_path_params(
       selected_text_levels,
-      get_project_info_from_id(project_id).levels
+      levels
     );
 
     // await db.delete(media_attachment).where((tbl, { eq }) => eq(tbl.id, link_id));

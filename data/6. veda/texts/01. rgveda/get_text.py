@@ -30,9 +30,10 @@ console = Console()
 VEDIC_SVARAS = ["॒", "॑", "᳚", "᳛"]
 VISARGA = "ः"
 
+RGVEDA_SUBPATH_FILTER = "1"
 BASE_DIR = Path(__file__ + "/../..").resolve().parent
-RAW_DATA_FOLDER = str(BASE_DIR / "raw_data")
-OUTPUT_TEXT_FOLDER = str(BASE_DIR / "text_data")
+RAW_DATA_FOLDER = str(BASE_DIR / "raw_data" / RGVEDA_SUBPATH_FILTER)
+OUTPUT_TEXT_FOLDER = str(BASE_DIR / "text_data" / RGVEDA_SUBPATH_FILTER)
 
 
 _BR_RE = re.compile(r"<\s*br\s*/?\s*>", flags=re.IGNORECASE)

@@ -26,9 +26,10 @@ from rich.console import Console
 app = typer.Typer(add_completion=False)
 console = Console()
 
+RGVEDA_SUBPATH_FILTER = "1"
 BASE_DIR = Path(__file__ + "/../..").resolve().parent
-TEXT_DATA_FOLDER = str(BASE_DIR / "text_data")
-OUTPUT_DATA_FOLDER = str(BASE_DIR / "data")
+TEXT_DATA_FOLDER = str(BASE_DIR / "text_data" / RGVEDA_SUBPATH_FILTER)
+OUTPUT_DATA_FOLDER = str(BASE_DIR / "data" / RGVEDA_SUBPATH_FILTER)
 MAP_PATH = BASE_DIR / "veda_map.json"
 
 
@@ -227,7 +228,7 @@ def _update_rgveda_map(
                 return it
         return None
 
-    shakha_list = data["list"][0].get("list") or []
+    shakha_list = data["list"][int(RGVEDA_SUBPATH_FILTER) - 1].get("list") or []
     shakha = _find_child(shakha_list, name_nor="shAkala") or (
         shakha_list[0] if shakha_list and isinstance(shakha_list[0], dict) else None
     )
@@ -313,6 +314,9 @@ def main(
         "--out-folder",
         help="Output folder for generated .json files.",
     ),
+    silent: bool = typer.Option(
+        False, "--silent", "-s", help="Suppress console output."
+    ),
 ):
     """
     Walk .txt files under text_data and generate JSON under data/.
@@ -371,7 +375,8 @@ def main(
     if mandala_to_sukta_meta:
         _update_rgveda_map(mandala_to_sukta_meta=mandala_to_sukta_meta)
 
-    console.print(f"[green]Done.[/] wrote={wrote}")
+    if not silent:
+        console.print(f"[green]Done.[/] wrote={wrote}")
 
 
 if __name__ == "__main__":

@@ -46,7 +46,9 @@
     // `path_params` are higher -> lower (URL order). `selected_text_levels` are lower -> higher (index 0 is leaf).
     // So path_params[0] should populate the highest slot (levels-2), not the leaf slot (0).
     for (let i = 0; i < path_params.length && i < next.length; i++) {
-      const target_index = next.length - 1 - i;
+      const highest_state_index = levels - 2; // highest selector is always `levels-2`, even if we pad `next`
+      const target_index = highest_state_index - i;
+      if (target_index < 0 || target_index >= next.length) break;
       next[target_index] = path_params[i] ?? null;
     }
     $selected_text_levels = next;

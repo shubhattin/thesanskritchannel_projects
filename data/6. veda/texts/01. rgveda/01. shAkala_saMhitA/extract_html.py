@@ -280,7 +280,7 @@ def get_links_json(
         def _download_one(
             m_idx: int, s_idx: int, page_url: str
         ) -> tuple[str, int, int, str]:
-            save_path = f"../../raw_data/1/1/{m_idx + 1}/{s_idx + 1}.html"
+            save_path = f"../../../../raw_data/1/1/{m_idx + 1}/{s_idx + 1}.html"
             if (
                 (not force)
                 and os.path.exists(save_path)

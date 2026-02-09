@@ -205,7 +205,7 @@ export const get_project_info_from_key = async (
     if (project_info_cache.get(key) === promise) {
       project_info_cache.delete(key);
     }
-    throw err;
+    // throw err;
   });
   return promise;
 };

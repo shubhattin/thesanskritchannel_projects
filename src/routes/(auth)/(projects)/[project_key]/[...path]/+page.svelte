@@ -23,6 +23,8 @@
   type PageDataWithLevels = PageData & {
     levels: number;
     level_names: string[];
+    path_params: number[];
+    path_names: (string | undefined)[];
   };
   let { data }: { data: PageDataWithLevels } = $props();
 
@@ -38,22 +40,16 @@
     };
   }
   function set_selected_text_levels() {
-    if (levels === 5) {
-      $selected_text_levels = [
-        data.fourth ?? null,
-        data.third ?? null,
-        data.second ?? null,
-        data.first ?? null
-      ];
-    } else if (levels === 4) {
-      $selected_text_levels = [data.third ?? null, data.second ?? null, data.first ?? null];
-    } else if (levels === 2) {
-      $selected_text_levels = [data.first ?? null, null];
-    } else if (levels === 3) {
-      $selected_text_levels = [data.second ?? null, data.first ?? null];
-    } else {
-      $selected_text_levels = [null, null];
+    const total_levels = Math.max(levels - 1, 2);
+    const next = Array.from({ length: total_levels }, () => null) as (number | null)[];
+    const path_params = data.path_params ?? [];
+    // `path_params` are higher -> lower (URL order). `selected_text_levels` are lower -> higher (index 0 is leaf).
+    // So path_params[0] should populate the highest slot (levels-2), not the leaf slot (0).
+    for (let i = 0; i < path_params.length && i < next.length; i++) {
+      const target_index = next.length - 1 - i;
+      next[target_index] = path_params[i] ?? null;
     }
+    $selected_text_levels = next;
   }
   function set_list_count() {
     $list_count = data.list_count!;

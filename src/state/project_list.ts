@@ -39,7 +39,9 @@ export const PROJECT_LIST: project_type[] = [
     name_dev: 'श्रीमद्भगवद्गीता',
     key: 'bhagavadgita',
     get_map: async () =>
-      recursive_list_schema.parse((await import('@data/2. bhagavadgita/bhagavadgita_map.json')).default)
+      recursive_list_schema.parse(
+        (await import('@data/2. bhagavadgita/bhagavadgita_map.json')).default
+      )
   },
   {
     id: 3,
@@ -47,7 +49,9 @@ export const PROJECT_LIST: project_type[] = [
     name_dev: 'नारायणीयम्',
     key: 'narayaneeyam',
     get_map: async () =>
-      recursive_list_schema.parse((await import('@data/3. narayaneeyam/narayaneeyam_map.json')).default)
+      recursive_list_schema.parse(
+        (await import('@data/3. narayaneeyam/narayaneeyam_map.json')).default
+      )
   },
   {
     id: 4,
@@ -175,7 +179,9 @@ export type project_info_type = project_type & {
 
 const project_info_cache = new Map<project_keys_type, Promise<project_info_type>>();
 
-export const get_project_info_from_key = async (key: project_keys_type): Promise<project_info_type> => {
+export const get_project_info_from_key = async (
+  key: project_keys_type
+): Promise<project_info_type> => {
   const cached = project_info_cache.get(key);
   if (cached) return cached;
 
@@ -192,6 +198,15 @@ export const get_project_info_from_key = async (key: project_keys_type): Promise
   })();
 
   project_info_cache.set(key, promise);
+  promise.catch((err) => {
+    // If this in-flight promise rejects, clear only if it is still the stored value.
+    // This prevents transient failures from poisoning the cache, while concurrent
+    // callers still share the same in-flight promise.
+    if (project_info_cache.get(key) === promise) {
+      project_info_cache.delete(key);
+    }
+    throw err;
+  });
   return promise;
 };
 
@@ -199,93 +214,3 @@ export const get_project_info_from_id = async (id: number): Promise<project_info
   const project = get_project_from_id(id);
   return get_project_info_from_key(project.key);
 };
-
-// export type extendted_map_type =
-//   | {
-//       levels: 1;
-//       map_info: () => Promise<type_1_map_type>;
-//     }
-//   | {
-//       levels: 2;
-//       map_info: () => Promise<tyoe_2_map_type>;
-//     }
-//   | {
-//       levels: 3;
-//       map_info: () => Promise<type_3_map_type>;
-//     }
-//   | {
-//       levels: 4;
-//       map_info: () => Promise<type_4_map_type>;
-//     }
-//   | {
-//       levels: 5;
-//       map_info: () => Promise<type_5_map_type>;
-//     };
-
-// export const get_map_type = <T extends extendted_map_type['levels']>(
-//   map_info: Awaited<ReturnType<extendted_map_type['map_info']>>,
-//   levels: T
-// ): T extends 1
-//   ? type_1_map_type
-//   : T extends 2
-//     ? tyoe_2_map_type
-//     : T extends 3
-//       ? type_3_map_type
-//       : T extends 4
-//         ? type_4_map_type
-//         : T extends 5
-//           ? type_5_map_type
-//           : never => {
-//   return map_info as any;
-// };
-// type project_info_type = {
-//   [K in project_keys_type]: {
-//     // key: K;
-//     /** The project level here also includes shloka */
-//     level_names: string[];
-//   } & extendted_map_type;
-// };
-
-// export const PROJECT_INFO: project_info_type = {
-//   ramayanam: {
-//     levels: 3,
-//     level_names: ['Shloka', 'Sarga', 'Kanda'],
-//     map_info: async () => (await import('@data/1. ramayanam/ramayanam_map.json')).default
-//   },
-//   bhagavadgita: {
-//     levels: 2,
-//     level_names: ['Shloka', 'Chapter'],
-//     map_info: async () => (await import('@data/2. bhagavadgita/bhagavadgita_map.json')).default
-//   },
-//   narayaneeyam: {
-//     levels: 2,
-//     level_names: ['Shloka', 'Dashaka'],
-//     map_info: async () => (await import('@data/3. narayaneeyam/narayaneeyam_map.json')).default
-//   },
-//   shivatandavastotram: {
-//     levels: 1,
-//     level_names: ['Shloka'],
-//     map_info: async () =>
-//       (await import('@data/4. shivatandavastotram/shivatandavastotram_map.json')).default
-//   },
-//   saundaryalahari: {
-//     levels: 1,
-//     level_names: ['Shloka'],
-//     map_info: async () =>
-//       (await import('@data/5. saundaryalahari/saundaryalahari_map.json')).default
-//   },
-//   rgveda: {
-//     levels: 5,
-//     level_names: ['Mantra', 'Sukta', 'Mandala', 'Bhaga', 'Shakha'],
-//     map_info: async () => (await import('@data/6. rgveda/rgveda_map.json')).default
-//   }
-// };
-
-// export const get_project_info_from_key = (key: project_keys_type) => {
-//   return { ...PROJECT_INFO[key], key };
-// };
-//
-// export const get_project_info_from_id = (id: number) => {
-//   const project = PROJECT_LIST[id - 1];
-//   return get_project_info_from_key(project.key);
-// };

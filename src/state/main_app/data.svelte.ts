@@ -225,7 +225,6 @@ export const get_last_level_name = (selected_text_levels: (number | null)[]) => 
     dev = project_map?.name_dev ?? '';
     nor = project_map?.name_nor ?? '';
   } else {
-    for (let i = 0; i < levels - 1; i++) if (!selected_text_levels[i]) break;
     if (selected_text_levels[0]) {
       // best-effort: if higher levels are missing, this will still resolve to the last valid node
       const path_params = selected_text_levels

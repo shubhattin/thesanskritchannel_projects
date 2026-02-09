@@ -4,7 +4,6 @@ import { get_lang_from_id } from '~/state/lang_list';
 import {
   get_project_from_id,
   get_project_info_from_id,
-  get_project_from_key,
   type project_keys_type
 } from '~/state/project_list';
 import { TranslationSchemaZod } from '~/db/schema_zod';
@@ -31,9 +30,10 @@ async function main() {
   } = {};
 
   for (let trans of translations) {
-    const project_key = get_project_info_from_id(trans.project_id).key;
+    const project_info = await get_project_info_from_id(trans.project_id);
+    const project_key = project_info.key;
     const project_id = get_project_from_id(trans.project_id).id;
-    const levels = get_project_info_from_id(project_id).levels;
+    const levels = project_info.levels;
     if (!data[project_key]) {
       data[project_key] = {};
       fs.mkdirSync(`./data/translations/${project_id}. ${project_key}`);

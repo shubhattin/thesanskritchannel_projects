@@ -123,11 +123,13 @@ def _run_tests(data: list[str], kANDa_num: str, sarga_num: str):
 
     SARGA_SHLOKA_COUNT_TEST = TEST_INFO[4]
     sarga_info = DATA[int(kANDa_num) - 1].list[int(sarga_num) - 1]
-    if sarga_info.shloka_count != sarga_info.shloka_count_expected:
-        diff = sarga_info.shloka_count_expected - sarga_info.shloka_count
+    expected = sarga_info.info.shloka_count_expected
+    extracted = sarga_info.info.shloka_count
+    if expected is not None and extracted != expected:
+        diff = expected - extracted
         SARGA_SHLOKA_COUNT_TEST.variance.append(diff)
         SARGA_SHLOKA_COUNT_TEST.failed_cases.append(
-            f"{kANDa_num}-{sarga_num} → {sarga_info.shloka_count_expected}|{sarga_info.shloka_count}| "
+            f"{kANDa_num}-{sarga_num} → {expected}|{extracted}| "
             + ("+" if diff > 0 else "-")
             + f"{abs(diff)}"
         )

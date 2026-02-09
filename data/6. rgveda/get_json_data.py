@@ -202,42 +202,56 @@ def _update_rgveda_map(
     list_count_expected: Optional[int] = None,
 ) -> None:
     """
-    Updates rgveda_map.json in-place:
-      shAkala -> shAkalaSangHita -> list = [mandalas...]
+    Updates rgveda_map.json in-place (new recursive TS schema):
 
-    mandala_to_sukta_meta:
-      { mandala_num: { sukta_num: (shloka_count, total) } }
+      root(list_name=Shakha)
+        -> shAkala (list_name=Bhaga)
+          -> shAkalaSangHita (list_name=Mandala)
+            -> mandalas (list_name=Sukta)
+              -> suktas (type=shloka)
+
+    mandala_to_sukta_meta: { mandala_num: { sukta_num: (shloka_count, total) } }
     """
     if not MAP_PATH.exists():
         console.print(f"[yellow]Map file not found, skipping: {MAP_PATH}[/]")
         return
 
     data = json.loads(MAP_PATH.read_text(encoding="utf-8"))
-    if not isinstance(data, list) or not data:
+    if not isinstance(data, dict) or not isinstance(data.get("list"), list):
         console.print(f"[yellow]Unexpected map format, skipping: {MAP_PATH}[/]")
         return
 
-    # Current structure is expected to be:
-    # [ { ..., list: [ { name_nor: "shAkalaSangHita", list_count: 10, list: [...] } ] } ]
-    shakha = data[0]
-    samhita_list = shakha.get("list") or []
-    target = None
-    for item in samhita_list:
-        if isinstance(item, dict) and item.get("name_nor") == "shAkalaSangHita":
-            target = item
-            break
-    if target is None:
-        console.print(
-            "[yellow]Could not find shAkalaSangHita entry in map; skipping[/]"
-        )
+    def _find_child(items: list, *, name_nor: str) -> Optional[dict]:
+        for it in items:
+            if isinstance(it, dict) and it.get("name_nor") == name_nor:
+                return it
+        return None
+
+    shakha_list = data.get("list") or []
+    shakha = _find_child(shakha_list, name_nor="shAkala") or (
+        shakha_list[0] if shakha_list and isinstance(shakha_list[0], dict) else None
+    )
+    if not isinstance(shakha, dict):
+        console.print("[yellow]Could not find shakha node in map; skipping[/]")
         return
 
-    mandala_count = int(target.get("list_count") or 0)
+    bhaga_list = shakha.get("list") or []
+    target = _find_child(bhaga_list, name_nor="shAkalaSangHita")
+    if not isinstance(target, dict):
+        console.print("[yellow]Could not find shAkalaSangHita entry in map; skipping[/]")
+        return
+
+    info = target.get("info") or {}
+    if not isinstance(info, dict) or info.get("type") != "list":
+        console.print("[yellow]shAkalaSangHita node has unexpected info; skipping[/]")
+        return
+
+    mandala_count = int(info.get("list_count") or 0)
     if mandala_count <= 0:
         # fallback to max observed mandala
         mandala_count = max(mandala_to_sukta_meta.keys(), default=0)
     if list_count_expected is not None:
-        target["list_count_expected"] = list_count_expected
+        info["list_count_expected"] = list_count_expected
 
     mandala_items: list[dict] = []
     for mandala_num in range(1, mandala_count + 1):
@@ -252,8 +266,12 @@ def _update_rgveda_map(
                     "name_dev": f"सूक्त {_to_dev_digits(sukta_num)}",
                     "name_nor": f"sUkta {sukta_num}",
                     "pos": sukta_num,
-                    "shloka_count": int(shloka_count),
-                    "total": int(total),
+                    "info": {
+                        "type": "shloka",
+                        "shloka_count": int(shloka_count),
+                        "total": int(total),
+                    },
+                    "list": [],
                 }
             )
 
@@ -262,11 +280,18 @@ def _update_rgveda_map(
                 "name_dev": f"मण्डल {_to_dev_digits(mandala_num)}",
                 "name_nor": f"maNDala {mandala_num}",
                 "pos": mandala_num,
-                "list_count": len(sukta_items),
+                "info": {
+                    "type": "list",
+                    "list_name": "Sukta",
+                    "list_count": len(sukta_items),
+                },
                 "list": sukta_items,
             }
         )
 
+    info["list_name"] = info.get("list_name") or "Mandala"
+    info["list_count"] = len(mandala_items)
+    target["info"] = info
     target["list"] = mandala_items
     MAP_PATH.write_text(
         json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

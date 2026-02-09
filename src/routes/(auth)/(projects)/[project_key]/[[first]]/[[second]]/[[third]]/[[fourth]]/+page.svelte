@@ -9,11 +9,7 @@
     selected_text_levels,
     text_data_present
   } from '~/state/main_app/state.svelte';
-  import {
-    get_project_info_from_key,
-    get_project_from_key,
-    PROJECT_LIST
-  } from '~/state/project_list';
+  import { get_project_from_key, PROJECT_LIST } from '~/state/project_list';
   import UserControls from '~/components/pages/main_app/user/UserControls.svelte';
   import MainAppPage from '~/components/pages/main_app/MainAppPage.svelte';
   import * as Popover from '$lib/components/ui/popover';
@@ -24,16 +20,21 @@
   import { fade } from 'svelte/transition';
   import { AiOutlineHome } from 'svelte-icons-pack/ai';
 
-  let { data }: { data: PageData } = $props();
+  type PageDataWithLevels = PageData & {
+    levels: number;
+    level_names: string[];
+  };
+  let { data }: { data: PageDataWithLevels } = $props();
 
   const project_key = $derived(data.project_key);
-  const levels = $derived(get_project_info_from_key(project_key).levels);
+  const levels = $derived(data.levels);
   const project_id = $derived(get_project_from_key(project_key).id);
   function set_project_state() {
     $project_state = {
       project_key,
       project_id,
-      levels
+      levels,
+      level_names: data.level_names
     };
   }
   function set_selected_text_levels() {
@@ -44,6 +45,8 @@
         data.second ?? null,
         data.first ?? null
       ];
+    } else if (levels === 4) {
+      $selected_text_levels = [data.third ?? null, data.second ?? null, data.first ?? null];
     } else if (levels === 2) {
       $selected_text_levels = [data.first ?? null, null];
     } else if (levels === 3) {

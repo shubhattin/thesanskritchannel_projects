@@ -1,8 +1,4 @@
-import {
-  get_project_from_key,
-  get_project_info_from_key,
-  type project_keys_type
-} from '~/state/project_list';
+import { get_project_from_key, type project_keys_type } from '~/state/project_list';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import simpleGit from 'simple-git';
 import { z } from 'zod';
@@ -64,14 +60,12 @@ const get_invalidation_keys_for_files = (files: Set<string>) => {
     if (!/^data\/\d+\. [^/]+\//.test(file)) return;
     if (!file.endsWith('.json')) return;
     const project_key = file.split('/')[1].split('. ')[1] as project_keys_type;
-    const project_info = get_project_info_from_key(project_key);
     const project_id = get_project_from_key(project_key).id;
-    const { levels } = project_info;
-    if (levels === 1) {
-      if (file.endsWith('data.json')) {
-        const data = shloka_list_schema.parse(JSON.parse(fs.readFileSync(file, 'utf-8')));
-        invalidation_keys.push({ project_id, path_params: [], new_shloka_list: data });
-      }
+    const parts = file.split('/').filter(Boolean);
+    // level-1 projects store texts at: data/<id>. <key>/data.json
+    if (parts.length === 3 && file.endsWith('data.json')) {
+      const data = shloka_list_schema.parse(JSON.parse(fs.readFileSync(file, 'utf-8')));
+      invalidation_keys.push({ project_id, path_params: [], new_shloka_list: data });
       return;
     }
     const folder_container_name = file.split('/')[2];

@@ -5,9 +5,11 @@
   import { Switch } from '$lib/components/ui/switch';
   import { LANGUAGES, MODELS_LIST, MODEL_NAMES, type models_list_type } from './grammar_data';
   import {
-    get_map_type,
+    clamp_levels_for_route,
+    get_level_names_from_map,
+    get_levels_from_map,
+    get_node_at_path,
     get_project_from_key,
-    get_project_info_from_key,
     PROJECT_LIST,
     type project_keys_type
   } from '~/state/project_list';
@@ -73,9 +75,6 @@
   let selected_project_key = $state<project_keys_type | null>(null);
 
   let project = $derived(selected_project_key ? get_project_from_key(selected_project_key!) : null);
-  let project_info = $derived(
-    selected_project_key ? get_project_info_from_key(selected_project_key!) : null
-  );
 
   type option_type = { text?: string; value?: number };
   let project_map_q = $derived(
@@ -85,6 +84,17 @@
     })
   );
   let selected_text_levels = $state<(number | null)[]>([]);
+
+  const levels = $derived.by(() => {
+    if (!selected_project_key || !$project_map_q.isSuccess) return 0;
+    return clamp_levels_for_route(get_levels_from_map($project_map_q.data));
+  });
+
+  const level_names = $derived.by(() => {
+    if (!selected_project_key || !$project_map_q.isSuccess) return [] as string[];
+    const lvls = clamp_levels_for_route(get_levels_from_map($project_map_q.data));
+    return get_level_names_from_map($project_map_q.data).slice(0, lvls);
+  });
 
   const get_map_list_at_depth = (
     project_map: any,
@@ -97,10 +107,14 @@
     for (let d = 0; d < depth; d++) {
       const sel = selected[levels - 2 - d];
       if (!sel) return null;
-      node = node?.[sel - 1]?.list;
+      if (node?.info?.type !== 'list') return null;
+      const list: any[] = node.list ?? [];
+      if (!(sel >= 1 && sel <= list.length)) return null;
+      node = list[sel - 1];
       if (!node) return null;
     }
-    return Array.isArray(node) ? node : null;
+    if (node?.info?.type !== 'list') return null;
+    return Array.isArray(node.list) ? node.list : null;
   };
 
   const get_total_count_from_map = (
@@ -108,27 +122,22 @@
     project_map: any,
     selected: (number | null)[]
   ) => {
-    if (levels === 1) return project_map?.total ?? 0;
-    if (levels === 2) return project_map?.[selected[0]! - 1]?.total ?? 0;
-    let node: any = project_map;
-    for (let idx = levels - 2; idx >= 1; idx--) {
-      const sel = selected[idx];
-      if (!sel) return 0;
-      node = node?.[sel - 1]?.list;
-      if (!node) return 0;
-    }
-    const lowest = selected[0];
-    if (!lowest) return 0;
-    return node?.[lowest - 1]?.total ?? 0;
+    if (levels === 1)
+      return project_map?.info?.type === 'shloka' ? (project_map.info.total ?? 0) : 0;
+    for (let i = 0; i < levels - 1; i++) if (!selected[i]) return 0;
+    const path_params = selected.slice(0, levels - 1).reverse() as number[];
+    const node = get_node_at_path(project_map, path_params);
+    if (!node || node.info.type !== 'shloka') return 0;
+    return node.info.total ?? 0;
   };
 
   $effect(() => {
-    // keep selected_text_levels sized to project_info.levels - 1
-    if (!project_info) {
+    // keep selected_text_levels sized to levels - 1
+    if (!levels) {
       selected_text_levels = [];
       return;
     }
-    const desired_len = project_info.levels - 1;
+    const desired_len = levels - 1;
     if (selected_text_levels.length !== desired_len) {
       const next = Array.from({ length: desired_len }, (_, i) => selected_text_levels[i] ?? null);
       selected_text_levels = next;
@@ -136,8 +145,8 @@
   });
 
   let text_data_present = $derived.by(() => {
-    if (!project_info) return false;
-    for (let i = 0; i < project_info!.levels! - 1; i++) {
+    if (!levels) return false;
+    for (let i = 0; i < levels - 1; i++) {
       if (!selected_text_levels[i]) {
         return false;
       }
@@ -147,15 +156,14 @@
 
   let text_data_q = $derived(
     createQuery({
-      ...text_data_q_options(selected_text_levels, project?.key!, project_info?.levels!),
-      enabled: text_data_present && !!selected_project_key
+      ...text_data_q_options(selected_text_levels, project?.key!, levels),
+      enabled: text_data_present && !!selected_project_key && !!levels
     })
   );
 
   let shloka_number = $state(0);
   let total_count = $derived.by(() => {
-    if (!project_info || !$project_map_q.isSuccess) return 0;
-    const levels = project_info?.levels!;
+    if (!levels || !$project_map_q.isSuccess) return 0;
     const project_map = $project_map_q.data;
     return get_total_count_from_map(levels, project_map, selected_text_levels);
   });
@@ -236,15 +244,14 @@
         </Select.Root>
       </label>
     </div>
-    {#if selected_project_key && project_info && project && $project_map_q.isSuccess}
+    {#if selected_project_key && project && $project_map_q.isSuccess && levels > 0}
       <div class="flex items-center justify-start space-x-4">
-        {#each { length: project_info.levels - 1 } as _, i}
-          {@const level_name = project_info.level_names[project_info.levels - i - 1]}
-          {@const text_level_state_index = project_info.levels - i - 2}
+        {#each { length: levels - 1 } as _, i}
+          {@const level_name = level_names[levels - i - 1]}
+          {@const text_level_state_index = levels - i - 2}
           {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
           {@const list_at_depth =
-            map_root &&
-            get_map_list_at_depth(map_root, project_info.levels, selected_text_levels, i)}
+            map_root && get_map_list_at_depth(map_root, levels, selected_text_levels, i)}
           {#if i === 0 || list_at_depth}
             {@render selecter({
               name: level_name,

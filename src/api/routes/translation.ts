@@ -32,10 +32,8 @@ const get_translation_route = publicProcedure
       text: string;
     }[] = [];
 
-    const path_params = get_path_params(
-      selected_text_levels,
-      get_project_info_from_id(project_id).levels
-    );
+    const { levels } = await get_project_info_from_id(project_id);
+    const path_params = get_path_params(selected_text_levels, levels);
     const path = path_params.join(':');
     let cache = null;
     if (import.meta.env.PROD) {
@@ -82,10 +80,8 @@ const edit_translation_route = protectedAppScopeProcedure
       ctx: { user },
       input: { project_id, lang_id, selected_text_levels, data, indexes }
     }) => {
-      const path_params = get_path_params(
-        selected_text_levels,
-        get_project_info_from_id(project_id).levels
-      );
+      const { levels } = await get_project_info_from_id(project_id);
+      const path_params = get_path_params(selected_text_levels, levels);
       const path = path_params.join(':');
 
       // authorization check to edit or add lang records
@@ -163,10 +159,8 @@ const get_all_langs_translation_route = protectedAppScopeProcedure
   .query(async ({ input: { project_id, selected_text_levels } }) => {
     await delay(400);
 
-    const path_params = get_path_params(
-      selected_text_levels,
-      get_project_info_from_id(project_id).levels
-    );
+    const { levels } = await get_project_info_from_id(project_id);
+    const path_params = get_path_params(selected_text_levels, levels);
     const path = path_params.join(':');
     const data = await db.query.translations.findMany({
       columns: {

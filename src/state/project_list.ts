@@ -7,7 +7,7 @@ const PROJECT_KEYS = [
   'narayaneeyam',
   'shivatandavastotram',
   'saundaryalahari',
-  'rgveda'
+  'veda'
 ] as const;
 export const project_keys_enum_schema = z.enum(PROJECT_KEYS);
 export type project_keys_type = z.infer<typeof project_keys_enum_schema>;
@@ -75,11 +75,11 @@ export const PROJECT_LIST: project_type[] = [
   },
   {
     id: 6,
-    name: 'Rgveda',
-    name_dev: 'ऋग्वेद',
-    key: 'rgveda',
+    name: 'Veda',
+    name_dev: 'वेद',
+    key: 'veda',
     get_map: async () =>
-      recursive_list_schema.parse((await import('@data/6. rgveda/rgveda_map.json')).default)
+      recursive_list_schema.parse((await import('@data/6. veda/veda_map.json')).default)
   }
 ];
 

@@ -11,7 +11,7 @@ def main():
         cmd = f'cd "texts/{command[0]}" && uv run {command[1]}'
         os.system(cmd)
         print(f"{command[0]}")
-    print("[bold green]All JSON files generated successfully[/]")
+    print("[bold green]All Veda json files generated[/]")
 
 
 if __name__ == "__main__":

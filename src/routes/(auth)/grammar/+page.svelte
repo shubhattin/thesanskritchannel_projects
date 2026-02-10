@@ -8,6 +8,7 @@
     clamp_levels_for_route,
     get_level_names_from_map,
     get_levels_from_map,
+    get_list_name_at_depth_from_selected,
     get_node_at_path,
     get_project_from_key,
     PROJECT_LIST,
@@ -247,9 +248,19 @@
     {#if selected_project_key && project && $project_map_q.isSuccess && levels > 0}
       <div class="flex items-center justify-start space-x-4">
         {#each { length: levels - 1 } as _, i}
-          {@const level_name = level_names[levels - i - 1]}
           {@const text_level_state_index = levels - i - 2}
           {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
+          {@const fallback_level_name = level_names[levels - i - 1]}
+          {@const level_name =
+            map_root && levels > 0
+              ? get_list_name_at_depth_from_selected(
+                  map_root,
+                  levels,
+                  selected_text_levels,
+                  i,
+                  fallback_level_name
+                )
+              : fallback_level_name}
           {@const list_at_depth =
             map_root && get_map_list_at_depth(map_root, levels, selected_text_levels, i)}
           {#if i === 0 || list_at_depth}

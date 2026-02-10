@@ -42,6 +42,7 @@
   import Icon from '~/tools/Icon.svelte';
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
   import { Button } from '$lib/components/ui/button';
+  import { get_list_name_at_depth_from_selected } from '~/state/project_list';
 
   type Props = {
     onClose?: () => void;
@@ -284,9 +285,19 @@
         </Select.Root>
         <div class="inline-block space-x-1">
           {#each { length: levels - 1 } as _, i}
-            {@const level_name = level_names[levels - i - 1]}
             {@const text_level_state_index = levels - i - 2}
             {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
+            {@const fallback_level_name = level_names[levels - i - 1]}
+            {@const level_name =
+              map_root && levels > 0
+                ? get_list_name_at_depth_from_selected(
+                    map_root,
+                    levels,
+                    $image_selected_levels,
+                    i,
+                    fallback_level_name
+                  )
+                : fallback_level_name}
             {@const list_at_depth =
               map_root && get_map_list_at_depth(map_root, levels, $image_selected_levels, i)}
             {#if i === 0 || list_at_depth}

@@ -148,6 +148,56 @@ export const get_node_at_path = (map: recursive_list_type, path_params: number[]
   return node;
 };
 
+export const get_list_node_at_depth_from_selected = (
+  map: recursive_list_type,
+  levels: number,
+  selected_text_levels: (number | null)[],
+  depth: number
+): recursive_list_type | null => {
+  // depth: 0 -> root list (highest selector), 1 -> list under highest selection, etc.
+  // selected_text_levels is lower -> higher (index 0 is the lowest route param).
+  let node: recursive_list_type = map;
+  for (let d = 0; d < depth; d++) {
+    const sel = selected_text_levels[levels - 2 - d];
+    if (!sel) return null;
+    if (node.info.type !== 'list') return null;
+    const list = node.list ?? [];
+    if (!(sel >= 1 && sel <= list.length)) return null;
+    node = list[sel - 1]!;
+  }
+  return node.info.type === 'list' ? node : null;
+};
+
+export const get_list_name_at_depth_from_selected = (
+  map: recursive_list_type,
+  levels: number,
+  selected_text_levels: (number | null)[],
+  depth: number,
+  fallback = 'Level'
+): string => {
+  const node = get_list_node_at_depth_from_selected(map, levels, selected_text_levels, depth);
+  return node?.info.type === 'list' ? node.info.list_name : fallback;
+};
+
+export const get_list_name_for_path_param_index = (
+  map: recursive_list_type,
+  path_params: number[],
+  index: number,
+  fallback = 'Level'
+): string => {
+  // path_params are higher -> lower (matching the route segments).
+  // index is the param we are about to validate (0 is the highest selector).
+  let node: recursive_list_type = map;
+  for (let i = 0; i < index; i++) {
+    if (node.info.type !== 'list') return fallback;
+    const list = node.list ?? [];
+    const sel = path_params[i]!;
+    if (!(sel >= 1 && sel <= list.length)) return fallback;
+    node = list[sel - 1]!;
+  }
+  return node.info.type === 'list' ? node.info.list_name : fallback;
+};
+
 export const get_list_length_for_last_param = (map: recursive_list_type, path_params: number[]) => {
   if (path_params.length === 0) return null;
   let node: recursive_list_type = map;

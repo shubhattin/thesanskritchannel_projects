@@ -3,6 +3,7 @@ import type { PageServerLoad } from './$types';
 import {
   get_level_names_from_map,
   get_levels_from_map,
+  get_list_name_for_path_param_index,
   get_project_from_key,
   project_keys_enum_schema
 } from '~/state/project_list';
@@ -58,7 +59,7 @@ export const load: PageServerLoad = async (opts) => {
       }
       const list: any[] = node.list ?? [];
       const sel = path_params[i]!;
-      const level_name = level_names[levels - 1 - i] ?? 'Level';
+      const level_name = get_list_name_for_path_param_index(project_map, path_params, i, 'Level');
       if (!(sel >= 1 && sel <= list.length)) {
         error(404, `${level_name} Not found`);
       }

@@ -30,7 +30,10 @@
     typing_assistance_modal_opened,
     image_tool_opened
   } from '~/state/main_app/state.svelte';
-  import { type project_keys_type } from '~/state/project_list';
+  import {
+    get_list_name_at_depth_from_selected,
+    type project_keys_type
+  } from '~/state/project_list';
   import { transliterate_custom } from '~/tools/converter';
   import { delay } from '~/tools/delay';
   import { get_script_for_lang, get_text_font_class } from '~/tools/font_tools';
@@ -306,10 +309,20 @@
   </Select.Root>
 </label>
 {#each { length: levels - 1 } as _, i}
-  {@const level_name = level_names[levels - i - 1]}
   {@const text_level_state_index = levels - i - 2}
   {@const initial_option = get_initial_option_for_state_index(levels, text_level_state_index)}
   {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
+  {@const fallback_level_name = level_names[levels - i - 1]}
+  {@const level_name =
+    map_root && levels > 0
+      ? get_list_name_at_depth_from_selected(
+          map_root,
+          levels,
+          $selected_text_levels,
+          i,
+          fallback_level_name
+        )
+      : fallback_level_name}
   {@const list_at_depth =
     map_root && get_map_list_at_depth(map_root, levels, $selected_text_levels, i)}
   {#if i === 0 || list_at_depth || initial_option.value}

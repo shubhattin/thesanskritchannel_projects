@@ -32,6 +32,7 @@
   } from '~/state/main_app/state.svelte';
   import {
     get_list_name_at_depth_from_selected,
+    get_node_at_path,
     type project_keys_type
   } from '~/state/project_list';
   import { transliterate_custom } from '~/tools/converter';
@@ -40,6 +41,7 @@
   import Icon from '~/tools/Icon.svelte';
   import { fade, scale, slide } from 'svelte/transition';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
+  import { AiOutlineStop } from 'svelte-icons-pack/ai';
   import Display from './display/Display.svelte';
   import {
     english_edit_status,
@@ -105,7 +107,7 @@
   const levels = $derived($project_state.levels);
   const level_names = $derived($project_state.level_names);
 
-  type option_type = { text?: string; value?: number };
+  type option_type = { text?: string; value?: number; empty_child?: boolean };
 
   const get_link = (project_key: project_keys_type, path_params: (number | null | undefined)[]) => {
     let link = `/${project_key}`;
@@ -310,7 +312,7 @@
 </label>
 {#each { length: levels - 1 } as _, i}
   {@const text_level_state_index = levels - i - 2}
-  {@const initial_option = get_initial_option_for_state_index(levels, text_level_state_index)}
+  {@const initial_option_base = get_initial_option_for_state_index(levels, text_level_state_index)}
   {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
   {@const fallback_level_name = level_names[levels - i - 1]}
   {@const level_name =
@@ -323,6 +325,21 @@
           fallback_level_name
         )
       : fallback_level_name}
+  {@const initial_option_node =
+    map_root && initial_option_base.value
+      ? get_node_at_path(map_root, path_params.slice(0, i + 1) as number[])
+      : null}
+  {@const initial_option =
+    map_root && i < levels - 2 && initial_option_base.value
+      ? {
+          ...initial_option_base,
+          empty_child: !(
+            initial_option_node?.info?.type === 'list' &&
+            Array.isArray(initial_option_node?.list) &&
+            initial_option_node.list.length > 0
+          )
+        }
+      : initial_option_base}
   {@const list_at_depth =
     map_root && get_map_list_at_depth(map_root, levels, $selected_text_levels, i)}
   {#if i === 0 || list_at_depth || initial_option.value}
@@ -333,7 +350,15 @@
       options: list_at_depth
         ? list_at_depth.map((text_level: any) => ({
             text: text_level.name_dev,
-            value: text_level.pos
+            value: text_level.pos,
+            empty_child:
+              i < levels - 2
+                ? !(
+                    text_level?.info?.type === 'list' &&
+                    Array.isArray(text_level?.list) &&
+                    text_level.list.length > 0
+                  )
+                : false
           }))
         : false
     })}
@@ -382,21 +407,36 @@
         {#if !options}
           {#if initial_option.value}
             <Select.Item value={initial_option.value.toString()}>
-              {initial_option.value}. {initial_option.text}
+              <span class="flex w-full items-center justify-between gap-2">
+                <span>{initial_option.value}. {initial_option.text}</span>
+                {#if initial_option.empty_child}
+                  <Icon class="text-base opacity-70" src={AiOutlineStop} />
+                {/if}
+              </span>
             </Select.Item>
           {/if}
         {:else}
           {#await transliterate_options(options, $viewing_script)}
             {#each options as option}
-              <Select.Item value={option.value!.toString()}
-                >{option.value}. {option.text}</Select.Item
-              >
+              <Select.Item value={option.value!.toString()}>
+                <span class="flex w-full items-center justify-between gap-2">
+                  <span>{option.value}. {option.text}</span>
+                  {#if option.empty_child}
+                    <Icon class="size-4 opacity-70" src={AiOutlineStop} />
+                  {/if}
+                </span>
+              </Select.Item>
             {/each}
           {:then options_tr}
             {#each options_tr as option}
-              <Select.Item value={option.value!.toString()}
-                >{option.value}. {option.text}</Select.Item
-              >
+              <Select.Item value={option.value!.toString()}>
+                <span class="flex w-full items-center justify-between gap-2">
+                  <span>{option.value}. {option.text}</span>
+                  {#if option.empty_child}
+                    <Icon class="size-4 opacity-70" src={AiOutlineStop} />
+                  {/if}
+                </span>
+              </Select.Item>
             {/each}
           {/await}
         {/if}

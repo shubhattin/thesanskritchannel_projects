@@ -116,6 +116,20 @@ wheels = [
 ]
 
 [[package]]
+name = "lipilekhika"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/15/26/bea8e392c8e59739805fb959d619723fa453dbcd494c819a7192509f3701/lipilekhika-1.0.1.tar.gz", hash = "sha256:23166fb4e58448a703a648d085a5ccb823687aac9cc3d9cdbae3175cc00be7ac", size = 132820, upload-time = "2026-01-29T14:39:19.75Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/60/db/524e1b424150f79f968e1391f733f3095600e1743e32a00a26e20d5c8602/lipilekhika-1.0.1-cp310-cp310-macosx_10_12_x86_64.whl", hash = "sha256:b99b251f417683893355464b25dc015d9fa5c404db9115b622e8aecbe274d7b4", size = 413133, upload-time = "2026-01-29T14:38:29.532Z" },
+    { url = "https://files.pythonhosted.org/packages/16/16/0e2f64e8633a0b98c8157578523ceeb37dd6262dbd6f1ebbb3122715fb96/lipilekhika-1.0.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:6fb6ff4e8f5e1c143874f4b97a6be7be5fd9275e31710c28e74d8a060a508d53", size = 406350, upload-time = "2026-01-29T14:38:30.951Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/29/f3604ae2ca2a40795004a298ad50ef8cab7bfa0ef6b3b7de4214a39f3649/lipilekhika-1.0.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3629b0bda36a568d7b908756e00e5c306e35d1105dbcff5ff8afc41981363501", size = 440007, upload-time = "2026-01-29T14:38:32.345Z" },
+    { url = "https://files.pythonhosted.org/packages/28/09/eb449d6eada2477f3268221b2258e0fcab829b9c99a007ddb87a0de69035/lipilekhika-1.0.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:149bd7a3d3dac603adeb6cdadff55efd081f71e6219cc612fa2eca21c3349b4c", size = 448938, upload-time = "2026-01-29T14:38:34.196Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/86/968adf30fb03c956b4dae4d1260502912c11ce5f2cd186872df9c897ff66/lipilekhika-1.0.1-cp310-cp310-win_amd64.whl", hash = "sha256:11681015678f6f95522912d9e4ea1b50d1441695427f0d49b35f554226dafe35", size = 288617, upload-time = "2026-01-29T14:38:35.708Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/c6/1cbf9907bda33eef8c924dd7c99e28077d077a80c74e1a31f2bb324631f5/lipilekhika-1.0.1-cp310-cp310-win_arm64.whl", hash = "sha256:955fddb492332e9088f1b73d3e1576d6fdf1b1c7acfc6bebb76399eacf55df89", size = 281435, upload-time = "2026-01-29T14:38:37.98Z" },
+]
+
+[[package]]
 name = "lxml"
 version = "5.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -443,6 +457,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "jinja2" },
+    { name = "lipilekhika" },
     { name = "pydantic" },
     { name = "pyquery" },
     { name = "pyyaml" },
@@ -461,6 +476,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "lipilekhika", specifier = ">=1.0.1" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pyquery", specifier = ">=2.0.1" },
     { name = "pyyaml", specifier = ">=6.0.2" },

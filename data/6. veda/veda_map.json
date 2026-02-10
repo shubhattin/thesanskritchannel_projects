@@ -5,12 +5,12 @@
     "info": {
         "type": "list",
         "list_name": "Veda",
-        "list_count": 4
+        "list_count": 5
     },
     "list": [
         {
-            "name_dev": "ऋग्वेद",
-            "name_nor": "RgvEda",
+            "name_dev": "ऋग्वेदः",
+            "name_nor": "RgvEdaH",
             "pos": 1,
             "info": {
                 "type": "list",
@@ -34,7 +34,7 @@
                             "pos": 1,
                             "info": {
                                 "type": "list",
-                                "list_name": "Mandala",
+                                "list_name": "Maṇḍala",
                                 "list_count": 10
                             },
                             "list": [
@@ -44,7 +44,7 @@
                                     "pos": 1,
                                     "info": {
                                         "type": "list",
-                                        "list_name": "Sukta",
+                                        "list_name": "Sūkta",
                                         "list_count": 191
                                     },
                                     "list": [
@@ -2157,7 +2157,7 @@
                                     "pos": 2,
                                     "info": {
                                         "type": "list",
-                                        "list_name": "Sukta",
+                                        "list_name": "Sūkta",
                                         "list_count": 43
                                     },
                                     "list": [
@@ -2642,7 +2642,7 @@
                                     "pos": 3,
                                     "info": {
                                         "type": "list",
-                                        "list_name": "Sukta",
+                                        "list_name": "Sūkta",
                                         "list_count": 62
                                     },
                                     "list": [
@@ -3336,7 +3336,7 @@
                                     "pos": 4,
                                     "info": {
                                         "type": "list",
-                                        "list_name": "Sukta",
+                                        "list_name": "Sūkta",
                                         "list_count": 58
                                     },
                                     "list": [
@@ -3986,7 +3986,7 @@
                                     "pos": 5,
                                     "info": {
                                         "type": "list",
-                                        "list_name": "Sukta",
+                                        "list_name": "Sūkta",
                                         "list_count": 87
                                     },
                                     "list": [
@@ -4955,7 +4955,7 @@
                                     "pos": 6,
                                     "info": {
                                         "type": "list",
-                                        "list_name": "Sukta",
+                                        "list_name": "Sūkta",
                                         "list_count": 75
                                     },
                                     "list": [
@@ -5792,7 +5792,7 @@
                                     "pos": 7,
                                     "info": {
                                         "type": "list",
-                                        "list_name": "Sukta",
+                                        "list_name": "Sūkta",
                                         "list_count": 104
                                     },
                                     "list": [
@@ -6948,7 +6948,7 @@
                                     "pos": 8,
                                     "info": {
                                         "type": "list",
-                                        "list_name": "Sukta",
+                                        "list_name": "Sūkta",
                                         "list_count": 102
                                     },
                                     "list": [
@@ -8082,7 +8082,7 @@
                                     "pos": 9,
                                     "info": {
                                         "type": "list",
-                                        "list_name": "Sukta",
+                                        "list_name": "Sūkta",
                                         "list_count": 114
                                     },
                                     "list": [
@@ -9348,7 +9348,7 @@
                                     "pos": 10,
                                     "info": {
                                         "type": "list",
-                                        "list_name": "Sukta",
+                                        "list_name": "Sūkta",
                                         "list_count": 191
                                     },
                                     "list": [
@@ -11652,8 +11652,8 @@
             ]
         },
         {
-            "name_dev": "यजुर्वेद",
-            "name_nor": "yajurvEda",
+            "name_dev": "शुक्लयजुर्वेदः",
+            "name_nor": "shuklayajurvEdaH",
             "pos": 2,
             "info": {
                 "type": "list",
@@ -11668,7 +11668,7 @@
                     "info": {
                         "type": "list",
                         "list_name": "Śākhā",
-                        "list_count": 0
+                        "list_count": 2
                     },
                     "list": [
                         {
@@ -11702,7 +11702,7 @@
                     "info": {
                         "type": "list",
                         "list_name": "Śākhā",
-                        "list_count": 0
+                        "list_count": 2
                     },
                     "list": [
                         {
@@ -11736,7 +11736,7 @@
                     "info": {
                         "type": "list",
                         "list_name": "",
-                        "list_count": 0
+                        "list_count": 1
                     },
                     "list": [
                         {
@@ -11759,7 +11759,7 @@
                     "info": {
                         "type": "list",
                         "list_name": "",
-                        "list_count": 0
+                        "list_count": 19
                     },
                     "list": [
                         {
@@ -11976,9 +11976,520 @@
             ]
         },
         {
-            "name_dev": "सामवेद",
-            "name_nor": "sAmavEda",
+            "name_dev": "कृष्णयजुर्वेदः",
+            "name_nor": "kRShNayajurvEdaH",
             "pos": 3,
+            "info": {
+                "type": "list",
+                "list_name": "Bhāga",
+                "list_count": 4
+            },
+            "list": [
+                {
+                    "name_dev": "संहिता",
+                    "name_nor": "saMhitA",
+                    "pos": 1,
+                    "info": {
+                        "type": "list",
+                        "list_name": "Śākhā",
+                        "list_count": 4
+                    },
+                    "list": [
+                        {
+                            "name_dev": "तैत्तिरीय",
+                            "name_nor": "taittirIya",
+                            "pos": 1,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "मैत्रायणी",
+                            "name_nor": "maitrAyaNI",
+                            "pos": 2,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "काठक",
+                            "name_nor": "kAThaka",
+                            "pos": 3,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "कठ-कपिस्थल",
+                            "name_nor": "kaTha-kapisthala",
+                            "pos": 4,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        }
+                    ]
+                },
+                {
+                    "name_dev": "ब्राह्मण",
+                    "name_nor": "brAhmaNa",
+                    "pos": 2,
+                    "info": {
+                        "type": "list",
+                        "list_name": "Śākhā",
+                        "list_count": 4
+                    },
+                    "list": [
+                        {
+                            "name_dev": "तैत्तिरीय",
+                            "name_nor": "taittirIya",
+                            "pos": 1,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "मैत्रायणी",
+                            "name_nor": "maitrAyaNI",
+                            "pos": 2,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "काठक",
+                            "name_nor": "kAThaka",
+                            "pos": 3,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "कठ-कपिस्थल",
+                            "name_nor": "kaTha-kapisthala",
+                            "pos": 4,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        }
+                    ]
+                },
+                {
+                    "name_dev": "अरण्यक",
+                    "name_nor": "araNyaka",
+                    "pos": 3,
+                    "info": {
+                        "type": "list",
+                        "list_name": "",
+                        "list_count": 1
+                    },
+                    "list": [
+                        {
+                            "name_dev": "तैत्तिरीय",
+                            "name_nor": "taittirIya",
+                            "pos": 1,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        }
+                    ]
+                },
+                {
+                    "name_dev": "उपनिषद्",
+                    "name_nor": "upaniShad",
+                    "pos": 4,
+                    "info": {
+                        "type": "list",
+                        "list_name": "",
+                        "list_count": 32
+                    },
+                    "list": [
+                        {
+                            "name_dev": "कठ",
+                            "name_nor": "kaTha",
+                            "pos": 1,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "वल्ली",
+                            "name_nor": "vallI",
+                            "pos": 2,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "तैत्तिरीयक",
+                            "name_nor": "taittirIyaka",
+                            "pos": 3,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "ब्रह्म",
+                            "name_nor": "brahma",
+                            "pos": 4,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "कैवल्य",
+                            "name_nor": "kaivalya",
+                            "pos": 5,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "श्वेताश्वतर",
+                            "name_nor": "shvEtAshvatara",
+                            "pos": 6,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "गर्भ",
+                            "name_nor": "garbha",
+                            "pos": 7,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "नारायण",
+                            "name_nor": "nArAyaNa",
+                            "pos": 8,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "अमृतबिन्दु",
+                            "name_nor": "amRtabindu",
+                            "pos": 9,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "अमृतनाद",
+                            "name_nor": "amRtanAda",
+                            "pos": 10,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "कालाग्निरुद्र",
+                            "name_nor": "kAlAgnirudra",
+                            "pos": 11,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "क्षुरिका",
+                            "name_nor": "kShurikA",
+                            "pos": 12,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "सर्वसार",
+                            "name_nor": "sarvasAra",
+                            "pos": 13,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "शुकरहस्य",
+                            "name_nor": "shukarahasya",
+                            "pos": 14,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "तेजोबिन्दु",
+                            "name_nor": "tEjObindu",
+                            "pos": 15,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "ध्यानबिन्दु",
+                            "name_nor": "dhyAnabindu",
+                            "pos": 16,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "ब्रह्मविद्या",
+                            "name_nor": "brahmavidyA",
+                            "pos": 17,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "योगतत्त्व",
+                            "name_nor": "yOgatattva",
+                            "pos": 18,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "दक्षिणामूर्ति",
+                            "name_nor": "dakShiNAmUrti",
+                            "pos": 19,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "स्कन्दशारीरक",
+                            "name_nor": "skandashArIraka",
+                            "pos": 20,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "योगशिखा",
+                            "name_nor": "yOgashikhA",
+                            "pos": 21,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "एकाक्षर",
+                            "name_nor": "EkAkShara",
+                            "pos": 22,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "अक्षि",
+                            "name_nor": "akShi",
+                            "pos": 23,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "अवधूत",
+                            "name_nor": "avadhUta",
+                            "pos": 24,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "कठ",
+                            "name_nor": "kaTha",
+                            "pos": 25,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "रुद्रहृदय",
+                            "name_nor": "rudrahRdaya",
+                            "pos": 26,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "योगकुण्डलिनी",
+                            "name_nor": "yOgakuNDalinI",
+                            "pos": 27,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "पन्चब्रह्म",
+                            "name_nor": "panchabrahma",
+                            "pos": 28,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "प्राणाग्निहोत्र",
+                            "name_nor": "prANAgnihOtra",
+                            "pos": 29,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "वराह",
+                            "name_nor": "varAha",
+                            "pos": 30,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "कलिसन्तरण",
+                            "name_nor": "kalisantaraNa",
+                            "pos": 31,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        },
+                        {
+                            "name_dev": "सरस्वतीरहस्य",
+                            "name_nor": "sarasvatIrahasya",
+                            "pos": 32,
+                            "info": {
+                                "type": "list",
+                                "list_name": "",
+                                "list_count": 0
+                            },
+                            "list": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name_dev": "सामवेदः",
+            "name_nor": "sAmavEdaH",
+            "pos": 4,
             "info": {
                 "type": "list",
                 "list_name": "Bhāga",
@@ -12032,9 +12543,9 @@
             ]
         },
         {
-            "name_dev": "अथर्ववेद",
-            "name_nor": "atharvavEda",
-            "pos": 4,
+            "name_dev": "अथर्ववेदः",
+            "name_nor": "atharvavEdaH",
+            "pos": 5,
             "info": {
                 "type": "list",
                 "list_name": "Bhāga",

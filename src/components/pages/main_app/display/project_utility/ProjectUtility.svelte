@@ -40,6 +40,8 @@
   let current_file_name = $state<string>(null!);
   let current_dowbload_link = $state<string>(null!);
   let excel_preview_opened = $state(false);
+  const get_lowest_selected = (levels: (number | null)[]) =>
+    levels.find((v): v is number => typeof v === 'number') ?? null;
 
   const download_excel_file = createMutation({
     mutationKey: ['chapter', 'download_excel_data'],
@@ -83,10 +85,9 @@
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
       const name = get_last_level_name($selected_text_levels).nor.split('\n')[0];
+      const lowest_selected = get_lowest_selected($selected_text_levels);
       current_dowbload_link = URL.createObjectURL(blob);
-      current_file_name = $selected_text_levels[0]
-        ? `${$selected_text_levels[0]}. ${name}.xlsx`
-        : `${name}.xlsx`;
+      current_file_name = lowest_selected ? `${lowest_selected}. ${name}.xlsx` : `${name}.xlsx`;
       current_workbook = workbook;
       excel_preview_opened = true;
     }
@@ -113,9 +114,10 @@
         $viewing_script
       );
       const is_not_brahmic_script = ['Normal', 'Romanized'].includes($viewing_script);
+      const lowest_selected = get_lowest_selected($selected_text_levels);
       download_file_in_browser(
         url,
-        ($selected_text_levels[0] ? `${$selected_text_levels[0]} ` : '') +
+        (lowest_selected ? `${lowest_selected} ` : '') +
           `${sarga_name_script}${is_not_brahmic_script ? '' : ` (${sarga_name_normal})`}.txt`
       );
     }

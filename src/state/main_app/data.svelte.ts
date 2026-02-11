@@ -16,13 +16,20 @@ import { browser } from '$app/environment';
 import { delay } from '~/tools/delay';
 import { derived, get, writable } from 'svelte/store';
 import { lang_list_obj } from '../lang_list';
-import {
-  get_path_params,
-  get_node_at_path,
-  get_project_from_key,
-  type project_keys_type
-} from '../project_list';
+import { get_node_at_path, get_project_from_key, type project_keys_type } from '../project_list';
 import { user_info } from '../user.svelte';
+
+const get_dynamic_path_params = (
+  selected_text_levels: (number | null)[],
+  project_levels: number
+) => {
+  // selected_text_levels is lower -> higher (index 0 is lowest route param).
+  // For variable subtree depth, allow trailing nulls on the *lowest* end.
+  const params = selected_text_levels.slice(0, project_levels - 1).reverse();
+  while (params.length && params[params.length - 1] == null) params.pop();
+  if (params.some((v) => v == null)) return [];
+  return params as number[];
+};
 
 export const user_project_info_q = get_derived_query(
   [project_state, user_info],
@@ -58,6 +65,16 @@ export const project_map_q = get_derived_query([project_state], ([prject_state_]
   )
 );
 
+// Keep `text_data_present` synced to whether current selection is a leaf shloka node.
+derived([project_state, selected_text_levels, project_map_q], ([$ps, $stl, $pmq]) => {
+  if (!$pmq.isSuccess) return false;
+  const map = $pmq.data;
+  const path_params = get_dynamic_path_params($stl, $ps.levels);
+  if (path_params.length === 0) return $ps.levels === 1 && map?.info?.type === 'shloka';
+  const node = get_node_at_path(map, path_params);
+  return node?.info?.type === 'shloka';
+}).subscribe((v) => text_data_present.set(!!v));
+
 export const QUERY_KEYS = {
   trans_lang_data: (lang_id: number, selected_text_levels: (number | null)[]) => [
     'trans',
@@ -65,11 +82,7 @@ export const QUERY_KEYS = {
     lang_id,
     ...selected_text_levels.slice(0, get(project_state).levels - 1).reverse()
   ],
-  text_data: (path_params: (number | null)[]) => [
-    'text_data',
-    get(project_state).project_id,
-    ...path_params
-  ]
+  text_data: (path_params: number[]) => ['text_data', get(project_state).project_id, ...path_params]
 };
 
 let one_time_page_text_data_use_done = false;
@@ -79,7 +92,7 @@ export const text_data_q_options = (
   project_key: project_keys_type,
   project_levels: number
 ) => {
-  const path_params = get_path_params(selected_text_levels, project_levels);
+  const path_params = get_dynamic_path_params(selected_text_levels, project_levels);
   return queryOptions({
     queryKey: QUERY_KEYS.text_data(path_params),
     queryFn: async () => {
@@ -201,9 +214,8 @@ export let get_total_count = (selected_text_levels: (number | null)[]) => {
 
   if (levels === 1) return project_map?.info?.type === 'shloka' ? (project_map.info.total ?? 0) : 0;
 
-  // need complete selection to compute leaf total
-  for (let i = 0; i < levels - 1; i++) if (!selected_text_levels[i]) return 0;
-  const path_params = selected_text_levels.slice(0, levels - 1).reverse() as number[];
+  const path_params = get_dynamic_path_params(selected_text_levels, levels);
+  if (path_params.length === 0) return 0;
   const node = get_node_at_path(project_map, path_params);
   if (!node || node.info.type !== 'shloka') return 0;
   return node.info.total ?? 0;
@@ -225,12 +237,8 @@ export const get_last_level_name = (selected_text_levels: (number | null)[]) => 
     dev = project_map?.name_dev ?? '';
     nor = project_map?.name_nor ?? '';
   } else {
-    if (selected_text_levels[0]) {
-      // best-effort: if higher levels are missing, this will still resolve to the last valid node
-      const path_params = selected_text_levels
-        .slice(0, levels - 1)
-        .reverse()
-        .filter((v): v is number => typeof v === 'number');
+    const path_params = get_dynamic_path_params(selected_text_levels, levels);
+    if (path_params.length > 0) {
       const node = get_node_at_path(project_map, path_params);
       dev = node?.name_dev ?? '';
       nor = node?.name_nor ?? '';
@@ -247,11 +255,13 @@ export const get_starting_index = (
   key: project_keys_type,
   selected_text_levels?: (number | null)[]
 ) => {
+  const lowest_selected =
+    selected_text_levels?.find((v): v is number => typeof v === 'number') ?? null;
   let starting = 1;
   if (key === 'bhagavadgita') starting = 4;
   else if (key === 'narayaneeyam') {
     starting = 4;
-    if (selected_text_levels && selected_text_levels[0] === 1) starting = 5;
+    if (lowest_selected === 1) starting = 5;
   } else if (key === 'saundaryalahari') starting = 3;
   return starting;
 };

@@ -194,7 +194,7 @@ def _update_shukla_map(*, adhyaya_meta: dict[int, tuple[int, int]]) -> None:
     if not isinstance(info, dict):
         info = {}
     info["type"] = "list"
-    info["list_name"] = info.get("list_name") or "AdhyAya"
+    info["list_name"] = "Adhyāya"
     info["list_count"] = len(adhyaya_items)
     target["info"] = info
     target["list"] = adhyaya_items

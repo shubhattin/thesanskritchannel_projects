@@ -25,6 +25,7 @@
     level_names: string[];
     path_params: number[];
     path_names: (string | undefined)[];
+    path_level_names: string[];
   };
   let { data }: { data: PageDataWithLevels } = $props();
 

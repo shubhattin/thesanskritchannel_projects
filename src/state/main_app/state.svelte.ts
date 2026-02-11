@@ -1,5 +1,5 @@
 import type { project_keys_type } from '~/state/project_list';
-import { derived, writable } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type { script_list_type } from '~/state/lang_list';
 import type { ai_text_models_type } from '~/api/routes/ai/ai_types';
 
@@ -24,17 +24,13 @@ export let project_state = writable<{
 });
 export let list_count = writable<number | null>(null);
 
-export let text_data_present = derived(
-  [project_state, selected_text_levels],
-  ([$project_state, $selected_text_levels]) => {
-    for (let i = 0; i < $project_state.levels - 1; i++) {
-      if (!$selected_text_levels[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-);
+/**
+ * True when the current selection resolves to a leaf `shloka` node.
+ *
+ * NOTE: Projects (like Veda) can have varying subtree depths. So this value is
+ * computed using the project map in `state/main_app/data.svelte.ts` and written here.
+ */
+export let text_data_present = writable(false);
 
 export const BASE_SCRIPT = 'Devanagari';
 

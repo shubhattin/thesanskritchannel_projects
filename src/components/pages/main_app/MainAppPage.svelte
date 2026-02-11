@@ -62,10 +62,12 @@
 
   let {
     path_params = [],
-    path_names = []
+    path_names = [],
+    path_level_names = []
   }: {
     path_params?: number[];
     path_names?: (string | undefined)[];
+    path_level_names?: string[];
   } = $props();
 
   let mounted = $state(false);
@@ -106,6 +108,13 @@
 
   const levels = $derived($project_state.levels);
   const level_names = $derived($project_state.level_names);
+  const active_leaf_state_index = $derived.by(() => {
+    for (let i = 0; i < levels - 1; i++) {
+      if ($selected_text_levels[i] != null) return i;
+    }
+    return 0;
+  });
+  const active_leaf_value = $derived($selected_text_levels[active_leaf_state_index] ?? null);
 
   type option_type = { text?: string; value?: number; empty_child?: boolean };
 
@@ -314,7 +323,7 @@
   {@const text_level_state_index = levels - i - 2}
   {@const initial_option_base = get_initial_option_for_state_index(levels, text_level_state_index)}
   {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
-  {@const fallback_level_name = level_names[levels - i - 1]}
+  {@const fallback_level_name = path_level_names[i] ?? level_names[levels - i - 1] ?? 'Level'}
   {@const level_name =
     map_root && levels > 0
       ? get_list_name_at_depth_from_selected(
@@ -333,11 +342,11 @@
     map_root && i < levels - 2 && initial_option_base.value
       ? {
           ...initial_option_base,
-          empty_child: !(
+          // Show the blocked icon only for list nodes that truly have no children.
+          // Leaf nodes (e.g. info.type === 'shloka') are valid endpoints and should not be blocked.
+          empty_child:
             initial_option_node?.info?.type === 'list' &&
-            Array.isArray(initial_option_node?.list) &&
-            initial_option_node.list.length > 0
-          )
+            (!Array.isArray(initial_option_node?.list) || initial_option_node.list.length === 0)
         }
       : initial_option_base}
   {@const list_at_depth =
@@ -353,11 +362,8 @@
             value: text_level.pos,
             empty_child:
               i < levels - 2
-                ? !(
-                    text_level?.info?.type === 'list' &&
-                    Array.isArray(text_level?.list) &&
-                    text_level.list.length > 0
-                  )
+                ? text_level?.info?.type === 'list' &&
+                  (!Array.isArray(text_level?.list) || text_level.list.length === 0)
                 : false
           }))
         : false
@@ -448,9 +454,13 @@
 {#if $text_data_present}
   <div class="space-x-1 sm:space-x-3">
     {#if $project_state.levels > 1}
-      {#if $selected_text_levels[0] !== 1}
+      {#if active_leaf_value !== 1}
         <Button
-          onclick={() => $selected_text_levels[0]!--}
+          onclick={() => {
+            const idx = active_leaf_state_index;
+            const cur = $selected_text_levels[idx] ?? 1;
+            $selected_text_levels[idx] = Math.max(1, cur - 1);
+          }}
           variant="outline"
           size="sm"
           disabled={$editing_status_on}
@@ -459,9 +469,14 @@
           Previous
         </Button>
       {/if}
-      {#if $selected_text_levels[0] !== $list_count}
+      {#if active_leaf_value !== $list_count}
         <Button
-          onclick={() => ($selected_text_levels[0]! += 1)}
+          onclick={() => {
+            const idx = active_leaf_state_index;
+            const cur = $selected_text_levels[idx] ?? 1;
+            const max = $list_count ?? cur;
+            $selected_text_levels[idx] = Math.min(max, cur + 1);
+          }}
           variant="outline"
           size="sm"
           disabled={$editing_status_on}

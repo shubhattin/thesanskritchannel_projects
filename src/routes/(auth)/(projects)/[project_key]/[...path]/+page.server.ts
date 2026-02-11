@@ -43,6 +43,7 @@ export const load: PageServerLoad = async (opts) => {
   let text: shloka_list_type | undefined = undefined;
   let list_count: number | null = null;
   let path_names: (string | undefined)[] = [];
+  let path_level_names: string[] = [];
 
   if (path_params.length > levels - 1) {
     error(404, `Not found`);
@@ -60,6 +61,7 @@ export const load: PageServerLoad = async (opts) => {
       const list: any[] = node.list ?? [];
       const sel = path_params[i]!;
       const level_name = get_list_name_for_path_param_index(project_map, path_params, i, 'Level');
+      path_level_names.push(level_name);
       if (!(sel >= 1 && sel <= list.length)) {
         error(404, `${level_name} Not found`);
       }
@@ -68,8 +70,8 @@ export const load: PageServerLoad = async (opts) => {
       path_names.push(node?.name_dev);
     }
 
-    // Only fetch text when the selection is complete (leaf list selected).
-    if (path_params.length === levels - 1 && !isDataRequest) {
+    // Fetch text whenever we reach a leaf `shloka` node (subtrees can have varying depth).
+    if (node?.info?.type === 'shloka' && !isDataRequest) {
       text = await get_text_data_func(project_key, path_params);
     }
   }
@@ -79,6 +81,7 @@ export const load: PageServerLoad = async (opts) => {
     level_names,
     path_params,
     path_names,
+    path_level_names,
     text,
     list_count
   };

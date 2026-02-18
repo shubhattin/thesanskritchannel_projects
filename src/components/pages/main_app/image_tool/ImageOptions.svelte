@@ -37,6 +37,9 @@
   import { FiEdit, FiSave } from 'svelte-icons-pack/fi';
   import { CgClose } from 'svelte-icons-pack/cg';
   import { render_all_texts } from './render_text';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Textarea } from '$lib/components/ui/textarea';
 
   let total_count = $derived(
     $project_map_q.isSuccess ? get_total_count($image_selected_levels) : 0
@@ -66,17 +69,19 @@
   });
 </script>
 
-<div class="flex space-x-2 text-sm">
+<div class="flex items-center space-x-2 text-sm">
   <div class="inline-block space-x-1">
-    <button
-      class="p-0"
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      class="h-7 w-7 p-0"
       disabled={$image_shloka === 0 || $image_rendering_state}
       onclick={() => {
         $image_shloka--;
       }}
     >
       <Icon src={TiArrowBackOutline} class="-mt-1 text-lg" />
-    </button>
+    </Button>
     <Select.Root
       type="single"
       value={$image_shloka.toString()}
@@ -100,15 +105,17 @@
         {/if}
       </Select.Content>
     </Select.Root>
-    <button
-      class="p-0"
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      class="h-7 w-7 p-0"
       onclick={() => {
         $image_shloka++;
       }}
       disabled={$image_shloka === total_count - 1 || $image_rendering_state}
     >
       <Icon src={TiArrowForwardOutline} class="-mt-1 text-lg" />
-    </button>
+    </Button>
   </div>
   <label class="inline-block space-x-1">
     <Icon src={LanguageIcon} class="text-xl" />
@@ -133,9 +140,10 @@
   <ImageDownloader />
   <Switch bind:checked={$shaded_background_image_status} />
   <span class="flex flex-col items-center justify-center">
-    <button
+    <Button
       onclick={reset_func}
-      class="rounded-md bg-muted px-1.5 py-1 text-xs font-bold hover:bg-muted/80">Reset</button
+      variant="outline"
+      class="rounded-md bg-muted px-1.5 py-1 text-xs font-bold hover:bg-muted/80">Reset</Button
     >
   </span>
 </div>
@@ -164,9 +172,9 @@
                 <div class="space-y-1 text-center">
                   <label class="block space-x-1">
                     <span class="text-sm">Above Reference Line</span>
-                    <input
+                    <Input
                       type="number"
-                      class="inline-block w-12 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                      class="inline-block h-7 w-16 px-1 py-0 text-sm"
                       bind:value={$SPACE_ABOVE_REFERENCE_LINE}
                       min={0}
                       max={40}
@@ -174,9 +182,9 @@
                   </label>
                   <label class="block space-x-1">
                     <span class="text-sm">Between Main and Normal</span>
-                    <input
+                    <Input
                       type="number"
-                      class="inline-block w-12 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                      class="inline-block h-7 w-16 px-1 py-0 text-sm"
                       bind:value={
                         $main_text_font_configs[$image_script].space_between_main_and_normal
                       }
@@ -192,9 +200,9 @@
                   <div class="flex flex-col justify-center space-y-1">
                     <label class="block space-x-1">
                       <span class="text-sm">Main</span>
-                      <input
+                      <Input
                         type="number"
-                        class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                        class="inline-block h-7 w-20 px-1 py-0 text-sm"
                         bind:value={$main_text_font_configs[$image_script].size}
                         min={0}
                         max={10}
@@ -203,9 +211,9 @@
                     </label>
                     <label class="block space-x-1">
                       <span class="text-sm">Normal</span>
-                      <input
+                      <Input
                         type="number"
-                        class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                        class="inline-block h-7 w-20 px-1 py-0 text-sm"
                         bind:value={$normal_text_font_config.size}
                         min={0}
                         max={10}
@@ -216,9 +224,9 @@
                   <div class="flex flex-col justify-center space-y-1">
                     <label class="space-x-1">
                       <span class="text-sm">Translation</span>
-                      <input
+                      <Input
                         type="number"
-                        class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                        class="inline-block h-7 w-20 px-1 py-0 text-sm"
                         bind:value={
                           $trans_text_font_configs[
                             LANG_LIST[LANG_LIST_IDS.indexOf($image_lang)] as lang_list_type
@@ -231,9 +239,9 @@
                     </label>
                     <label class="space-x-1">
                       <span class="text-sm">Line Spacing</span>
-                      <input
+                      <Input
                         type="number"
-                        class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                        class="inline-block h-7 w-20 px-1 py-0 text-sm"
                         bind:value={
                           $trans_text_font_configs[
                             LANG_LIST[LANG_LIST_IDS.indexOf($image_lang)] as lang_list_type
@@ -260,27 +268,27 @@
                 <div class="flex flex-col justify-center space-y-1">
                   <label class="space-x-1">
                     <span class="text-sm">Main Text</span>
-                    <input
+                    <Input
                       type="number"
-                      class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                      class="inline-block h-7 w-20 px-1 py-0 text-sm"
                       bind:value={$shloka_configs[$current_shloka_type].main_text_font_size}
                       min={10}
                     />
                   </label>
                   <label class="space-x-1">
                     <span class="text-sm">Normal Text</span>
-                    <input
+                    <Input
                       type="number"
-                      class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                      class="inline-block h-7 w-20 px-1 py-0 text-sm"
                       bind:value={$shloka_configs[$current_shloka_type].norm_text_font_size}
                       min={10}
                     />
                   </label>
                   <label class="space-x-1">
                     <span class="text-sm">Translation Text</span>
-                    <input
+                    <Input
                       type="number"
-                      class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                      class="inline-block h-7 w-20 px-1 py-0 text-sm"
                       bind:value={$shloka_configs[$current_shloka_type].trans_text_font_size}
                       min={10}
                     />
@@ -288,32 +296,32 @@
                 </div>
                 <div class="flex flex-col items-center justify-center space-y-2">
                   <div class="text-sm font-semibold">Boundaries</div>
-                  <input
+                  <Input
                     type="number"
-                    class="block w-14 rounded border border-input bg-background px-1 py-0 text-sm"
+                    class="block h-7 w-16 px-1 py-0 text-sm"
                     bind:value={$shloka_configs[$current_shloka_type].bounding_coords.top}
                     min={0}
                     max={1080}
                   />
                   <div class="space-x-6">
-                    <input
+                    <Input
                       type="number"
-                      class="inline-block w-16 rounded border border-input bg-background px-1 py-0 text-sm"
+                      class="inline-block h-7 w-20 px-1 py-0 text-sm"
                       bind:value={$shloka_configs[$current_shloka_type].bounding_coords.left}
                       min={0}
                       max={1920}
                     />
-                    <input
+                    <Input
                       type="number"
-                      class="inline-block w-16 rounded border border-input bg-background px-1 py-0 text-sm"
+                      class="inline-block h-7 w-20 px-1 py-0 text-sm"
                       bind:value={$shloka_configs[$current_shloka_type].bounding_coords.right}
                       min={0}
                       max={1920}
                     />
                   </div>
-                  <input
+                  <Input
                     type="number"
-                    class="inline-block w-16 rounded border border-input bg-background px-1 py-0 text-sm"
+                    class="inline-block h-7 w-20 px-1 py-0 text-sm"
                     bind:value={$shloka_configs[$current_shloka_type].bounding_coords.bottom}
                     min={0}
                     max={1080}
@@ -323,18 +331,18 @@
                   <div class="font-semibold">Reference Lines</div>
                   <label class="inline-block space-x-1">
                     <span class="text-sm">Top Start</span>
-                    <input
+                    <Input
                       type="number"
-                      class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                      class="inline-block h-7 w-20 px-1 py-0 text-sm"
                       bind:value={$shloka_configs[$current_shloka_type].reference_lines.top}
                       min={10}
                     />
                   </label>
                   <label class="inline-block space-x-1">
                     <span class="text-sm">Spacing</span>
-                    <input
+                    <Input
                       type="number"
-                      class="inline-block w-16 rounded-md border border-input bg-background px-1 py-0 text-sm"
+                      class="inline-block h-7 w-20 px-1 py-0 text-sm"
                       bind:value={$shloka_configs[$current_shloka_type].reference_lines.spacing}
                       min={10}
                     />
@@ -350,16 +358,17 @@
         </Tabs.Root>
       </div>
       <div class="mt-2 block">
-        <div class="space-x-2.5">
-          <span class="text-sm font-semibold">Text</span>
+        <div class="flex items-center space-x-2">
+          <span class="mt-1 text-base font-semibold">Text</span>
           {#if textarea_disabled}
-            <button class="px-1 py-0.5" onclick={() => (textarea_disabled = false)}
-              ><Icon src={FiEdit} class="text-base" /></button
+            <Button variant="ghost" size="icon-sm" onclick={() => (textarea_disabled = false)}
+              ><Icon src={FiEdit} class="size-4" /></Button
             >
           {:else}
-            <span class="space-x-0.5">
-              <button
-                class="inline-block px-0 py-0.5"
+            <div class="flex items-center space-x-0.5">
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 disabled={$image_rendering_state}
                 onclick={() => {
                   $image_shloka_data.text = text_data;
@@ -369,23 +378,24 @@
                     $image_rendering_state = false;
                     textarea_disabled = true;
                   });
-                }}><Icon src={FiSave} class="text-base" /></button
+                }}><Icon src={FiSave} class="size-4" /></Button
               >
-              <button
-                class="inline-block px-0 py-0.5"
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 onclick={() => {
                   text_data = $image_shloka_data.text;
                   textarea_disabled = true;
-                }}><Icon src={CgClose} class="text-base" /></button
+                }}><Icon src={CgClose} class="size-4" /></Button
               >
-            </span>
+            </div>
           {/if}
         </div>
-        <textarea
+        <Textarea
           class="indic-font mt-1 h-24 w-2/3 rounded-md border-2 border-input bg-background p-2 text-sm"
           bind:value={text_data}
           disabled={textarea_disabled}
-        ></textarea>
+        ></Textarea>
       </div>
     </Accordion.Content>
   </Accordion.Item>

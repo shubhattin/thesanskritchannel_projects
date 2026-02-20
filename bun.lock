@@ -30,7 +30,7 @@
         "js-yaml": "^4.1.1",
         "json-2-csv": "^5.5.10",
         "jszip": "^3.10.1",
-        "lipilekhika": "^1.0.4",
+        "lipilekhika": "^1.0.7",
         "lucide-svelte": "^0.563.0",
         "mode-watcher": "0.3.1",
         "ms": "^2.1.3",
@@ -1099,7 +1099,7 @@
 
     "lightningcss-win32-x64-msvc": ["lightningcss-win32-x64-msvc@1.30.2", "", { "os": "win32", "cpu": "x64" }, "sha512-5g1yc73p+iAkid5phb4oVFMB45417DkRevRbt/El/gKXJk4jid+vPFF/AXbxn05Aky8PapwzZrdJShv5C0avjw=="],
 
-    "lipilekhika": ["lipilekhika@1.0.4", "", {}, "sha512-XuXyWR4XeHe6ZupYoEgzfMRJ2bUVPZ07HXXDs1Djc35pu6zBtIGsR/K32iSHmRPWVOF/SRF9xuwoR7FYXU9q9g=="],
+    "lipilekhika": ["lipilekhika@1.0.7", "", {}, "sha512-awgS2WTu3MlMx5gWE01oViIjYLZgPpznpORoqATYovjs9u5vHAYvXXKnqOhpHQ6r3/CL0Sx1fu3VV1v+mV7/Mw=="],
 
     "listenercount": ["listenercount@1.0.1", "", {}, "sha512-3mk/Zag0+IJxeDrxSgaDPy4zZ3w05PRZeJNnlWhzFz5OkX49J4krc+A8X2d2M69vGMBEX0uyl8M+W+8gH+kBqQ=="],
 

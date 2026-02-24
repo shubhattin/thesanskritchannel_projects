@@ -11678,9 +11678,450 @@
               "info": {
                 "type": "list",
                 "list_name": "Adhyāya",
-                "list_count": 0
+                "list_count": 40
               },
-              "list": []
+              "list": [
+                {
+                  "name_dev": "अध्याय १",
+                  "name_nor": "adhyAya 1",
+                  "pos": 1,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 31,
+                    "total": 31
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय २",
+                  "name_nor": "adhyAya 2",
+                  "pos": 2,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 34,
+                    "total": 34
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ३",
+                  "name_nor": "adhyAya 3",
+                  "pos": 3,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 77,
+                    "total": 78
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ४",
+                  "name_nor": "adhyAya 4",
+                  "pos": 4,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 51,
+                    "total": 52
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ५",
+                  "name_nor": "adhyAya 5",
+                  "pos": 5,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 56,
+                    "total": 57
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ६",
+                  "name_nor": "adhyAya 6",
+                  "pos": 6,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 102,
+                    "total": 102
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ७",
+                  "name_nor": "adhyAya 7",
+                  "pos": 7,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 40,
+                    "total": 41
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ८",
+                  "name_nor": "adhyAya 8",
+                  "pos": 8,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 32,
+                    "total": 33
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ९",
+                  "name_nor": "adhyAya 9",
+                  "pos": 9,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 46,
+                    "total": 47
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय १०",
+                  "name_nor": "adhyAya 10",
+                  "pos": 10,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 45,
+                    "total": 45
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ११",
+                  "name_nor": "adhyAya 11",
+                  "pos": 11,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 48,
+                    "total": 49
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय १२",
+                  "name_nor": "adhyAya 12",
+                  "pos": 12,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 85,
+                    "total": 86
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय १३",
+                  "name_nor": "adhyAya 13",
+                  "pos": 13,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 116,
+                    "total": 117
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय १४",
+                  "name_nor": "adhyAya 14",
+                  "pos": 14,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 65,
+                    "total": 66
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय १५",
+                  "name_nor": "adhyAya 15",
+                  "pos": 15,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 35,
+                    "total": 36
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय १६",
+                  "name_nor": "adhyAya 16",
+                  "pos": 16,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 87,
+                    "total": 88
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय १७",
+                  "name_nor": "adhyAya 17",
+                  "pos": 17,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 64,
+                    "total": 65
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय १८",
+                  "name_nor": "adhyAya 18",
+                  "pos": 18,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 86,
+                    "total": 87
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय १९",
+                  "name_nor": "adhyAya 19",
+                  "pos": 19,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 43,
+                    "total": 44
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय २०",
+                  "name_nor": "adhyAya 20",
+                  "pos": 20,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 47,
+                    "total": 48
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय २१",
+                  "name_nor": "adhyAya 21",
+                  "pos": 21,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 67,
+                    "total": 68
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय २२",
+                  "name_nor": "adhyAya 22",
+                  "pos": 22,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 77,
+                    "total": 78
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय २३",
+                  "name_nor": "adhyAya 23",
+                  "pos": 23,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 61,
+                    "total": 62
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय २४",
+                  "name_nor": "adhyAya 24",
+                  "pos": 24,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 48,
+                    "total": 49
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय २५",
+                  "name_nor": "adhyAya 25",
+                  "pos": 25,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 68,
+                    "total": 69
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय २६",
+                  "name_nor": "adhyAya 26",
+                  "pos": 26,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 45,
+                    "total": 46
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय २७",
+                  "name_nor": "adhyAya 27",
+                  "pos": 27,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 46,
+                    "total": 47
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय २८",
+                  "name_nor": "adhyAya 28",
+                  "pos": 28,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 15,
+                    "total": 16
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय २९",
+                  "name_nor": "adhyAya 29",
+                  "pos": 29,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 51,
+                    "total": 52
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ३०",
+                  "name_nor": "adhyAya 30",
+                  "pos": 30,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 47,
+                    "total": 48
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ३१",
+                  "name_nor": "adhyAya 31",
+                  "pos": 31,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 53,
+                    "total": 54
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ३२",
+                  "name_nor": "adhyAya 32",
+                  "pos": 32,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 85,
+                    "total": 86
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ३३",
+                  "name_nor": "adhyAya 33",
+                  "pos": 33,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 47,
+                    "total": 48
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ३४",
+                  "name_nor": "adhyAya 34",
+                  "pos": 34,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 23,
+                    "total": 24
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ३५",
+                  "name_nor": "adhyAya 35",
+                  "pos": 35,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 56,
+                    "total": 57
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ३६",
+                  "name_nor": "adhyAya 36",
+                  "pos": 36,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 26,
+                    "total": 27
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ३७",
+                  "name_nor": "adhyAya 37",
+                  "pos": 37,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 21,
+                    "total": 22
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ३८",
+                  "name_nor": "adhyAya 38",
+                  "pos": 38,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 28,
+                    "total": 29
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ३९",
+                  "name_nor": "adhyAya 39",
+                  "pos": 39,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 13,
+                    "total": 14
+                  },
+                  "list": []
+                },
+                {
+                  "name_dev": "अध्याय ४०",
+                  "name_nor": "adhyAya 40",
+                  "pos": 40,
+                  "info": {
+                    "type": "shloka",
+                    "shloka_count": 19,
+                    "total": 20
+                  },
+                  "list": []
+                }
+              ]
             },
             {
               "name_dev": "माध्यन्दिन-वाजसनेयी",

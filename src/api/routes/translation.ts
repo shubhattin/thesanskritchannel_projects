@@ -49,7 +49,8 @@ const get_translation_route = publicProcedure
           text: true
         },
         where: (tbl, { eq, and }) =>
-          and(eq(tbl.project_id, project_id), eq(tbl.lang_id, lang_id), eq(tbl.path, path))
+          and(eq(tbl.project_id, project_id), eq(tbl.lang_id, lang_id), eq(tbl.path, path)),
+        orderBy: ({ index }, { asc }) => asc(index)
       });
       if (import.meta.env.PROD) {
         // set cache in background
@@ -168,7 +169,8 @@ const get_all_langs_translation_route = protectedAppScopeProcedure
         text: true,
         lang_id: true
       },
-      where: (tbl, { eq, and }) => and(eq(tbl.project_id, project_id), eq(tbl.path, path))
+      where: (tbl, { eq, and }) => and(eq(tbl.project_id, project_id), eq(tbl.path, path)),
+      orderBy: ({ lang_id, index }, { asc }) => [asc(lang_id), asc(index)]
     });
     const data_map = new Map<number, Map<number, string>>();
     for (let i = 0; i < data.length; i++) {

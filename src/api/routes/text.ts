@@ -36,7 +36,8 @@ export const get_text_data_func = async (key: string, path_params: number[]) => 
       shloka_num: true
     },
     where: (tbl, { eq, and }) =>
-      and(eq(tbl.project_id, project_id), eq(tbl.path, path_params.join(':')))
+      and(eq(tbl.project_id, project_id), eq(tbl.path, path_params.join(':'))),
+    orderBy: ({ index }, { asc }) => asc(index)
   });
   // set cache in background and return data immediately
   waitUntil(

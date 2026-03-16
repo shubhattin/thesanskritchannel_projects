@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'data/**'
 
 jobs:
   text_json_gen_and_cache_invalidation:

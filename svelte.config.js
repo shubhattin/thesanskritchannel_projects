@@ -9,12 +9,13 @@ const config = {
   kit: {
     adapter:
       process.env.BUILD_MODE === 'vercel'
-        ? adapter_vercel({
-            runtime: 'nodejs22.x'
-            // runtime: 'edge',
-            // regions: ['sin1']
-          })
-        : adapter_netlify({
+        ? adapter_vercel()
+        : // {
+          // runtime: 'nodejs22.x'
+          // runtime: 'edge',
+          // regions: ['sin1']
+          // })
+          adapter_netlify({
             edge: true
           }),
     alias: {

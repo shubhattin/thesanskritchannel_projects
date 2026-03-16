@@ -1,7 +1,17 @@
 name: App Checks
 
 on:
-  - push
+  push:
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'bun.lock'
+      - 'svelte.config.js'
+      - 'netlify.toml'
+      - 'vercel.json'
+      - 'vite.config.ts'
+      - 'trigger.config.ts'
+      - 'componenets.json'
 
 env:
   PUBLIC_BETTER_AUTH_URL: http://localhost:3000

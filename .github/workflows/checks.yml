@@ -12,6 +12,7 @@ on:
       - 'vite.config.ts'
       - 'trigger.config.ts'
       - 'componenets.json'
+      - '.github/workflows/checks.yml'
 
 env:
   PUBLIC_BETTER_AUTH_URL: http://localhost:3000

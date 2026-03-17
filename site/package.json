@@ -33,6 +33,7 @@
     "@fontsource/noto-sans-telugu": "^5.2.8",
     "@tailwindcss/vite": "^4.2.1",
     "astro": "^6.0.5",
+    "lipilekhika": "^1.0.8",
     "svelte": "^5.53.13",
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3"

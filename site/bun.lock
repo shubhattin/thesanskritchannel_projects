@@ -25,6 +25,7 @@
         "@fontsource/noto-sans-telugu": "^5.2.8",
         "@tailwindcss/vite": "^4.2.1",
         "astro": "^6.0.5",
+        "lipilekhika": "^1.0.8",
         "svelte": "^5.53.13",
         "tailwindcss": "^4.2.1",
         "typescript": "^5.9.3",
@@ -555,6 +556,8 @@
     "lightningcss-win32-arm64-msvc": ["lightningcss-win32-arm64-msvc@1.31.1", "", { "os": "win32", "cpu": "arm64" }, "sha512-aJReEbSEQzx1uBlQizAOBSjcmr9dCdL3XuC/6HLXAxmtErsj2ICo5yYggg1qOODQMtnjNQv2UHb9NpOuFtYe4w=="],
 
     "lightningcss-win32-x64-msvc": ["lightningcss-win32-x64-msvc@1.31.1", "", { "os": "win32", "cpu": "x64" }, "sha512-I9aiFrbd7oYHwlnQDqr1Roz+fTz61oDDJX7n9tYF9FJymH1cIN1DtKw3iYt6b8WZgEjoNwVSncwF4wx/ZedMhw=="],
+
+    "lipilekhika": ["lipilekhika@1.0.8", "", {}, "sha512-BG/ig7EG0SPsmZ8yuLRDUiah4sSHUgPJVouQ6uEjx17MKaHZEoFIN79+O9ToqezGyy080R9mQXCVwxnNWv8wew=="],
 
     "locate-character": ["locate-character@3.0.0", "", {}, "sha512-SW13ws7BjaeJ6p7Q6CO2nchbYEc3X3J6WrmTTDto7yMPqVSZTUyY5Tjbid+Ab8gLnATtygYtiDIJGQRRn2ZOiA=="],
 

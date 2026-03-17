@@ -1,0 +1,46 @@
+{
+  "name": "site",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@astrojs/svelte": "^8.0.1",
+    "@fontsource/noto-sans": "^5.2.10",
+    "@fontsource/noto-sans-bengali": "^5.2.10",
+    "@fontsource/noto-sans-brahmi": "^5.2.6",
+    "@fontsource/noto-sans-devanagari": "^5.2.8",
+    "@fontsource/noto-sans-grantha": "^5.2.6",
+    "@fontsource/noto-sans-gujarati": "^5.2.7",
+    "@fontsource/noto-sans-gurmukhi": "^5.2.9",
+    "@fontsource/noto-sans-kannada": "^5.2.8",
+    "@fontsource/noto-sans-malayalam": "^5.2.8",
+    "@fontsource/noto-sans-modi": "^5.2.9",
+    "@fontsource/noto-sans-oriya": "^5.2.8",
+    "@fontsource/noto-sans-sharada": "^5.2.7",
+    "@fontsource/noto-sans-siddham": "^5.2.6",
+    "@fontsource/noto-sans-sinhala": "^5.2.10",
+    "@fontsource/noto-sans-tamil": "^5.2.7",
+    "@fontsource/noto-sans-tamil-supplement": "^5.2.7",
+    "@fontsource/noto-sans-telugu": "^5.2.8",
+    "@tailwindcss/vite": "^4.2.1",
+    "astro": "^6.0.5",
+    "svelte": "^5.53.13",
+    "tailwindcss": "^4.2.1",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1",
+    "prettier-plugin-astro": "0.14.1",
+    "prettier-plugin-svelte": "^3.5.1",
+    "prettier-plugin-tailwindcss": "^0.7.2"
+  }
+}

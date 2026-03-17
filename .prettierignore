@@ -29,3 +29,5 @@ src/tools/converter/resources
 src/db/migrations
 
 src/api/routes/grammer/grammer_prompt.md
+
+# site/

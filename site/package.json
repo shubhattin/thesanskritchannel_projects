@@ -15,6 +15,7 @@
   "dependencies": {
     "@astrojs/node": "^10.0.2",
     "@astrojs/svelte": "^8.0.1",
+    "@astrojs/vercel": "^10.0.1",
     "@fontsource/noto-sans": "^5.2.10",
     "@fontsource/noto-sans-bengali": "^5.2.10",
     "@fontsource/noto-sans-brahmi": "^5.2.6",

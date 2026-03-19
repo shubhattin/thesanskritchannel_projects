@@ -29,3 +29,17 @@ src/tools/converter/resources
 src/db/migrations
 
 src/api/routes/grammer/grammer_prompt.md
+
+# site/
+
+site/node_modules
+site/build
+site/dist
+site/.astro/
+
+# Ignore files for PNPM, NPM and YARN
+site/pnpm-lock.yaml
+site/bun.lock
+
+
+site/src/components/Posthog.astro

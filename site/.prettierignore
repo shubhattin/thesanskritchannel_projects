@@ -1,0 +1,13 @@
+node_modules
+build
+dist
+.astro/
+.svelte-kit/
+
+# Ignore files for PNPM, NPM and YARN
+pnpm-lock.yaml
+bun.lock
+
+
+*.mdx
+src/components/Posthog.astro

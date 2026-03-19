@@ -1,0 +1,145 @@
+---
+import RootLayout from '$components/RootLayout.astro';
+import type { shloka_list_type } from '../../../src/state/data_types';
+import type { resolved_text_route_type } from '../utils/text-routes';
+
+type ChildRouteItem = {
+  index: number;
+  href: string;
+  name_dev: string;
+  name_nor: string;
+  is_leaf: boolean;
+};
+
+type Props = {
+  resolved: resolved_text_route_type;
+  child_items: ChildRouteItem[];
+  text: shloka_list_type | null;
+};
+
+const { resolved, child_items, text }: Props = Astro.props;
+const current_title = resolved.path_names.at(-1) ?? resolved.project_name;
+const page_title = `${current_title} | ${resolved.project_name}`;
+const page_description =
+  resolved.path_names.length === 0
+    ? `Browse ${resolved.project_name}`
+    : `Browse ${resolved.project_name} - ${resolved.path_names.join(' / ')}`;
+const breadcrumb_items = resolved.path_names.map((name, index) => ({
+  name,
+  href:
+    index === resolved.path_names.length - 1
+      ? null
+      : `/${resolved.project_key}/${resolved.canonical_path
+          .split('/')
+          .slice(2, index + 3)
+          .join('/')}`,
+  level_name: resolved.path_level_names[index]
+}));
+---
+
+<RootLayout title={page_title} description={page_description}>
+  <main class="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
+    <div class="flex flex-col gap-3">
+      <a class="text-sm text-muted-foreground hover:text-foreground" href="/"> Home </a>
+      <div class="flex flex-col gap-2">
+        <p class="text-sm tracking-[0.2em] text-muted-foreground uppercase">
+          {resolved.project_name}
+        </p>
+        <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">{current_title}</h1>
+        {
+          resolved.path_names.length > 0 && (
+            <p class="text-sm text-muted-foreground">{resolved.path_names.join(' / ')}</p>
+          )
+        }
+      </div>
+    </div>
+
+    <nav class="flex flex-wrap gap-2 text-sm text-muted-foreground">
+      <a class="rounded border px-3 py-1 hover:bg-accent hover:text-accent-foreground" href="/">
+        Home
+      </a>
+      <a
+        class="rounded border px-3 py-1 hover:bg-accent hover:text-accent-foreground"
+        href={`/${resolved.project_key}`}
+      >
+        {resolved.project_name}
+      </a>
+      {
+        breadcrumb_items.map((item) =>
+          item.href ? (
+            <a
+              class="rounded border px-3 py-1 hover:bg-accent hover:text-accent-foreground"
+              href={item.href}
+            >
+              {item.level_name}: {item.name}
+            </a>
+          ) : (
+            <span class="rounded border border-dashed px-3 py-1 text-foreground">
+              {item.level_name}: {item.name}
+            </span>
+          )
+        )
+      }
+    </nav>
+
+    {
+      resolved.node.info.type === 'list' ? (
+        <section class="flex flex-col gap-4">
+          <div class="flex flex-col gap-1">
+            <p class="text-sm text-muted-foreground">
+              {resolved.path_names.length === 0
+                ? 'Choose a section to start reading.'
+                : 'Choose the next section.'}
+            </p>
+            <p class="text-sm text-muted-foreground">
+              {resolved.node.info.list_name} count: {child_items.length}
+            </p>
+          </div>
+
+          <div class="grid gap-3">
+            {child_items.map((item) => (
+              <a
+                class="rounded-lg border bg-card p-4 transition hover:bg-accent hover:text-accent-foreground"
+                href={item.href}
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div class="space-y-1">
+                    <p class="text-lg font-medium">{item.name_dev}</p>
+                    <p class="text-sm text-muted-foreground">{item.name_nor}</p>
+                  </div>
+                  <span class="text-sm text-muted-foreground">
+                    {item.is_leaf ? 'Text' : 'Open'}
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <section class="flex flex-col gap-4">
+          <div class="flex items-center justify-between gap-4">
+            <p class="text-sm text-muted-foreground">Text units loaded: {text?.length ?? 0}</p>
+            <a
+              class="text-sm text-muted-foreground hover:text-foreground"
+              href={`/${resolved.project_key}`}
+            >
+              Back to {resolved.project_name}
+            </a>
+          </div>
+
+          <div class="grid gap-3">
+            {(text ?? []).map((item) => (
+              <article class="rounded-lg border bg-card p-4">
+                <div class="mb-2 flex items-center gap-3 text-sm text-muted-foreground">
+                  <span>Line {item.index + 1}</span>
+                  {item.shloka_num !== null && <span>Shloka {item.shloka_num}</span>}
+                </div>
+                <p class="text-lg leading-8 whitespace-pre-wrap">{item.text}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )
+    }
+  </main>
+</RootLayout>

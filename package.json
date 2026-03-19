@@ -109,7 +109,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "trigger:deploy": "pnpm dlx trigger.dev@latest deploy",
-    "trigger:dev": "pnpm dlx trigger.dev@latest dev"
+    "trigger:dev": "pnpm dlx trigger.dev@latest dev",
+    "sync": "svelte-kit sync"
   },
   "type": "module",
   "version": "0.0.1"

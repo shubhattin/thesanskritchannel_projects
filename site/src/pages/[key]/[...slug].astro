@@ -1,0 +1,34 @@
+---
+import NotFoundPage from '$components/NotFoundPage.astro';
+import TextRoutePage from '$components/TextRoutePage.astro';
+import { get_text_data_func } from '../../../../src/server/text_loader';
+import { get_child_route_items, resolve_text_route } from '../../utils/text-routes';
+
+export const prerender = false;
+
+const slug = Astro.params.slug?.split('/') ?? [];
+const resolved = await resolve_text_route(Astro.params.key ?? '', slug);
+if (!resolved) {
+  Astro.response.status = 404;
+}
+
+if (resolved?.redirect_to && resolved.redirect_to !== Astro.url.pathname) {
+  return Astro.redirect(resolved.redirect_to, 301);
+}
+
+const text =
+  resolved && resolved.node.info.type === 'shloka'
+    ? await get_text_data_func(resolved.project_key, resolved.path_params)
+    : null;
+const child_items = resolved
+  ? get_child_route_items(resolved.project_key, resolved.map, resolved.path_params)
+  : [];
+---
+
+{
+  resolved ? (
+    <TextRoutePage resolved={resolved} child_items={child_items} text={text} />
+  ) : (
+    <NotFoundPage />
+  )
+}

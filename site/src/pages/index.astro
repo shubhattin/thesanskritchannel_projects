@@ -1,5 +1,32 @@
 ---
 import RootLayout from '$components/RootLayout.astro';
+import { PROJECT_LIST } from '../../../src/state/project_list';
 ---
 
-<RootLayout title="Home" description="Home page" />
+<RootLayout title="Lipi Lekhika Texts" description="Browse texts in a simpler reading interface.">
+  <main class="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
+    <div class="space-y-3">
+      <h1 class="text-3xl font-semibold tracking-tight sm:text-5xl">Browse the text collections</h1>
+      <p class="max-w-3xl text-base text-muted-foreground sm:text-lg">
+        This site focuses on a simpler reading flow. Pick a text, move through its section
+        hierarchy, and open the final text page when you reach a leaf node.
+      </p>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      {
+        PROJECT_LIST.map((project) => (
+          <a
+            class="rounded-xl border bg-card p-5 transition hover:bg-accent hover:text-accent-foreground"
+            href={`/${project.key}`}
+          >
+            <div class="space-y-2">
+              <h2 class="text-xl font-medium">{project.name}</h2>
+              <p class="text-lg text-muted-foreground">{project.name_dev}</p>
+            </div>
+          </a>
+        ))
+      }
+    </div>
+  </main>
+</RootLayout>

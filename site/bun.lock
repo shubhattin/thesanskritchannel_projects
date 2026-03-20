@@ -33,6 +33,7 @@
         "svelte": "^5.53.13",
         "tailwindcss": "^4.2.1",
         "typescript": "^5.9.3",
+        "zod": "^4.3.6",
       },
       "devDependencies": {
         "@internationalized/date": "^3.10.0",

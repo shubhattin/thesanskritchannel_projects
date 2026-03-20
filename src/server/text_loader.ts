@@ -38,7 +38,7 @@ export const get_text_data_func = async (
   const { db, redis } = options;
 
   const project_id = get_project_from_key(key as project_keys_type).id;
-  if (import.meta.env.DEV) {
+  if (!import.meta.env.DEV) {
     const fs = await import('node:fs');
     return JSON.parse(
       fs.readFileSync(get_text_data_file_path(project_id, key, path_params), 'utf8')

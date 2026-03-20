@@ -12,11 +12,11 @@ import { delay } from '~/tools/delay';
 import { env } from '$env/dynamic/private';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { get_project_info_from_id } from '~/state/project_list';
-import ms from 'ms';
 import { fetch_post } from '~/tools/fetch';
 import { get_languages_for_project_user } from './project';
 import { get_path_params } from '~/state/project_list';
 import { waitUntil } from '@vercel/functions';
+import { get_translation_data_func } from '~/server/text_loader';
 
 const get_translation_route = publicProcedure
   .input(
@@ -27,43 +27,11 @@ const get_translation_route = publicProcedure
     })
   )
   .query(async ({ input: { project_id, lang_id, selected_text_levels } }) => {
-    let data: {
-      index: number;
-      text: string;
-    }[] = [];
-
-    const { levels } = await get_project_info_from_id(project_id);
-    const path_params = get_path_params(selected_text_levels, levels);
-    const path = path_params.join(':');
-    let cache = null;
-    if (import.meta.env.PROD) {
-      cache = await redis.get<typeof data>(
-        REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params)
-      );
-    }
-    if (cache) data = cache;
-    else {
-      data = await db.query.translations.findMany({
-        columns: {
-          index: true,
-          text: true
-        },
-        where: (tbl, { eq, and }) =>
-          and(eq(tbl.project_id, project_id), eq(tbl.lang_id, lang_id), eq(tbl.path, path)),
-        orderBy: ({ index }, { asc }) => asc(index)
-      });
-      if (import.meta.env.PROD) {
-        // set cache in background
-        waitUntil(
-          redis.set(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params), data, {
-            ex: ms('30days') / 1000
-          })
-        );
-      }
-    }
-    const data_map = new Map<number, string>();
-    for (let i = 0; i < data.length; i++) data_map.set(data[i].index, data[i].text);
-    return data_map;
+    return get_translation_data_func(project_id, lang_id, selected_text_levels, {
+      defer: waitUntil,
+      db,
+      redis
+    });
   });
 
 const edit_translation_route = protectedAppScopeProcedure

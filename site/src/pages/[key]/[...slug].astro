@@ -1,10 +1,16 @@
 ---
 import NotFoundPage from '$components/NotFoundPage.astro';
-import TextRoutePage from '$components/TextRoutePage.astro';
-import { get_text_data_func } from '../../../../src/server/text_loader';
-import { get_child_route_items, resolve_text_route } from '../../utils/text-routes';
-import { db, redis } from '../../db/site_db';
+import TextRoutePage from '$components/main_text/TextRoutePage.astro';
+import { get_text_data_func, get_translation_data_func } from '$app/server/text_loader';
+import {
+  get_child_route_items,
+  get_selected_text_levels_from_path_params,
+  resolve_text_route
+} from '~/utils/text-routes';
+import { db, redis } from '~/db/site_db';
 import { waitUntil } from '@vercel/functions';
+import { get_project_from_key } from '$app/state/project_list';
+import { LANG_ID_COOKIE_NAME, parse_lang_id_cookie } from '~/lib/cookies';
 
 export const prerender = false;
 
@@ -18,6 +24,7 @@ if (resolved?.redirect_to && resolved.redirect_to !== Astro.url.pathname) {
   return Astro.redirect(resolved.redirect_to, 301);
 }
 
+const selected_lang_id = parse_lang_id_cookie(Astro.cookies.get(LANG_ID_COOKIE_NAME)?.value);
 const text =
   resolved && resolved.node.info.type === 'shloka'
     ? await get_text_data_func(resolved.project_key, resolved.path_params, {
@@ -26,6 +33,19 @@ const text =
         redis: redis
       })
     : null;
+const translation =
+  resolved && resolved.node.info.type === 'shloka' && selected_lang_id !== -1
+    ? await get_translation_data_func(
+        get_project_from_key(resolved.project_key).id,
+        selected_lang_id,
+        get_selected_text_levels_from_path_params(resolved.path_params, resolved.levels),
+        {
+          defer: waitUntil,
+          db,
+          redis
+        }
+      )
+    : null;
 const child_items = resolved
   ? get_child_route_items(resolved.project_key, resolved.map, resolved.path_params)
   : [];
@@ -33,7 +53,13 @@ const child_items = resolved
 
 {
   resolved ? (
-    <TextRoutePage resolved={resolved} child_items={child_items} text={text} />
+    <TextRoutePage
+      resolved={resolved}
+      child_items={child_items}
+      text={text}
+      selected_lang_id={selected_lang_id}
+      translation={translation}
+    />
   ) : (
     <NotFoundPage />
   )

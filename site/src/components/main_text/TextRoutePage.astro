@@ -1,7 +1,8 @@
 ---
+import LanguageSelect from '$components/main_text/LanguageSelect.svelte';
 import RootLayout from '$components/RootLayout.astro';
-import type { shloka_list_type } from '../../../src/state/data_types';
-import type { resolved_text_route_type } from '../utils/text-routes';
+import type { shloka_list_type } from '$app/state/data_types';
+import type { resolved_text_route_type } from '~/utils/text-routes';
 
 type ChildRouteItem = {
   index: number;
@@ -15,9 +16,11 @@ type Props = {
   resolved: resolved_text_route_type;
   child_items: ChildRouteItem[];
   text: shloka_list_type | null;
+  selected_lang_id: number;
+  translation: Map<number, string> | null;
 };
 
-const { resolved, child_items, text }: Props = Astro.props;
+const { resolved, child_items, text, selected_lang_id, translation }: Props = Astro.props;
 const current_title = resolved.path_names.at(-1) ?? resolved.project_name;
 const page_title = `${current_title} | ${resolved.project_name}`;
 const page_description =
@@ -106,22 +109,29 @@ const breadcrumb_items = resolved.path_names.map((name, index) => ({
         </section>
       ) : (
         <section class="flex flex-col gap-4">
-          {
-            resolved.path_params.length > 0 ? (
-              <div class="flex items-center justify-between gap-4">
-                <a
-                  class="text-sm text-muted-foreground hover:text-foreground"
-                  href={`/${resolved.project_key}`}
-                >
-                  Back to {resolved.project_name}
-                </a>
-              </div>
-            ) : null
-          }
+          {resolved.path_params.length > 0 ? (
+            <div class="flex items-center justify-between gap-4">
+              <a
+                class="text-sm text-muted-foreground hover:text-foreground"
+                href={`/${resolved.project_key}`}
+              >
+                Back to {resolved.project_name}
+              </a>
+            </div>
+          ) : null}
 
-          <div class="space-y-4 text-lg leading-8 whitespace-pre-wrap">
+          <LanguageSelect client:load initial_lang_id={selected_lang_id} />
+
+          <div class="space-y-4 text-lg leading-8">
             {(text ?? []).map((item) => (
-              <p>{item.text}</p>
+              <div class="space-y-0">
+                <div class="whitespace-pre-line">{item.text}</div>
+                {selected_lang_id !== -1 && translation?.has(item.index) ? (
+                  <div class="text-base leading-7 whitespace-pre-line text-yellow-700 dark:text-yellow-500">
+                    {translation.get(item.index)}
+                  </div>
+                ) : null}
+              </div>
             ))}
           </div>
         </section>

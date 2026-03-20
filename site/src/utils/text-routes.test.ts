@@ -4,6 +4,7 @@ import {
   build_pretty_route_segment,
   get_child_route_items,
   get_pretty_segments_for_path_params,
+  get_selected_text_levels_from_path_params,
   normalize_level_name_for_url,
   parse_pretty_route_segment,
   resolve_text_route
@@ -77,5 +78,11 @@ describe('text-routes', () => {
       index: 1,
       href: '/ramayanam/kanda-1/sarga-1'
     });
+  });
+
+  it('converts leaf path params into selected_text_levels for translations', () => {
+    expect(get_selected_text_levels_from_path_params([1, 2], 3)).toEqual([2, 1]);
+    expect(get_selected_text_levels_from_path_params([1], 2)).toEqual([1]);
+    expect(get_selected_text_levels_from_path_params([], 1)).toEqual([]);
   });
 });

@@ -3,6 +3,7 @@ build
 dist
 .astro/
 .svelte-kit/
+.vercel
 
 # Ignore files for PNPM, NPM and YARN
 pnpm-lock.yaml

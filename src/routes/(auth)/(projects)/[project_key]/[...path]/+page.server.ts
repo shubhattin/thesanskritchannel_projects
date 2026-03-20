@@ -8,8 +8,11 @@ import {
   project_keys_enum_schema
 } from '~/state/project_list';
 import { z } from 'zod';
-import { get_text_data_func } from '~/api/routes/text';
+import { get_text_data_func } from '~/server/text_loader';
 import type { shloka_list_type } from '~/state/data_types';
+import { waitUntil } from '@trigger.dev/sdk';
+import { db } from '~/db/db';
+import { redis } from '~/db/redis';
 
 const path_params_schema = z.array(z.coerce.number().int());
 
@@ -50,7 +53,7 @@ export const load: PageServerLoad = async (opts) => {
   }
 
   if (levels === 1) {
-    text = await get_text_data_func(project_key, []);
+    text = await get_text_data_func(project_key, [], { defer: waitUntil, db: db, redis: redis });
   } else if (path_params.length > 0) {
     // Traverse dynamic map for names and validation.
     let node: any = project_map;
@@ -72,7 +75,11 @@ export const load: PageServerLoad = async (opts) => {
 
     // Fetch text whenever we reach a leaf `shloka` node (subtrees can have varying depth).
     if (node?.info?.type === 'shloka' && !isDataRequest) {
-      text = await get_text_data_func(project_key, path_params);
+      text = await get_text_data_func(project_key, path_params, {
+        defer: waitUntil,
+        db: db,
+        redis: redis
+      });
     }
   }
   return {

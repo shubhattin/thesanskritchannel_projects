@@ -10,9 +10,6 @@ import { and, eq, like, sql } from 'drizzle-orm';
 import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
 import { redis } from '~/db/redis';
 
-/** first and second here are like the ones in url */
-export { get_text_data_func };
-
 const get_text_data_route = publicProcedure
   .input(
     z.object({

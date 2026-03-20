@@ -1,7 +1,12 @@
 ---
 import LanguageSelect from '$components/main_text/LanguageSelect.svelte';
+import ScriptSelect from '$components/main_text/ScriptSelect.svelte';
 import RootLayout from '$components/RootLayout.astro';
 import type { shloka_list_type } from '$app/state/data_types';
+import {
+  transliterate_for_display,
+  transliterate_list_for_display
+} from '~/lib/main_text/script-display';
 import type { resolved_text_route_type } from '~/utils/text-routes';
 
 type ChildRouteItem = {
@@ -17,20 +22,41 @@ type Props = {
   child_items: ChildRouteItem[];
   text: shloka_list_type | null;
   selected_lang_id: number;
+  selected_script_id: number;
   translation: Map<number, string> | null;
 };
 
-const { resolved, child_items, text, selected_lang_id, translation }: Props = Astro.props;
+const { resolved, child_items, text, selected_lang_id, selected_script_id, translation }: Props =
+  Astro.props;
+const display_path_names = await transliterate_list_for_display(
+  resolved.path_names,
+  selected_script_id
+);
+const display_child_items = await Promise.all(
+  child_items.map(async (item) => ({
+    ...item,
+    name_display: await transliterate_for_display(item.name_dev, selected_script_id)
+  }))
+);
+const display_text =
+  text !== null
+    ? await transliterate_list_for_display(
+        text.map((item) => item.text),
+        selected_script_id
+      )
+    : [];
+// Intentionally do NOT transliterate the visible page title/meta title.
+// The rest of the UI can still respect `selected_script_id`.
 const current_title = resolved.path_names.at(-1) ?? resolved.project_name;
 const page_title = `${current_title} | ${resolved.project_name}`;
 const page_description =
   resolved.path_names.length === 0
     ? `Browse ${resolved.project_name}`
     : `Browse ${resolved.project_name} - ${resolved.path_names.join(' / ')}`;
-const breadcrumb_items = resolved.path_names.map((name, index) => ({
+const breadcrumb_items = display_path_names.map((name, index) => ({
   name,
   href:
-    index === resolved.path_names.length - 1
+    index === display_path_names.length - 1
       ? null
       : `/${resolved.project_key}/${resolved.canonical_path
           .split('/')
@@ -50,8 +76,8 @@ const breadcrumb_items = resolved.path_names.map((name, index) => ({
         </p>
         <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">{current_title}</h1>
         {
-          resolved.path_names.length > 0 && (
-            <p class="text-sm text-muted-foreground">{resolved.path_names.join(' / ')}</p>
+          display_path_names.length > 0 && (
+            <p class="text-sm text-muted-foreground">{display_path_names.join(' / ')}</p>
           )
         }
       </div>
@@ -88,15 +114,16 @@ const breadcrumb_items = resolved.path_names.map((name, index) => ({
     {
       resolved.node.info.type === 'list' ? (
         <section class="flex flex-col gap-4">
+          <ScriptSelect client:load initial_script_id={selected_script_id} />
           <div class="grid gap-3">
-            {child_items.map((item) => (
+            {display_child_items.map((item) => (
               <a
                 class="rounded-lg border bg-card p-4 transition hover:bg-accent hover:text-accent-foreground"
                 href={item.href}
               >
                 <div class="flex items-start justify-between gap-4">
                   <div class="space-y-1">
-                    <p class="text-lg font-medium">{item.name_dev}</p>
+                    <p class="text-lg font-medium">{item.name_display}</p>
                     <p class="text-sm text-muted-foreground">{item.name_nor}</p>
                   </div>
                   <span class="text-sm text-muted-foreground">
@@ -120,12 +147,15 @@ const breadcrumb_items = resolved.path_names.map((name, index) => ({
             </div>
           ) : null}
 
-          <LanguageSelect client:load initial_lang_id={selected_lang_id} />
+          <div class="flex flex-wrap gap-4">
+            <ScriptSelect client:load initial_script_id={selected_script_id} />
+            <LanguageSelect client:load initial_lang_id={selected_lang_id} />
+          </div>
 
-          <div class="space-y-4 text-lg leading-8">
-            {(text ?? []).map((item) => (
-              <div class="space-y-0">
-                <div class="whitespace-pre-line">{item.text}</div>
+          <div class="space-y-6 text-lg leading-8">
+            {(text ?? []).map((item, index) => (
+              <div class="space-y-1">
+                <div class="whitespace-pre-line">{display_text[index]}</div>
                 {selected_lang_id !== -1 && translation?.has(item.index) ? (
                   <div class="text-base leading-7 whitespace-pre-line text-yellow-700 dark:text-yellow-500">
                     {translation.get(item.index)}

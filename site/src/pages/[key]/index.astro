@@ -10,7 +10,12 @@ import {
 import { db, redis } from '~/db/site_db';
 import { waitUntil } from '@vercel/functions';
 import { get_project_from_key } from '$app/state/project_list';
-import { LANG_ID_COOKIE_NAME, parse_lang_id_cookie } from '~/lib/cookies';
+import {
+  LANG_ID_COOKIE_NAME,
+  SCRIPT_ID_COOKIE_NAME,
+  parse_lang_id_cookie,
+  parse_script_id_cookie
+} from '~/lib/cookies';
 
 export const prerender = false;
 
@@ -24,6 +29,7 @@ if (resolved?.redirect_to) {
 }
 
 const selected_lang_id = parse_lang_id_cookie(Astro.cookies.get(LANG_ID_COOKIE_NAME)?.value);
+const selected_script_id = parse_script_id_cookie(Astro.cookies.get(SCRIPT_ID_COOKIE_NAME)?.value);
 const text =
   resolved && resolved.node.info.type === 'shloka'
     ? await get_text_data_func(resolved.project_key, resolved.path_params, {
@@ -57,6 +63,7 @@ const child_items = resolved
       child_items={child_items}
       text={text}
       selected_lang_id={selected_lang_id}
+      selected_script_id={selected_script_id}
       translation={translation}
     />
   ) : (

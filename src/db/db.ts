@@ -30,3 +30,8 @@ export type transactionType =
       ExtractTablesWithRelations<typeof schema>
     >
   | typeof db;
+
+// fix for neon websocket adapter error
+import { neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
+neonConfig.webSocketConstructor = ws;

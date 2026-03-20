@@ -47,6 +47,7 @@
         "trpc-svelte-query": "^2.1.0",
         "trpc-sveltekit": "^3.6.3",
         "vitest": "^3.2.4",
+        "ws": "^8.19.0",
         "zod": "^4.3.6",
       },
       "devDependencies": {

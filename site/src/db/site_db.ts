@@ -4,7 +4,11 @@ import { Pool } from '@neondatabase/serverless';
 import { get_db_url } from '$app/db/db_utils';
 import { Redis } from '@upstash/redis/cloudflare';
 
-const DB_URL = get_db_url(import.meta.env);
+// `import.meta.env` is resolved at build time by Vite.
+// On Vercel, runtime secrets are available in `process.env`,
+// so we merge both to support local dev + prod serverless.
+const env = { ...process.env, ...import.meta.env } as any;
+const DB_URL = get_db_url(env);
 
 const get_drizzle_instance_dev = async () => {
   const postgres = await import('postgres');
@@ -17,6 +21,6 @@ export const db = import.meta.env.DEV
   : drizzle_neon(new Pool({ connectionString: DB_URL }), { schema });
 
 export const redis = new Redis({
-  url: import.meta.env.UPSTASH_REDIS_REST_URL,
-  token: import.meta.env.UPSTASH_REDIS_REST_TOKEN
+  url: process.env.UPSTASH_REDIS_REST_URL ?? import.meta.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN ?? import.meta.env.UPSTASH_REDIS_REST_TOKEN
 });

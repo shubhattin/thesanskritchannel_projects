@@ -26,6 +26,7 @@
         "@fontsource/noto-sans-tamil-supplement": "^5.2.7",
         "@fontsource/noto-sans-telugu": "^5.2.8",
         "@tailwindcss/vite": "^4.2.1",
+        "@vercel/functions": "^3.4.3",
         "astro": "^6.0.5",
         "js-cookie": "^3.0.5",
         "lipilekhika": "^1.0.8",

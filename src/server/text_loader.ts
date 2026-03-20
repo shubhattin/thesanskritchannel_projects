@@ -10,7 +10,6 @@ import {
   get_project_info_from_id,
   type project_keys_type
 } from '../state/project_list';
-import { REDIS_CACHE_KEYS } from '~/db/redis';
 import type { Redis } from '@upstash/redis/cloudflare';
 
 export type defer_promise_type = (promise: Promise<unknown>) => void;

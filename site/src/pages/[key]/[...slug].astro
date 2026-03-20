@@ -3,6 +3,8 @@ import NotFoundPage from '$components/NotFoundPage.astro';
 import TextRoutePage from '$components/TextRoutePage.astro';
 import { get_text_data_func } from '../../../../src/server/text_loader';
 import { get_child_route_items, resolve_text_route } from '../../utils/text-routes';
+import { db, redis } from '../../db/site_db';
+import { waitUntil } from '@vercel/functions';
 
 export const prerender = false;
 
@@ -18,7 +20,11 @@ if (resolved?.redirect_to && resolved.redirect_to !== Astro.url.pathname) {
 
 const text =
   resolved && resolved.node.info.type === 'shloka'
-    ? await get_text_data_func(resolved.project_key, resolved.path_params)
+    ? await get_text_data_func(resolved.project_key, resolved.path_params, {
+        defer: waitUntil,
+        db: db,
+        redis: redis
+      })
     : null;
 const child_items = resolved
   ? get_child_route_items(resolved.project_key, resolved.map, resolved.path_params)

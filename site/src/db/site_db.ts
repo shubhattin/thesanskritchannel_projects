@@ -2,8 +2,9 @@ import * as schema from '$app/db/schema';
 import { drizzle as drizzle_neon } from 'drizzle-orm/neon-serverless';
 import { Pool } from '@neondatabase/serverless';
 import { get_db_url } from '$app/db/db_utils';
+import { Redis } from '@upstash/redis/cloudflare';
 
-const DB_URL = get_db_url(process.env);
+const DB_URL = get_db_url(import.meta.env);
 
 const get_drizzle_instance_dev = async () => {
   const postgres = await import('postgres');
@@ -14,3 +15,8 @@ const get_drizzle_instance_dev = async () => {
 export const db = import.meta.env.DEV
   ? await get_drizzle_instance_dev()
   : drizzle_neon(new Pool({ connectionString: DB_URL }), { schema });
+
+export const redis = new Redis({
+  url: import.meta.env.UPSTASH_REDIS_REST_URL,
+  token: import.meta.env.UPSTASH_REDIS_REST_TOKEN
+});

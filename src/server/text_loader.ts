@@ -1,16 +1,17 @@
-import { Pool } from '@neondatabase/serverless';
-import { Redis } from '@upstash/redis';
-import { drizzle as drizzle_neon } from 'drizzle-orm/neon-serverless';
 import ms from 'ms';
 import { resolve } from 'node:path';
-import postgres from 'postgres';
 import { fileURLToPath } from 'node:url';
-import { drizzle as drizzle_postgres } from 'drizzle-orm/postgres-js';
 import * as schema from '../db/schema';
-import { get_db_url } from '../db/db_utils';
 import { REDIS_CACHE_KEYS_CLIENT } from '../db/redis_shared';
 import type { shloka_list_type } from '../state/data_types';
-import { get_project_from_key, type project_keys_type } from '../state/project_list';
+import {
+  get_path_params,
+  get_project_from_key,
+  get_project_info_from_id,
+  type project_keys_type
+} from '../state/project_list';
+import { REDIS_CACHE_KEYS } from '~/db/redis';
+import type { Redis } from '@upstash/redis/cloudflare';
 
 export type defer_promise_type = (promise: Promise<unknown>) => void;
 
@@ -21,31 +22,6 @@ const get_text_data_loc = (project_id: number, key: string, path_params: number[
 const repo_root = resolve(fileURLToPath(new URL('.', import.meta.url)), '../..');
 const get_text_data_file_path = (project_id: number, key: string, path_params: number[]) =>
   resolve(repo_root, get_text_data_loc(project_id, key, path_params));
-
-let db_promise: Promise<any> | null = null;
-const get_db = async () => {
-  if (!db_promise) {
-    db_promise = (async () => {
-      const DB_URL = get_db_url(process.env);
-      if (import.meta.env.DEV) {
-        return drizzle_postgres(postgres(DB_URL), { schema });
-      }
-      return drizzle_neon(new Pool({ connectionString: DB_URL }), { schema });
-    })();
-  }
-  return db_promise;
-};
-
-let redis_instance: Redis | null = null;
-const get_redis = () => {
-  if (!redis_instance) {
-    redis_instance = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN
-    });
-  }
-  return redis_instance;
-};
 
 const defer_promise = (promise: Promise<unknown>, defer?: defer_promise_type) => {
   if (defer) {
@@ -58,8 +34,10 @@ const defer_promise = (promise: Promise<unknown>, defer?: defer_promise_type) =>
 export const get_text_data_func = async (
   key: string,
   path_params: number[],
-  options?: { defer?: defer_promise_type }
+  options: { defer?: defer_promise_type; db: any; redis: Redis }
 ) => {
+  const { db, redis } = options;
+
   const project_id = get_project_from_key(key as project_keys_type).id;
   if (import.meta.env.DEV) {
     const fs = await import('node:fs');
@@ -68,12 +46,10 @@ export const get_text_data_func = async (
     ) as shloka_list_type;
   }
 
-  const redis = get_redis();
   const cache_key = REDIS_CACHE_KEYS_CLIENT.text_data(project_id, path_params);
   const cache = await redis.get<shloka_list_type>(cache_key);
   if (cache) return cache;
 
-  const db = await get_db();
   const data = await db.query.texts.findMany({
     columns: {
       text: true,
@@ -89,8 +65,54 @@ export const get_text_data_func = async (
     redis.set(cache_key, data, {
       ex: ms('30days') / 1000
     }),
-    options?.defer
+    options.defer
   );
 
   return data as shloka_list_type;
 };
+
+// export const get_translation_func = async (
+//   project_id: number,
+//   lang_id: number,
+//   selected_text_levels: (number | null)[]
+// ) => {
+//   let data: {
+//     index: number;
+//     text: string;
+//   }[] = [];
+//   const redis = get_redis();
+
+//   const { levels } = await get_project_info_from_id(project_id);
+//   const path_params = get_path_params(selected_text_levels, levels);
+//   const path = path_params.join(':');
+//   let cache = null;
+//   if (import.meta.env.PROD) {
+//     cache = await redis.get<typeof data>(
+//       REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params)
+//     );
+//   }
+//   if (cache) data = cache;
+//   else {
+//     const db = await get_db();
+//     // data = await db.query.translations.findMany({
+//     //   columns: {
+//     //     index: true,
+//     //     text: true
+//     //   },
+//     //   where: (tbl, { eq, and }) =>
+//     //     and(eq(tbl.project_id, project_id), eq(tbl.lang_id, lang_id), eq(tbl.path, path)),
+//     //   orderBy: ({ index }, { asc }) => asc(index)
+//     // });
+//     if (import.meta.env.PROD) {
+//       // set cache in background
+//       defer_promise(
+//         redis.set(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params), data, {
+//           ex: ms('30days') / 1000
+//         })
+//       );
+//     }
+//   }
+//   const data_map = new Map<number, string>();
+//   for (let i = 0; i < data.length; i++) data_map.set(data[i].index, data[i].text);
+//   return data_map;
+// };

@@ -2,13 +2,13 @@ import { z } from 'zod';
 import { publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { texts } from '~/db/schema';
-import type { shloka_list_type } from '~/state/data_types';
 import { delay } from '~/tools/delay';
 import { get_text_data_func } from '~/server/text_loader';
 import { get_project_from_key, type project_keys_type } from '~/state/project_list';
 import { waitUntil } from '@vercel/functions';
 import { and, eq, like, sql } from 'drizzle-orm';
 import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
+import { redis } from '~/db/redis';
 
 /** first and second here are like the ones in url */
 export { get_text_data_func };
@@ -23,7 +23,9 @@ const get_text_data_route = publicProcedure
   .query(async ({ input: { project_key, path_params } }) => {
     await delay(350);
     const data = await get_text_data_func(project_key, path_params, {
-      defer: waitUntil
+      defer: waitUntil,
+      db: db,
+      redis: redis
     });
     return data;
   });

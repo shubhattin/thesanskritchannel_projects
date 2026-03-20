@@ -85,17 +85,6 @@ const breadcrumb_items = resolved.path_names.map((name, index) => ({
     {
       resolved.node.info.type === 'list' ? (
         <section class="flex flex-col gap-4">
-          <div class="flex flex-col gap-1">
-            <p class="text-sm text-muted-foreground">
-              {resolved.path_names.length === 0
-                ? 'Choose a section to start reading.'
-                : 'Choose the next section.'}
-            </p>
-            <p class="text-sm text-muted-foreground">
-              {resolved.node.info.list_name} count: {child_items.length}
-            </p>
-          </div>
-
           <div class="grid gap-3">
             {child_items.map((item) => (
               <a
@@ -118,7 +107,6 @@ const breadcrumb_items = resolved.path_names.map((name, index) => ({
       ) : (
         <section class="flex flex-col gap-4">
           <div class="flex items-center justify-between gap-4">
-            <p class="text-sm text-muted-foreground">Text units loaded: {text?.length ?? 0}</p>
             <a
               class="text-sm text-muted-foreground hover:text-foreground"
               href={`/${resolved.project_key}`}
@@ -127,15 +115,9 @@ const breadcrumb_items = resolved.path_names.map((name, index) => ({
             </a>
           </div>
 
-          <div class="grid gap-3">
+          <div class="space-y-4 text-lg leading-8 whitespace-pre-wrap">
             {(text ?? []).map((item) => (
-              <article class="rounded-lg border bg-card p-4">
-                <div class="mb-2 flex items-center gap-3 text-sm text-muted-foreground">
-                  <span>Line {item.index + 1}</span>
-                  {item.shloka_num !== null && <span>Shloka {item.shloka_num}</span>}
-                </div>
-                <p class="text-lg leading-8 whitespace-pre-wrap">{item.text}</p>
-              </article>
+              <p>{item.text}</p>
             ))}
           </div>
         </section>

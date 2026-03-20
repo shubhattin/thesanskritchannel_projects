@@ -35,6 +35,7 @@
     "@fontsource/noto-sans-telugu": "^5.2.8",
     "@tailwindcss/vite": "^4.2.1",
     "astro": "^6.0.5",
+    "js-cookie": "^3.0.5",
     "lipilekhika": "^1.0.8",
     "svelte": "^5.53.13",
     "tailwindcss": "^4.2.1",
@@ -43,6 +44,7 @@
   "devDependencies": {
     "@internationalized/date": "^3.10.0",
     "@lucide/svelte": "^0.561.0",
+    "@types/js-cookie": "^3.0.6",
     "bits-ui": "^2.14.4",
     "clsx": "^2.1.1",
     "embla-carousel-svelte": "^8.6.0",

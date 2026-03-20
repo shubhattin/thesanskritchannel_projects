@@ -14,7 +14,7 @@
       "pos": 1,
       "info": {
         "type": "list",
-        "list_name": "Bhāga",
+        "list_name": "Bhaga",
         "list_count": 4
       },
       "list": [
@@ -24,7 +24,7 @@
           "pos": 1,
           "info": {
             "type": "list",
-            "list_name": "Śākhā",
+            "list_name": "Shakha",
             "list_count": 2
           },
           "list": [
@@ -34,7 +34,7 @@
               "pos": 1,
               "info": {
                 "type": "list",
-                "list_name": "Maṇḍala",
+                "list_name": "Mandala",
                 "list_count": 10
               },
               "list": [
@@ -11476,7 +11476,7 @@
           "pos": 2,
           "info": {
             "type": "list",
-            "list_name": "Śākhā",
+            "list_name": "Shakha",
             "list_count": 2
           },
           "list": [
@@ -11657,7 +11657,7 @@
       "pos": 2,
       "info": {
         "type": "list",
-        "list_name": "Bhāga",
+        "list_name": "Bhaga",
         "list_count": 4
       },
       "list": [
@@ -11667,7 +11667,7 @@
           "pos": 1,
           "info": {
             "type": "list",
-            "list_name": "Śākhā",
+            "list_name": "Shakha",
             "list_count": 2
           },
           "list": [
@@ -11677,7 +11677,7 @@
               "pos": 1,
               "info": {
                 "type": "list",
-                "list_name": "Adhyāya",
+                "list_name": "Adhyaya",
                 "list_count": 40
               },
               "list": [
@@ -12129,7 +12129,7 @@
               "pos": 2,
               "info": {
                 "type": "list",
-                "list_name": "Adhyāya",
+                "list_name": "Adhyaya",
                 "list_count": 40
               },
               "list": [
@@ -12583,7 +12583,7 @@
           "pos": 2,
           "info": {
             "type": "list",
-            "list_name": "Śākhā",
+            "list_name": "Shakha",
             "list_count": 2
           },
           "list": [
@@ -12863,7 +12863,7 @@
       "pos": 3,
       "info": {
         "type": "list",
-        "list_name": "Bhāga",
+        "list_name": "Bhaga",
         "list_count": 4
       },
       "list": [
@@ -12873,7 +12873,7 @@
           "pos": 1,
           "info": {
             "type": "list",
-            "list_name": "Śākhā",
+            "list_name": "Shakha",
             "list_count": 4
           },
           "list": [
@@ -12883,7 +12883,7 @@
               "pos": 1,
               "info": {
                 "type": "list",
-                "list_name": "Adhyāya",
+                "list_name": "Adhyaya",
                 "list_count": 0
               },
               "list": []
@@ -12894,7 +12894,7 @@
               "pos": 2,
               "info": {
                 "type": "list",
-                "list_name": "Adhyāya",
+                "list_name": "Adhyaya",
                 "list_count": 0
               },
               "list": []
@@ -12905,7 +12905,7 @@
               "pos": 3,
               "info": {
                 "type": "list",
-                "list_name": "Adhyāya",
+                "list_name": "Adhyaya",
                 "list_count": 0
               },
               "list": []
@@ -12916,7 +12916,7 @@
               "pos": 4,
               "info": {
                 "type": "list",
-                "list_name": "Adhyāya",
+                "list_name": "Adhyaya",
                 "list_count": 0
               },
               "list": []
@@ -12929,7 +12929,7 @@
           "pos": 2,
           "info": {
             "type": "list",
-            "list_name": "Śākhā",
+            "list_name": "Shakha",
             "list_count": 4
           },
           "list": [
@@ -13374,7 +13374,7 @@
       "pos": 4,
       "info": {
         "type": "list",
-        "list_name": "Bhāga",
+        "list_name": "Bhaga",
         "list_count": 4
       },
       "list": [
@@ -13384,7 +13384,7 @@
           "pos": 1,
           "info": {
             "type": "list",
-            "list_name": "Śākhā",
+            "list_name": "Shakha",
             "list_count": 3
           },
           "list": [
@@ -13429,7 +13429,7 @@
           "pos": 2,
           "info": {
             "type": "list",
-            "list_name": "Śākhā",
+            "list_name": "Shakha",
             "list_count": 11
           },
           "list": [
@@ -13775,7 +13775,7 @@
       "pos": 5,
       "info": {
         "type": "list",
-        "list_name": "Bhāga",
+        "list_name": "Bhaga",
         "list_count": 4
       },
       "list": [
@@ -13785,7 +13785,7 @@
           "pos": 1,
           "info": {
             "type": "list",
-            "list_name": "Śākhā",
+            "list_name": "Shakha",
             "list_count": 2
           },
           "list": [
@@ -13819,7 +13819,7 @@
           "pos": 2,
           "info": {
             "type": "list",
-            "list_name": "Śākhā",
+            "list_name": "Shakha",
             "list_count": 1
           },
           "list": [

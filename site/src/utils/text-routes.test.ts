@@ -12,6 +12,9 @@ import {
 describe('text-routes', () => {
   it('normalizes and parses pretty route segments', () => {
     expect(normalize_level_name_for_url('Chapter Name')).toBe('chapter-name');
+    // Accent characters should not split URL tokens.
+    expect(normalize_level_name_for_url('Bhāga')).toBe('bhaga');
+    expect(build_pretty_route_segment('Bhāga', 1)).toBe('bhaga-1');
     expect(build_pretty_route_segment('Kanda', 3)).toBe('kanda-3');
     expect(parse_pretty_route_segment('sarga-12')).toEqual({
       level_slug: 'sarga',
@@ -30,6 +33,17 @@ describe('text-routes', () => {
     const resolved = await resolve_text_route('ramayanam', ['1', '2']);
     expect(resolved?.redirect_to).toBe('/ramayanam/kanda-1/sarga-2');
     expect(resolved?.path_params).toEqual([1, 2]);
+  });
+
+  it('handles Veda accent-based slugs (Bhāga)', async () => {
+    const fromPretty = await resolve_text_route('veda', ['veda-1', 'bhaga-1']);
+    expect(fromPretty).not.toBeNull();
+    expect(fromPretty?.redirect_to).toBeNull();
+    expect(fromPretty?.canonical_path).toBe('/veda/veda-1/bhaga-1');
+    expect(fromPretty?.path_params).toEqual([1, 1]);
+
+    const fromNumeric = await resolve_text_route('veda', ['1', '1']);
+    expect(fromNumeric?.redirect_to).toBe('/veda/veda-1/bhaga-1');
   });
 
   it('resolves valid pretty routes and rejects invalid ones', async () => {

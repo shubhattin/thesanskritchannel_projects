@@ -106,14 +106,18 @@ const breadcrumb_items = resolved.path_names.map((name, index) => ({
         </section>
       ) : (
         <section class="flex flex-col gap-4">
-          <div class="flex items-center justify-between gap-4">
-            <a
-              class="text-sm text-muted-foreground hover:text-foreground"
-              href={`/${resolved.project_key}`}
-            >
-              Back to {resolved.project_name}
-            </a>
-          </div>
+          {
+            resolved.path_params.length > 0 ? (
+              <div class="flex items-center justify-between gap-4">
+                <a
+                  class="text-sm text-muted-foreground hover:text-foreground"
+                  href={`/${resolved.project_key}`}
+                >
+                  Back to {resolved.project_name}
+                </a>
+              </div>
+            ) : null
+          }
 
           <div class="space-y-4 text-lg leading-8 whitespace-pre-wrap">
             {(text ?? []).map((item) => (

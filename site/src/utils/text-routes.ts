@@ -12,8 +12,12 @@ const NUMERIC_SEGMENT_RE = /^[1-9]\d*$/;
 const PRETTY_SEGMENT_RE = /^(?<levelSlug>.+)-(?<num>[1-9]\d*)$/;
 
 export const normalize_level_name_for_url = (name: string) =>
+  // De-accent for stable URL slugs.
+  // Example: "Bhāga" -> "bhaga" (not "bh-ga").
   name
     .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');

@@ -243,11 +243,9 @@ async function main() {
     }
     console.log(current_date_key);
     const backup_key = `${BACKUP_FOLDER_NAME}/${current_date_key}.zip`;
-    console.log(`Starting S3 upload: s3://${envs.AWS_DB_BACKUP_BUCKET_NAME}/${backup_key}`);
     await uploadFile(envs.AWS_DB_BACKUP_BUCKET_NAME, backup_key, './backup/backup.zip');
 
     const MIN_BACKUPS_TO_KEEP = 5;
-    console.log(`Starting cleanup for prefix ${BACKUP_FOLDER_NAME}/`);
     await cleanupOldBackups(
       envs.AWS_DB_BACKUP_BUCKET_NAME,
       BACKUP_FOLDER_NAME + '/',

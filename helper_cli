@@ -11,7 +11,7 @@ OPTIONS = [
         [],
     ],
     ["Launch Local Server", ["cd app && bun run dev"]],
-    # ["Invalidate Text Data Cache", ["npx vite-node src/utils/text_data_invalidate.ts"]],
+    # ["Invalidate Text Data Cache", ["bun src/utils/text_data_invalidate.ts"]],
     [
         "Check Data Integrity",
         ["cd app && bun run vitest run src/tests/check_data_shape.test.ts"],

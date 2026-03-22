@@ -28,7 +28,7 @@ jobs:
         run: bun backup_db_data.ts --no-sql-backup --no-zip-backup
       - name: Organize Translations
         working-directory: app
-        run: bunx vite-node src/tests/organize_translation_folder.ts
+        run: bun src/tests/organize_translation_folder.ts
 
       - name: Configure Git
         run: |

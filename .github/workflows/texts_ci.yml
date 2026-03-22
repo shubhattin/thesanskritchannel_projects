@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'data/**'
+      - 'app/src/utils/text_data_invalidate.ts'
+      - '.github/workflows/texts_ci.yml'
 
 jobs:
   text_json_gen_and_cache_invalidation:
@@ -32,5 +34,6 @@ jobs:
           bun-version: latest
       - name: Install dependencies
         run: bun install --frozen-lockfile
-      - run: |
-          bunx vite-node src/utils/text_data_invalidate.ts --last-commit --verbose
+      - name: Invalidate text cache
+        working-directory: app
+        run: bunx vite-node src/utils/text_data_invalidate.ts --last-commit --verbose

@@ -16,24 +16,9 @@ vite.config.ts.timestamp-*
 src/db/scripts/out/
 src/db/scripts/backup/
 
-**/a.ts
-**/a.js
-**/a.json
-**/a.py
-**/a.txt
-**/tmp/
-
-__pycache__
-*~$*.xlsx
 /auth-schema.ts
 
 src/components/pages/main_app/local_config.yaml
-
-
-data/*/raw_data
-data/*/out
-data/*/zipped
-data/*/test_output.md
 
 .trigger
 

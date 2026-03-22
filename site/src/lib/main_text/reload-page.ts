@@ -1,4 +1,8 @@
-import { navigate, supportsViewTransitions, transitionEnabledOnThisPage } from 'astro:transitions/client';
+import {
+  navigate,
+  supportsViewTransitions,
+  transitionEnabledOnThisPage
+} from 'astro:transitions/client';
 
 export async function reload_current_page() {
   const href = `${window.location.pathname}${window.location.search}${window.location.hash}`;

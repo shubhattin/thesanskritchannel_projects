@@ -24,12 +24,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Load Translations
-        run: |
-          cd src/db/scripts/
-          bun backup_db_data.ts --no-sql-backup --no-zip-backup
+        working-directory: app/src/db/scripts
+        run: bun backup_db_data.ts --no-sql-backup --no-zip-backup
       - name: Organize Translations
-        run: |
-          bunx vite-node src/tests/organize_translation_folder.ts
+        working-directory: app
+        run: bunx vite-node src/tests/organize_translation_folder.ts
 
       - name: Configure Git
         run: |
@@ -38,7 +37,7 @@ jobs:
 
       - name: Commit and Push Changes
         run: |
-          git add .
+          git add data/translations
           git commit -m "Updating Translation Files from Database" || echo "No changes to commit"
           git push
         continue-on-error: true

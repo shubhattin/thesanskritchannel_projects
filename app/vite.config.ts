@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [tailwindcss(), sveltekit(), ViteYaml()],
   server: {
     fs: {
-      allow: ['./data', './static/img']
+      allow: ['../data', './static/img']
     }
   },
   worker: {

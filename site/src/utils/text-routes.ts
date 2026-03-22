@@ -1,12 +1,12 @@
-import type { recursive_list_type } from "../../../app/src/state/data_types";
+import type { recursive_list_type } from '../../../app/src/state/data_types';
 import {
   get_list_name_for_path_param_index,
   get_node_at_path,
   get_project_from_key,
   get_project_info_from_key,
   project_keys_enum_schema,
-  type project_keys_type,
-} from "../../../app/src/state/project_list";
+  type project_keys_type
+} from '../../../app/src/state/project_list';
 
 const NUMERIC_SEGMENT_RE = /^[1-9]\d*$/;
 const PRETTY_SEGMENT_RE = /^(?<levelSlug>.+)-(?<num>[1-9]\d*)$/;
@@ -16,11 +16,11 @@ export const normalize_level_name_for_url = (name: string) =>
   // Example: "Bhāga" -> "bhaga" (not "bh-ga").
   name
     .trim()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 
 export const build_pretty_route_segment = (level_name: string, num: number) =>
   `${normalize_level_name_for_url(level_name)}-${num}`;
@@ -32,30 +32,23 @@ export const parse_pretty_route_segment = (segment: string) => {
   if (!Number.isInteger(num) || num < 1) return null;
   return {
     level_slug: match.groups.levelSlug,
-    num,
+    num
   };
 };
 
 export const is_numeric_route = (segments: string[]) =>
-  segments.length > 0 &&
-  segments.every((segment) => NUMERIC_SEGMENT_RE.test(segment));
+  segments.length > 0 && segments.every((segment) => NUMERIC_SEGMENT_RE.test(segment));
 
 export const get_pretty_segments_for_path_params = (
   map: recursive_list_type,
-  path_params: number[],
+  path_params: number[]
 ) => {
   const segments: string[] = [];
   for (let i = 0; i < path_params.length; i++) {
     const num = path_params[i]!;
-    const level_name = get_list_name_for_path_param_index(
-      map,
-      path_params,
-      i,
-      "Level",
-    );
-    const parent_node =
-      i === 0 ? map : get_node_at_path(map, path_params.slice(0, i));
-    if (!parent_node || parent_node.info.type !== "list") return null;
+    const level_name = get_list_name_for_path_param_index(map, path_params, i, 'Level');
+    const parent_node = i === 0 ? map : get_node_at_path(map, path_params.slice(0, i));
+    if (!parent_node || parent_node.info.type !== 'list') return null;
     const list = parent_node.list ?? [];
     if (!(num >= 1 && num <= list.length)) return null;
     segments.push(build_pretty_route_segment(level_name, num));
@@ -66,13 +59,11 @@ export const get_pretty_segments_for_path_params = (
 export const build_project_path = (
   project_key: project_keys_type,
   map: recursive_list_type,
-  path_params: number[],
+  path_params: number[]
 ) => {
   const segments = get_pretty_segments_for_path_params(map, path_params);
   if (!segments) return null;
-  return segments.length === 0
-    ? `/${project_key}`
-    : `/${project_key}/${segments.join("/")}`;
+  return segments.length === 0 ? `/${project_key}` : `/${project_key}/${segments.join('/')}`;
 };
 
 export const resolve_substitute_url = (_url: string) => null;
@@ -93,10 +84,9 @@ export type resolved_text_route_type = {
 
 export const resolve_text_route = async (
   raw_project_key: string,
-  raw_segments: string[],
+  raw_segments: string[]
 ): Promise<resolved_text_route_type | null> => {
-  const parsed_project_key =
-    project_keys_enum_schema.safeParse(raw_project_key);
+  const parsed_project_key = project_keys_enum_schema.safeParse(raw_project_key);
   if (!parsed_project_key.success) return null;
 
   const project_key = parsed_project_key.data;
@@ -122,7 +112,7 @@ export const resolve_text_route = async (
       path_names: [],
       path_level_names: [],
       canonical_path,
-      redirect_to: canonical_path,
+      redirect_to: canonical_path
     };
   }
 
@@ -132,7 +122,7 @@ export const resolve_text_route = async (
   let node: recursive_list_type = map;
 
   for (const segment of segments) {
-    if (node.info.type !== "list") return null;
+    if (node.info.type !== 'list') return null;
     const parsed_segment = parse_pretty_route_segment(segment);
     if (!parsed_segment) return null;
 
@@ -140,14 +130,13 @@ export const resolve_text_route = async (
       map,
       [...path_params, parsed_segment.num],
       path_params.length,
-      "Level",
+      'Level'
     );
     const expected_slug = normalize_level_name_for_url(expected_level_name);
     if (parsed_segment.level_slug !== expected_slug) return null;
 
     const list = node.list ?? [];
-    if (!(parsed_segment.num >= 1 && parsed_segment.num <= list.length))
-      return null;
+    if (!(parsed_segment.num >= 1 && parsed_segment.num <= list.length)) return null;
 
     node = list[parsed_segment.num - 1]!;
     path_params.push(parsed_segment.num);
@@ -169,18 +158,17 @@ export const resolve_text_route = async (
     path_names,
     path_level_names,
     canonical_path,
-    redirect_to: null,
+    redirect_to: null
   };
 };
 
 export const get_child_route_items = (
   project_key: project_keys_type,
   map: recursive_list_type,
-  path_params: number[],
+  path_params: number[]
 ) => {
-  const node =
-    path_params.length === 0 ? map : get_node_at_path(map, path_params);
-  if (!node || node.info.type !== "list") return [];
+  const node = path_params.length === 0 ? map : get_node_at_path(map, path_params);
+  if (!node || node.info.type !== 'list') return [];
 
   return (node.list ?? []).map((child, index) => {
     const next_path_params = [...path_params, index + 1];
@@ -190,14 +178,14 @@ export const get_child_route_items = (
       href: href ?? `/${project_key}`,
       name_dev: child.name_dev,
       name_nor: child.name_nor,
-      is_leaf: child.info.type === "shloka",
+      is_leaf: child.info.type === 'shloka'
     };
   });
 };
 
 export const get_selected_text_levels_from_path_params = (
   path_params: number[],
-  levels: number,
+  levels: number
 ) => {
   return path_params.slice(0, levels - 1).reverse() as (number | null)[];
 };

@@ -13,9 +13,6 @@ vite.config.ts.timestamp-*
 .netlify
 .venv
 
-src/db/scripts/out/
-src/db/scripts/backup/
-
 **/a.ts
 **/a.js
 **/a.json
@@ -25,15 +22,8 @@ src/db/scripts/backup/
 
 __pycache__
 *~$*.xlsx
-/auth-schema.ts
-
-src/components/pages/main_app/local_config.yaml
-
 
 data/*/raw_data
 data/*/out
 data/*/zipped
 data/*/test_output.md
-
-.trigger
-

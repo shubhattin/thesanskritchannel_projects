@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import { z } from 'zod';
 import { execSync } from 'child_process';
 import { import_data } from './import_data';
+import { query_client } from './client';
 import * as dotenv from 'dotenv';
 import {
   S3Client,
@@ -107,6 +108,7 @@ async function main() {
   ) {
     const s3 = new S3Client({
       region: envs.AWS_REGION,
+      maxAttempts: 2,
       credentials: {
         accessKeyId: envs.AWS_ACCESS_KEY_ID,
         secretAccessKey: envs.AWS_SECRET_ACCESS_KEY
@@ -114,21 +116,27 @@ async function main() {
     });
 
     async function uploadFile(bucketName: string, key: string, filePath: string) {
-      const fileStream = fs.createReadStream(filePath);
+      const fileBuffer = fs.readFileSync(filePath);
+      const fileSize = fileBuffer.byteLength;
 
       const uploadParams: PutObjectCommandInput = {
         Bucket: bucketName,
         Key: key,
-        Body: fileStream,
+        Body: fileBuffer,
+        ContentLength: fileSize,
         ContentType: mime.lookup(filePath) || 'application/octet-stream',
         StorageClass: StorageClass.GLACIER_IR
       };
 
       try {
-        const data = await s3.send(new PutObjectCommand(uploadParams));
-        console.log('Upload success');
+        console.log(`Uploading ${filePath} (${Math.round(fileSize / 1024 / 1024)} MB) to S3...`);
+        const data = await s3.send(new PutObjectCommand(uploadParams), {
+          abortSignal: AbortSignal.timeout(ms('2 minutes'))
+        });
+        console.log(`Upload success${data.ETag ? ` (${data.ETag})` : ''}`);
       } catch (err) {
         console.error('Error uploading file:', err);
+        throw err;
       }
     }
 
@@ -236,11 +244,7 @@ async function main() {
     console.log(current_date_key);
     const backup_key = `${BACKUP_FOLDER_NAME}/${current_date_key}.zip`;
     console.log(`Starting S3 upload: s3://${envs.AWS_DB_BACKUP_BUCKET_NAME}/${backup_key}`);
-    await uploadFile(
-      envs.AWS_DB_BACKUP_BUCKET_NAME,
-      backup_key,
-      './backup/backup.zip'
-    );
+    await uploadFile(envs.AWS_DB_BACKUP_BUCKET_NAME, backup_key, './backup/backup.zip');
 
     const MIN_BACKUPS_TO_KEEP = 5;
     console.log(`Starting cleanup for prefix ${BACKUP_FOLDER_NAME}/`);
@@ -256,3 +260,4 @@ async function main() {
 }
 
 await main();
+query_client.end();

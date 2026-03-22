@@ -82,5 +82,6 @@ async function main() {
       }
     }
   }
+  console.log('Translation folder organized successfully');
 }
 main();

@@ -28,7 +28,7 @@ jobs:
         run: bun run sync
       - name: Load Translations
         working-directory: app/src/db/scripts
-        run: bun backup_db_data.ts --no-sql-backup --no-zip-backup
+        run: bun backup_db_data.ts --translations-only --no-sql-backup --no-zip-backup
       - name: Organize Translations
         working-directory: app
         run: bun src/tests/organize_translation_folder.ts

@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import { z } from 'zod';
 import { execSync } from 'child_process';
 import { import_data } from './import_data';
-import { query_client } from './client';
+import { dbClient_ext as db, query_client } from './client';
 import * as dotenv from 'dotenv';
 import {
   S3Client,
@@ -22,6 +22,7 @@ import ms from 'ms';
 dotenv.config({ path: '../../../.env' });
 
 const argv = process.argv.slice(2);
+const TRANSLATIONS_ONLY = argv.includes('--translations-only');
 
 const OUT_FOLDER = './backup';
 const envs_parsed = z
@@ -41,6 +42,19 @@ const envs = envs_parsed.data;
 
 async function backup_data() {
   if (!fs.existsSync(OUT_FOLDER)) fs.mkdirSync(OUT_FOLDER);
+
+  if (TRANSLATIONS_ONLY) {
+    console.log('Backing up translations only...');
+    const translations = await db.query.translations.findMany();
+    const backup_payload = {
+      translations: TranslationSchemaZod.array().parse(translations)
+    };
+    fs.writeFileSync('./backup/db_data.json', JSON.stringify(backup_payload, null, 2), {
+      encoding: 'utf-8'
+    });
+    console.log('Translation-only backup complete');
+    return;
+  }
 
   function backup(command: string, file_name: string, temp_file_name: string) {
     execSync(command);

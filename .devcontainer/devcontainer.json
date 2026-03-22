@@ -1,5 +1,4 @@
 {
-  "name": "Container",
-  "initializeCommand": "echo 'Skipping default npm install'",
-  "postCreateCommand": "git config --global pull.rebase false && (command -v bun >/dev/null 2>&1 || (curl -fsSL https://bun.sh/install | bash)) && export BUN_INSTALL=\"$HOME/.bun\" && export PATH=\"$BUN_INSTALL/bin:$PATH\" && bun install --frozen-lockfile && (command -v uv >/dev/null 2>&1 || (curl -LsSf https://astral.sh/uv/install.sh | sh)) && export PATH=\"$HOME/.local/bin:$PATH\" && uv python install 3.10 && uv sync --frozen"
+  "name": "tsc-projects",
+  "postCreateCommand": "bash -lc 'set -euo pipefail; if ! command -v bun >/dev/null 2>&1; then curl -fsSL https://bun.sh/install | bash; fi; if ! command -v uv >/dev/null 2>&1; then curl -LsSf https://astral.sh/uv/install.sh | sh; fi; export PATH=\"$HOME/.bun/bin:$HOME/.local/bin:$PATH\"; uv python install \"$(tr -d \"\\n\" < .python-version)\"; uv sync --frozen; bun install --frozen-lockfile'"
 }

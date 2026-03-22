@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import { z } from 'zod';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import { import_data } from './import_data';
 import { dbClient_ext as db, query_client } from './client';
 import * as dotenv from 'dotenv';
@@ -56,8 +56,8 @@ async function backup_data() {
     return;
   }
 
-  function backup(command: string, file_name: string, temp_file_name: string) {
-    execSync(command);
+  function backup(args: string[], file_name: string, temp_file_name: string) {
+    execFileSync('pg_dump', args, { stdio: 'inherit' });
     const backup_file_data = fs.readFileSync(temp_file_name).toString('utf-8');
     fs.writeFileSync(`${OUT_FOLDER}/${file_name}`, backup_file_data, {
       encoding: 'utf-8'
@@ -70,7 +70,16 @@ async function backup_data() {
   if (BACKUP_SQL) {
     console.log('Backing up schema...');
     backup(
-      `pg_dump --dbname=${envs.PG_DATABASE_URL} --if-exists --schema-only --clean --no-owner -f b.sql`,
+      [
+        '--dbname',
+        envs.PG_DATABASE_URL,
+        '--if-exists',
+        '--schema-only',
+        '--clean',
+        '--no-owner',
+        '-f',
+        'b.sql'
+      ],
       'db_dump_schema.sql',
       'b.sql'
     );
@@ -78,7 +87,16 @@ async function backup_data() {
   console.log('Backing up data...');
   if (BACKUP_SQL) {
     backup(
-      `pg_dump --dbname=${envs.PG_DATABASE_URL} --data-only --insert --no-owner --rows-per-insert=8000 -f b.sql`,
+      [
+        '--dbname',
+        envs.PG_DATABASE_URL,
+        '--data-only',
+        '--insert',
+        '--no-owner',
+        '--rows-per-insert=8000',
+        '-f',
+        'b.sql'
+      ],
       'db_dump_data.sql',
       'b.sql'
     );

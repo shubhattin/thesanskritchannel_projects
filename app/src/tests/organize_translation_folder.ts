@@ -9,12 +9,9 @@ import { z } from 'zod';
 
 const backup_file = fileURLToPath(new URL('../db/scripts/backup/db_data.json', import.meta.url));
 const translations_root = fileURLToPath(new URL('../../../data/translations/', import.meta.url));
-const backup_schema = z
-  .object({
-    translations: TranslationSchemaZod.array().optional(),
-    translation: TranslationSchemaZod.array().optional()
-  })
-  .transform((data) => data.translations ?? data.translation ?? []);
+const backup_schema = z.object({
+  translations: TranslationSchemaZod.array()
+});
 
 async function main() {
   if (!fs.existsSync(backup_file)) return;
@@ -31,7 +28,7 @@ async function main() {
     };
   } = {};
 
-  for (let trans of translations) {
+  for (let trans of translations.translations) {
     const project_info = await get_project_info_from_id(trans.project_id);
     const project_key = project_info.key;
     const project_id = get_project_from_id(trans.project_id).id;

@@ -3,22 +3,23 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import js_yaml from 'js-yaml';
 import { get_lang_from_id } from '~/state/lang_list';
-import {
-  get_project_from_id,
-  get_project_info_from_id
-} from '~/state/project_list';
+import { get_project_from_id, get_project_info_from_id } from '~/state/project_list';
 import { TranslationSchemaZod } from '~/db/schema_zod';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 const backup_file = fileURLToPath(new URL('../db/scripts/backup/db_data.json', import.meta.url));
 const translations_root = fileURLToPath(new URL('../../../data/translations/', import.meta.url));
+const backup_schema = z
+  .object({
+    translations: TranslationSchemaZod.array().optional(),
+    translation: TranslationSchemaZod.array().optional()
+  })
+  .transform((data) => data.translations ?? data.translation ?? []);
 
 async function main() {
   if (!fs.existsSync(backup_file)) return;
 
-  const translations = JSON.parse(fs.readFileSync(backup_file, 'utf8'))['translation'] as z.infer<
-    typeof TranslationSchemaZod
-  >[];
+  const translations = backup_schema.parse(JSON.parse(fs.readFileSync(backup_file, 'utf8')));
   if (fs.existsSync(translations_root)) fs.rmSync(translations_root, { recursive: true });
   fs.mkdirSync(translations_root, { recursive: true });
 

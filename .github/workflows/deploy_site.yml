@@ -32,9 +32,11 @@ jobs:
           bun-version: latest
 
       - name: Install root dependencies
-        run: |
-          bun install --frozen-lockfile
-          bun run sync
+        run: bun install --frozen-lockfile
+
+      - name: Sync app
+        working-directory: app
+        run: bun run sync
 
       - name: Install site dependencies
         working-directory: site

@@ -21,9 +21,12 @@ jobs:
         with:
           bun-version: latest
       - name: Install dependencies
-        run: |
-          bun install --frozen-lockfile
-          bun run sync
+        run: bun install --frozen-lockfile
+
+      - name: Sync app
+        working-directory: app
+        run: bun run sync
+
       - name: Setup PostgreSQL
         uses: tj-actions/install-postgresql@v3
         with:

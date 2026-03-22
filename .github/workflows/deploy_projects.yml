@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'app/**''
+      - 'app/**'
       - 'package.json'
       - 'bun.lock'
       - 'data/**' # sub to *_map.json changes

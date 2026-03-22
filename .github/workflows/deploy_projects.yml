@@ -24,7 +24,9 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: |
+          bun install --frozen-lockfile
+          bun run sync
 
       - name: Pull Vercel env (production)
         working-directory: app

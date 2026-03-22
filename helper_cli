@@ -10,10 +10,13 @@ OPTIONS = [
         "Generate Text JSON",
         [],
     ],
-    ["Launch Local Server", ["pnpm dev"]],
+    ["Launch Local Server", ["cd app && bun run dev"]],
     # ["Invalidate Text Data Cache", ["npx vite-node src/utils/text_data_invalidate.ts"]],
-    ["Check Data Integrity", ["pnpm vitest run src/tests/check_data_shape.test.ts"]],
-    ["Update Dependencies", ["pnpm i && uv sync "]],
+    [
+        "Check Data Integrity",
+        ["cd app && bun run vitest run src/tests/check_data_shape.test.ts"],
+    ],
+    ["Update Dependencies", ["bun i && uv sync "]],
 ]
 
 TEXT_LIST = [

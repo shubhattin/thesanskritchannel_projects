@@ -13,7 +13,7 @@ import {
   type _Object
 } from '@aws-sdk/client-s3';
 import mime from 'mime-types';
-import { TextSchemaZod, TranslationSchemaZod } from '../../db/schema_zod';
+import { TextSchemaZod, TranslationSchemaZod } from '../schema_zod';
 import { json2csv } from 'json-2-csv';
 import ms from 'ms';
 

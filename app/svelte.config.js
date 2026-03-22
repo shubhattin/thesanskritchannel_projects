@@ -20,8 +20,8 @@ const config = {
           }),
     alias: {
       '~': 'src',
-      '@data': './data',
-      $site: './site'
+      '@data': '../data',
+      $site: '../site'
     }
   }
 };

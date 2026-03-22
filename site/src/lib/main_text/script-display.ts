@@ -1,5 +1,5 @@
-import { get_script_from_id } from '../../../../src/state/lang_list';
-import { transliterate_custom } from '../../../../src/tools/converter';
+import { get_script_from_id } from '../../../../app/src/state/lang_list';
+import { transliterate_custom } from '../../../../app/src/tools/converter';
 import { DEFAULT_SCRIPT_ID } from '../cookies';
 
 const BASE_SCRIPT = 'Devanagari';

@@ -1,4 +1,4 @@
-import type { recursive_list_type } from '../../../src/state/data_types';
+import type { recursive_list_type } from '../../../app/src/state/data_types';
 import {
   get_list_name_for_path_param_index,
   get_node_at_path,
@@ -6,7 +6,7 @@ import {
   get_project_info_from_key,
   project_keys_enum_schema,
   type project_keys_type
-} from '../../../src/state/project_list';
+} from '../../../app/src/state/project_list';
 
 const NUMERIC_SEGMENT_RE = /^[1-9]\d*$/;
 const PRETTY_SEGMENT_RE = /^(?<levelSlug>.+)-(?<num>[1-9]\d*)$/;

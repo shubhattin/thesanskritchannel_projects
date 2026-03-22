@@ -4,6 +4,7 @@ import { PROJECT_LIST } from '../../state/project_list';
 import { TextSchemaZod } from '../schema_zod';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { remove_vedic_svara_chihnAni } from '~/utils/normalize_text';
 
 const text_schema = z.object({
@@ -50,11 +51,14 @@ const get_db_path_from_json_file = (data_folder: string, json_file: string): str
   return path_parts.join(':');
 };
 
+const data_root = fileURLToPath(new URL('../../../../data/', import.meta.url));
+
 const main = async () => {
   const texts: z.infer<typeof TextSchemaZod>[] = [];
   for (const project of PROJECT_LIST) {
     // console.log(`Processing ${project.key}...`);
-    const level1_file = `../../../data/${project.id}. ${project.key}/data.json`;
+    const project_folder = path.join(data_root, `${project.id}. ${project.key}`);
+    const level1_file = path.join(project_folder, 'data.json');
     if (fs.existsSync(level1_file)) {
       const data = text_schema.array().parse(JSON.parse(fs.readFileSync(level1_file, 'utf-8')));
       let project_text_count = 0;
@@ -71,7 +75,7 @@ const main = async () => {
       }
       console.log(`${project.key} has ${project_text_count} texts`);
     } else {
-      const data_folder = `../../../data/${project.id}. ${project.key}/data`;
+      const data_folder = path.join(project_folder, 'data');
       const json_files = list_json_files_recursive(data_folder);
 
       let project_text_count = 0;

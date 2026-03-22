@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { PROJECT_LIST } from '~/state/project_list';
 import { recursive_list_schema } from '~/state/data_types';
 import { type } from 'arktype';
@@ -10,18 +12,22 @@ const ShlokaList = type({
   shloka_number: 'number.integer?'
 }).array();
 
+const data_root = fileURLToPath(new URL('../../../data/', import.meta.url));
+
 describe('Checking correct shape of data', () => {
   it('Checking correct Map Structure', () => {
     for (const project of PROJECT_LIST) {
-      const map_loc = `./data/${project.id}. ${project.key}/${project.key}_map.json`;
+      const project_folder = path.join(data_root, `${project.id}. ${project.key}`);
+      const map_loc = path.join(project_folder, `${project.key}_map.json`);
       const data = JSON.parse(fs.readFileSync(map_loc, 'utf-8'));
       recursive_list_schema.parse(data);
     }
   });
   it('Checking Shloka Text Data', () => {
     for (const project of PROJECT_LIST) {
-      const level1_file = `./data/${project.id}. ${project.key}/data.json`;
-      const data_folder = `./data/${project.id}. ${project.key}/data`;
+      const project_folder = path.join(data_root, `${project.id}. ${project.key}`);
+      const level1_file = path.join(project_folder, 'data.json');
+      const data_folder = path.join(project_folder, 'data');
 
       // Function to recursively process all JSON files in a directory
       const processDirectory = (dir: string) => {

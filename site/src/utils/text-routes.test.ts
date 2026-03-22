@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { get_project_from_key } from '../../../src/state/project_list';
+import { get_project_from_key } from '../../../app/src/state/project_list';
 import {
   build_pretty_route_segment,
   get_child_route_items,

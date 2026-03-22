@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - 'site/**'
-      - 'data/**'
-      - 'src/server/text_loader.ts'
-      - 'src/state/**'
-      - 'src/db/**'
+      - 'data/**' # map changes
+      - 'app/src/server/text_loader.ts'
+      - 'app/src/state/**'
+      - 'app/src/db/**'
+      - 'package.json'
+      - 'bun.lock'
       - '.github/workflows/deploy_site.yml'
   workflow_dispatch:
 
@@ -32,7 +34,8 @@ jobs:
       - name: Install root dependencies
         run: bun install --frozen-lockfile
 
-      - name: Sync root app
+      - name: Sync app
+        working-directory: app
         run: bun run sync
 
       - name: Install site dependencies

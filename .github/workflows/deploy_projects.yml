@@ -4,15 +4,10 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/**'
+      - 'app/**''
       - 'package.json'
       - 'bun.lock'
-      - 'svelte.config.js'
-      - 'netlify.toml'
-      - 'vercel.json'
-      - 'vite.config.ts'
-      - 'trigger.config.ts'
-      - 'componenets.json'
+      - 'data/**' # sub to *_map.json changes
       - '.github/workflows/deploy_projects.yml'
   workflow_dispatch:
 
@@ -32,6 +27,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Pull Vercel env (production)
+        working-directory: app
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -39,11 +35,13 @@ jobs:
         run: bunx vercel env pull .env.production.local --environment=production --token="$VERCEL_TOKEN" --yes
 
       - name: Build (Vercel)
+        working-directory: app
         env:
           BUILD_MODE: vercel
         run: bun run build
 
       - name: Deploy to Vercel
+        working-directory: app
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

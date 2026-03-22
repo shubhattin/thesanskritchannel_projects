@@ -4,18 +4,10 @@ on:
   push:
     paths:
       - 'site/**'
+      - 'app/**'
       - 'data/**'
-      - 'src/server/text_loader.ts'
-      - 'src/state/**'
-      - 'src/db/**'
-      - '.github/workflows/site_checks.yml'
-  pull_request:
-    paths:
-      - 'site/**'
-      - 'data/**'
-      - 'src/server/text_loader.ts'
-      - 'src/state/**'
-      - 'src/db/**'
+      - 'package.json'
+      - 'bun.lock'
       - '.github/workflows/site_checks.yml'
 
 jobs:
@@ -37,7 +29,8 @@ jobs:
       - name: Install root dependencies
         run: bun install --frozen-lockfile
 
-      - name: Sync root app
+      - name: Sync app
+        working-directory: app
         run: bun run sync
 
       - name: Install site dependencies

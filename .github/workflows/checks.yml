@@ -3,15 +3,9 @@ name: App Checks
 on:
   push:
     paths:
-      - 'src/**'
+      - 'app/**'
       - 'package.json'
       - 'bun.lock'
-      - 'svelte.config.js'
-      - 'netlify.toml'
-      - 'vercel.json'
-      - 'vite.config.ts'
-      - 'trigger.config.ts'
-      - 'componenets.json'
       - '.github/workflows/checks.yml'
 
 env:
@@ -33,8 +27,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Sync SvelteKit
+        working-directory: app
         run: bun run sync
       - run: |
+          cd app
           bun x vitest run --dir src
 
   svelte_and_type_check:
@@ -48,5 +44,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - run: |
+          cd app
           bun run check
           bun run build

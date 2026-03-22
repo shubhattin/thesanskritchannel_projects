@@ -5,7 +5,7 @@ import { z } from 'zod';
 import chalk from 'chalk';
 import { fetch_post } from '~/tools/fetch';
 import dotenv from 'dotenv';
-import { shloka_list_schema, type shloka_list_type } from '../../src/state/data_types';
+import { shloka_list_schema, type shloka_list_type } from '../state/data_types';
 import fs from 'node:fs';
 dotenv.config();
 

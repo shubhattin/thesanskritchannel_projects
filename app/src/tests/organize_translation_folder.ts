@@ -1,25 +1,27 @@
 import * as fs from 'fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import js_yaml from 'js-yaml';
 import { get_lang_from_id } from '~/state/lang_list';
-import {
-  get_project_from_id,
-  get_project_info_from_id,
-  type project_keys_type
-} from '~/state/project_list';
+import { get_project_from_id, get_project_info_from_id } from '~/state/project_list';
 import { TranslationSchemaZod } from '~/db/schema_zod';
-import type { z } from 'zod';
+import { z } from 'zod';
 
-// this file should be called from root dir
+const backup_file = fileURLToPath(new URL('../db/scripts/backup/db_data.json', import.meta.url));
+const translations_root = fileURLToPath(new URL('../../../data/translations/', import.meta.url));
+const backup_schema = z
+  .object({
+    translations: TranslationSchemaZod.array().optional(),
+    translation: TranslationSchemaZod.array().optional()
+  })
+  .transform((data) => data.translations ?? data.translation ?? []);
+
 async function main() {
-  const file = './src/db/scripts/backup/db_data.json';
-  if (!fs.existsSync(file)) return;
+  if (!fs.existsSync(backup_file)) return;
 
-  const translations = JSON.parse(fs.readFileSync(file, 'utf8'))['translation'] as z.infer<
-    typeof TranslationSchemaZod
-  >[];
-  const trans_folder = './data/translations/';
-  if (fs.existsSync(trans_folder)) fs.rmSync(trans_folder, { recursive: true });
-  fs.mkdirSync(trans_folder);
+  const translations = backup_schema.parse(JSON.parse(fs.readFileSync(backup_file, 'utf8')));
+  if (fs.existsSync(translations_root)) fs.rmSync(translations_root, { recursive: true });
+  fs.mkdirSync(translations_root, { recursive: true });
 
   const data: {
     [project: string]: {
@@ -34,14 +36,15 @@ async function main() {
     const project_key = project_info.key;
     const project_id = get_project_from_id(trans.project_id).id;
     const levels = project_info.levels;
+    const project_root = path.join(translations_root, `${project_id}. ${project_key}`);
     if (!data[project_key]) {
       data[project_key] = {};
-      fs.mkdirSync(`./data/translations/${project_id}. ${project_key}`);
+      fs.mkdirSync(project_root, { recursive: true });
     }
     const lang_nm = get_lang_from_id(trans.lang_id);
     if (!data[project_key][lang_nm]) {
       data[project_key][lang_nm] = {};
-      if (levels > 1) fs.mkdirSync(`./data/translations/${project_id}. ${project_key}/${lang_nm}`);
+      if (levels > 1) fs.mkdirSync(path.join(project_root, lang_nm), { recursive: true });
     }
 
     const path_params =
@@ -52,17 +55,15 @@ async function main() {
             .filter((v) => Number.isFinite(v))
         : [];
 
-    const base = `./data/translations/${project_id}. ${project_key}`;
+    const base = project_root;
     const file_path = (() => {
-      if (path_params.length === 0) return `${base}/${lang_nm}.yaml`;
+      if (path_params.length === 0) return path.join(base, `${lang_nm}.yaml`);
       const last = path_params[path_params.length - 1];
-      const dir_parts = path_params.slice(0, -1);
-      const dir = dir_parts.length ? `/${dir_parts.join('/')}` : '';
-      return `${base}/${lang_nm}${dir}/${last}.yaml`;
+      return path.join(base, lang_nm, ...path_params.slice(0, -1).map(String), `${last}.yaml`);
     })();
 
     // Ensure directories exist for this file_path.
-    const folder = file_path.split('/').slice(0, -1).join('/');
+    const folder = path.dirname(file_path);
     if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
 
     if (!data[project_key][lang_nm][file_path]) {

@@ -31,7 +31,7 @@ export type transactionType =
     >
   | typeof db;
 
-// fix for neon websocket adapter error
-import { neonConfig } from '@neondatabase/serverless';
-import ws from 'ws';
-neonConfig.webSocketConstructor = ws;
+// fix for neon websocket adapter error (in vercel+bun)
+// import { neonConfig } from '@neondatabase/serverless';
+// import ws from 'ws';
+// neonConfig.webSocketConstructor = ws;

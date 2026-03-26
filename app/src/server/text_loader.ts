@@ -38,7 +38,7 @@ export const get_text_data_func = async (
     const get_text_data_loc = (project_id: number, key: string, path_params: number[]) =>
       `data/${project_id}. ${key}/data` +
       (path_params.length !== 0 ? `/${path_params.join('/')}.json` : `.json`);
-    const repo_root = resolve(fileURLToPath(new URL('.', import.meta.url)), '../..');
+    const repo_root = resolve(fileURLToPath(new URL('.', import.meta.url)), '../../..');
     const get_text_data_file_path = (project_id: number, key: string, path_params: number[]) =>
       resolve(repo_root, get_text_data_loc(project_id, key, path_params));
     const fs = await import('node:fs');

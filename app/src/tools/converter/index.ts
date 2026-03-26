@@ -23,7 +23,8 @@ export async function transliterate_custom<T extends string | string[]>(
   text: T,
   from: ScriptLangType,
   to: ScriptLangType,
-  trans_options?: TransliterationOptions
+  trans_options?: TransliterationOptions,
+  transliterate_fn = transliterate
 ): Promise<T extends string ? string : string[]> {
   trans_options = {
     ...CUSTOM_TRANS_OPTIONS,
@@ -36,10 +37,10 @@ export async function transliterate_custom<T extends string | string[]>(
     };
   }
   if (typeof text === 'string') {
-    return (await transliterate(text, from, to, trans_options)) as any;
+    return (await transliterate_fn(text, from, to, trans_options)) as any;
   }
   const results = await Promise.all(
-    (text as string[]).map((v) => transliterate(v, from, to, trans_options))
+    (text as string[]).map((v) => transliterate_fn(v, from, to, trans_options))
   );
   return results as any;
 }

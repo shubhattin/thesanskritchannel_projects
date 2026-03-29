@@ -1,0 +1,11 @@
+---
+import type { Component } from 'svelte';
+interface Props {
+  icon: Component<any, any, any>;
+  class?: string;
+}
+const { icon: SvelteIcon, class: className } = Astro.props;
+---
+
+{/* @ts-ignore */}
+<SvelteIcon class={className} aria-hidden="true" />

@@ -10,6 +10,7 @@
   import { SCRIPT_ID_COOKIE_NAME } from '~/lib/cookies';
   import { reload_current_page } from '~/lib/main_text/reload-page';
   import { type ScriptListType } from 'lipilekhika';
+  import PenLineIcon from '@lucide/svelte/icons/pen-line';
 
   let { initial_script_id }: { initial_script_id: number } = $props();
 
@@ -39,6 +40,7 @@
 
 <div class="flex flex-col gap-2">
   <div class="flex items-center gap-2">
+    <PenLineIcon class="size-4 text-muted-foreground" aria-hidden="true" />
     <p class="text-sm text-muted-foreground">Script</p>
   </div>
   <ScriptSelector bind:script on_script_change={handle_script_change} />

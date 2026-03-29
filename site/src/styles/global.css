@@ -210,7 +210,7 @@
 
   /* Skip link (visually hidden until focused) */
   .skip-link {
-    @apply fixed top-0 left-1/2 z-[9999] -translate-x-1/2 -translate-y-full rounded-b-md bg-primary px-4 py-2 text-primary-foreground transition-transform duration-200 focus:translate-y-0;
+    @apply fixed top-0 left-1/2 z-9999 -translate-x-1/2 -translate-y-full rounded-b-md bg-primary px-4 py-2 text-primary-foreground transition-transform duration-200 focus:translate-y-0;
   }
 }
 

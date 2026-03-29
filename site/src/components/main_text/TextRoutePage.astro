@@ -4,9 +4,11 @@ import MainTextScriptSelector from '$components/main_text/MainTextScriptSelector
 import RootLayout from '$components/RootLayout.astro';
 import type { shloka_list_type } from '$app/state/data_types';
 import {
+  get_display_script_from_id,
   transliterate_for_display,
   transliterate_list_for_display
 } from '~/lib/main_text/script-display';
+import { getFontClass } from '~/components/utils/font_list';
 import type { resolved_text_route_type } from '~/utils/text-routes';
 
 type ChildRouteItem = {
@@ -28,6 +30,8 @@ type Props = {
 
 const { resolved, child_items, text, selected_lang_id, selected_script_id, translation }: Props =
   Astro.props;
+const scriptFontClass =
+  getFontClass(get_display_script_from_id(selected_script_id)) ?? 'font-normal';
 const display_path_names = await transliterate_list_for_display(
   resolved.path_names,
   selected_script_id
@@ -77,7 +81,9 @@ const breadcrumb_items = display_path_names.map((name, index) => ({
         <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">{current_title}</h1>
         {
           display_path_names.length > 0 && (
-            <p class="text-sm text-muted-foreground">{display_path_names.join(' / ')}</p>
+            <p class={`text-sm text-muted-foreground ${scriptFontClass}`}>
+              {display_path_names.join(' / ')}
+            </p>
           )
         }
       </div>
@@ -100,11 +106,11 @@ const breadcrumb_items = display_path_names.map((name, index) => ({
               class="rounded border px-3 py-1 hover:bg-accent hover:text-accent-foreground"
               href={item.href}
             >
-              {item.level_name}: {item.name}
+              {item.level_name}: <span class={scriptFontClass}>{item.name}</span>
             </a>
           ) : (
             <span class="rounded border border-dashed px-3 py-1 text-foreground">
-              {item.level_name}: {item.name}
+              {item.level_name}: <span class={scriptFontClass}>{item.name}</span>
             </span>
           )
         )
@@ -123,7 +129,7 @@ const breadcrumb_items = display_path_names.map((name, index) => ({
               >
                 <div class="flex items-start justify-between gap-4">
                   <div class="space-y-1">
-                    <p class="text-lg font-medium">{item.name_display}</p>
+                    <p class={`text-lg font-medium ${scriptFontClass}`}>{item.name_display}</p>
                     <p class="text-sm text-muted-foreground">{item.name_nor}</p>
                   </div>
                   <span class="text-sm text-muted-foreground">
@@ -155,7 +161,7 @@ const breadcrumb_items = display_path_names.map((name, index) => ({
           <div class="space-y-6 text-lg leading-8">
             {(text ?? []).map((item, index) => (
               <div class="space-y-1">
-                <div class="whitespace-pre-line">{display_text[index]}</div>
+                <div class={`whitespace-pre-line ${scriptFontClass}`}>{display_text[index]}</div>
                 {selected_lang_id !== -1 && translation?.has(item.index) ? (
                   <div class="text-base leading-7 whitespace-pre-line text-yellow-700 dark:text-yellow-500">
                     {translation.get(item.index)}

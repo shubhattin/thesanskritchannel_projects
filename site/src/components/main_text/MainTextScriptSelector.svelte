@@ -38,6 +38,8 @@
 </script>
 
 <div class="flex flex-col gap-2">
-  <p class="text-sm text-muted-foreground">Script</p>
+  <div class="flex items-center gap-2">
+    <p class="text-sm text-muted-foreground">Script</p>
+  </div>
   <ScriptSelector bind:script on_script_change={handle_script_change} />
 </div>

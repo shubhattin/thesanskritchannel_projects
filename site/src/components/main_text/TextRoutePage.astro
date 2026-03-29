@@ -253,13 +253,14 @@ const breadcrumb_items = display_path_names.map((name, index) => ({
             {(text ?? []).map((item, index) => (
               <div class="rounded-lg border bg-card/50 p-4 sm:p-5">
                 <div class="flex gap-3">
-                  {/* Shloka number */}
+                  {/* Shloka number (commented out as per request)
                   <span
                     class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-semibold text-primary"
                     style="font-variant-numeric: tabular-nums;"
                   >
                     {item.index}
                   </span>
+                  */}
                   <div class="min-w-0 flex-1 space-y-2">
                     <div
                       class={`text-base leading-8 whitespace-pre-line sm:text-lg ${scriptFontClass}`}

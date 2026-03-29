@@ -52,7 +52,7 @@
   const modes: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
     { mode: 'system', label: 'System', icon: Monitor },
     { mode: 'light', label: 'Light', icon: Sun },
-    { mode: 'dark', label: 'Dark', icon: Moon },
+    { mode: 'dark', label: 'Dark', icon: Moon }
   ];
 
   const currentIcon = $derived.by(() => {
@@ -76,8 +76,8 @@
         type="button"
         class="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none
           {current === mode
-            ? 'bg-accent text-accent-foreground font-medium'
-            : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+          ? 'bg-accent font-medium text-accent-foreground'
+          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
         onclick={() => setMode(mode)}
       >
         <Icon class="size-3.5" aria-hidden="true" />

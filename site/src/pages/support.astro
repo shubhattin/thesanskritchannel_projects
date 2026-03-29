@@ -42,6 +42,8 @@ const membershipOptions = [
     viewBox: '0 0 24 24'
   }
 ];
+
+const isHttpUrl = (href: string) => href.startsWith('http://') || href.startsWith('https://');
 ---
 
 <RootLayout
@@ -73,8 +75,7 @@ const membershipOptions = [
           oneTimeOptions.map((option) => (
             <a
               href={option.href}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...(isHttpUrl(option.href) ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
               class="card-hover-glow flex flex-col items-center gap-3 rounded-xl border bg-card p-6 text-center transition-colors duration-150 hover:border-primary/30"
               aria-label={`Contribute via ${option.name}`}
             >
@@ -108,8 +109,7 @@ const membershipOptions = [
           membershipOptions.map((option) => (
             <a
               href={option.href}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...(isHttpUrl(option.href) ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
               class="card-hover-glow flex items-center gap-4 rounded-xl border bg-card p-6 transition-colors duration-150 hover:border-primary/30"
               aria-label={option.name}
             >
@@ -134,13 +134,13 @@ const membershipOptions = [
     </section>
 
     <!-- Thank You -->
-    <div class="rounded-xl bg-muted/40 p-8 text-center">
+    <!-- <div class="rounded-xl bg-muted/40 p-8 text-center">
       <p class="font-devanagari text-lg text-primary/80" aria-hidden="true">
         सर्वेषां स्वस्तिर्भवतु
       </p>
       <p class="mt-2 text-sm text-muted-foreground">
         May there be well-being for all — Thank you for your generous support.
       </p>
-    </div>
+    </div> -->
   </main>
 </RootLayout>

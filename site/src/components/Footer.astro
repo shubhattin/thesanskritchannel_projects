@@ -1,10 +1,17 @@
 ---
 import Youtube from '@lucide/svelte/icons/youtube';
 import Instagram from '@lucide/svelte/icons/instagram';
-import Twitter from '@lucide/svelte/icons/twitter';
 import Github from '@lucide/svelte/icons/github';
 import Mail from '@lucide/svelte/icons/mail';
+import type { Component } from 'svelte';
 import Icon from '~/components/utils/Icon.astro';
+
+type SocialLink = {
+  name: string;
+  href: string;
+  icon?: Component<any, any, any>;
+  use_x_icon?: boolean;
+};
 
 const currentYear = new Date().getFullYear();
 
@@ -14,7 +21,7 @@ const quickLinks = [
   { name: 'Support Us', href: '/support' }
 ];
 
-const socialLinks = [
+const socialLinks: SocialLink[] = [
   {
     name: 'YouTube',
     href: 'https://www.youtube.com/@TheSanskritChannel',
@@ -28,7 +35,7 @@ const socialLinks = [
   {
     name: 'X (Twitter)',
     href: 'https://x.com/SanskritChannel',
-    icon: Twitter
+    use_x_icon: true
   },
   {
     name: 'GitHub',
@@ -95,7 +102,18 @@ const socialLinks = [
                     aria-label={link.name}
                     class="flex size-9 items-center justify-center rounded-lg border border-border/50 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                   >
-                    <Icon icon={link.icon} class="size-4" />
+                    {link.use_x_icon ? (
+                      <svg
+                        viewBox="0 0 24 24"
+                        class="size-4 fill-current"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.658l-5.214-6.817-5.963 6.817H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                      </svg>
+                    ) : link.icon ? (
+                      <Icon icon={link.icon} class="size-4" />
+                    ) : null}
                   </a>
                 </li>
               ))

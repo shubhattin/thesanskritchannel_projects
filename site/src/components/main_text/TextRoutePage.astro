@@ -1,6 +1,7 @@
 ---
 import LanguageSelect from '$components/main_text/LanguageSelect.svelte';
 import MainTextScriptSelector from '$components/main_text/MainTextScriptSelector.svelte';
+import TextSiblingNavigation from '$components/main_text/TextSiblingNavigation.astro';
 import RootLayout from '$components/RootLayout.astro';
 import type { shloka_list_type } from '$app/state/data_types';
 import {
@@ -9,7 +10,8 @@ import {
   transliterate_list_for_display
 } from '~/lib/main_text/script-display';
 import { getFontClass } from '~/components/utils/font_list';
-import type { resolved_text_route_type } from '~/utils/text-routes';
+import { build_project_path, type resolved_text_route_type } from '~/utils/text-routes';
+import { get_node_at_path } from '$app/state/project_list';
 import HomeIcon from '@lucide/svelte/icons/house';
 import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 import BookOpenIcon from '@lucide/svelte/icons/book-open';
@@ -22,6 +24,11 @@ type ChildRouteItem = {
   name_dev: string;
   name_nor: string;
   is_leaf: boolean;
+};
+
+type TextSiblingNavigationItem = {
+  href: string;
+  name_display: string;
 };
 
 type Props = {
@@ -71,15 +78,60 @@ const breadcrumb_items = display_path_names.map((name, index) => ({
           .join('/')}`,
   level_name: resolved.path_level_names[index]
 }));
+const sibling_parent_path_params = resolved.path_params.slice(0, -1);
+const sibling_parent_node =
+  resolved.node.info.type === 'shloka' && resolved.path_params.length > 0
+    ? sibling_parent_path_params.length === 0
+      ? resolved.map
+      : get_node_at_path(resolved.map, sibling_parent_path_params)
+    : null;
+const sibling_items =
+  sibling_parent_node?.info.type === 'list' ? (sibling_parent_node.list ?? []) : [];
+const current_sibling_position = resolved.path_params.at(-1) ?? null;
+const previous_sibling_source =
+  current_sibling_position !== null && current_sibling_position > 1
+    ? (sibling_items[current_sibling_position - 2] ?? null)
+    : null;
+const next_sibling_source =
+  current_sibling_position !== null && current_sibling_position < sibling_items.length
+    ? (sibling_items[current_sibling_position] ?? null)
+    : null;
+const [previous_sibling_name_display, next_sibling_name_display] = await Promise.all([
+  previous_sibling_source
+    ? transliterate_for_display(previous_sibling_source.name_dev, selected_script_id)
+    : Promise.resolve(null),
+  next_sibling_source
+    ? transliterate_for_display(next_sibling_source.name_dev, selected_script_id)
+    : Promise.resolve(null)
+]);
+const previous_sibling_item: TextSiblingNavigationItem | null =
+  previous_sibling_source && previous_sibling_name_display
+    ? {
+        href:
+          build_project_path(resolved.project_key, resolved.map, [
+            ...sibling_parent_path_params,
+            current_sibling_position! - 1
+          ]) ?? resolved.canonical_path,
+        name_display: previous_sibling_name_display
+      }
+    : null;
+const next_sibling_item: TextSiblingNavigationItem | null =
+  next_sibling_source && next_sibling_name_display
+    ? {
+        href:
+          build_project_path(resolved.project_key, resolved.map, [
+            ...sibling_parent_path_params,
+            current_sibling_position! + 1
+          ]) ?? resolved.canonical_path,
+        name_display: next_sibling_name_display
+      }
+    : null;
 ---
 
 <RootLayout title={page_title} description={page_description}>
   <main class="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
     <!-- Page Header -->
     <div class="flex flex-col gap-3">
-      <p class="text-xs font-semibold tracking-[0.2em] text-primary/70 uppercase">
-        {resolved.project_name}
-      </p>
       <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{current_title}</h1>
       {
         display_path_names.length > 0 && (
@@ -167,7 +219,10 @@ const breadcrumb_items = display_path_names.map((name, index) => ({
                   {item.is_leaf ? (
                     <Icon icon={BookOpenIcon} class="size-4" />
                   ) : (
-                    <Icon icon={ChevronRightIcon} class="size-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+                    <Icon
+                      icon={ChevronRightIcon}
+                      class="size-4 transition-transform duration-150 group-hover:translate-x-0.5"
+                    />
                   )}
                 </div>
               </a>
@@ -190,6 +245,12 @@ const breadcrumb_items = display_path_names.map((name, index) => ({
             <MainTextScriptSelector client:load initial_script_id={selected_script_id} />
             <LanguageSelect client:load initial_lang_id={selected_lang_id} />
           </div>
+
+          <TextSiblingNavigation
+            previous_item={previous_sibling_item}
+            next_item={next_sibling_item}
+            script_font_class={scriptFontClass}
+          />
 
           <div class="space-y-4">
             {(text ?? []).map((item, index) => (
@@ -219,6 +280,12 @@ const breadcrumb_items = display_path_names.map((name, index) => ({
               </div>
             ))}
           </div>
+
+          <TextSiblingNavigation
+            previous_item={previous_sibling_item}
+            next_item={next_sibling_item}
+            script_font_class={scriptFontClass}
+          />
         </section>
       )
     }

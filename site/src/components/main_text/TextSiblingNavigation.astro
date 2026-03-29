@@ -1,0 +1,72 @@
+---
+import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
+import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+import Icon from '~/components/utils/Icon.astro';
+
+type TextSiblingNavigationItem = {
+  href: string;
+  name_display: string;
+};
+
+type Props = {
+  previous_item: TextSiblingNavigationItem | null;
+  next_item: TextSiblingNavigationItem | null;
+  script_font_class: string;
+  aria_label?: string;
+};
+
+const {
+  previous_item,
+  next_item,
+  script_font_class,
+  aria_label = 'Previous and next texts'
+}: Props = Astro.props;
+const has_navigation = previous_item !== null || next_item !== null;
+---
+
+{
+  has_navigation && (
+    <nav aria-label={aria_label} class="flex flex-wrap gap-3">
+      {previous_item ? (
+        <a
+          class="card-hover-glow group flex w-full min-w-0 items-center gap-4 rounded-xl border bg-card p-4 transition-colors duration-150 hover:border-primary/30 sm:w-[calc(50%-0.375rem)]"
+          href={previous_item.href}
+        >
+          <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors duration-150 group-hover:bg-primary/10 group-hover:text-primary">
+            <Icon icon={ChevronLeftIcon} class="size-4" />
+          </div>
+          <div class="min-w-0 flex-1 space-y-0.5">
+            <p class="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+              Previous
+            </p>
+            <p class={`truncate text-base font-medium ${script_font_class}`}>
+              {previous_item.name_display}
+            </p>
+          </div>
+        </a>
+      ) : null}
+
+      {next_item ? (
+        <a
+          class="card-hover-glow group flex w-full min-w-0 items-center gap-4 rounded-xl border bg-card p-4 text-left transition-colors duration-150 hover:border-primary/30 sm:ml-auto sm:w-[calc(50%-0.375rem)] sm:text-right"
+          href={next_item.href}
+        >
+          <div class="min-w-0 flex-1 space-y-0.5">
+            <p class="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+              Next
+            </p>
+            <p class={`truncate text-base font-medium ${script_font_class}`}>
+              {next_item.name_display}
+            </p>
+          </div>
+          <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors duration-150 group-hover:bg-primary/10 group-hover:text-primary">
+            <Icon
+              icon={ChevronRightIcon}
+              class="size-4 transition-transform duration-150 group-hover:translate-x-0.5"
+            />
+          </div>
+        </a>
+      ) : null}
+    </nav>
+  )
+}

@@ -39,7 +39,7 @@
   --sidebar-border: oklch(0.88 0.03 78);
   --sidebar-ring: oklch(0.58 0.16 50);
   --font-sans: 'Inter', 'Oxanium', system-ui, sans-serif;
-  --font-serif: Merriweather, serif;
+  --font-serif: 'Merriweather', serif;
   --font-mono: 'Fira Code', monospace;
   --font-heading: 'Oxanium', system-ui, sans-serif;
   --radius: 0.5rem;
@@ -96,7 +96,7 @@
   --sidebar-border: oklch(0.32 0.02 268);
   --sidebar-ring: oklch(0.75 0.15 65);
   --font-sans: 'Inter', 'Oxanium', system-ui, sans-serif;
-  --font-serif: Merriweather, serif;
+  --font-serif: 'Merriweather', serif;
   --font-mono: 'Fira Code', monospace;
   --font-heading: 'Oxanium', system-ui, sans-serif;
   --radius: 0.5rem;
@@ -177,7 +177,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
-    touch-action: manipulation;
+    /* touch-action: manipulation; */
   }
   html {
     scroll-behavior: smooth;

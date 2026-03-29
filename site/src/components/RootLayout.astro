@@ -58,28 +58,22 @@ const shareImageInfo = {
     <meta name="twitter:title" content={title} />
     {description && <meta name="twitter:description" content={description} />}
     <meta name="twitter:image" content={shareImageInfo.url} />
+    <!-- Early paint from storage (before body); full apply + system listener in boot script below -->
     <script is:inline>
       (() => {
-        const storageKey = 'tsc-site-theme'; // 'light' | 'dark' | unset (system)
-
-        function applyTheme() {
+        const storageKey = 'tsc-site-theme';
+        try {
+          const mql = window.matchMedia('(prefers-color-scheme: dark)');
           let stored = null;
           try {
             stored = localStorage.getItem(storageKey);
           } catch {}
-          const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false;
-          const shouldUseDark = stored === 'dark' || (stored !== 'light' && prefersDark);
+          const shouldUseDark = stored === 'dark' || (stored !== 'light' && mql.matches);
           document.documentElement.classList.toggle('dark', shouldUseDark);
           document.documentElement.style.colorScheme = shouldUseDark ? 'dark' : 'light';
           const meta = document.querySelector('meta[name="theme-color"]');
           if (meta) meta.setAttribute('content', shouldUseDark ? '#1a1625' : '#f7f2eb');
-        }
-
-        // Apply immediately on first load
-        applyTheme();
-
-        // Re-apply after Astro page transitions swap the DOM
-        document.addEventListener('astro:after-swap', applyTheme);
+        } catch {}
       })();
     </script>
     <ClientRouter />
@@ -90,13 +84,17 @@ const shareImageInfo = {
     <a href="#main-content" class="skip-link">Skip to Main Content</a>
 
     <div class="flex min-h-screen flex-col">
-      <Header client:idle />
+      <Header client:load />
 
-      <div id="main-content" class="flex-1">
+      <main id="main-content" class="flex-1" tabindex="-1">
         <slot />
-      </div>
+      </main>
 
       <Footer />
     </div>
+    <script>
+      import { bootTheme } from '$lib/theme-runtime';
+      bootTheme();
+    </script>
   </body>
 </html>

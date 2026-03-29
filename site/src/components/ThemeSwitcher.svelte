@@ -1,9 +1,16 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import * as Popover from '~/lib/components/ui/popover';
   import Sun from '@lucide/svelte/icons/sun';
   import Moon from '@lucide/svelte/icons/moon';
   import Monitor from '@lucide/svelte/icons/monitor';
   import SunMoon from '@lucide/svelte/icons/sun-moon';
+  import {
+    applyTheme,
+    getDarkMql,
+    syncSystemThemeListener,
+    THEME_STORAGE_KEY
+  } from '$lib/theme-runtime';
 
   type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -12,7 +19,7 @@
 
   function init() {
     try {
-      const stored = localStorage.getItem('tsc-site-theme');
+      const stored = localStorage.getItem(THEME_STORAGE_KEY);
       if (stored === 'light' || stored === 'dark') current = stored;
       else current = 'system';
     } catch {
@@ -20,31 +27,26 @@
     }
   }
 
-  $effect(() => {
+  onMount(() => {
     init();
   });
 
-  function applyTheme(isDark: boolean) {
-    document.documentElement.classList.toggle('dark', isDark);
-    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', isDark ? '#1a1625' : '#f7f2eb');
-  }
-
   function setMode(mode: ThemeMode) {
     current = mode;
-    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false;
+    const prefersDark = getDarkMql().matches;
     const isDark = mode === 'dark' || (mode === 'system' && prefersDark);
 
     applyTheme(isDark);
 
     try {
       if (mode === 'system') {
-        localStorage.removeItem('tsc-site-theme');
+        localStorage.removeItem(THEME_STORAGE_KEY);
       } else {
-        localStorage.setItem('tsc-site-theme', mode);
+        localStorage.setItem(THEME_STORAGE_KEY, mode);
       }
     } catch {}
+
+    syncSystemThemeListener();
 
     open = false;
   }

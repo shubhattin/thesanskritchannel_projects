@@ -132,7 +132,7 @@ const next_sibling_item: TextSiblingNavigationItem | null =
 ---
 
 <RootLayout title={page_title} description={page_description}>
-  <main class="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
+  <div class="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
     <!-- Page Header -->
     <div class="flex flex-col gap-3">
       <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{current_title}</h1>
@@ -298,5 +298,5 @@ const next_sibling_item: TextSiblingNavigationItem | null =
         </section>
       )
     }
-  </main>
+  </div>
 </RootLayout>

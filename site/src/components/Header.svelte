@@ -147,6 +147,8 @@
         type="button"
         class="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none md:hidden"
         aria-label={mobileMenuOpen ? 'Close Menu' : 'Open Menu'}
+        aria-expanded={mobileMenuOpen}
+        aria-controls="mobile-navigation"
         onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
       >
         {#if mobileMenuOpen}

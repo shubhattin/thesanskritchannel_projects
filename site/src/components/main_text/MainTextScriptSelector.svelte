@@ -19,10 +19,24 @@
     return (s ?? get_script_from_id(1)) as script_list_type;
   }
 
+  // svelte-ignore state_referenced_locally -- normalize once from initial prop
+  const initialScript = idToScript(initial_script_id);
+  const initialIdx = SCRIPT_LIST.indexOf(initialScript);
+  const normalizedInitialId =
+    initialIdx === -1 ? SCRIPT_LIST_IDS[0]! : SCRIPT_LIST_IDS[initialIdx]!;
+
   // svelte-ignore state_referenced_locally type_check
-  let script = $state(idToScript(initial_script_id));
+  let script = $state(initialScript);
   // svelte-ignore state_referenced_locally
-  let last_persisted_id = $state(initial_script_id);
+  let last_persisted_id = $state(normalizedInitialId);
+
+  // svelte-ignore state_referenced_locally -- compare to raw prop for cookie repair
+  if (typeof window !== 'undefined' && normalizedInitialId !== initial_script_id) {
+    Cookies.set(SCRIPT_ID_COOKIE_NAME, String(normalizedInitialId), {
+      sameSite: 'lax',
+      expires: 365
+    });
+  }
 
   async function handle_script_change(next: ScriptListType) {
     const idx = SCRIPT_LIST.indexOf(next as script_list_type);

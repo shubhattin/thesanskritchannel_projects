@@ -1,0 +1,17 @@
+
+# Ignore files for PNPM, NPM and YARN
+pnpm-lock.yaml
+bun.lock
+uv.lock
+
+data/*/data
+data/*/data.json
+data/*/raw_data
+data/*/out
+data/*/text_data
+data/*/zipped
+data/*/*_map.json
+data/*/summary/summaries
+data/translations
+
+.agents

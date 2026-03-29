@@ -24,7 +24,7 @@ const shareImageInfo = {
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark" style="color-scheme: dark;">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -61,32 +61,31 @@ const shareImageInfo = {
     <script is:inline>
       (() => {
         const storageKey = 'tsc-site-theme'; // 'light' | 'dark' | unset (system)
-        let stored = null;
-        try {
-          stored = localStorage.getItem(storageKey);
-        } catch {}
-        const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false;
-        const shouldUseDark = stored === 'dark' || (stored !== 'light' && prefersDark);
-        const setDark = (enabled) => {
-          document.documentElement.classList.toggle('dark', enabled);
-          document.documentElement.style.colorScheme = enabled ? 'dark' : 'light';
-          document.body?.classList.toggle('dark', enabled);
-          // Update theme-color meta
+
+        function applyTheme() {
+          let stored = null;
+          try {
+            stored = localStorage.getItem(storageKey);
+          } catch {}
+          const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false;
+          const shouldUseDark = stored === 'dark' || (stored !== 'light' && prefersDark);
+          document.documentElement.classList.toggle('dark', shouldUseDark);
+          document.documentElement.style.colorScheme = shouldUseDark ? 'dark' : 'light';
           const meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute('content', enabled ? '#1a1625' : '#f7f2eb');
-        };
-        setDark(shouldUseDark);
-        if (!document.body) {
-          window.addEventListener('DOMContentLoaded', () => setDark(shouldUseDark), {
-            once: true
-          });
+          if (meta) meta.setAttribute('content', shouldUseDark ? '#1a1625' : '#f7f2eb');
         }
+
+        // Apply immediately on first load
+        applyTheme();
+
+        // Re-apply after Astro page transitions swap the DOM
+        document.addEventListener('astro:after-swap', applyTheme);
       })();
     </script>
     <ClientRouter />
     <Posthog />
   </head>
-  <body class="dark bg-background">
+  <body class="bg-background">
     <!-- Skip Link -->
     <a href="#main-content" class="skip-link">Skip to Main Content</a>
 

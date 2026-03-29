@@ -1,6 +1,6 @@
 ---
 import LanguageSelect from '$components/main_text/LanguageSelect.svelte';
-import ScriptSelect from '$components/main_text/ScriptSelect.svelte';
+import MainTextScriptSelector from '$components/main_text/MainTextScriptSelector.svelte';
 import RootLayout from '$components/RootLayout.astro';
 import type { shloka_list_type } from '$app/state/data_types';
 import {
@@ -114,7 +114,7 @@ const breadcrumb_items = display_path_names.map((name, index) => ({
     {
       resolved.node.info.type === 'list' ? (
         <section class="flex flex-col gap-4">
-          <ScriptSelect client:load initial_script_id={selected_script_id} />
+          <MainTextScriptSelector client:load initial_script_id={selected_script_id} />
           <div class="grid gap-3">
             {display_child_items.map((item) => (
               <a
@@ -148,7 +148,7 @@ const breadcrumb_items = display_path_names.map((name, index) => ({
           ) : null}
 
           <div class="flex flex-wrap gap-4">
-            <ScriptSelect client:load initial_script_id={selected_script_id} />
+            <MainTextScriptSelector client:load initial_script_id={selected_script_id} />
             <LanguageSelect client:load initial_lang_id={selected_lang_id} />
           </div>
 

@@ -1,6 +1,8 @@
 // ALWAYS BE CAREFUL BEFORE CHANGING LANG JSON
 // AS CHNAGE IN PRE-EXISTING LANG IDS WOULD CAUSE DATA MISMATCHs
 
+// NOTE : from now on the script_list part is depricated and will be removed
+// it can be replaced with the `lipilekhika` exported SCRIPT_LIST
 import langs from './langs.json';
 const { script_list, lang_list } = langs;
 

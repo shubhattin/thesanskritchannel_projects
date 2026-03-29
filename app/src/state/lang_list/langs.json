@@ -12,7 +12,13 @@
     "Sinhala": 10,
     "Normal": 11,
     "Romanized": 12,
-    "Gurumukhi": 13
+    "Gurumukhi": 13,
+    "Brahmi": 14,
+    "Granth": 15,
+    "Modi": 16,
+    "Sharada": 17,
+    "Siddham": 18,
+    "Assamese": 19
   },
   "lang_list": {
     "English": 1,

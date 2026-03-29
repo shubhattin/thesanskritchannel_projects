@@ -1,6 +1,8 @@
 // ALWAYS BE CAREFUL BEFORE CHANGING LANG JSON
 // AS CHNAGE IN PRE-EXISTING LANG IDS WOULD CAUSE DATA MISMATCHs
 
+// NOTE : from now on the script_list part is depricated and will be removed
+// it can be replaced with the `lipilekhika` exported SCRIPT_LIST
 import langs from './langs.json';
 const { script_list, lang_list } = langs;
 
@@ -10,6 +12,10 @@ export const SCRIPT_LIST_IDS = Object.values(script_list);
 
 export const get_script_from_id = (id: number) => {
   return SCRIPT_LIST[SCRIPT_LIST_IDS.indexOf(id)] as script_list_type;
+};
+
+export const get_script_id = (script: script_list_type) => {
+  return script_list[script] ?? null;
 };
 
 export const LANG_LIST = Object.keys(lang_list);
@@ -43,4 +49,16 @@ export const LANG_SCRIPT_MAP: Record<lang_list_type, script_list_type> = {
   Marathi: 'Devanagari',
   Nepali: 'Devanagari',
   Punjabi: 'Gurumukhi'
+};
+
+export const get_script_for_lang = (lang: lang_list_type) => {
+  if (lang === 'English') return null;
+  return LANG_SCRIPT_MAP[lang] ?? null;
+};
+
+export const get_script_for_lang_id = (id: number) => {
+  const index = LANG_LIST_IDS.indexOf(id);
+  if (index === -1) return null;
+  const lang = LANG_LIST[index] as lang_list_type;
+  return get_script_for_lang(lang);
 };

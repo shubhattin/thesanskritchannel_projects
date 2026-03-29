@@ -1,15 +1,22 @@
 <script lang="ts">
   import Cookies from 'js-cookie';
-  import { LANG_LIST, LANG_LIST_IDS } from '$app/state/lang_list';
-  import { DEFAULT_LANG_ID, LANG_ID_COOKIE_NAME } from '~/lib/cookies';
+  import {
+    LANG_LIST,
+    LANG_LIST_IDS,
+    get_script_for_lang_id,
+    get_script_id
+  } from '$app/state/lang_list';
+  import { DEFAULT_LANG_ID, LANG_ID_COOKIE_NAME, SCRIPT_ID_COOKIE_NAME } from '~/lib/cookies';
   import { reload_current_page } from '~/lib/main_text/reload-page';
   import * as Select from '$lib/components/ui/select';
+  import LanguagesIcon from '@lucide/svelte/icons/languages';
 
   type Props = {
     initial_lang_id: number;
+    initial_script_id: number;
   };
 
-  let { initial_lang_id }: Props = $props();
+  let { initial_lang_id, initial_script_id }: Props = $props();
 
   // svelte-ignore state_referenced_locally
   let value = $state(initial_lang_id);
@@ -17,7 +24,7 @@
   const options = [
     {
       id: DEFAULT_LANG_ID,
-      label: '--'
+      label: '-- Select --'
     },
     ...LANG_LIST.map((lang, index) => ({
       id: LANG_LIST_IDS[index]!,
@@ -31,15 +38,28 @@
       sameSite: 'lax',
       expires: 365
     });
+
+    const mappedScript = get_script_for_lang_id(value);
+    const mappedScriptId = mappedScript ? get_script_id(mappedScript) : null;
+    if (mappedScriptId !== null && mappedScriptId !== initial_script_id) {
+      Cookies.set(SCRIPT_ID_COOKIE_NAME, String(mappedScriptId), {
+        sameSite: 'lax',
+        expires: 365
+      });
+    }
+
     await reload_current_page();
   }
 </script>
 
 <div class="flex flex-col gap-2">
-  <p class="text-sm text-muted-foreground">Translation</p>
+  <div class="flex items-center gap-2">
+    <LanguagesIcon class="size-4 text-muted-foreground" aria-hidden="true" />
+    <p class="text-sm text-muted-foreground">Translation</p>
+  </div>
   <Select.Root type="single" value={value.toString()} onValueChange={handleValueChange}>
     <Select.Trigger class="w-40 px-3 py-2 text-sm">
-      {options.find((option) => option.id === value)?.label ?? '--'}
+      {options.find((option) => option.id === value)?.label ?? '-- Select --'}
     </Select.Trigger>
     <Select.Content>
       {#each options as option (option.id)}

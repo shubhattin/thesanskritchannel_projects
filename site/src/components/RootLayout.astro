@@ -3,6 +3,8 @@ import '../styles/global.css';
 import '../styles/fonts.css';
 import { ClientRouter } from 'astro:transitions';
 import Posthog from './Posthog.astro';
+import Header from './Header.svelte';
+import Footer from './Footer.astro';
 
 type Props = {
   title: string;
@@ -22,27 +24,30 @@ const shareImageInfo = {
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark" style="color-scheme: dark;">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
+    <meta name="theme-color" content="#f7f2eb" />
     {!index_site && <meta name="robots" content="noindex, nofollow" />}
     {description && <meta name="description" content={description} />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any" />
 
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/img/icon_180x180.png" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Texts" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- Inter font via Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oxanium:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+      fetchpriority="high"
+    />
 
     <!-- OpenGraph Meta Tags -->
     <meta property="og:title" content={title} />
     {description && <meta property="og:description" content={description} />}
-    <meta property="og:site_name" content="Texts" />
+    <meta property="og:site_name" content="The Sanskrit Channel" />
     <meta property="og:image" content={shareImageInfo.url} />
     <meta property="og:image:width" content={shareImageInfo.width.toString()} />
     <meta property="og:image:height" content={shareImageInfo.height.toString()} />
@@ -53,37 +58,43 @@ const shareImageInfo = {
     <meta name="twitter:title" content={title} />
     {description && <meta name="twitter:description" content={description} />}
     <meta name="twitter:image" content={shareImageInfo.url} />
+    <!-- Early paint from storage (before body); full apply + system listener in boot script below -->
     <script is:inline>
       (() => {
-        const storageKey = 'tsc-site-theme'; // 'light' | 'dark' | unset (system)
-        let stored = null;
+        const storageKey = 'tsc-site-theme';
         try {
-          stored = localStorage.getItem(storageKey);
+          const mql = window.matchMedia('(prefers-color-scheme: dark)');
+          let stored = null;
+          try {
+            stored = localStorage.getItem(storageKey);
+          } catch {}
+          const shouldUseDark = stored === 'dark' || (stored !== 'light' && mql.matches);
+          document.documentElement.classList.toggle('dark', shouldUseDark);
+          document.documentElement.style.colorScheme = shouldUseDark ? 'dark' : 'light';
+          const meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', shouldUseDark ? '#1a1625' : '#f7f2eb');
         } catch {}
-        const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false;
-        const shouldUseDark = stored === 'dark' || (stored !== 'light' && prefersDark);
-        const setDark = (enabled) => {
-          document.documentElement.classList.toggle('dark', enabled);
-          document.body?.classList.toggle('dark', enabled);
-        };
-        setDark(shouldUseDark);
-        if (!document.body) {
-          window.addEventListener('DOMContentLoaded', () => setDark(shouldUseDark), {
-            once: true
-          });
-        }
       })();
     </script>
     <ClientRouter />
     <Posthog />
   </head>
-  <body class="dark bg-background">
-    <div class="min-h-screen">
-      <!-- <Header /> -->
+  <body class="bg-background">
+    <!-- Skip Link -->
+    <a href="#main-content" class="skip-link">Skip to Main Content</a>
 
-      <slot />
+    <div class="flex min-h-screen flex-col">
+      <Header client:load />
 
-      <!-- Footer -->
+      <main id="main-content" class="flex-1" tabindex="-1">
+        <slot />
+      </main>
+
+      <Footer />
     </div>
+    <script>
+      import { bootTheme } from '$lib/theme-runtime';
+      bootTheme();
+    </script>
   </body>
 </html>

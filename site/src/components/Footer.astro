@@ -1,0 +1,133 @@
+---
+import Youtube from '@lucide/svelte/icons/youtube';
+import Instagram from '@lucide/svelte/icons/instagram';
+import Github from '@lucide/svelte/icons/github';
+import Mail from '@lucide/svelte/icons/mail';
+import type { Component } from 'svelte';
+import Icon from '~/components/utils/Icon.astro';
+
+type SocialLink = {
+  name: string;
+  href: string;
+  icon?: Component<any, any, any>;
+  use_x_icon?: boolean;
+};
+
+const currentYear = new Date().getFullYear();
+
+const quickLinks = [
+  { name: 'Browse Texts', href: '/#texts' },
+  { name: 'Tools', href: '/#tools' },
+  { name: 'Support Us', href: '/support' }
+];
+
+const socialLinks: SocialLink[] = [
+  {
+    name: 'YouTube',
+    href: 'https://www.youtube.com/@TheSanskritChannel',
+    icon: Youtube
+  },
+  {
+    name: 'Instagram',
+    href: 'https://www.instagram.com/thesanskritchannel/',
+    icon: Instagram
+  },
+  {
+    name: 'X (Twitter)',
+    href: 'https://x.com/SanskritChannel',
+    use_x_icon: true
+  },
+  {
+    name: 'GitHub',
+    href: 'https://github.com/shubhattin/akshara-shikshaka',
+    icon: Github
+  },
+  {
+    name: 'Email',
+    href: 'mailto:thesanskritchannel@gmail.com',
+    icon: Mail
+  }
+];
+---
+
+<footer class="border-t border-border/40 bg-card/50">
+  <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      <!-- Brand Column -->
+      <div class="space-y-4">
+        <a href="/" class="flex items-center gap-2.5">
+          <img src="/icons/tsc_24.png" alt="" width="24" height="24" class="rounded-sm" />
+          <span class="font-heading text-lg font-semibold tracking-tight">The Sanskrit Channel</span
+          >
+        </a>
+        <p class="max-w-xs text-sm leading-relaxed text-muted-foreground">
+          Exploring authentic Sanskrit literature and making ancient treasures accessible, fun, and
+          easy to learn for all.
+        </p>
+      </div>
+
+      <!-- Quick Links Column -->
+      <div class="space-y-4">
+        <h3 class="text-sm font-semibold tracking-wider uppercase">Quick Links</h3>
+        <nav aria-label="Footer Quick Links">
+          <ul class="space-y-2.5">
+            {
+              quickLinks.map((link) => (
+                <li>
+                  <a
+                    href={link.href}
+                    class="text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground"
+                  >
+                    {link.name}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+      </div>
+
+      <!-- Connect Column -->
+      <div class="space-y-4">
+        <h3 class="text-sm font-semibold tracking-wider uppercase">Connect</h3>
+        <nav aria-label="Social Links">
+          <ul class="flex flex-wrap gap-3">
+            {
+              socialLinks.map((link) => (
+                <li>
+                  <a
+                    href={link.href}
+                    target={link.href.startsWith('mailto:') ? undefined : '_blank'}
+                    rel={link.href.startsWith('mailto:') ? undefined : 'noopener noreferrer'}
+                    aria-label={link.name}
+                    class="flex size-9 items-center justify-center rounded-lg border border-border/50 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  >
+                    {link.use_x_icon ? (
+                      <svg
+                        viewBox="0 0 24 24"
+                        class="size-4 fill-current"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.658l-5.214-6.817-5.963 6.817H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                      </svg>
+                    ) : link.icon ? (
+                      <Icon icon={link.icon} class="size-4" />
+                    ) : null}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="mt-10 border-t border-border/40 pt-6">
+      <p class="text-center text-xs text-muted-foreground">
+        &copy;&nbsp;{currentYear} The&nbsp;Sanskrit&nbsp;Channel. All rights reserved.
+      </p>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,146 @@
+---
+import RootLayout from '$components/RootLayout.astro';
+
+const UPI_ID = 'thesanskritchannel@okicici';
+
+const oneTimeOptions = [
+  {
+    name: 'UPI',
+    href: `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent('The Sanskrit Channel')}&cu=INR`,
+    description: UPI_ID,
+    // UPI icon (two arrows)
+    svg: '<polygon fill="#388e3c" points="29,4 18,45 40,24"></polygon><polygon fill="#f57c00" points="21,3 10,44 32,23"></polygon>',
+    viewBox: '0 0 48 48'
+  },
+  {
+    name: 'Razorpay',
+    href: 'https://pages.razorpay.com/thesanskritchannel',
+    description: 'rzp.com/thesanskritchannel',
+    svg: '<path fill="#3395ff" d="M7.5 6.5 6.5 10.1l5.5-3.5-3.6 13.4 3.6.1 5.3-19.8z"/><path fill="currentColor" d="M1.5 14.2 0 19.9h7.5l3.1-11.5zM21 9.2c-.2.7-.5 1.2-1.1 1.5-.5.3-1.3.5-2.2.5h-3l1.1-4h3c.9 0 1.6.2 2 .5.3.3.4.8.2 1.5m3.1-.1c.4-1.4.2-2.5-.5-3.3-.7-.8-1.9-1.1-3.7-1.1H13l-4.1 15.1h3.3l1.6-6.1h2.1c.5 0 .9.1 1.1.2.3.2.4.4.5.8l.6 5h3.5l-.6-4.7c-.1-1-.6-1.7-1.4-1.8 1.1-.3 2-.8 2.7-1.5.7-.8 1.2-1.8 1.5-2.6"/>',
+    viewBox: '0 0 24 24'
+  },
+  {
+    name: 'PayPal',
+    href: 'https://www.paypal.me/thesanskritchannel',
+    description: 'paypal.me/thesanskritchannel',
+    svg: '<path fill="#0d62ab" d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72A.775.775 0 0 1 5.708 3h6.932c2.317 0 4.135.809 5.26 2.255.89 1.144 1.223 2.516 1.05 4.181-.46 4.419-3.26 6.564-7.322 6.564H9.565a.774.774 0 0 0-.764.653l-.927 5.568a.641.641 0 0 1-.633.536l-.165.58z"/><path fill="#199be2" d="m10.5 14c0 .3-.2.6-.5.6H6l-1 6.7a.5.5 0 0 0 .5.6h3.1a.6.6 0 0 0 .6-.5l.9-4.2s.1-.6.6-.6h1.6c3.5 0 6.3-1.9 7.1-5.5.7-3.2-1.7-5.6-4.9-5.6"/>',
+    viewBox: '0 0 24 24'
+  }
+];
+
+const membershipOptions = [
+  {
+    name: 'Join on Patreon',
+    href: 'https://www.patreon.com/thesanskritchannel',
+    svg: '<circle cx="14" cy="9.5" r="6.5" fill="#FF424D"/><rect width="3" height="16.5" x="3.5" y="3.5" fill="#052D49" rx="0"/>',
+    viewBox: '0 0 24 24'
+  },
+  {
+    name: 'Join on YouTube',
+    href: 'https://www.youtube.com/channel/UCqFg6QnwgtVHo1iFgpxrx-A/join',
+    svg: '<path fill="#FF0000" d="M21.8 8a2.77 2.77 0 0 0-1.95-1.96C18.09 5.5 12 5.5 12 5.5s-6.09 0-7.85.54A2.77 2.77 0 0 0 2.2 8 28.7 28.7 0 0 0 1.66 12a28.7 28.7 0 0 0 .54 4 2.77 2.77 0 0 0 1.95 1.96c1.76.54 7.85.54 7.85.54s6.09 0 7.85-.54A2.77 2.77 0 0 0 21.8 16a28.7 28.7 0 0 0 .54-4 28.7 28.7 0 0 0-.54-4"/><path fill="#fff" d="M10 15V9l5.2 3z"/>',
+    viewBox: '0 0 24 24'
+  }
+];
+
+const isHttpUrl = (href: string) => href.startsWith('http://') || href.startsWith('https://');
+---
+
+<RootLayout
+  title="Support Us — The Sanskrit Channel"
+  description="Support The Sanskrit Channel through one-time contributions or monthly memberships. Help us make ancient Sanskrit treasures accessible to all."
+>
+  <div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
+    <!-- Hero -->
+    <div class="mb-12 text-center">
+      <h1 class="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+        Support The Sanskrit Channel
+      </h1>
+      <p class="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+        The Sanskrit Channel is dedicated to making ancient Sanskrit treasures accessible, fun, and
+        easy to learn for everyone. Your support helps sustain this mission and keeps these tools
+        and resources freely available — every contribution, big or small, makes a difference.
+      </p>
+    </div>
+
+    <!-- One-Time Contributions -->
+    <section class="mb-12">
+      <h2 class="mb-6 text-xl font-bold tracking-tight sm:text-2xl">One-Time Contributions</h2>
+      <p class="mb-6 text-sm text-muted-foreground">
+        Pay as you wish — choose any amount that feels right.
+      </p>
+
+      <div class="grid gap-4 sm:grid-cols-3">
+        {
+          oneTimeOptions.map((option) => (
+            <a
+              href={option.href}
+              {...(isHttpUrl(option.href) ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+              class="card-hover-glow flex flex-col items-center gap-3 rounded-xl border bg-card p-6 text-center transition-colors duration-150 hover:border-primary/30"
+              aria-label={`Contribute via ${option.name}`}
+            >
+              <div class="flex size-12 items-center justify-center rounded-lg bg-primary/10">
+                <svg
+                  viewBox={option.viewBox}
+                  class="size-6"
+                  aria-hidden="true"
+                  set:html={option.svg}
+                />
+              </div>
+              <div>
+                <h3 class="font-semibold">{option.name}</h3>
+                <p class="mt-1 text-xs break-all text-muted-foreground">{option.description}</p>
+              </div>
+            </a>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- Monthly Memberships -->
+    <section class="mb-12">
+      <h2 class="mb-6 text-xl font-bold tracking-tight sm:text-2xl">Monthly Memberships</h2>
+      <p class="mb-6 text-sm text-muted-foreground">
+        Join as a member for ongoing support and access to exclusive content.
+      </p>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        {
+          membershipOptions.map((option) => (
+            <a
+              href={option.href}
+              {...(isHttpUrl(option.href) ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+              class="card-hover-glow flex items-center gap-4 rounded-xl border bg-card p-6 transition-colors duration-150 hover:border-primary/30"
+              aria-label={option.name}
+            >
+              <div class="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <svg
+                  viewBox={option.viewBox}
+                  class="size-6"
+                  aria-hidden="true"
+                  set:html={option.svg}
+                />
+              </div>
+              <div class="min-w-0">
+                <h3 class="font-semibold">{option.name}</h3>
+                <p class="mt-1 text-xs text-muted-foreground">
+                  Exclusive content &amp; early access
+                </p>
+              </div>
+            </a>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- Thank You -->
+    <!-- <div class="rounded-xl bg-muted/40 p-8 text-center">
+      <p class="font-devanagari text-lg text-primary/80" aria-hidden="true">
+        सर्वेषां स्वस्तिर्भवतु
+      </p>
+      <p class="mt-2 text-sm text-muted-foreground">
+        May there be well-being for all — Thank you for your generous support.
+      </p>
+    </div> -->
+  </div>
+</RootLayout>

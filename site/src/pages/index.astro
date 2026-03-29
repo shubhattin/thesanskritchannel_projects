@@ -1,32 +1,252 @@
 ---
 import RootLayout from '$components/RootLayout.astro';
 import { PROJECT_LIST } from '../../../app/src/state/project_list';
+import Youtube from '@lucide/svelte/icons/youtube';
+import ArrowRight from '@lucide/svelte/icons/arrow-right';
+import ExternalLink from '@lucide/svelte/icons/external-link';
+import Gamepad2 from '@lucide/svelte/icons/gamepad-2';
+import AudioLines from '@lucide/svelte/icons/audio-lines';
+import PenTool from '@lucide/svelte/icons/pen-tool';
+import Languages from '@lucide/svelte/icons/languages';
+import Heart from '@lucide/svelte/icons/heart';
+import Icon from '~/components/utils/Icon.astro';
 ---
 
-<RootLayout title="Texts" description="Browse texts in a simpler reading interface.">
-  <main class="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6">
-    <div class="space-y-3">
-      <h1 class="text-3xl font-semibold tracking-tight sm:text-5xl">Browse the text collections</h1>
-      <p class="max-w-3xl text-base text-muted-foreground sm:text-lg">
-        This site focuses on a simpler reading flow. Pick a text, move through its section
-        hierarchy, and open the final text page when you reach a leaf node.
+<RootLayout
+  title="The Sanskrit Channel — Explore Authentic Sanskrit Literature"
+  description="Discover ancient Sanskrit texts, learn Indian scripts, and explore tools for Sanskrit learning. Read Valmiki Ramayanam, Bhagavad Gita, and more in multiple scripts."
+>
+  <!-- Hero Section -->
+  <section
+    class="relative overflow-hidden border-b border-border/30 bg-linear-to-br from-background via-accent/20 to-primary/5"
+  >
+    <!-- Decorative background pattern -->
+    <div
+      class="absolute inset-0 opacity-[0.03]"
+      style="background-image: radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0); background-size: 40px 40px;"
+      aria-hidden="true"
+    >
+    </div>
+
+    <div class="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 lg:py-36">
+      <div class="mx-auto max-w-3xl text-center">
+        <!-- Sanskrit decorative quote -->
+        <p
+          class="font-devanagari mb-4 text-sm tracking-wider text-primary/60 sm:text-base"
+          aria-hidden="true"
+        >
+          ॐ वाङ्मे मनसि प्रतिष्ठिता
+        </p>
+
+        <h1 class="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+          Discover Sanskrit,
+          <span class="bg-linear-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            Rediscover Yourself
+          </span>
+        </h1>
+
+        <p
+          class="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg"
+        >
+          Explore authentic Sanskrit literature through a modern reading experience. Read sacred
+          texts in multiple Indian scripts, use powerful learning tools, and join a community
+          dedicated to preserving ancient wisdom.
+        </p>
+
+        <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <a
+            href="#texts"
+            class="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-md transition-transform duration-150 hover:scale-[1.02] hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
+            Explore Texts
+          </a>
+          <a
+            href="https://www.youtube.com/@TheSanskritChannel"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border px-8 text-sm font-semibold text-foreground transition-colors duration-150 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
+            <Icon icon={Youtube} class="size-6 text-red-500" />
+            Watch on YouTube
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Texts Section -->
+  <section
+    id="texts"
+    class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20"
+    style="scroll-margin-top: 4rem;"
+  >
+    <div class="mb-10 text-center">
+      <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Sacred Texts</h2>
+      <p class="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
+        Read classical Sanskrit texts in a clean, distraction-free interface. Switch between
+        multiple Indian scripts effortlessly.
       </p>
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {
-        PROJECT_LIST.map((project) => (
+        PROJECT_LIST.map((project, index) => (
           <a
-            class="rounded-xl border bg-card p-5 transition hover:bg-accent hover:text-accent-foreground"
             href={`/${project.key}`}
+            class:list={[
+              'card-hover-glow group relative rounded-xl border bg-card p-6 transition-colors duration-150 hover:border-primary/30',
+              `animate-fade-in-up stagger-${index + 1}`
+            ]}
           >
             <div class="space-y-2">
-              <h2 class="text-xl font-medium">{project.name}</h2>
-              <p class="text-lg text-muted-foreground">{project.name_dev}</p>
+              <p class="font-devanagari text-xl font-medium text-foreground transition-colors duration-150 group-hover:text-primary">
+                {project.name_dev}
+              </p>
+              <p class="text-sm text-muted-foreground">{project.name}</p>
+            </div>
+            <div class="mt-4 flex items-center gap-1 text-xs font-medium text-primary/70">
+              <span>Read</span>
+              <Icon
+                icon={ArrowRight}
+                class="size-3.5 transition-transform duration-150 group-hover:translate-x-0.5"
+              />
             </div>
           </a>
         ))
       }
     </div>
-  </main>
+  </section>
+
+  <!-- Tools Showcase Section -->
+  <section
+    id="tools"
+    class="border-t border-border/30 bg-muted/30"
+    style="scroll-margin-top: 4rem;"
+  >
+    <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+      <div class="mb-10 text-center">
+        <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Tools for Sanskrit Learning</h2>
+        <p class="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
+          Interactive tools designed to help you learn, practice, and experience Sanskrit in new
+          ways.
+        </p>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <!-- Padavali -->
+        <a
+          href="https://krida.thesanskritchannel.org/padavali"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="card-hover-glow group animate-fade-in-up stagger-1 flex gap-4 rounded-xl border bg-card p-6 transition-colors duration-150 hover:border-primary/30"
+        >
+          <div
+            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+          >
+            <Icon icon={Gamepad2} class="size-5" />
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <h3 class="font-semibold">Padavali</h3>
+              <Icon icon={ExternalLink} class="size-3.5 text-muted-foreground" />
+            </div>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Sanskrit Word Game playable in multiple Indian scripts.
+            </p>
+          </div>
+        </a>
+
+        <!-- Svara Darshini -->
+        <a
+          href="https://svara.thesanskritchannel.org/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="card-hover-glow group animate-fade-in-up stagger-2 flex gap-4 rounded-xl border bg-card p-6 transition-colors duration-150 hover:border-primary/30"
+        >
+          <div
+            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+          >
+            <Icon icon={AudioLines} class="size-5" />
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <h3 class="font-semibold">Svara Darshini</h3>
+              <Icon icon={ExternalLink} class="size-3.5 text-muted-foreground" />
+            </div>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Visualize and practice Vedic pitch levels for chanting.
+            </p>
+          </div>
+        </a>
+
+        <!-- Akshara -->
+        <a
+          href="https://akshara.thesanskritchannel.org/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="card-hover-glow group animate-fade-in-up stagger-3 flex gap-4 rounded-xl border bg-card p-6 transition-colors duration-150 hover:border-primary/30"
+        >
+          <div
+            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+          >
+            <Icon icon={PenTool} class="size-5" />
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <h3 class="font-semibold">Akshara</h3>
+              <Icon icon={ExternalLink} class="size-3.5 text-muted-foreground" />
+            </div>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Interactive lessons to learn, read, and write Indian scripts.
+            </p>
+          </div>
+        </a>
+
+        <!-- Lipi Lekhika -->
+        <a
+          href="https://lipilekhika.in/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="card-hover-glow group animate-fade-in-up stagger-4 flex gap-4 rounded-xl border bg-card p-6 transition-colors duration-150 hover:border-primary/30"
+        >
+          <div
+            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+          >
+            <Icon icon={Languages} class="size-5" />
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <h3 class="font-semibold">Lipi Lekhika</h3>
+              <Icon icon={ExternalLink} class="size-3.5 text-muted-foreground" />
+            </div>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Convert text between Indian scripts with ease.
+            </p>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Support CTA Section -->
+  <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+    <div
+      class="relative overflow-hidden rounded-2xl bg-linear-to-br from-primary/10 via-accent/30 to-primary/5 p-8 text-center sm:p-12"
+    >
+      <div class="relative">
+        <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Support Our Mission</h2>
+        <p class="mx-auto mt-3 max-w-lg text-sm text-muted-foreground sm:text-base">
+          Help us make ancient Sanskrit treasures accessible to everyone. Your support keeps this
+          project alive and growing.
+        </p>
+        <a
+          href="/support"
+          class="mt-8 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-md transition-transform duration-150 hover:scale-[1.02] hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          <Icon icon={Heart} class="size-4" />
+          Support Us
+        </a>
+      </div>
+    </div>
+  </section>
 </RootLayout>

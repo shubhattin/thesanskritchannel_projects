@@ -3,6 +3,7 @@ import LanguageSelect from '$components/main_text/LanguageSelect.svelte';
 import MainTextScriptSelector from '$components/main_text/MainTextScriptSelector.svelte';
 import TextSiblingNavigation from '$components/main_text/TextSiblingNavigation.astro';
 import RootLayout from '$components/RootLayout.astro';
+import { get_script_for_lang_id } from '$app/state/lang_list';
 import type { shloka_list_type } from '$app/state/data_types';
 import {
   get_display_script_from_id,
@@ -61,6 +62,8 @@ const display_text =
         selected_script_id
       )
     : [];
+const translationScript = get_script_for_lang_id(selected_lang_id);
+const translationFontClass = translationScript ? (getFontClass(translationScript) ?? '') : '';
 const current_title = resolved.path_names.at(-1) ?? resolved.project_name;
 const page_title = `${current_title} | ${resolved.project_name}`;
 const page_description =
@@ -243,7 +246,11 @@ const next_sibling_item: TextSiblingNavigationItem | null =
 
           <div class="flex flex-wrap gap-4">
             <MainTextScriptSelector client:load initial_script_id={selected_script_id} />
-            <LanguageSelect client:load initial_lang_id={selected_lang_id} />
+            <LanguageSelect
+              client:load
+              initial_lang_id={selected_lang_id}
+              initial_script_id={selected_script_id}
+            />
           </div>
 
           <TextSiblingNavigation
@@ -271,7 +278,9 @@ const next_sibling_item: TextSiblingNavigationItem | null =
                       {display_text[index]}
                     </div>
                     {selected_lang_id !== -1 && translation?.has(item.index) ? (
-                      <div class="border-t border-border/30 pt-2 text-sm leading-7 whitespace-pre-line text-yellow-700 dark:text-yellow-400">
+                      <div
+                        class={`border-t border-border/30 pt-2 text-sm leading-7 whitespace-pre-line text-yellow-700 dark:text-yellow-400 ${translationFontClass}`}
+                      >
                         {translation.get(item.index)}
                       </div>
                     ) : null}

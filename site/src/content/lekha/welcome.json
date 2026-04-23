@@ -3,5 +3,5 @@
   "description": "A sample post loaded from JSON via a live content collection. Replace or extend with real posts.",
   "pubDate": "2026-04-23",
   "draft": false,
-  "content": "## What you can do next\n\n| Step | Action |\n| --- | --- |\n| 1 | Edit `src/content/lekha_list.json` to set post order |\n| 2 | Add `your-slug.json` under `src/content/lekha/` |\n| 3 | Later, swap the loader to load the same shape from a database |\n\nThe `content` field is **Markdown** (GFM tables, lists, emphasis, etc.). Code blocks render as plain text for now (no syntax highlighting).\n\nHappy writing.\n"
+  "content": "welcome.md"
 }

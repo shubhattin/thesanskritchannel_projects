@@ -1,25 +1,66 @@
 import { createMarkdownProcessor } from '@astrojs/markdown-remark';
 import type { LiveLoader } from 'astro/loaders';
-import { readFile } from 'node:fs/promises';
+import { constants as fsConstants } from 'node:fs';
+import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { z } from 'zod';
+import { transliterate_node } from 'lipilekhika/node';
+import { get_script_from_id, type script_list_type } from '$app/state/lang_list';
+import { transliterate_custom } from '$app/tools/converter';
+import { DEFAULT_SCRIPT_ID } from '~/lib/cookies';
 
-type LekhaPostJson = {
-  title: string;
-  description?: string;
-  pubDate: string;
-  updatedDate?: string | null;
-  draft?: boolean;
-  content: string;
-};
+export const lekha_schema_zod = z.object({
+  title: z.string(),
+  description: z.string().optional(),
+  pubDate: z.coerce.date(),
+  updatedDate: z.preprocess(
+    (v) => (v === null || v === '' ? void 0 : v),
+    z.coerce.date().optional()
+  ),
+  draft: z.boolean().default(false),
+  search_index: z.boolean().optional(),
+  listed: z.boolean().default(true),
+  content: z.string()
+});
+type LekhaPostJson = z.infer<typeof lekha_schema_zod>;
 
 type LekhaListJson = { posts: string[] } | string[];
 
 const SRC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LIST_PATH = path.join(SRC_DIR, 'content', 'lekha_list.json');
 const LEKHA_DIR = path.join(SRC_DIR, 'content', 'lekha');
+const LEKHA_MD_DIR = path.join(SRC_DIR, 'content', 'lekha_md');
 
 let markdownProcessor: Awaited<ReturnType<typeof createMarkdownProcessor>> | null = null;
+
+const get_transliterated_text_content = async (content: string, script: script_list_type) => {
+  return await transliterate_custom(content, 'Devanagari', script, undefined, transliterate_node);
+};
+
+/** `<lipi>…</lipi>` wraps Devanagari source; inner text is transliterated to the active script. */
+const LIPI_TAG_RE = /<lipi>([\s\S]*?)<\/lipi>/gi;
+
+function script_from_id(script_id: number | undefined): script_list_type {
+  const id = script_id ?? DEFAULT_SCRIPT_ID;
+  const s = get_script_from_id(id);
+  const fallback = get_script_from_id(DEFAULT_SCRIPT_ID);
+  return (s ?? fallback ?? 'Devanagari') as script_list_type;
+}
+
+async function transliterate_lipi_spans(markdown: string, script: script_list_type): Promise<string> {
+  LIPI_TAG_RE.lastIndex = 0;
+  const chunks: string[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = LIPI_TAG_RE.exec(markdown)) !== null) {
+    chunks.push(markdown.slice(last, m.index));
+    chunks.push(await get_transliterated_text_content(m[1], script));
+    last = m.index + m[0].length;
+  }
+  chunks.push(markdown.slice(last));
+  return chunks.join('');
+}
 
 async function getMarkdownProcessor() {
   if (!markdownProcessor) {
@@ -39,6 +80,40 @@ async function readOrderedIds(): Promise<string[]> {
   throw new Error('lekha_list.json must be a string[] or { "posts": string[] }');
 }
 
+async function md_sidecar_exists(md_path: string): Promise<boolean> {
+  try {
+    await access(md_path, fsConstants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * If `content` is like `welcome.md` and `src/content/lekha_md/welcome.md` exists, load that file.
+ * Otherwise use `content` as inline Markdown. Only the basename is used (no `..`).
+ */
+async function resolve_lekha_markdown(
+  content_field: string,
+  post_id: string
+): Promise<{ markdown: string; fileURL: URL }> {
+  const trimmed = content_field.trim();
+  const json_ref = pathToFileURL(path.join(LEKHA_DIR, `${post_id}.json`));
+
+  if (trimmed.toLowerCase().endsWith('.md')) {
+    const safe_name = path.basename(trimmed.replace(/\\/g, '/'));
+    if (safe_name && safe_name !== '.' && safe_name !== '..') {
+      const md_path = path.join(LEKHA_MD_DIR, safe_name);
+      if (await md_sidecar_exists(md_path)) {
+        const markdown = await readFile(md_path, 'utf-8');
+        return { markdown, fileURL: pathToFileURL(md_path) };
+      }
+    }
+  }
+
+  return { markdown: trimmed, fileURL: json_ref };
+}
+
 async function readPostJson(id: string): Promise<LekhaPostJson> {
   const filePath = path.join(LEKHA_DIR, `${id}.json`);
   const parsed = JSON.parse(await readFile(filePath, 'utf-8')) as LekhaPostJson;
@@ -46,7 +121,7 @@ async function readPostJson(id: string): Promise<LekhaPostJson> {
     throw new Error(`Invalid lekha JSON for "${id}": title and pubDate are required`);
   }
   if (typeof parsed.content !== 'string') {
-    throw new Error(`Invalid lekha JSON for "${id}": content must be a Markdown string`);
+    throw new Error(`Invalid lekha JSON for "${id}": content must be inline Markdown or a .md file under lekha_md/`);
   }
   return parsed;
 }
@@ -56,9 +131,11 @@ function listEntryData(parsed: LekhaPostJson): Record<string, unknown> {
   return meta as Record<string, unknown>;
 }
 
+export type LekhaLiveEntryFilter = { id: string; scriptId?: number };
+
 export function lekhaJsonLiveLoader(): LiveLoader<
   Record<string, unknown>,
-  { id: string },
+  LekhaLiveEntryFilter,
   never
 > {
   return {
@@ -81,6 +158,7 @@ export function lekhaJsonLiveLoader(): LiveLoader<
     },
     loadEntry: async ({ filter }) => {
       const id = filter.id;
+      const script = script_from_id(filter.scriptId);
       try {
         const ids = await readOrderedIds();
         if (!ids.includes(id)) {
@@ -88,9 +166,10 @@ export function lekhaJsonLiveLoader(): LiveLoader<
         }
         const parsed = await readPostJson(id);
         const processor = await getMarkdownProcessor();
-        const pseudoFile = path.join(LEKHA_DIR, `${id}.json`);
-        const { code: html } = await processor.render(parsed.content, {
-          fileURL: pathToFileURL(pseudoFile)
+        const { markdown, fileURL } = await resolve_lekha_markdown(parsed.content ?? '', id);
+        const markdown_for_render = await transliterate_lipi_spans(markdown, script);
+        const { code: html } = await processor.render(markdown_for_render, {
+          fileURL
         });
         return {
           id,

@@ -1,21 +1,10 @@
 import { defineLiveCollection } from 'astro/content/config';
 import { lekhaJsonLiveLoader } from './loaders/lekha-json-live';
-import { z } from 'astro/zod';
+import { lekha_schema_zod } from './loaders/lekha-json-live';
 
 const lekha = defineLiveCollection({
   loader: lekhaJsonLiveLoader(),
-  schema: z.object({
-    title: z.string(),
-    description: z.string().optional(),
-    pubDate: z.coerce.date(),
-    updatedDate: z
-      .preprocess(
-        (v) => (v === null || v === '' ? void 0 : v),
-        z.coerce.date().optional()
-      ),
-    draft: z.boolean().optional(),
-    content: z.string().optional()
-  })
+  schema: lekha_schema_zod
 });
 
 export const collections = { lekha };

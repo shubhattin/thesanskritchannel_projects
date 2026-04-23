@@ -53,7 +53,7 @@ const translation =
       )
     : null;
 const child_items = resolved
-  ? get_child_route_items(resolved.project_key, resolved.map, resolved.path_params)
+  ? get_child_route_items(resolved.project_key, resolved.map, resolved.path_params, resolved.levels)
   : [];
 ---
 

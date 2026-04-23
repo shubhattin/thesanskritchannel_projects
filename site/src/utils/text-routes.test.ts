@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { get_project_from_key } from '../../../app/src/state/project_list';
+import { get_project_from_key, get_levels_from_map } from '../../../app/src/state/project_list';
 import {
   build_pretty_route_segment,
   get_child_route_items,
@@ -73,10 +73,12 @@ describe('text-routes', () => {
 
   it('builds child link items for intermediate pages', async () => {
     const map = await get_project_from_key('ramayanam').get_map();
-    const items = get_child_route_items('ramayanam', map, [1]);
+    const levels = get_levels_from_map(map);
+    const items = get_child_route_items('ramayanam', map, [1], levels);
     expect(items[0]).toMatchObject({
       index: 1,
-      href: '/ramayanam/kanda-1/sarga-1'
+      href: '/ramayanam/kanda-1/sarga-1',
+      is_disabled: false
     });
   });
 

@@ -21,7 +21,8 @@ export const lekha_schema_zod = z.object({
   draft: z.boolean().default(false),
   search_index: z.boolean().optional(),
   listed: z.boolean().default(true),
-  content: z.string()
+  /** Omitted on `loadCollection` rows (index only); present on `loadEntry` (full post). */
+  content: z.string().optional()
 });
 type LekhaPostJson = z.infer<typeof lekha_schema_zod>;
 
@@ -39,7 +40,21 @@ const get_transliterated_text_content = async (content: string, script: script_l
 };
 
 /** `<lipi>…</lipi>` wraps Devanagari source; inner text is transliterated to the active script. */
-const LIPI_TAG_RE = /<lipi>([\s\S]*?)<\/lipi>/gi;
+const LIPI_TAG_RE = /<\s*lipi\b[^>]*>([\s\S]*?)<\/\s*lipi\s*>/gi;
+
+/** Remove any `<lipi>` wrappers that survived markdown/HTML parsing (unknown elements, odd nesting). */
+function strip_lipi_tags_from_html(html: string): string {
+  LIPI_TAG_RE.lastIndex = 0;
+  let out = html;
+  let prev = '';
+  while (out !== prev) {
+    prev = out;
+    out = out.replace(LIPI_TAG_RE, '$1');
+  }
+  out = out.replace(/<\s*lipi\b[^>]*\s*\/?>/gi, '');
+  out = out.replace(/<\/\s*lipi\s*>/gi, '');
+  return out;
+}
 
 function script_from_id(script_id: number | undefined): script_list_type {
   const id = script_id ?? DEFAULT_SCRIPT_ID;
@@ -48,7 +63,10 @@ function script_from_id(script_id: number | undefined): script_list_type {
   return (s ?? fallback ?? 'Devanagari') as script_list_type;
 }
 
-async function transliterate_lipi_spans(markdown: string, script: script_list_type): Promise<string> {
+async function transliterate_lipi_spans(
+  markdown: string,
+  script: script_list_type
+): Promise<string> {
   LIPI_TAG_RE.lastIndex = 0;
   const chunks: string[] = [];
   let last = 0;
@@ -121,7 +139,9 @@ async function readPostJson(id: string): Promise<LekhaPostJson> {
     throw new Error(`Invalid lekha JSON for "${id}": title and pubDate are required`);
   }
   if (typeof parsed.content !== 'string') {
-    throw new Error(`Invalid lekha JSON for "${id}": content must be inline Markdown or a .md file under lekha_md/`);
+    throw new Error(
+      `Invalid lekha JSON for "${id}": content must be inline Markdown or a .md file under lekha_md/`
+    );
   }
   return parsed;
 }
@@ -168,9 +188,10 @@ export function lekhaJsonLiveLoader(): LiveLoader<
         const processor = await getMarkdownProcessor();
         const { markdown, fileURL } = await resolve_lekha_markdown(parsed.content ?? '', id);
         const markdown_for_render = await transliterate_lipi_spans(markdown, script);
-        const { code: html } = await processor.render(markdown_for_render, {
+        const { code: raw_html } = await processor.render(markdown_for_render, {
           fileURL
         });
+        const html = strip_lipi_tags_from_html(raw_html);
         return {
           id,
           data: {

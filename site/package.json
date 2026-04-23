@@ -34,6 +34,7 @@
     "@fontsource/noto-sans-tamil-supplement": "^5.2.7",
     "@fontsource/noto-sans-telugu": "^5.2.8",
     "@neondatabase/serverless": "^1.1.0",
+    "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.4",
     "@upstash/redis": "^1.37.0",
     "@vercel/functions": "^3.4.4",

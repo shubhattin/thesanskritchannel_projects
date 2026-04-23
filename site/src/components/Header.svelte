@@ -7,7 +7,7 @@
   import X from '@lucide/svelte/icons/x';
   import ExternalLink from '@lucide/svelte/icons/external-link';
   import Heart from '@lucide/svelte/icons/heart';
-  import BookOpen from '@lucide/svelte/icons/book-open';
+  import Pencil from '@lucide/svelte/icons/pencil';
   import ChevronRight from '@lucide/svelte/icons/chevron-right';
 
   let mobileMenuOpen = $state(false);
@@ -128,6 +128,14 @@
             </NavigationMenu.Content>
           </NavigationMenu.Item>
 
+          <!-- Lekha (blog) -->
+          <NavigationMenu.Item>
+            <a href="/lekha" class={navigationMenuTriggerStyle()}>
+              <Pencil class="mr-1.5 size-3.5 text-primary" aria-hidden="true" />
+              Lekha
+            </a>
+          </NavigationMenu.Item>
+
           <!-- Support Us -->
           <NavigationMenu.Item>
             <a href="/support" class={navigationMenuTriggerStyle()}>
@@ -234,6 +242,16 @@
 
         <!-- Separator -->
         <div class="my-2 border-t border-border/40"></div>
+
+        <!-- Lekha (blog) -->
+        <a
+          href="/lekha"
+          class="flex items-center gap-2 rounded-lg px-2 py-2.5 font-medium text-primary transition-colors duration-150 hover:bg-accent"
+          onclick={closeMobile}
+        >
+          <Pencil class="size-4" aria-hidden="true" />
+          Lekha
+        </a>
 
         <!-- Support Us -->
         <a

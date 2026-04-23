@@ -162,10 +162,22 @@ export const resolve_text_route = async (
   };
 };
 
+/** Mirrors MainAppPage `empty_child` (list with no children; only when `i < levels - 2`). */
+function is_child_nav_disabled(
+  child: recursive_list_type,
+  path_params_length: number,
+  levels: number
+): boolean {
+  if (path_params_length >= levels - 2) return false;
+  if (child.info.type !== 'list') return false;
+  return !Array.isArray(child.list) || child.list.length === 0;
+}
+
 export const get_child_route_items = (
   project_key: project_keys_type,
   map: recursive_list_type,
-  path_params: number[]
+  path_params: number[],
+  levels: number
 ) => {
   const node = path_params.length === 0 ? map : get_node_at_path(map, path_params);
   if (!node || node.info.type !== 'list') return [];
@@ -173,12 +185,14 @@ export const get_child_route_items = (
   return (node.list ?? []).map((child, index) => {
     const next_path_params = [...path_params, index + 1];
     const href = build_project_path(project_key, map, next_path_params);
+    const is_leaf = child.info.type === 'shloka';
     return {
       index: index + 1,
       href: href ?? `/${project_key}`,
       name_dev: child.name_dev,
       name_nor: child.name_nor,
-      is_leaf: child.info.type === 'shloka'
+      is_leaf,
+      is_disabled: is_child_nav_disabled(child, path_params.length, levels)
     };
   });
 };

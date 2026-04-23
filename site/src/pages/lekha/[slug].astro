@@ -1,0 +1,63 @@
+---
+import NotFoundPage from '$components/NotFoundPage.astro';
+import RootLayout from '$components/RootLayout.astro';
+import { getEntry, render } from 'astro:content';
+
+const slug = Astro.params.slug;
+let entry = slug ? await getEntry('lekha', slug) : undefined;
+
+if (!entry) {
+  Astro.response.status = 404;
+}
+
+const rendered = entry ? await render(entry) : null;
+const Content = rendered?.Content;
+---
+
+{
+  entry && Content ? (
+    <RootLayout title={`${entry.data.title} — Lekha`} description={entry.data.description}>
+      <article class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+        <header class="mb-10 border-b border-border pb-8">
+          <p class="text-sm font-medium tracking-wide text-primary uppercase">Lekha</p>
+          <h1 class="mt-2 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+            {entry.data.title}
+          </h1>
+          {entry.data.description && (
+            <p class="mt-4 text-lg text-muted-foreground">{entry.data.description}</p>
+          )}
+          <div class="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            <time datetime={entry.data.pubDate.toISOString()}>
+              Published{' '}
+              {entry.data.pubDate.toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </time>
+            {entry.data.updatedDate && (
+              <time datetime={entry.data.updatedDate.toISOString()}>
+                Updated{' '}
+                {entry.data.updatedDate.toLocaleDateString('en-IN', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </time>
+            )}
+          </div>
+        </header>
+        <div class="lekha-markdown prose prose-neutral dark:prose-invert prose-headings:font-semibold prose-a:text-primary prose-headings:text-foreground max-w-none">
+          <Content />
+        </div>
+        <p class="mt-12 text-sm text-muted-foreground">
+          <a href="/lekha" class="text-primary hover:underline">
+            ← All posts
+          </a>
+        </p>
+      </article>
+    </RootLayout>
+  ) : (
+    <NotFoundPage />
+  )
+}

@@ -17,6 +17,7 @@ import HomeIcon from '@lucide/svelte/icons/house';
 import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 import BookOpenIcon from '@lucide/svelte/icons/book-open';
 import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
+import BanIcon from '@lucide/svelte/icons/ban';
 import Icon from '~/components/utils/Icon.astro';
 
 type ChildRouteItem = {
@@ -25,6 +26,7 @@ type ChildRouteItem = {
   name_dev: string;
   name_nor: string;
   is_leaf: boolean;
+  is_disabled: boolean;
 };
 
 type TextSiblingNavigationItem = {
@@ -196,40 +198,57 @@ const next_sibling_item: TextSiblingNavigationItem | null =
         <section class="flex flex-col gap-5">
           <MainTextScriptSelector client:load initial_script_id={selected_script_id} />
           <div class="grid gap-3">
-            {display_child_items.map((item) => (
-              <a
-                class="card-hover-glow group flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors duration-150 hover:border-primary/30"
-                href={item.href}
-              >
-                {/* Number badge */}
-                <span
-                  class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground"
-                  style="font-variant-numeric: tabular-nums;"
+            {display_child_items.map((item) => {
+              const rowBody = (
+                <>
+                  <span
+                    class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground"
+                    style="font-variant-numeric: tabular-nums;"
+                  >
+                    {item.index}
+                  </span>
+                  <div class="min-w-0 flex-1 space-y-0.5">
+                    <p class={`truncate text-base font-medium ${scriptFontClass}`}>
+                      {item.name_display}
+                    </p>
+                    <p class="truncate text-sm text-muted-foreground">{item.name_nor}</p>
+                  </div>
+                  <div
+                    class:list={[
+                      'shrink-0 text-muted-foreground transition-colors duration-150',
+                      !item.is_disabled && 'group-hover:text-primary'
+                    ]}
+                  >
+                    {item.is_disabled ? (
+                      <Icon icon={BanIcon} class="size-4 text-muted-foreground/80" />
+                    ) : item.is_leaf ? (
+                      <Icon icon={BookOpenIcon} class="size-4" />
+                    ) : (
+                      <Icon
+                        icon={ChevronRightIcon}
+                        class="size-4 transition-transform duration-150 group-hover:translate-x-0.5"
+                      />
+                    )}
+                  </div>
+                </>
+              );
+              return item.is_disabled ? (
+                <div
+                  class="group flex cursor-not-allowed items-center gap-4 rounded-xl border border-dashed bg-muted/30 p-4 opacity-70"
+                  aria-disabled="true"
+                  title="No sub-sections available for this item"
                 >
-                  {item.index}
-                </span>
-
-                {/* Text content */}
-                <div class="min-w-0 flex-1 space-y-0.5">
-                  <p class={`truncate text-base font-medium ${scriptFontClass}`}>
-                    {item.name_display}
-                  </p>
-                  <p class="truncate text-sm text-muted-foreground">{item.name_nor}</p>
+                  {rowBody}
                 </div>
-
-                {/* Arrow / Icon */}
-                <div class="shrink-0 text-muted-foreground transition-colors duration-150 group-hover:text-primary">
-                  {item.is_leaf ? (
-                    <Icon icon={BookOpenIcon} class="size-4" />
-                  ) : (
-                    <Icon
-                      icon={ChevronRightIcon}
-                      class="size-4 transition-transform duration-150 group-hover:translate-x-0.5"
-                    />
-                  )}
-                </div>
-              </a>
-            ))}
+              ) : (
+                <a
+                  class="card-hover-glow group flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors duration-150 hover:border-primary/30"
+                  href={item.href}
+                >
+                  {rowBody}
+                </a>
+              );
+            })}
           </div>
         </section>
       ) : (

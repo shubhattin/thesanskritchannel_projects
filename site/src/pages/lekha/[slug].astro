@@ -1,16 +1,29 @@
 ---
 import NotFoundPage from '$components/NotFoundPage.astro';
 import RootLayout from '$components/RootLayout.astro';
-import { getEntry, render } from 'astro:content';
+import { LiveEntryNotFoundError } from 'astro/content/runtime';
+import { getLiveEntry, render } from 'astro:content';
 
 const slug = Astro.params.slug;
-let entry = slug ? await getEntry('lekha', slug) : undefined;
+const { entry: rawEntry, error } = await getLiveEntry('lekha', slug ?? '');
 
-if (!entry) {
-  Astro.response.status = 404;
+if (error) {
+  if (LiveEntryNotFoundError.is(error)) {
+    Astro.response.status = 404;
+  } else {
+    throw error;
+  }
 }
 
-const rendered = entry ? await render(entry) : null;
+let entry = rawEntry;
+if (entry?.data.draft === true) {
+  Astro.response.status = 404;
+  entry = void 0;
+}
+
+const rendered = entry
+  ? await render({ ...entry, collection: 'lekha' } as Parameters<typeof render>[0])
+  : null;
 const Content = rendered?.Content;
 ---
 
@@ -47,7 +60,7 @@ const Content = rendered?.Content;
             )}
           </div>
         </header>
-        <div class="lekha-markdown prose prose-neutral dark:prose-invert prose-headings:font-semibold prose-a:text-primary prose-headings:text-foreground max-w-none">
+        <div class="lekha-markdown prose prose-neutral max-w-none dark:prose-invert prose-headings:font-semibold prose-a:text-primary prose-headings:text-foreground">
           <Content />
         </div>
         <p class="mt-12 text-sm text-muted-foreground">

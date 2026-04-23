@@ -1,6 +1,6 @@
 import { createMarkdownProcessor } from '@astrojs/markdown-remark';
 import type { LiveLoader } from 'astro/loaders';
-import { constants as fsConstants } from 'node:fs';
+import { constants as fsConstants, existsSync } from 'node:fs';
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -28,10 +28,33 @@ type LekhaPostJson = z.infer<typeof lekha_schema_zod>;
 
 type LekhaListJson = { posts: string[] } | string[];
 
-const SRC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const LIST_PATH = path.join(SRC_DIR, 'content', 'lekha_list.json');
-const LEKHA_DIR = path.join(SRC_DIR, 'content', 'lekha');
-const LEKHA_MD_DIR = path.join(SRC_DIR, 'content', 'lekha_md');
+/**
+ * Lekha reads JSON/MD from disk at runtime. Locally the loader may live under
+ * `src/loaders/`; on Vercel the bundle is under `dist/server/chunks/`, so we
+ * prefer `process.cwd()/src/content` (see @astrojs/vercel `includeFiles` /
+ * `vite.assetsInclude`) and fall back to a path relative to this module.
+ */
+let cached_lekha_content_dir: string | null = null;
+
+function lekha_content_dir(): string {
+  if (cached_lekha_content_dir) return cached_lekha_content_dir;
+  const cwd = process.cwd();
+  const from_loader = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'content');
+  /** Vercel NFT often places the repo under `site/` inside the function; local dev uses `src/content` at cwd. */
+  const candidates = [
+    path.join(cwd, 'src', 'content'),
+    path.join(cwd, 'site', 'src', 'content'),
+    from_loader
+  ];
+  for (const dir of candidates) {
+    if (existsSync(path.join(dir, 'lekha_list.json'))) {
+      cached_lekha_content_dir = dir;
+      return dir;
+    }
+  }
+  cached_lekha_content_dir = candidates[0];
+  return cached_lekha_content_dir;
+}
 
 let markdownProcessor: Awaited<ReturnType<typeof createMarkdownProcessor>> | null = null;
 
@@ -92,7 +115,8 @@ async function getMarkdownProcessor() {
 }
 
 async function readOrderedIds(): Promise<string[]> {
-  const raw = JSON.parse(await readFile(LIST_PATH, 'utf-8')) as LekhaListJson;
+  const list_path = path.join(lekha_content_dir(), 'lekha_list.json');
+  const raw = JSON.parse(await readFile(list_path, 'utf-8')) as LekhaListJson;
   if (Array.isArray(raw)) return raw;
   if (raw && Array.isArray(raw.posts)) return raw.posts;
   throw new Error('lekha_list.json must be a string[] or { "posts": string[] }');
@@ -116,12 +140,14 @@ async function resolve_lekha_markdown(
   post_id: string
 ): Promise<{ markdown: string; fileURL: URL }> {
   const trimmed = content_field.trim();
-  const json_ref = pathToFileURL(path.join(LEKHA_DIR, `${post_id}.json`));
+  const lekha_dir = path.join(lekha_content_dir(), 'lekha');
+  const lekha_md_dir = path.join(lekha_content_dir(), 'lekha_md');
+  const json_ref = pathToFileURL(path.join(lekha_dir, `${post_id}.json`));
 
   if (trimmed.toLowerCase().endsWith('.md')) {
     const safe_name = path.basename(trimmed.replace(/\\/g, '/'));
     if (safe_name && safe_name !== '.' && safe_name !== '..') {
-      const md_path = path.join(LEKHA_MD_DIR, safe_name);
+      const md_path = path.join(lekha_md_dir, safe_name);
       if (await md_sidecar_exists(md_path)) {
         const markdown = await readFile(md_path, 'utf-8');
         return { markdown, fileURL: pathToFileURL(md_path) };
@@ -133,7 +159,7 @@ async function resolve_lekha_markdown(
 }
 
 async function readPostJson(id: string): Promise<LekhaPostJson> {
-  const filePath = path.join(LEKHA_DIR, `${id}.json`);
+  const filePath = path.join(lekha_content_dir(), 'lekha', `${id}.json`);
   const parsed = JSON.parse(await readFile(filePath, 'utf-8')) as LekhaPostJson;
   if (typeof parsed.title !== 'string' || typeof parsed.pubDate !== 'string') {
     throw new Error(`Invalid lekha JSON for "${id}": title and pubDate are required`);

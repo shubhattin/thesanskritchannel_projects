@@ -8,10 +8,6 @@
   import ExternalLink from '@lucide/svelte/icons/external-link';
   import Heart from '@lucide/svelte/icons/heart';
   import BookOpen from '@lucide/svelte/icons/book-open';
-  import Gamepad2 from '@lucide/svelte/icons/gamepad-2';
-  import AudioLines from '@lucide/svelte/icons/audio-lines';
-  import PenTool from '@lucide/svelte/icons/pen-tool';
-  import Languages from '@lucide/svelte/icons/languages';
   import ChevronRight from '@lucide/svelte/icons/chevron-right';
 
   let mobileMenuOpen = $state(false);
@@ -21,27 +17,27 @@
       name: 'Padavali',
       description: 'Sanskrit Word Game in Multiple Scripts',
       href: 'https://krida.thesanskritchannel.org/padavali',
-      icon: Gamepad2
+      iconSrc: '/icons/apps/padavali_64.png'
     },
     {
       name: 'Svara Darshini',
       description: 'Visualize & Practice Vedic Pitch Levels',
       href: 'https://svara.thesanskritchannel.org/',
-      icon: AudioLines
+      iconSrc: '/icons/apps/svara_64.png'
     },
     {
       name: 'Akshara',
       description: 'Learn to Read & Write Indian Scripts',
       href: 'https://akshara.thesanskritchannel.org/',
-      icon: PenTool
+      iconSrc: '/icons/apps/akshara_64.png'
     },
     {
       name: 'Lipi Lekhika',
       description: 'Script Transliteration Tool',
       href: 'https://lipilekhika.in/',
-      icon: Languages
+      iconSrc: '/icons/apps/lipi.svg'
     }
-  ];
+  ] as const;
 
   function closeMobile() {
     mobileMenuOpen = false;
@@ -79,9 +75,16 @@
                     <NavigationMenu.Link href={tool.href} target="_blank" rel="noopener noreferrer">
                       <div class="flex items-start gap-3">
                         <div
-                          class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+                          class="mt-0.5 flex size-8 shrink-0 overflow-hidden rounded-md bg-primary/10 text-primary"
                         >
-                          <tool.icon class="size-4" aria-hidden="true" />
+                          <img
+                            src={tool.iconSrc}
+                            alt=""
+                            width="32"
+                            height="32"
+                            class="h-full w-full object-contain"
+                            aria-hidden="true"
+                          />
                         </div>
                         <div class="min-w-0">
                           <div class="flex items-center gap-1 text-sm font-medium">
@@ -182,9 +185,16 @@
               onclick={closeMobile}
             >
               <div
-                class="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+                class="flex size-8 shrink-0 overflow-hidden rounded-md bg-primary/10 text-primary"
               >
-                <tool.icon class="size-4" aria-hidden="true" />
+                <img
+                  src={tool.iconSrc}
+                  alt=""
+                  width="32"
+                  height="32"
+                  class="h-full w-full object-contain"
+                  aria-hidden="true"
+                />
               </div>
               <div class="min-w-0">
                 <div class="flex items-center gap-1 text-sm font-medium">

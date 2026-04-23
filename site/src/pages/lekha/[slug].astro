@@ -2,6 +2,8 @@
 import MainTextScriptSelector from '$components/main_text/MainTextScriptSelector.svelte';
 import NotFoundPage from '$components/NotFoundPage.astro';
 import RootLayout from '$components/RootLayout.astro';
+import { getFontClass } from '~/components/utils/font_list';
+import { get_display_script_from_id } from '~/lib/main_text/script-display';
 import { SCRIPT_ID_COOKIE_NAME, parse_script_id_cookie } from '~/lib/cookies';
 import { LiveEntryNotFoundError } from 'astro/content/runtime';
 import { getLiveEntry, render } from 'astro:content';
@@ -32,6 +34,9 @@ const rendered = entry
   ? await render({ ...entry, collection: 'lekha' } as Parameters<typeof render>[0])
   : null;
 const Content = rendered?.Content;
+
+const lekha_body_font_class =
+  getFontClass(get_display_script_from_id(selected_script_id)) ?? 'font-normal';
 ---
 
 {
@@ -70,7 +75,9 @@ const Content = rendered?.Content;
             <MainTextScriptSelector client:load initial_script_id={selected_script_id} />
           </div>
         </header>
-        <div class="lekha-markdown prose prose-neutral max-w-none dark:prose-invert prose-headings:font-semibold prose-a:text-primary prose-headings:text-foreground">
+        <div
+          class={`lekha-markdown ${lekha_body_font_class} prose prose-neutral max-w-none dark:prose-invert prose-headings:font-semibold prose-a:text-primary prose-headings:text-foreground`}
+        >
           <Content />
         </div>
         <p class="mt-12 text-sm text-muted-foreground">

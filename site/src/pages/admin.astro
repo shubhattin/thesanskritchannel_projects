@@ -1,0 +1,15 @@
+---
+import { get_seesion_from_cookie } from '$lib/get_auth_from_cookie';
+import Login from '~/components/admin/Login.svelte';
+import AdminDashboard from '~/components/admin/MainAdmin.svelte';
+import RootLayout from '~/components/RootLayout.astro';
+
+const session = await get_seesion_from_cookie(Astro.request.headers.get('cookie') ?? '');
+---
+
+<RootLayout
+  title="Admin Dashboard — The Sanskrit Channel"
+  description="Manage Content : Lekhas, Images"
+>
+  {session ? <AdminDashboard client:load /> : <Login client:load />}
+</RootLayout>

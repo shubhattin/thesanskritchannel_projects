@@ -40,6 +40,7 @@
     "@upstash/redis": "^1.37.0",
     "@vercel/functions": "^3.4.4",
     "astro": "^6.1.8",
+    "better-auth": "^1.6.9",
     "drizzle-orm": "^0.45.2",
     "js-cookie": "^3.0.5",
     "lipilekhika": "^1.0.10",

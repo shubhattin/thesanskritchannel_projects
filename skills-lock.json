@@ -1,11 +1,6 @@
 {
   "version": 1,
   "skills": {
-    "caveman": {
-      "source": "juliusbrussee/caveman",
-      "sourceType": "github",
-      "computedHash": "a818cdc41dcfaa50dd891c5cb5e5705968338de02e7e37949ca56e8c30ad4176"
-    },
     "svelte-code-writer": {
       "source": "sveltejs/ai-tools",
       "sourceType": "github",

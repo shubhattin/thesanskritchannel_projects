@@ -24,3 +24,5 @@ export const SiteLekhaSchemaZod = createSelectSchema(site_lekhas, {
   published_at: z.coerce.date(),
   updated_at: z.coerce.date()
 });
+
+export type SiteLekha = z.infer<typeof SiteLekhaSchemaZod>;

@@ -6,6 +6,11 @@
       "sourceType": "github",
       "computedHash": "a818cdc41dcfaa50dd891c5cb5e5705968338de02e7e37949ca56e8c30ad4176"
     },
+    "svelte-code-writer": {
+      "source": "sveltejs/ai-tools",
+      "sourceType": "github",
+      "computedHash": "c0e2cce9855f8e312cbb0a05aef164b4659c672d7723e4e598ffa6bc94890542"
+    },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",

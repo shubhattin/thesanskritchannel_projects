@@ -1,6 +1,6 @@
 # Package Manager
 
-- Use the bun package manager for all things
+- Use the bun package manager for all things, so even if somewhere it says to use `npx` just use `bun x` as prefix instead always use bun over npm
 
 # Shadcn component addition
 

@@ -24,10 +24,6 @@
         <FileText class="size-4 shrink-0" aria-hidden="true" />
         Drafts
       </Tabs.Trigger>
-      <Tabs.Trigger value="create" class="w-full flex-none justify-start gap-2 px-3 py-2.5">
-        <Plus class="size-4 shrink-0" aria-hidden="true" />
-        Create
-      </Tabs.Trigger>
     </Tabs.List>
 
     <Tabs.Content value="list" class="mt-0 min-h-0 min-w-0 flex-1 outline-none">

@@ -23,6 +23,7 @@
     "sync": "svelte-kit sync"
   },
   "dependencies": {
+    "@astrojs/markdown-remark": "^7.1.1",
     "@floating-ui/dom": "^1.7.6",
     "@fontsource/roboto": "^5.2.10",
     "@neondatabase/serverless": "^1.1.0",
@@ -38,7 +39,7 @@
     "@vercel/functions": "^3.4.4",
     "ai": "^6.0.168",
     "arktype": "^2.2.0",
-    "better-auth": "^1.6.7",
+    "better-auth": "^1.6.9",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
@@ -53,7 +54,7 @@
     "mode-watcher": "0.3.1",
     "ms": "^2.1.3",
     "openai": "^6.34.0",
-    "posthog-js": "^1.370.1",
+    "posthog-js": "^1.372.1",
     "pretty-ms": "^9.3.0",
     "qrcode": "^1.5.4",
     "superjson": "^2.2.6",
@@ -69,13 +70,13 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.1034.0",
+    "@aws-sdk/client-s3": "^3.1037.0",
     "@internationalized/date": "^3.12.1",
     "@lucide/svelte": "^0.561.0",
     "@modyfi/vite-plugin-yaml": "^1.1.1",
     "@sveltejs/adapter-netlify": "^4.4.2",
     "@sveltejs/adapter-vercel": "^5.10.3",
-    "@sveltejs/kit": "^2.57.1",
+    "@sveltejs/kit": "^2.58.0",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/typography": "^0.5.19",
@@ -95,16 +96,16 @@
     "prettier": "^3.8.3",
     "prettier-plugin-astro": "^0.14.1",
     "prettier-plugin-svelte": "^3.5.1",
-    "prettier-plugin-tailwindcss": "^0.7.2",
+    "prettier-plugin-tailwindcss": "^0.7.3",
     "sass": "^1.99.0",
     "simple-git": "^3.36.0",
-    "svelte": "^5.55.4",
+    "svelte": "^5.55.5",
     "svelte-check": "^4.4.6",
     "tailwind-variants": "^3.2.2",
     "tsx": "^4.21.0",
     "tw-animate-css": "^1.4.0",
     "typescript": "^5.9.3",
-    "vite": "^8.0.9"
+    "vite": "^8.0.10"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

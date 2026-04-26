@@ -1,4 +1,4 @@
-import type { authClient } from '$lib/auth-client';
+import type { authClient } from '$app/lib/auth-client';
 
 export const get_seesion_from_cookie = async (cookie: string) => {
   try {

@@ -126,15 +126,21 @@
   })).filter((o): o is { name: string; id: number } => o.id != null);
 
   const query_client = useQueryClient();
-  
+
   const invalidate_lekha_queries = async () => {
-    // TODO: 
-    await query_client.invalidateQueries({ queryKey: [['site', 'lekha', 'list_lekhas']], exact: false });
-    await query_client.invalidateQueries({ queryKey: [['site', 'lekha', 'get_lekha']], exact: false });
+    // TODO:
+    await query_client.invalidateQueries({
+      queryKey: [['site', 'lekha', 'list_lekhas']],
+      exact: false
+    });
+    await query_client.invalidateQueries({
+      queryKey: [['site', 'lekha', 'get_lekha']],
+      exact: false
+    });
   };
 
   const add_mut = client_q.site.lekha.add_lekha.mutation({
-    onSuccess: async ({id}) => {
+    onSuccess: async ({ id }) => {
       await invalidate_lekha_queries();
       await goto(`/lekha/edit/${id}`);
     }

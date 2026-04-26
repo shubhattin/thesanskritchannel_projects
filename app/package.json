@@ -41,7 +41,7 @@
     "better-auth": "^1.6.7",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
-    "drizzle-orm": "^0.42.0",
+    "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",
     "exceljs": "^4.4.0",
     "fabric": "^6.9.1",

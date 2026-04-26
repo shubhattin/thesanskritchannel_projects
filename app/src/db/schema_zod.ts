@@ -6,7 +6,8 @@ import {
   texts,
   media_attachment,
   other
-} from './schema';
+} from './schema_app';
+import { site_lekhas } from './schema_site';
 import { createSelectSchema } from 'drizzle-zod';
 
 export const UserProjectJoinSchemaZod = createSelectSchema(user_project_join);
@@ -17,4 +18,9 @@ export const TextSchemaZod = createSelectSchema(texts);
 export const OtherSchemaZod = createSelectSchema(other);
 export const MediaAttachmentSchemaZod = createSelectSchema(media_attachment, {
   link: z.string().url()
+});
+
+export const SiteLekhaSchemaZod = createSelectSchema(site_lekhas, {
+  published_at: z.coerce.date(),
+  updated_at: z.coerce.date()
 });

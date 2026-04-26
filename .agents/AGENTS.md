@@ -11,6 +11,7 @@
 
 - Never start the dev server, as it would be already running on the provisioned port.
 - The project is a monorepo with two seperate apps
+- For icons you can use `svelte-icons-pack` or `@lucide/svelte`, this is same for both `site` and `app`
 
 ## /app (SvelteKit)
 

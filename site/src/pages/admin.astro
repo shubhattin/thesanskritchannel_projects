@@ -5,11 +5,24 @@ import AdminDashboard from '~/components/admin/MainAdmin.svelte';
 import RootLayout from '~/components/RootLayout.astro';
 
 const session = await get_seesion_from_cookie(Astro.request.headers.get('cookie') ?? '');
+const is_allowed = session?.user?.role === 'admin';
 ---
 
 <RootLayout
   title="Admin Dashboard — The Sanskrit Channel"
   description="Manage Content : Lekhas, Images"
 >
-  {session ? <AdminDashboard client:load /> : <Login client:load />}
+  {
+    session ? (
+      is_allowed ? (
+        <AdminDashboard client:load />
+      ) : (
+        <div>
+          <p>You are not authorized to access this page</p>
+        </div>
+      )
+    ) : (
+      <Login client:load />
+    )
+  }
 </RootLayout>

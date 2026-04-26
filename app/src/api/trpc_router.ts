@@ -7,6 +7,7 @@ import { media_router } from './routes/media';
 import { cache_router } from './routes/cache';
 import { grammar_router } from './routes/grammar/grammar';
 import { text_router } from './routes/text';
+import { lekha_router } from './routes/site/lekha';
 
 export const router = t.router({
   user: user_router,
@@ -16,7 +17,10 @@ export const router = t.router({
   media: media_router,
   cache: cache_router,
   grammar: grammar_router,
-  text: text_router
+  text: text_router,
+  site: t.router({
+    lekha: lekha_router
+  })
 });
 
 export type Router = typeof router;

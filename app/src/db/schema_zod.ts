@@ -5,9 +5,9 @@ import {
   translations,
   texts,
   media_attachment,
-  other
-} from './schema_app';
-import { site_lekhas } from './schema_site';
+  other,
+  site_lekhas
+} from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 
 export const UserProjectJoinSchemaZod = createSelectSchema(user_project_join);

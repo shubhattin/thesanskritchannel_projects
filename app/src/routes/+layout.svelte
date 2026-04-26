@@ -17,7 +17,7 @@
   <ModeWatcher />
   <div class="contaiiner mx-auto mb-12 max-w-5xl">
     <TopAppBar />
-    <div class="mx-2">
+    <div class="mx-2 mt-4">
       {@render children()}
     </div>
   </div>

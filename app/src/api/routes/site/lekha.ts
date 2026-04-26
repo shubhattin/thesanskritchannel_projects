@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, ne, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
@@ -42,24 +42,10 @@ async function normalizeLekhaPostForStorage(
 const get_lekha_route = protectedAdminProcedure
   .input(z.object({ id: z.number() }))
   .query(async ({ input }) => {
-    const rows = await db
-      .select({
-        id: site_lekhas.id,
-        title: site_lekhas.title,
-        description: site_lekhas.description,
-        content: site_lekhas.content,
-        tags: site_lekhas.tags,
-        published_at: site_lekhas.published_at,
-        updated_at: site_lekhas.updated_at,
-        draft: site_lekhas.draft,
-        listed: site_lekhas.listed,
-        search_indexed: site_lekhas.search_indexed,
-        url_slug: site_lekhas.url_slug
-      })
-      .from(site_lekhas)
-      .where(eq(site_lekhas.id, input.id))
-      .limit(1);
-    return rows[0] ?? null;
+    const lekha = await db.query.site_lekhas.findFirst({
+      where: (tbl, { eq }) => eq(tbl.id, input.id)
+    });
+    return lekha;
   });
 
 const add_lekha_route = protectedAdminProcedure
@@ -176,10 +162,10 @@ const check_url_slug_route = protectedAdminProcedure
   .query(async ({ input: { url_slug, exclude_id } }) => {
     const normalized = lekhaUrlSlugify(url_slug);
     const lekha = await db.query.site_lekhas.findFirst({
-      where:
+      where: (tbl, { eq, ne }) =>
         exclude_id != null
-          ? and(eq(site_lekhas.url_slug, normalized), ne(site_lekhas.id, exclude_id))
-          : eq(site_lekhas.url_slug, normalized),
+          ? and(eq(tbl.url_slug, normalized), ne(tbl.id, exclude_id))
+          : eq(tbl.url_slug, normalized),
       columns: { id: true }
     });
     return { exists: !!lekha };

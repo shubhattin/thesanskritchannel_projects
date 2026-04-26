@@ -77,6 +77,7 @@ export const site_lekhas = pgTable(
     title: text('title').notNull(),
     description: text('description').notNull(),
     tags: text('tags').array().notNull().default([]),
+    url_slug: text('url_slug').notNull().unique(),
     /** Markdown content */
     content: text('content').notNull(),
     published_at: timestamp('published_at', { withTimezone: true }).notNull().defaultNow(),
@@ -87,7 +88,7 @@ export const site_lekhas = pgTable(
     /** listed on site */
     listed: boolean('listed').notNull().default(true),
     /** search index, indexed by search engine */
-    search_indexed: boolean('search_indexed').notNull().default(false)
+    search_indexed: boolean('search_indexed').notNull().default(true)
   },
   (table) => [index('published_at_idx').on(table.published_at)]
 );

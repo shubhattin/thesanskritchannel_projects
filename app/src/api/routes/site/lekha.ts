@@ -1,26 +1,76 @@
-import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, ne, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { site_lekhas } from '~/db/schema';
 import { SiteLekhaSchemaZod } from '~/db/schema_zod';
+import {
+  lekhaUrlSlugify,
+  normalizeLekhaTextFields,
+  sanitizeAndFormatLekhaMarkdownForStorage
+} from '~/utils/markdown';
+
+const lekha_post_input = SiteLekhaSchemaZod.pick({
+  title: true,
+  content: true,
+  description: true,
+  draft: true,
+  tags: true,
+  listed: true,
+  search_indexed: true,
+  url_slug: true
+});
+
+async function normalizeLekhaPostForStorage(
+  post_data: z.infer<typeof lekha_post_input>
+): Promise<z.infer<typeof lekha_post_input>> {
+  const trimmed = normalizeLekhaTextFields(post_data);
+  const content = await sanitizeAndFormatLekhaMarkdownForStorage(trimmed.content);
+
+  return {
+    tags: trimmed.tags,
+    title: trimmed.title,
+    description: trimmed.description,
+    content,
+    draft: post_data.draft,
+    listed: post_data.listed,
+    search_indexed: post_data.search_indexed,
+    url_slug: trimmed.url_slug
+  };
+}
+
+const get_lekha_route = protectedAdminProcedure
+  .input(z.object({ id: z.number() }))
+  .query(async ({ input }) => {
+    const rows = await db
+      .select({
+        id: site_lekhas.id,
+        title: site_lekhas.title,
+        description: site_lekhas.description,
+        content: site_lekhas.content,
+        tags: site_lekhas.tags,
+        published_at: site_lekhas.published_at,
+        updated_at: site_lekhas.updated_at,
+        draft: site_lekhas.draft,
+        listed: site_lekhas.listed,
+        search_indexed: site_lekhas.search_indexed,
+        url_slug: site_lekhas.url_slug
+      })
+      .from(site_lekhas)
+      .where(eq(site_lekhas.id, input.id))
+      .limit(1);
+    return rows[0] ?? null;
+  });
 
 const add_lekha_route = protectedAdminProcedure
   .input(
     z.object({
-      post_data: SiteLekhaSchemaZod.pick({
-        title: true,
-        content: true,
-        description: true,
-        draft: true,
-        tags: true,
-        listed: true,
-        search_indexed: true
-      })
+      post_data: lekha_post_input
     })
   )
   .mutation(async ({ input: { post_data } }) => {
-    const lekha = await db.insert(site_lekhas).values(post_data).returning();
+    const normalized = await normalizeLekhaPostForStorage(post_data);
+    const lekha = await db.insert(site_lekhas).values(normalized).returning();
     return {
       id: lekha[0].id
     };
@@ -30,25 +80,18 @@ const edit_lekha_route = protectedAdminProcedure
   .input(
     z.object({
       id: z.number(),
-      post_data: SiteLekhaSchemaZod.pick({
-        content: true,
-        description: true,
-        draft: true,
-        listed: true,
-        search_indexed: true,
-        title: true,
-        tags: true
-      })
+      post_data: lekha_post_input
     })
   )
   .mutation(async ({ input: { id, post_data } }) => {
+    const normalized = await normalizeLekhaPostForStorage(post_data);
     const lekha = await db
       .update(site_lekhas)
-      .set(post_data)
+      .set(normalized)
       .where(eq(site_lekhas.id, id))
       .returning();
     return {
-      id: lekha[0].id
+      id: lekha[0]?.id ?? id
     };
   });
 
@@ -123,9 +166,30 @@ const list_lekhas_route = protectedAdminProcedure
     };
   });
 
+const check_url_slug_route = protectedAdminProcedure
+  .input(
+    z.object({
+      url_slug: z.string().max(500),
+      exclude_id: z.number().int().positive().optional()
+    })
+  )
+  .query(async ({ input: { url_slug, exclude_id } }) => {
+    const normalized = lekhaUrlSlugify(url_slug);
+    const lekha = await db.query.site_lekhas.findFirst({
+      where:
+        exclude_id != null
+          ? and(eq(site_lekhas.url_slug, normalized), ne(site_lekhas.id, exclude_id))
+          : eq(site_lekhas.url_slug, normalized),
+      columns: { id: true }
+    });
+    return { exists: !!lekha };
+  });
+
 export const lekha_router = t.router({
+  get_lekha: get_lekha_route,
   add_lekha: add_lekha_route,
   edit_lekha: edit_lekha_route,
   delete_lekha: delete_lekha_route,
-  list_lekhas: list_lekhas_route
+  list_lekhas: list_lekhas_route,
+  check_url_slug: check_url_slug_route
 });

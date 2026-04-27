@@ -12,10 +12,7 @@ function toggleShlokaTagWrap(input: InputEnhancer) {
   if (before === SHLOKA_OPEN && after === SHLOKA_CLOSE) {
     input.removeAt(end, SHLOKA_CLOSE.length);
     input.removeAt(start - SHLOKA_OPEN.length, SHLOKA_OPEN.length);
-    input.textarea.setSelectionRange(
-      start - SHLOKA_OPEN.length,
-      end - SHLOKA_OPEN.length
-    );
+    input.textarea.setSelectionRange(start - SHLOKA_OPEN.length, end - SHLOKA_OPEN.length);
   } else {
     input.insertAt(end, SHLOKA_CLOSE);
     input.insertAt(start, SHLOKA_OPEN);

@@ -16,7 +16,7 @@ import { fetch_post } from '~/tools/fetch';
 import { get_languages_for_project_user } from './project';
 import { get_path_params } from '~/state/project_list';
 import { waitUntil } from '@vercel/functions';
-import { get_translation_data_func } from '~/server/text_loader';
+import { get_translation_data_func } from '~/server/cached_loader';
 
 const get_translation_route = publicProcedure
   .input(

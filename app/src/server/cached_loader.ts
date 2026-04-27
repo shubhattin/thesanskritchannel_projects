@@ -9,6 +9,7 @@ import {
 } from '../state/project_list';
 import type { Redis } from '@upstash/redis/cloudflare';
 import type { db } from '~/db/db';
+import type { SiteLekha } from '~/db/schema_zod';
 
 export type defer_promise_type = (promise: Promise<unknown>) => void;
 
@@ -22,6 +23,7 @@ const defer_promise = (promise: Promise<unknown>, defer?: defer_promise_type) =>
 
 type DBType = typeof db;
 
+/** Cache laoder for `texts` */
 export const get_text_data_func = async (
   key: string,
   path_params: number[],
@@ -70,9 +72,10 @@ export const get_text_data_func = async (
     options.defer
   );
 
-  return data;
+  return data satisfies shloka_list_type;
 };
 
+/** Cache laoder for `translations` */
 export const get_translation_data_func = async (
   project_id: number,
   lang_id: number,
@@ -119,4 +122,31 @@ export const get_translation_data_func = async (
   const data_map = new Map<number, string>();
   for (let i = 0; i < data.length; i++) data_map.set(data[i].index, data[i].text);
   return data_map;
+};
+
+/** Cache laoder for `site_lekhas` */
+export const get_site_lekha_data_func = async (
+  lekha_id: number,
+  options: { defer?: defer_promise_type; db: DBType; redis: Redis }
+) => {
+  const { db, redis } = options;
+  const cache_key = REDIS_CACHE_KEYS_CLIENT.site_lekha_data(lekha_id);
+
+  let cache = null;
+  if (import.meta.env.PROD) cache = await redis.get<SiteLekha>(cache_key);
+  if (cache) return cache;
+
+  const data = await db.query.site_lekhas.findFirst({
+    where: (tbl, { eq }) => eq(tbl.id, lekha_id)
+  });
+  if (!data) return null;
+  if (import.meta.env.PROD) {
+    defer_promise(
+      redis.set(cache_key, data, {
+        ex: ms('30days') / 1000
+      }),
+      options.defer
+    );
+  }
+  return data satisfies SiteLekha;
 };

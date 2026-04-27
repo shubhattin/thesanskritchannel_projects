@@ -13,7 +13,10 @@ export const SHLOKA_TAG_RE = /<\s*shloka\b[^>]*>([\s\S]*?)<\/\s*shloka\s*>/gi;
  * Skips content inside ``` fenced code blocks. Runs after `<lipi>` transliteration, before video expansion.
  */
 export function expandShlokaSpansInMarkdown(markdown: string): string {
-  return markdown.split(FENCE_SPLIT).map((part, i) => (i % 2 === 1 ? part : expandShlokaInPlain(part))).join('');
+  return markdown
+    .split(FENCE_SPLIT)
+    .map((part, i) => (i % 2 === 1 ? part : expandShlokaInPlain(part)))
+    .join('');
 }
 
 function expandShlokaInPlain(md: string): string {

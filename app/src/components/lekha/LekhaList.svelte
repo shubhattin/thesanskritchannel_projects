@@ -6,6 +6,10 @@
   import { Skeleton } from '$lib/components/ui/skeleton';
   import SearchIcon from '@lucide/svelte/icons/search';
   import Pencil from '@lucide/svelte/icons/pencil';
+  import ListChecks from '@lucide/svelte/icons/list-checks';
+  import ListX from '@lucide/svelte/icons/list-x';
+  import SearchCheck from '@lucide/svelte/icons/search-check';
+  import SearchX from '@lucide/svelte/icons/search-x';
 
   let { draft }: { draft: boolean } = $props();
 
@@ -125,7 +129,52 @@
           class="flex flex-col gap-2 rounded-md border border-border/80 bg-card p-3 sm:flex-row sm:items-start sm:justify-between"
         >
           <div class="min-w-0 flex-1 space-y-0.5">
-            <h3 class="truncate leading-tight font-medium">{row.title}</h3>
+            <div class="flex items-start justify-between gap-2">
+              <h3 class="min-w-0 flex-1 truncate leading-tight font-medium">{row.title}</h3>
+              <div
+                class="flex shrink-0 items-center gap-0.5 text-muted-foreground sm:gap-1"
+                aria-label="Site visibility and search index"
+              >
+                {#if row.listed}
+                  <span
+                    class="inline-flex rounded-md p-0.5 text-primary"
+                    title="Listed on the site"
+                    role="img"
+                    aria-label="Listed on the site"
+                  >
+                    <ListChecks class="size-4" aria-hidden="true" />
+                  </span>
+                {:else}
+                  <span
+                    class="inline-flex rounded-md p-0.5 opacity-80"
+                    title="Not listed (hidden from public list)"
+                    role="img"
+                    aria-label="Not listed on the site"
+                  >
+                    <ListX class="size-4" aria-hidden="true" />
+                  </span>
+                {/if}
+                {#if row.search_indexed}
+                  <span
+                    class="inline-flex rounded-md p-0.5 text-primary"
+                    title="Included in search engine index"
+                    role="img"
+                    aria-label="Included in search engine index"
+                  >
+                    <SearchCheck class="size-4" aria-hidden="true" />
+                  </span>
+                {:else}
+                  <span
+                    class="inline-flex rounded-md p-0.5 opacity-80"
+                    title="Excluded from search engine index"
+                    role="img"
+                    aria-label="Excluded from search engine index"
+                  >
+                    <SearchX class="size-4" aria-hidden="true" />
+                  </span>
+                {/if}
+              </div>
+            </div>
             <p class="line-clamp-2 text-sm text-muted-foreground">{row.description}</p>
             {#if row.tags?.length}
               <div class="flex flex-wrap gap-1 pt-1">

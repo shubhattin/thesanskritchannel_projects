@@ -3,7 +3,7 @@ import { publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { texts } from '~/db/schema';
 import { delay } from '~/tools/delay';
-import { get_text_data_func } from '~/server/text_loader';
+import { get_text_data_func } from '~/server/cached_loader';
 import { get_project_from_key, type project_keys_type } from '~/state/project_list';
 import { waitUntil } from '@vercel/functions';
 import { and, eq, like, sql } from 'drizzle-orm';

@@ -1,7 +1,7 @@
 ---
 import NotFoundPage from '$components/NotFoundPage.astro';
 import TextRoutePage from '$components/main_text/TextRoutePage.astro';
-import { get_text_data_func, get_translation_data_func } from '$app/server/text_loader';
+import { get_text_data_func, get_translation_data_func } from '$app/server/cached_loader';
 import {
   get_child_route_items,
   get_selected_text_levels_from_path_params,

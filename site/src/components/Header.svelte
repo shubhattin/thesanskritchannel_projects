@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as NavigationMenu from '~/lib/components/ui/navigation-menu';
+  import * as Collapsible from '~/lib/components/ui/collapsible';
   import { navigationMenuTriggerStyle } from '~/lib/components/ui/navigation-menu/navigation-menu-trigger.svelte';
   import ThemeSwitcher from './ThemeSwitcher.svelte';
   import { PROJECT_LIST } from '$app/state/project_list';
@@ -9,6 +10,10 @@
   import Heart from '@lucide/svelte/icons/heart';
   import Pencil from '@lucide/svelte/icons/pencil';
   import ChevronRight from '@lucide/svelte/icons/chevron-right';
+  import ChevronDown from '@lucide/svelte/icons/chevron-down';
+  import { cn } from '~/lib/utils';
+  import { ContributeIcon } from '$app/components/icons';
+  import { Icon } from 'svelte-icons-pack';
 
   let mobileMenuOpen = $state(false);
 
@@ -57,8 +62,7 @@
         height="24"
         class="rounded-sm"
       />
-      <span class="hidden text-sm font-semibold tracking-tight sm:inline">The Sanskrit Channel</span
-      >
+      <span class="text-sm font-semibold tracking-tight sm:inline">The Sanskrit Channel</span>
     </a>
 
     <!-- Desktop Navigation -->
@@ -146,13 +150,19 @@
         </NavigationMenu.List>
       </NavigationMenu.Root>
     </nav>
-
     <!-- Right side: Theme + Mobile menu -->
     <div class="flex items-center gap-2">
       <div class="hidden md:block">
         <ThemeSwitcher />
       </div>
 
+      <a
+        href="/support"
+        class={cn(navigationMenuTriggerStyle(), 'inline-flex md:hidden')}
+        aria-label="Support us"
+      >
+        <Icon src={ContributeIcon} className="size-6" />
+      </a>
       <!-- Mobile menu button -->
       <button
         type="button"
@@ -179,6 +189,68 @@
       style="overscroll-behavior: contain;"
     >
       <div class="max-h-[calc(100dvh-3.5rem)] space-y-1 overflow-y-auto px-4 py-4">
+        <!-- Texts Section -->
+        <Collapsible.Root class="space-y-1">
+          <Collapsible.Trigger
+            class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2.5 text-start transition-colors duration-150 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 [&[data-state=open]>svg]:rotate-180"
+          >
+            <span class="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+              Texts
+            </span>
+            <ChevronDown
+              class="size-4 shrink-0 text-muted-foreground transition-transform duration-200"
+              aria-hidden="true"
+            />
+          </Collapsible.Trigger>
+          <Collapsible.Content class="space-y-1">
+            {#each PROJECT_LIST as project}
+              <a
+                href={`/${project.key}`}
+                class="flex items-center justify-between gap-2 rounded-lg px-2 py-2.5 transition-colors duration-150 hover:bg-accent"
+                onclick={closeMobile}
+              >
+                <div class="min-w-0">
+                  <div class="text-sm font-medium">{project.name}</div>
+                  <p class="font-devanagari truncate text-xs text-muted-foreground">
+                    {project.name_dev}
+                  </p>
+                </div>
+                <ChevronRight class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              </a>
+            {/each}
+          </Collapsible.Content>
+        </Collapsible.Root>
+        <!-- Separator -->
+        <div class="my-2 border-t border-border/40"></div>
+
+        <!-- Lekha (blog) -->
+        <a
+          href="/lekha"
+          class="flex items-center gap-2 rounded-lg px-2 py-2.5 font-medium text-primary transition-colors duration-150 hover:bg-accent"
+          onclick={closeMobile}
+        >
+          <Pencil class="size-4" aria-hidden="true" />
+          Lekha
+        </a>
+
+        <!-- Support Us -->
+        <a
+          href="/support"
+          class="flex items-center gap-2 rounded-lg px-2 py-2.5 font-medium text-primary transition-colors duration-150 hover:bg-accent"
+          onclick={closeMobile}
+        >
+          <Heart class="size-4" aria-hidden="true" />
+          Support Us
+        </a>
+
+        <!-- Theme Switcher -->
+        <div class="my-2 border-t border-border/40"></div>
+        <div class="flex items-center justify-between px-2 py-2">
+          <span class="text-sm text-muted-foreground">Theme</span>
+          <ThemeSwitcher />
+        </div>
+        <!-- Separator -->
+        <div class="my-2 border-t border-border/40"></div>
         <!-- Tools Section -->
         <div class="space-y-1">
           <p class="px-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
@@ -213,61 +285,6 @@
               </div>
             </a>
           {/each}
-        </div>
-
-        <!-- Separator -->
-        <div class="my-2 border-t border-border/40"></div>
-
-        <!-- Texts Section -->
-        <div class="space-y-1">
-          <p class="px-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-            Texts
-          </p>
-          {#each PROJECT_LIST as project}
-            <a
-              href={`/${project.key}`}
-              class="flex items-center justify-between gap-2 rounded-lg px-2 py-2.5 transition-colors duration-150 hover:bg-accent"
-              onclick={closeMobile}
-            >
-              <div class="min-w-0">
-                <div class="text-sm font-medium">{project.name}</div>
-                <p class="font-devanagari truncate text-xs text-muted-foreground">
-                  {project.name_dev}
-                </p>
-              </div>
-              <ChevronRight class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            </a>
-          {/each}
-        </div>
-
-        <!-- Separator -->
-        <div class="my-2 border-t border-border/40"></div>
-
-        <!-- Lekha (blog) -->
-        <a
-          href="/lekha"
-          class="flex items-center gap-2 rounded-lg px-2 py-2.5 font-medium text-primary transition-colors duration-150 hover:bg-accent"
-          onclick={closeMobile}
-        >
-          <Pencil class="size-4" aria-hidden="true" />
-          Lekha
-        </a>
-
-        <!-- Support Us -->
-        <a
-          href="/support"
-          class="flex items-center gap-2 rounded-lg px-2 py-2.5 font-medium text-primary transition-colors duration-150 hover:bg-accent"
-          onclick={closeMobile}
-        >
-          <Heart class="size-4" aria-hidden="true" />
-          Support Us
-        </a>
-
-        <!-- Theme Switcher -->
-        <div class="my-2 border-t border-border/40"></div>
-        <div class="flex items-center justify-between px-2 py-2">
-          <span class="text-sm text-muted-foreground">Theme</span>
-          <ThemeSwitcher />
         </div>
       </div>
     </nav>

@@ -1,11 +1,27 @@
 ---
+import { site_lekhas } from '$app/db/schema';
 import RootLayout from '$components/RootLayout.astro';
 import { PROJECT_LIST } from '../../../app/src/state/project_list';
+import { and, desc, eq } from 'drizzle-orm';
 import Youtube from '@lucide/svelte/icons/youtube';
 import ArrowRight from '@lucide/svelte/icons/arrow-right';
 import ExternalLink from '@lucide/svelte/icons/external-link';
 import Heart from '@lucide/svelte/icons/heart';
 import Icon from '~/components/utils/Icon.astro';
+import { db } from '~/db/site_db';
+
+// TODO: shall use the cached loader later
+const latest_lekhas = await db
+  .select({
+    title: site_lekhas.title,
+    description: site_lekhas.description,
+    url_slug: site_lekhas.url_slug,
+    published_at: site_lekhas.published_at
+  })
+  .from(site_lekhas)
+  .where(and(eq(site_lekhas.draft, false), eq(site_lekhas.listed, true)))
+  .orderBy(desc(site_lekhas.published_at))
+  .limit(5);
 ---
 
 <RootLayout
@@ -14,7 +30,7 @@ import Icon from '~/components/utils/Icon.astro';
 >
   <!-- Hero Section -->
   <section
-    class="relative overflow-hidden border-b border-border/30 bg-linear-to-br from-background via-accent/20 to-primary/5"
+    class="relative overflow-hidden border-b border-border/30 bg-linear-to-br from-background via-accent/20 to-primary/5 outline-hidden"
   >
     <!-- Decorative background pattern -->
     <div
@@ -112,6 +128,66 @@ import Icon from '~/components/utils/Icon.astro';
       }
     </div>
   </section>
+
+  {
+    latest_lekhas.length > 0 && (
+      <section class="border-b border-border/30 bg-muted/20" aria-labelledby="lekha-latest-heading">
+        <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+          <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 id="lekha-latest-heading" class="text-2xl font-bold tracking-tight sm:text-3xl">
+                Latest from Lekha
+              </h2>
+              <p class="mt-2 max-w-xl text-sm text-muted-foreground sm:text-base">
+                Short notes and articles — read the most recent posts.
+              </p>
+            </div>
+            <a
+              href="/lekha"
+              class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline"
+            >
+              View all
+              <Icon icon={ArrowRight} class="size-4" />
+            </a>
+          </div>
+          <ul class="flex flex-col gap-3 sm:gap-4">
+            {latest_lekhas.map((post, index) => (
+              <li>
+                <a
+                  href={`/lekha/${post.url_slug}`}
+                  class:list={[
+                    'card-hover-glow group block rounded-xl border border-border/60 bg-card/60 px-5 py-4 transition-colors duration-150 hover:border-primary/40 hover:bg-accent/30',
+                    `animate-fade-in-up stagger-${index + 1}`
+                  ]}
+                >
+                  <h3 class="text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
+                    {post.title}
+                  </h3>
+                  {post.description && (
+                    <p class="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                      {post.description}
+                    </p>
+                  )}
+                  {post.published_at && (
+                    <time
+                      class="mt-3 block text-xs text-muted-foreground"
+                      datetime={post.published_at.toISOString()}
+                    >
+                      {post.published_at.toLocaleDateString('en-IN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </time>
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )
+  }
 
   <!-- Tools Showcase Section -->
   <section

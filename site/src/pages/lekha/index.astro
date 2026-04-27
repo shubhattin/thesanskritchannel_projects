@@ -37,9 +37,9 @@ const description = 'Notes and articles from The Sanskrit Channel.';
               )}
               <time
                 class="mt-3 block text-xs text-muted-foreground"
-                datetime={post.data.pubDate.toISOString()}
+                datetime={post.data.published_at.toISOString()}
               >
-                {post.data.pubDate.toLocaleDateString('en-IN', {
+                {post.data.published_at.toLocaleDateString('en-IN', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric'

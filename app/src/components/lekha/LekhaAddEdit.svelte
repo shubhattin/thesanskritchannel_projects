@@ -19,11 +19,7 @@
   import * as Select from '$lib/components/ui/select';
   import { getLekhaCartaExtensions } from '$lib/carta/lekhaCartaExtensions';
   import LekhaTagsInput from './LekhaTagsInput.svelte';
-  import {
-    cartaHtmlSanitizer,
-    lekhaUrlSlugify,
-    renderLekhaMarkdownToHtml
-  } from '~/utils/markdown';
+  import { cartaHtmlSanitizer, lekhaUrlSlugify, renderLekhaMarkdownToHtml } from '~/utils/markdown';
   import {
     SCRIPT_LIST,
     get_script_from_id,

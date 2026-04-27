@@ -40,15 +40,6 @@ async function normalizeLekhaPostForStorage(
   };
 }
 
-const get_lekha_route = protectedAdminProcedure
-  .input(z.object({ id: z.number() }))
-  .query(async ({ input }) => {
-    const lekha = await db.query.site_lekhas.findFirst({
-      where: (tbl, { eq }) => eq(tbl.id, input.id)
-    });
-    return lekha;
-  });
-
 const add_lekha_route = protectedAdminProcedure
   .input(
     z.object({
@@ -176,7 +167,6 @@ const check_url_slug_route = protectedAdminProcedure
   });
 
 export const lekha_router = t.router({
-  get_lekha: get_lekha_route,
   add_lekha: add_lekha_route,
   edit_lekha: edit_lekha_route,
   delete_lekha: delete_lekha_route,

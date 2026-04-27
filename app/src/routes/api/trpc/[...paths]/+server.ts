@@ -5,7 +5,7 @@ import { createContext } from '~/api/context';
 
 export const GET: RequestHandler = (event) => {
   return fetchRequestHandler({
-    endpoint: '/trpc',
+    endpoint: '/api/trpc',
     req: event.request,
     router,
     createContext: (e) => createContext(e)

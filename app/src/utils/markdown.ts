@@ -83,10 +83,28 @@ export async function renderLekhaMarkdownToHtml(
   return stripLipiTagsFromHtml(raw_html);
 }
 
-/** DOMPurify config: keep `<lipi>`, inline styles, typical content markup. */
+/** DOMPurify config: keep `<lipi>`, inline styles, typical content markup, Carta `carta-plugin-video` embeds. */
 const PREVIEW_HTML_PURIFY = {
-  ADD_TAGS: ['lipi'],
-  ADD_ATTR: ['style', 'target', 'rel', 'href', 'alt', 'title', 'colspan', 'rowspan']
+  ADD_TAGS: ['lipi', 'iframe', 'u'],
+  ADD_ATTR: [
+    'style',
+    'target',
+    'rel',
+    'href',
+    'alt',
+    'title',
+    'colspan',
+    'rowspan',
+    'class',
+    'src',
+    'width',
+    'height',
+    'frameborder',
+    'allow',
+    'allowfullscreen',
+    'loading',
+    'referrerpolicy'
+  ]
 };
 
 export function sanitizeRenderedHtmlForPreview(html: string) {

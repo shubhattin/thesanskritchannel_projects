@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Carta, MarkdownEditor } from 'carta-md';
   import 'carta-md/default.css';
+  import 'carta-plugin-video/default.css';
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
@@ -16,6 +17,7 @@
   import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Tabs from '$lib/components/ui/tabs';
   import * as Select from '$lib/components/ui/select';
+  import { getLekhaCartaExtensions } from '$lib/carta/lekhaCartaExtensions';
   import LekhaTagsInput from './LekhaTagsInput.svelte';
   import {
     cartaHtmlSanitizer,
@@ -49,7 +51,6 @@
     initial?: Omit<SiteLekha, 'id'>;
   } = $props();
 
-  // NOTE :- In the new svelte version (>=5.25) $derived is also writable(*)
   let title = $derived(initial?.title ?? '');
   let description = $derived(initial?.description ?? '');
   let content = $derived(initial?.content ?? '');
@@ -92,7 +93,7 @@
     if (mode === 'edit' && lekha_id != null && initial) {
       if (last_seeded !== lekha_id) {
         last_seeded = lekha_id;
-      published_at_shown = initial.published_at ? new Date(initial.published_at) : null;
+        published_at_shown = initial.published_at ? new Date(initial.published_at) : null;
       }
     }
   });
@@ -154,7 +155,12 @@
   );
 
   const carta = new Carta({
-    sanitizer: cartaHtmlSanitizer
+    sanitizer: cartaHtmlSanitizer,
+    /** Use `getLekhaCartaExtensions()` for custom order (Lipi after Italic); no default icon strip. */
+    disableIcons: true,
+    disableShortcuts: ['strikethrough', 'code'],
+    disablePrefixes: ['taskList'],
+    extensions: getLekhaCartaExtensions()
   });
 
   const script_options = SCRIPT_LIST.map((name) => ({
@@ -163,23 +169,25 @@
   })).filter((o): o is { name: string; id: number } => o.id != null);
 
   const query_client = useQueryClient();
+  const LEKHA_LIST_QUERY_KEY = [['site', 'lekha', 'list_lekhas']] as const;
+
+  async function invalidateLekhaList() {
+    await query_client.invalidateQueries({
+      queryKey: LEKHA_LIST_QUERY_KEY,
+      exact: false
+    });
+  }
 
   const add_mut = client_q.site.lekha.add_lekha.mutation({
     onSuccess: async ({ id }) => {
-      await query_client.invalidateQueries({
-        queryKey: [['site', 'lekha', 'list_lekhas']],
-        exact: false
-      });
+      await invalidateLekhaList();
       await goto(`/lekha/edit/${id}`);
     }
   });
 
   const edit_mut = client_q.site.lekha.edit_lekha.mutation({
     onSuccess: async (res) => {
-      await query_client.invalidateQueries({
-        queryKey: [['site', 'lekha', 'list_lekhas']],
-        exact: false
-      });
+      await invalidateLekhaList();
       if (res.draft != null) is_draft = res.draft;
       if (res.published_at) published_at_shown = new Date(res.published_at);
       toast.success('Lekha updated successfully');
@@ -189,10 +197,7 @@
   const delete_mut = client_q.site.lekha.delete_lekha.mutation({
     onSuccess: async () => {
       delete_dialog_open = false;
-      await query_client.invalidateQueries({
-        queryKey: [['site', 'lekha', 'list_lekhas']],
-        exact: false
-      });
+      await invalidateLekhaList();
       await goto('/lekha');
     }
   });
@@ -279,7 +284,7 @@
       form_error = err;
       return;
     }
-    const post_data = buildPostData(mode === 'create' ? true : is_draft);
+    const post_data = buildPostData(mode === 'create' || is_draft);
     if (mode === 'create') {
       $add_mut.mutate({ post_data });
     } else {
@@ -348,9 +353,6 @@
           Lekha List
         </a>
       {/if}
-      <!-- <h1 class="text-2xl font-semibold tracking-tight">
-        {mode === 'create' ? 'New lekha' : 'Edit lekha'}
-      </h1> -->
     </div>
     <div class="flex items-center gap-2">
       {#if mode === 'edit' && lekha_id != null}

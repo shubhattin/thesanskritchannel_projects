@@ -41,6 +41,7 @@
     "better-auth": "^1.6.9",
     "buffer": "^6.0.3",
     "carta-md": "^4.11.2",
+    "carta-plugin-video": "^2.1.0",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",

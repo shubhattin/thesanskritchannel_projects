@@ -29,6 +29,7 @@
     type script_list_type
   } from '~/state/lang_list';
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
+  import ArrowLeft from '@lucide/svelte/icons/arrow-left';
   import Check from '@lucide/svelte/icons/check';
   import CircleAlert from '@lucide/svelte/icons/circle-alert';
   import Loader2 from '@lucide/svelte/icons/loader-2';
@@ -278,9 +279,20 @@
 
 <form class="mx-auto w-full max-w-3xl space-y-6 pb-10" onsubmit={save}>
   <div class="flex flex-wrap items-center justify-between gap-3">
-    <h1 class="text-2xl font-semibold tracking-tight">
-      {mode === 'create' ? 'New lekha' : 'Edit lekha'}
-    </h1>
+    <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+      {#if mode === 'edit'}
+        <a
+          href="/lekha"
+          class="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft class="size-4 shrink-0" aria-hidden="true" />
+          Lekha List
+        </a>
+      {/if}
+      <!-- <h1 class="text-2xl font-semibold tracking-tight">
+        {mode === 'create' ? 'New lekha' : 'Edit lekha'}
+      </h1> -->
+    </div>
     <div class="flex items-center gap-2">
       {#if mode === 'edit' && lekha_id != null}
         <Button
@@ -294,7 +306,9 @@
           Delete
         </Button>
       {/if}
-      <Button type="button" variant="outline" href="/lekha">Cancel</Button>
+      {#if mode === 'create'}
+        <Button type="button" variant="outline" href="/lekha">Cancel</Button>
+      {/if}
       <Button
         type="submit"
         disabled={$add_mut.isPending ||
@@ -330,7 +344,13 @@
   <div class="grid gap-4 sm:grid-cols-1">
     <div class="space-y-2">
       <Label for="lekha-title">Title</Label>
-      <Input id="lekha-title" bind:value={title} required autocomplete="off" />
+      <Input
+        id="lekha-title"
+        class="font-semibold"
+        bind:value={title}
+        required
+        autocomplete="off"
+      />
     </div>
     <div class="space-y-2">
       <Label for="lekha-description">Description</Label>

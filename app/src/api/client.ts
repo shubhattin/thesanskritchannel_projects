@@ -1,23 +1,17 @@
 import type { Router } from '~/api/trpc_router';
-import { httpBatchLink, createTRPCClient } from '@trpc/client';
+import { httpBatchLink } from '@trpc/client';
+import { createTRPCClient } from 'trpc-sveltekit';
 import transformer from './transformer';
 import { createTRPCSvelte } from 'trpc-svelte-query';
 
-export const client = createTRPCClient<Router>({
+const client_options = {
   links: [
     httpBatchLink({
-      url: '/api/trpc',
-      transformer
-    })
-  ]
-});
-export const client_q = createTRPCSvelte<Router>({
-  links: [
-    httpBatchLink({
-      url: '/api/trpc',
-      transformer
+      url: '/trpc'
     })
   ],
-  // @ts-ignore
   transformer
-});
+};
+
+export const client = createTRPCClient<Router>(client_options);
+export const client_q = createTRPCSvelte<Router>(client_options);

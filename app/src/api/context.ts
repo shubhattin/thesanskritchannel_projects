@@ -1,8 +1,9 @@
 import get_seesion_from_cookie from '$lib/get_auth_from_cookie';
-import type { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
+import type { inferAsyncReturnType } from '@trpc/server';
+import type { RequestEvent } from '@sveltejs/kit';
 
-export const createContext = async (event: FetchCreateContextFnOptions) => {
-  const cookie = event.req.headers.get('cookie') ?? '';
+export const createContext = async (event: RequestEvent) => {
+  const cookie = event.request.headers.get('cookie') ?? '';
   const session = await get_seesion_from_cookie(cookie);
   const user = session?.user;
 
@@ -12,4 +13,4 @@ export const createContext = async (event: FetchCreateContextFnOptions) => {
   };
 };
 
-export type Context = Awaited<ReturnType<typeof createContext>>;
+export type Context = inferAsyncReturnType<typeof createContext>;

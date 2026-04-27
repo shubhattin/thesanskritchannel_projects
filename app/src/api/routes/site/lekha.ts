@@ -1,8 +1,11 @@
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+import { waitUntil } from '@vercel/functions';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
+import { redis } from '~/db/redis';
+import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import { site_lekhas } from '~/db/schema';
 import { SiteLekhaSchemaZod } from '~/db/schema_zod';
 import { delay } from '~/tools/delay';
@@ -51,8 +54,12 @@ const add_lekha_route = protectedAdminProcedure
     // on add the lekha is always a draft
     const normalized = await normalizeLekhaPostForStorage({ ...post_data, draft: true });
     const lekha = await db.insert(site_lekhas).values(normalized).returning();
+    const id = lekha[0].id;
+
+    waitUntil(redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(id)));
+
     return {
-      id: lekha[0].id
+      id
     };
   });
 
@@ -78,6 +85,9 @@ const edit_lekha_route = protectedAdminProcedure
       .set({ ...normalized, ...(setPublishedNow ? { published_at: new Date() } : {}) })
       .where(eq(site_lekhas.id, id))
       .returning();
+    // clear cache in background
+    waitUntil(redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(id)));
+
     return {
       id: lekha[0]?.id ?? id,
       published_at: lekha[0]?.published_at,
@@ -90,6 +100,7 @@ const delete_lekha_route = protectedAdminProcedure
   .mutation(async ({ input: { id } }) => {
     await delay(1000);
     await db.delete(site_lekhas).where(eq(site_lekhas.id, id));
+    waitUntil(redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(id)));
     return {
       id: id
     };

@@ -6,7 +6,7 @@ CREATE TABLE "site_lekhas" (
 	"url_slug" text NOT NULL,
 	"content" text NOT NULL,
 	"published_at" timestamp with time zone,
-	"updated_at" timestamp with time zone NOT NULL,
+	"updated_at" timestamp with time zone,
 	"draft" boolean DEFAULT true NOT NULL,
 	"listed" boolean DEFAULT true NOT NULL,
 	"search_indexed" boolean DEFAULT true NOT NULL,

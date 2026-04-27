@@ -59,12 +59,9 @@ export function lekhaDbLiveLoader(): LiveLoader<
         if (!row) return void 0;
         if (row.draft || !row.listed) return void 0;
 
-        // `row.content` was written through `sanitizeAndFormatLekhaMarkdownForStorage` in the lekha API, so
-        // passing `skipSourceSanitization` avoids a redundant `removeDangerousTagsFromMarkdownSource` pass on every request.
         const html = await renderLekhaMarkdownToHtml(row.content, {
           script,
-          lipiTransliterator: transliterate_node,
-          skipSourceSanitization: true
+          lipiTransliterator: transliterate_node
         });
 
         return {

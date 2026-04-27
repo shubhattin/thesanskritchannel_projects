@@ -81,9 +81,7 @@ export const site_lekhas = pgTable(
     /** Markdown content */
     content: text('content').notNull(),
     published_at: timestamp('published_at', { withTimezone: true }),
-    updated_at: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .$onUpdate(() => new Date()),
+    updated_at: timestamp('updated_at', { withTimezone: true }).$onUpdate(() => new Date()),
     draft: boolean('draft').notNull().default(true),
     /** listed on site */
     listed: boolean('listed').notNull().default(true),

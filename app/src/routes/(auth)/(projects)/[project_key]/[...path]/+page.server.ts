@@ -10,7 +10,7 @@ import {
 import { z } from 'zod';
 import { get_text_data_func } from '~/server/cached_loader';
 import type { shloka_list_type } from '~/state/data_types';
-import { waitUntil } from '@trigger.dev/sdk';
+import { waitUntil } from '@vercel/functions';
 import { db } from '~/db/db';
 import { redis } from '~/db/redis';
 

@@ -22,8 +22,7 @@
   import {
     cartaHtmlSanitizer,
     lekhaUrlSlugify,
-    renderLekhaMarkdownToHtml,
-    sanitizeRenderedHtmlForPreview
+    renderLekhaMarkdownToHtml
   } from '~/utils/markdown';
   import {
     SCRIPT_LIST,
@@ -213,7 +212,7 @@
           script: get_script_from_id(preview_script_id)
         });
         if (!cancelled) {
-          preview_html = sanitizeRenderedHtmlForPreview(html);
+          preview_html = html;
         }
       } catch (e) {
         if (!cancelled) {

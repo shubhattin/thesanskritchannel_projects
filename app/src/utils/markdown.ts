@@ -43,8 +43,8 @@ export function stripLipiTagsFromHtml(html: string) {
 }
 
 /**
- * Strip dangerous raw tags from markdown source while keeping `<lipi>` and typical inline HTML.
- * Does not parse full HTML; removes common XSS vectors in the text.
+ * Best-effort cleanup of raw markdown source (nested tags and parser quirks can bypass this).
+ * Not a security boundary — final HTML must be sanitized (see `renderLekhaMarkdownToHtml`).
  */
 export function removeDangerousTagsFromMarkdownSource(md: string) {
   let out = md;
@@ -88,45 +88,6 @@ export async function transliterateLipiSpansInMarkdown(
   return chunks.join('');
 }
 
-/**
- * Render markdown to HTML (for admin preview or site).
- * When `script` is set, transliterates `<lipi>` inner text to that script before render.
- * Pass `lipiTransliterator` (e.g. `transliterate_node` from `lipilekhika/node`) on the server for faster batch transliteration.
- * This intentionally avoids Astro-specific server helpers so it can run in browser too.
- *
- * By default, runs `removeDangerousTagsFromMarkdownSource` on the source (defense in depth for unsanitized editor input).
- * Set `skipSourceSanitization: true` only for markdown that was already persisted via `sanitizeAndFormatLekhaMarkdownForStorage` (e.g. `site_lekhas.content`) to avoid redundant regex work.
- */
-export async function renderLekhaMarkdownToHtml(
-  markdown: string,
-  options: {
-    script: script_list_type;
-    lipiTransliterator?: typeof transliterate;
-    skipSourceSanitization?: boolean;
-  }
-) {
-  const normalized = markdown.replace(/\r\n/g, '\n');
-  const md =
-    options.skipSourceSanitization === true
-      ? normalized
-      : removeDangerousTagsFromMarkdownSource(normalized);
-  const after_lipi = await transliterateLipiSpansInMarkdown(
-    md,
-    options.script,
-    options.lipiTransliterator
-  );
-  const with_shloka = expandShlokaSpansInMarkdown(after_lipi);
-  const with_videos = expandCartaStyleVideoEmbedsInMarkdown(with_shloka);
-  const file = await unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkRehype, { allowDangerousHtml: true })
-    .use(rehypeStringify, { allowDangerousHtml: true })
-    .process(with_videos);
-  const raw_html = file.toString();
-  return stripShlokaTagsFromHtml(stripLipiTagsFromHtml(raw_html));
-}
-
 /** DOMPurify config: keep `<lipi>`, inline styles, typical content markup, video embed HTML (`cartaVideoEmbeds`). */
 const PREVIEW_HTML_PURIFY = {
   ADD_TAGS: ['lipi', 'iframe', 'u', 'div'],
@@ -158,6 +119,47 @@ export function sanitizeRenderedHtmlForPreview(html: string) {
 /** Carta / editor HTML sanitizer hook (same policy as preview). */
 export function cartaHtmlSanitizer(dirty: string) {
   return DOMPurify.sanitize(dirty, PREVIEW_HTML_PURIFY);
+}
+
+/**
+ * Render markdown to HTML (for admin preview or site).
+ * When `script` is set, transliterates `<lipi>` inner text to that script before render.
+ * Pass `lipiTransliterator` (e.g. `transliterate_node` from `lipilekhika/node`) on the server for faster batch transliteration.
+ * This intentionally avoids Astro-specific server helpers so it can run in browser too.
+ *
+ * Runs `removeDangerousTagsFromMarkdownSource` on the source unless `skipSourceSanitization: true`
+ * (cosmetic pre-pass only). Output HTML is always sanitized with `PREVIEW_HTML_PURIFY` / DOMPurify
+ * after markdown → HTML (including `allowDangerousHtml` in the unified pipeline).
+ */
+export async function renderLekhaMarkdownToHtml(
+  markdown: string,
+  options: {
+    script: script_list_type;
+    lipiTransliterator?: typeof transliterate;
+    skipSourceSanitization?: boolean;
+  }
+) {
+  const normalized = markdown.replace(/\r\n/g, '\n');
+  const md =
+    options.skipSourceSanitization === true
+      ? normalized
+      : removeDangerousTagsFromMarkdownSource(normalized);
+  const after_lipi = await transliterateLipiSpansInMarkdown(
+    md,
+    options.script,
+    options.lipiTransliterator
+  );
+  const with_shloka = expandShlokaSpansInMarkdown(after_lipi);
+  const with_videos = expandCartaStyleVideoEmbedsInMarkdown(with_shloka);
+  const file = await unified()
+    .use(remarkParse)
+    .use(remarkGfm)
+    .use(remarkRehype, { allowDangerousHtml: true })
+    .use(rehypeStringify, { allowDangerousHtml: true })
+    .process(with_videos);
+  const raw_html = file.toString();
+  const after_custom_tags = stripShlokaTagsFromHtml(stripLipiTagsFromHtml(raw_html));
+  return sanitizeRenderedHtmlForPreview(after_custom_tags);
 }
 
 /**
@@ -200,7 +202,8 @@ export function lekhaUrlSlugify(raw: string) {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/-+$/, ''); // Remove trailing hyphens
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
 }
 
 export function normalizeLekhaTextFields(input: {
@@ -220,8 +223,8 @@ export function normalizeLekhaTextFields(input: {
 }
 
 /**
- * Pipeline for DB storage: strip dangerous tags, then remark-normalize markdown.
- * Call from API mutations; keep sync boundary explicit (await).
+ * Pipeline for DB storage: optional source cleanup, then remark-normalize markdown (no HTML render).
+ * XSS is enforced when rendering via `renderLekhaMarkdownToHtml` (DOMPurify on output).
  */
 export async function sanitizeAndFormatLekhaMarkdownForStorage(content: string) {
   const stripped = removeDangerousTagsFromMarkdownSource(content.replace(/\r\n/g, '\n'));

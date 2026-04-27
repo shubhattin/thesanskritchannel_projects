@@ -1,5 +1,5 @@
 {
-  "id": "1b86312f-d9fb-4e05-855f-ee5ce6800ac8",
+  "id": "4a1b945e-c8ac-4fde-ad7d-4ebf9bdd6b10",
   "prevId": "26411cbc-0afc-42dd-819f-893b0e2d88eb",
   "version": "7",
   "dialect": "postgresql",
@@ -158,7 +158,7 @@
           "name": "updated_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "draft": {
           "name": "draft",

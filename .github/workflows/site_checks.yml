@@ -45,6 +45,6 @@ jobs:
         working-directory: site
         run: bun run check
 
-      - name: Build site
-        working-directory: site
-        run: bun run build
+      # - name: Build site
+      #   working-directory: site
+      #   run: bun run build

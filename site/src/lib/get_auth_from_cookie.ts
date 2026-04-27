@@ -1,6 +1,6 @@
 import type { authClient } from '$app/lib/auth-client';
 
-export const get_seesion_from_cookie = async (cookie: string) => {
+export const get_session_from_cookie = async (cookie: string) => {
   try {
     const res = await fetch(`${import.meta.env.VITE_BETTER_AUTH_URL}/api/auth/get-session`, {
       method: 'GET',

@@ -5,9 +5,12 @@
   import FileText from '@lucide/svelte/icons/file-text';
   import Plus from '@lucide/svelte/icons/plus';
   import LekhaList from '~/components/lekha/LekhaList.svelte';
+  import MetaTags from '~/components/tags/MetaTags.svelte';
 
   let lekha_section: 'published' | 'draft' = $state('published');
 </script>
+
+<MetaTags title="Lekha" description="Lekha is a platform for creating and managing lekha." />
 
 <div class="flex w-full flex-col items-center gap-4 pt-2">
   <div class="flex w-full max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

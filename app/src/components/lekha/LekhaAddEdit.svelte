@@ -13,6 +13,7 @@
   import { Label } from '$lib/components/ui/label';
   import { Textarea } from '$lib/components/ui/textarea';
   import { Switch } from '$lib/components/ui/switch';
+  import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Tabs from '$lib/components/ui/tabs';
   import * as Select from '$lib/components/ui/select';
   import LekhaTagsInput from './LekhaTagsInput.svelte';
@@ -29,7 +30,9 @@
     type script_list_type
   } from '~/state/lang_list';
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
+  import * as Popover from '$lib/components/ui/popover';
   import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+  import Info from '@lucide/svelte/icons/info';
   import Check from '@lucide/svelte/icons/check';
   import CircleAlert from '@lucide/svelte/icons/circle-alert';
   import Loader2 from '@lucide/svelte/icons/loader-2';
@@ -43,7 +46,7 @@
   }: {
     mode: 'edit' | 'create';
     lekha_id?: number;
-    initial?: Omit<SiteLekha, 'id' | 'published_at' | 'updated_at'>;
+    initial?: Omit<SiteLekha, 'id'>;
   } = $props();
 
   // NOTE :- In the new svelte version (>=5.25) $derived is also writable(*)
@@ -51,9 +54,11 @@
   let description = $derived(initial?.description ?? '');
   let content = $derived(initial?.content ?? '');
   let tags = $derived(initial?.tags ?? []);
-  let draft = $derived(initial?.draft ?? true);
-  let listed = $derived(initial?.listed ?? true);
-  let search_indexed = $derived(initial?.search_indexed ?? false);
+  /** Create mode: always true when saving. Edit: synced from server, false after publish. */
+  let is_draft = $state(true);
+  let published_at_shown = $state<Date | null>(null);
+  let listed = $state(true);
+  let search_indexed = $state(true);
   /** When true, slug is derived from title and the slug field is read-only. */
   let slug_auto = $derived(initial?.url_slug ? false : true);
   let url_slug_manual = $state('');
@@ -69,8 +74,32 @@
   let slug_edit_unlocked = $state(false);
   let unlock_slug_dialog_open = $state(false);
   let delete_dialog_open = $state(false);
+  let publish_dialog_open = $state(false);
+  /** Last session synced from `initial` (`'new'` or lekha id); avoids re-sync on referential re-renders. */
+  let last_seeded = $state<'new' | number | null>(null);
 
   let slug_section_unlocked = $derived(mode === 'create' || slug_edit_unlocked);
+
+  $effect(() => {
+    if (mode === 'create') {
+      is_draft = true;
+      published_at_shown = null;
+      if (last_seeded !== 'new') {
+        last_seeded = 'new';
+      }
+      return;
+    }
+    if (mode === 'edit' && lekha_id != null && initial) {
+      if (last_seeded !== lekha_id) {
+        last_seeded = lekha_id;
+      published_at_shown = initial.published_at ? new Date(initial.published_at) : null;
+      }
+    }
+  });
+
+  function formatPublishedDate(d: Date) {
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
 
   onMount(() => {
     editor_ready = true;
@@ -146,11 +175,13 @@
   });
 
   const edit_mut = client_q.site.lekha.edit_lekha.mutation({
-    onSuccess: async () => {
+    onSuccess: async (res) => {
       await query_client.invalidateQueries({
         queryKey: [['site', 'lekha', 'list_lekhas']],
         exact: false
       });
+      if (res.draft != null) is_draft = res.draft;
+      if (res.published_at) published_at_shown = new Date(res.published_at);
       toast.success('Lekha updated successfully');
     }
   });
@@ -195,41 +226,8 @@
     };
   });
 
-  const save = (e: Event) => {
-    e.preventDefault();
-    form_error = null;
-    if (!title.trim() || !description.trim() || !content.trim()) {
-      form_error = 'Title, description, and content are required.';
-      return;
-    }
-    const url_slug = slug_auto ? lekhaUrlSlugify(title) : lekhaUrlSlugify(url_slug_manual);
-    if (!url_slug && !slug_locked) {
-      // do not check if slug locker (edit mode)
-      form_error = slug_auto
-        ? 'Title must include at least one letter or digit for the URL slug.'
-        : 'URL slug is required; use only letters, digits, and hyphens.';
-      return;
-    }
-    if (browser && !slug_in_sync) {
-      form_error = 'Please wait for the URL slug to finish updating before saving.';
-      return;
-    }
-    if (browser && slug_effective) {
-      const chk = get(slug_check_q);
-      if (chk.isError) {
-        form_error = 'Could not verify the URL slug. Check your connection and try again.';
-        return;
-      }
-      if (chk.isPending || chk.isFetching) {
-        form_error = 'Please wait for the URL slug to be verified before saving.';
-        return;
-      }
-      if (chk.data?.exists) {
-        form_error = 'This URL slug is already in use. Choose a different one.';
-        return;
-      }
-    }
-    const post_data = {
+  function buildPostData(draft_for_request: boolean) {
+    return {
       title: title.trim(),
       description: description.trim(),
       content,
@@ -239,10 +237,49 @@
         : slug_auto
           ? lekhaUrlSlugify(title)
           : url_slug_manual.trim(),
-      draft,
+      draft: draft_for_request,
       listed,
       search_indexed
     };
+  }
+
+  function validateLekhaForm(): string | null {
+    if (!title.trim() || !description.trim() || !content.trim()) {
+      return 'Title, description, and content are required.';
+    }
+    const url_slug = slug_auto ? lekhaUrlSlugify(title) : lekhaUrlSlugify(url_slug_manual);
+    if (!url_slug && !slug_locked) {
+      return slug_auto
+        ? 'Title must include at least one letter or digit for the URL slug.'
+        : 'URL slug is required; use only letters, digits, and hyphens.';
+    }
+    if (browser && !slug_in_sync) {
+      return 'Please wait for the URL slug to finish updating before saving.';
+    }
+    if (browser && slug_effective) {
+      const chk = get(slug_check_q);
+      if (chk.isError) {
+        return 'Could not verify the URL slug. Check your connection and try again.';
+      }
+      if (chk.isPending || chk.isFetching) {
+        return 'Please wait for the URL slug to be verified before saving.';
+      }
+      if (chk.data?.exists) {
+        return 'This URL slug is already in use. Choose a different one.';
+      }
+    }
+    return null;
+  }
+
+  const save = (e: Event) => {
+    e.preventDefault();
+    form_error = null;
+    const err = validateLekhaForm();
+    if (err) {
+      form_error = err;
+      return;
+    }
+    const post_data = buildPostData(mode === 'create' ? true : is_draft);
     if (mode === 'create') {
       $add_mut.mutate({ post_data });
     } else {
@@ -253,6 +290,28 @@
       $edit_mut.mutate({ id: lekha_id, post_data });
     }
   };
+
+  function confirmPublish() {
+    form_error = null;
+    if (lekha_id == null) {
+      form_error = 'Missing post id.';
+      return;
+    }
+    const err = validateLekhaForm();
+    if (err) {
+      form_error = err;
+      return;
+    }
+    const post_data = buildPostData(false);
+    $edit_mut.mutate(
+      { id: lekha_id, post_data },
+      {
+        onSuccess: () => {
+          publish_dialog_open = false;
+        }
+      }
+    );
+  }
 </script>
 
 {#snippet slug_status_icon()}
@@ -277,8 +336,8 @@
   {/if}
 {/snippet}
 
-<form class="mx-auto w-full max-w-3xl space-y-6 pb-10" onsubmit={save}>
-  <div class="flex flex-wrap items-center justify-between gap-3">
+<form class="mx-auto w-full max-w-3xl space-y-4 pb-8" onsubmit={save}>
+  <div class="flex flex-wrap items-center justify-between gap-2">
     <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
       {#if mode === 'edit'}
         <a
@@ -328,6 +387,38 @@
     </div>
   </div>
 
+  {#if mode === 'edit' && lekha_id != null}
+    {#if is_draft}
+      <div
+        class="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 text-sm"
+      >
+        <span class="text-muted-foreground">This lekha is a draft.</span>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          class="shrink-0"
+          data-testid="lekha-publish"
+          disabled={$edit_mut.isPending || $delete_mut.isPending}
+          onclick={() => (publish_dialog_open = true)}
+        >
+          Publish
+        </Button>
+      </div>
+    {:else if published_at_shown}
+      <div
+        class="flex items-center gap-2 border-b border-border/60 pb-3 text-sm text-muted-foreground"
+      >
+        <Check
+          class="size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+          strokeWidth={2.5}
+          aria-hidden="true"
+        />
+        <span>Published {formatPublishedDate(published_at_shown)}</span>
+      </div>
+    {/if}
+  {/if}
+
   {#if form_error}
     <p class="text-sm text-destructive" role="alert">{form_error}</p>
   {/if}
@@ -341,8 +432,8 @@
     <p class="text-sm text-destructive" role="alert">{String($delete_mut.error)}</p>
   {/if}
 
-  <div class="grid gap-4 sm:grid-cols-1">
-    <div class="space-y-2">
+  <div class="grid gap-3 sm:grid-cols-1">
+    <div class="space-y-1.5">
       <Label for="lekha-title">Title</Label>
       <Input
         id="lekha-title"
@@ -352,7 +443,7 @@
         autocomplete="off"
       />
     </div>
-    <div class="space-y-2">
+    <div class="space-y-1.5">
       <Label for="lekha-description">Description</Label>
       <Textarea
         id="lekha-description"
@@ -362,7 +453,7 @@
         class="min-h-20"
       />
     </div>
-    <div class="space-y-2">
+    <div class="space-y-1.5">
       {#if mode === 'create' || slug_section_unlocked}
         <div class="flex flex-wrap items-center justify-between gap-3">
           <Label for="lekha-slug" class="mb-0">URL slug</Label>
@@ -451,28 +542,56 @@
 
   <LekhaTagsInput bind:tags />
 
-  <div class="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-1 md:grid-cols-3">
-    <div
-      class="flex items-center justify-between gap-3 md:flex-col md:items-stretch md:justify-start"
-    >
-      <Label for="sw-draft" class="text-sm font-medium">Draft</Label>
-      <Switch id="sw-draft" bind:checked={draft} />
+  <div class="flex flex-col gap-1.5">
+    <div class="flex items-center gap-1.5">
+      <Checkbox
+        id="cb-listed"
+        bind:checked={listed}
+        disabled={$add_mut.isPending || $edit_mut.isPending}
+      />
+      <Label for="cb-listed" class="cursor-pointer text-sm leading-none font-normal">Listed</Label>
+      <Popover.Root>
+        <Popover.Trigger
+          class="inline-flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          type="button"
+          aria-label="What Listed means"
+        >
+          <Info class="size-3.5" aria-hidden="true" />
+        </Popover.Trigger>
+        <Popover.Content side="top" class="w-auto max-w-xs p-3 text-pretty" sideOffset={4}>
+          <p class="text-sm leading-snug">
+            When enabled, this post is listed and can be found in search on the main site.
+          </p>
+        </Popover.Content>
+      </Popover.Root>
     </div>
-    <div
-      class="flex items-center justify-between gap-3 md:flex-col md:items-stretch md:justify-start"
-    >
-      <Label for="sw-listed" class="text-sm font-medium">Listed</Label>
-      <Switch id="sw-listed" bind:checked={listed} />
-    </div>
-    <div
-      class="flex items-center justify-between gap-3 md:flex-col md:items-stretch md:justify-start"
-    >
-      <Label for="sw-search" class="text-sm font-medium">Search indexed</Label>
-      <Switch id="sw-search" bind:checked={search_indexed} />
+    <div class="flex items-center gap-1.5">
+      <Checkbox
+        id="cb-search"
+        bind:checked={search_indexed}
+        disabled={$add_mut.isPending || $edit_mut.isPending}
+      />
+      <Label for="cb-search" class="cursor-pointer text-sm leading-none font-normal"
+        >Search indexed</Label
+      >
+      <Popover.Root>
+        <Popover.Trigger
+          class="inline-flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          type="button"
+          aria-label="What Search indexed means"
+        >
+          <Info class="size-3.5" aria-hidden="true" />
+        </Popover.Trigger>
+        <Popover.Content side="top" class="w-auto max-w-xs p-3 text-pretty" sideOffset={4}>
+          <p class="text-sm leading-snug">
+            When enabled, this post can be included in search engine (e.g. web) indexes.
+          </p>
+        </Popover.Content>
+      </Popover.Root>
     </div>
   </div>
 
-  <div class="space-y-2">
+  <div class="space-y-1.5">
     <Label>Content</Label>
     <Tabs.Root bind:value={editor_section} class="w-full">
       <Tabs.List class="grid w-full max-w-md grid-cols-2">
@@ -556,6 +675,30 @@
       >
         Unlock and edit
       </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={publish_dialog_open}>
+  <AlertDialog.Content class="max-w-md">
+    <AlertDialog.Header>
+      <AlertDialog.Title>Publish this lekha?</AlertDialog.Title>
+      <AlertDialog.Description class="text-sm text-muted-foreground">
+        This will go live per your Listed and Search indexed choices. You can still edit the post
+        afterwards.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
+      <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+      <Button
+        type="button"
+        class="shrink-0"
+        disabled={$edit_mut.isPending}
+        onclick={confirmPublish}
+        data-testid="lekha-publish-confirm"
+      >
+        {$edit_mut.isPending ? 'Publishing…' : 'Publish'}
+      </Button>
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>

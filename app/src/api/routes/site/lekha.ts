@@ -1,4 +1,5 @@
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
@@ -63,14 +64,23 @@ const edit_lekha_route = protectedAdminProcedure
   )
   .mutation(async ({ input: { id, post_data } }) => {
     await delay(1000);
+    const existing = await db.query.site_lekhas.findFirst({
+      where: (tbl, { eq: eqId }) => eqId(tbl.id, id)
+    });
+    if (!existing) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Lekha not found' });
+    }
     const normalized = await normalizeLekhaPostForStorage(post_data);
+    const setPublishedNow = existing.draft === true && post_data.draft === false;
     const lekha = await db
       .update(site_lekhas)
-      .set(normalized)
+      .set({ ...normalized, ...(setPublishedNow ? { published_at: new Date() } : {}) })
       .where(eq(site_lekhas.id, id))
       .returning();
     return {
-      id: lekha[0]?.id ?? id
+      id: lekha[0]?.id ?? id,
+      published_at: lekha[0]?.published_at,
+      draft: lekha[0]?.draft
     };
   });
 

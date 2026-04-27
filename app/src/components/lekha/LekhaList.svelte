@@ -32,10 +32,19 @@
     submitted_search = search_input.trim();
     page = 1;
   };
+
+  function formatLekhaDate(d: string | Date | null | undefined) {
+    if (d == null) return '—';
+    return new Date(d).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  }
 </script>
 
-<div class="flex flex-col gap-4">
-  <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+<div class="flex flex-col gap-3">
+  <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
     <InputGroup.Root class="h-9 min-w-0 flex-1 sm:max-w-md">
       <InputGroup.Addon align="inline-start" class="pl-2">
         <SearchIcon class="size-4 text-muted-foreground" aria-hidden="true" />
@@ -110,12 +119,12 @@
       {$list_q.data.total} post{$list_q.data.total !== 1 ? 's' : ''} · Page {$list_q.data.page} of
       {$list_q.data.pageCount}
     </p>
-    <ul class="flex flex-col gap-2">
+    <ul class="flex flex-col gap-1.5">
       {#each $list_q.data.list as row (row.id)}
         <li
-          class="flex flex-col gap-2 rounded-lg border bg-card p-4 sm:flex-row sm:items-start sm:justify-between"
+          class="flex flex-col gap-2 rounded-md border border-border/80 bg-card p-3 sm:flex-row sm:items-start sm:justify-between"
         >
-          <div class="min-w-0 flex-1 space-y-1">
+          <div class="min-w-0 flex-1 space-y-0.5">
             <h3 class="truncate leading-tight font-medium">{row.title}</h3>
             <p class="line-clamp-2 text-sm text-muted-foreground">{row.description}</p>
             {#if row.tags?.length}
@@ -128,8 +137,9 @@
               </div>
             {/if}
             <p class="text-xs text-muted-foreground">
-              Published {row.published_at ? new Date(row.published_at).toLocaleString() : '—'} · Updated
-              {row.updated_at ? new Date(row.updated_at).toLocaleString() : '—'}
+              Published {formatLekhaDate(row.published_at)} · Updated {formatLekhaDate(
+                row.updated_at
+              )}
             </p>
           </div>
           <Button variant="outline" size="sm" class="shrink-0 gap-1" href="/lekha/edit/{row.id}">
@@ -142,7 +152,7 @@
     {#if $list_q.data.list.length === 0}
       <p class="py-8 text-center text-sm text-muted-foreground">No posts in this view.</p>
     {/if}
-    <div class="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+    <div class="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
       <Button
         type="button"
         variant="outline"

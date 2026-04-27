@@ -4,6 +4,7 @@ import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { site_lekhas } from '~/db/schema';
 import { SiteLekhaSchemaZod } from '~/db/schema_zod';
+import { delay } from '~/tools/delay';
 import {
   lekhaUrlSlugify,
   normalizeLekhaTextFields,
@@ -70,6 +71,7 @@ const edit_lekha_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { id, post_data } }) => {
+    await delay(1000);
     const normalized = await normalizeLekhaPostForStorage(post_data);
     const lekha = await db
       .update(site_lekhas)
@@ -84,6 +86,7 @@ const edit_lekha_route = protectedAdminProcedure
 const delete_lekha_route = protectedAdminProcedure
   .input(z.object({ id: z.number() }))
   .mutation(async ({ input: { id } }) => {
+    await delay(1000);
     await db.delete(site_lekhas).where(eq(site_lekhas.id, id));
     return {
       id: id
@@ -102,6 +105,7 @@ const list_lekhas_input = z.object({
 const list_lekhas_route = protectedAdminProcedure
   .input(list_lekhas_input)
   .query(async ({ input }) => {
+    await delay(800);
     const trimmedSearch = input.search_text?.trim();
     const searchCondition = trimmedSearch
       ? or(

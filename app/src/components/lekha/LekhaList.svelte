@@ -19,12 +19,12 @@
 
   let list_q = $derived(
     client_q.site.lekha.list_lekhas.query({
-      draft: draft ? true : undefined,
-      page: page,
+      draft,
+      page,
       limit,
       search_text: submitted_search,
-      sort_by: sort_by,
-      order_by: order_by
+      sort_by,
+      order_by
     })
   );
 

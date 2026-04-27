@@ -9,6 +9,7 @@
   import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools';
   import TopAppBar from '~/components/TopAppBar.svelte';
   import PostHogInit from '~/components/tags/PostHogInit.svelte';
+  import { Toaster } from '$lib/components/ui/sonner/index.js';
 
   let { children }: { children: Snippet } = $props();
 </script>
@@ -22,5 +23,6 @@
     </div>
   </div>
   <SvelteQueryDevtools initialIsOpen={false} />
+  <Toaster position="top-right" richColors={true} />
 </QueryClientProvider>
 <PostHogInit />

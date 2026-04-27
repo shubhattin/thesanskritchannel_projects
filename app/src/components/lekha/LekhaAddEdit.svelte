@@ -28,10 +28,12 @@
     get_script_id,
     type script_list_type
   } from '~/state/lang_list';
+  import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import Check from '@lucide/svelte/icons/check';
   import CircleAlert from '@lucide/svelte/icons/circle-alert';
   import Loader2 from '@lucide/svelte/icons/loader-2';
   import type { SiteLekha } from '~/db/schema_zod';
+  import { toast } from "svelte-sonner";
 
   let {
     mode,
@@ -43,15 +45,16 @@
     initial?: Omit<SiteLekha, 'id' | 'published_at' | 'updated_at'>;
   } = $props();
 
-  let title = $state('');
-  let description = $state('');
-  let content = $state('');
-  let tags = $state<string[]>([]);
-  let draft = $state(true);
-  let listed = $state(true);
-  let search_indexed = $state(false);
+  // NOTE :- In the new svelte version (>=5.25) $derived is also writable(*)
+  let title = $derived(initial?.title ?? '');
+  let description = $derived(initial?.description ?? '');
+  let content = $derived(initial?.content ?? '');
+  let tags = $derived(initial?.tags ?? []);
+  let draft = $derived(initial?.draft ?? true);
+  let listed = $derived(initial?.listed ?? true);
+  let search_indexed = $derived(initial?.search_indexed ?? false);
   /** When true, slug is derived from title and the slug field is read-only. */
-  let slug_auto = $state(true);
+  let slug_auto = $derived(initial?.url_slug ? false : true);
   let url_slug_manual = $state('');
 
   let preview_script_id = $state(get_script_id('Devanagari' as script_list_type) ?? 1);
@@ -61,30 +64,34 @@
   let preview_error = $state<string | null>(null);
   let form_error = $state<string | null>(null);
   let editor_ready = $state(false);
+  /** Edit only: set true after the user confirms the unlock dialog. */
+  let slug_edit_unlocked = $state(false);
+  let unlock_slug_dialog_open = $state(false);
+  let delete_dialog_open = $state(false);
+
+  let slug_section_unlocked = $derived(mode === 'create' || slug_edit_unlocked);
 
   onMount(() => {
     editor_ready = true;
   });
 
-  $effect(() => {
-    if (!initial) return;
-    title = initial.title;
-    description = initial.description;
-    content = initial.content;
-    tags = [...initial.tags];
-    url_slug_manual = initial.url_slug;
-    search_indexed = initial.search_indexed;
-    draft = initial.draft;
-    listed = initial.listed;
-    slug_auto = lekhaUrlSlugify(initial.title) === lekhaUrlSlugify(initial.url_slug);
-  });
+  let slug_locked = $derived(mode === 'edit' && !slug_edit_unlocked);
 
   let slug_effective = $derived(
-    slug_auto ? lekhaUrlSlugify(title) : lekhaUrlSlugify(url_slug_manual)
+    slug_locked
+      ? lekhaUrlSlugify(initial?.url_slug ?? '')
+      : slug_auto
+        ? lekhaUrlSlugify(title)
+        : lekhaUrlSlugify(url_slug_manual)
   );
 
-  let debounced_for_slug = new Debounced(
-    () => (slug_auto ? lekhaUrlSlugify(title) : lekhaUrlSlugify(url_slug_manual)),
+  const debounced_for_slug = new Debounced(
+    () =>
+      slug_locked
+        ? lekhaUrlSlugify(initial?.url_slug ?? '')
+        : slug_auto
+          ? lekhaUrlSlugify(title)
+          : lekhaUrlSlugify(url_slug_manual),
     500
   );
 
@@ -129,14 +136,15 @@
 
   const invalidate_lekha_queries = async () => {
     // TODO:
-    await query_client.invalidateQueries({
-      queryKey: [['site', 'lekha', 'list_lekhas']],
-      exact: false
-    });
-    await query_client.invalidateQueries({
-      queryKey: [['site', 'lekha', 'get_lekha']],
-      exact: false
-    });
+    console.log(client_q.site.lekha.list_lekhas.utils.invalidate({}));
+    // await query_client.invalidateQueries({
+    //   queryKey: [['site', 'lekha', 'list_lekhas']],
+    //   exact: false
+    // });
+    // await query_client.invalidateQueries({
+    //   queryKey: [['site', 'lekha', 'get_lekha']],
+    //   exact: false
+    // });
   };
 
   const add_mut = client_q.site.lekha.add_lekha.mutation({
@@ -149,6 +157,15 @@
   const edit_mut = client_q.site.lekha.edit_lekha.mutation({
     onSuccess: async () => {
       await invalidate_lekha_queries();
+      toast.success('Lekha updated successfully');
+    }
+  });
+
+  const delete_mut = client_q.site.lekha.delete_lekha.mutation({
+    onSuccess: async () => {
+      delete_dialog_open = false;
+      await invalidate_lekha_queries();
+      await goto('/lekha');
     }
   });
 
@@ -189,7 +206,7 @@
       return;
     }
     const url_slug = slug_auto ? lekhaUrlSlugify(title) : lekhaUrlSlugify(url_slug_manual);
-    if (!url_slug) {
+    if (!url_slug && !slug_locked) { // do not check if slug locker (edit mode)
       form_error = slug_auto
         ? 'Title must include at least one letter or digit for the URL slug.'
         : 'URL slug is required; use only letters, digits, and hyphens.';
@@ -219,7 +236,11 @@
       description: description.trim(),
       content,
       tags,
-      url_slug: slug_auto ? lekhaUrlSlugify(title) : url_slug_manual.trim(),
+      url_slug: slug_locked
+        ? (initial?.url_slug ?? '').trim()
+        : slug_auto
+          ? lekhaUrlSlugify(title)
+          : url_slug_manual.trim(),
       draft,
       listed,
       search_indexed
@@ -264,11 +285,24 @@
       {mode === 'create' ? 'New lekha' : 'Edit lekha'}
     </h1>
     <div class="flex items-center gap-2">
+      {#if mode === 'edit' && lekha_id != null}
+        <Button
+          type="button"
+          variant="destructive"
+          class="shrink-0"
+          data-testid="lekha-delete"
+          disabled={$delete_mut.isPending}
+          onclick={() => (delete_dialog_open = true)}
+        >
+          Delete
+        </Button>
+      {/if}
       <Button type="button" variant="outline" href="/lekha">Cancel</Button>
       <Button
         type="submit"
         disabled={$add_mut.isPending ||
           $edit_mut.isPending ||
+          $delete_mut.isPending ||
           (browser &&
             !!slug_effective &&
             (!slug_in_sync ||
@@ -292,6 +326,9 @@
   {#if $edit_mut.isError}
     <p class="text-sm text-destructive" role="alert">{String($edit_mut.error)}</p>
   {/if}
+  {#if $delete_mut.isError && !delete_dialog_open}
+    <p class="text-sm text-destructive" role="alert">{String($delete_mut.error)}</p>
+  {/if}
 
   <div class="grid gap-4 sm:grid-cols-1">
     <div class="space-y-2">
@@ -309,51 +346,88 @@
       />
     </div>
     <div class="space-y-2">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <Label for="lekha-slug" class="mb-0">URL slug</Label>
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-muted-foreground" id="slug-auto-hint">Auto from title</span>
-          <Switch
-            id="sw-slug-auto"
-            bind:checked={slug_auto}
-            aria-labelledby="slug-auto-hint"
-            onCheckedChange={(v) => {
-              if (!v) {
-                const s = lekhaUrlSlugify(title);
-                if (s && !url_slug_manual.trim()) url_slug_manual = s;
-              }
-            }}
-          />
+      {#if mode === 'create' || slug_section_unlocked}
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <Label for="lekha-slug" class="mb-0">URL slug</Label>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-muted-foreground" id="slug-auto-hint">Auto from title</span>
+            <Switch
+              id="sw-slug-auto"
+              bind:checked={slug_auto}
+              aria-labelledby="slug-auto-hint"
+              onCheckedChange={(v) => {
+                if (!v) {
+                  const s = lekhaUrlSlugify(title);
+                  if (s && !url_slug_manual.trim()) url_slug_manual = s;
+                }
+              }}
+            />
+          </div>
         </div>
-      </div>
-      {#if slug_auto}
+        {#if slug_auto}
+          <div class="flex gap-2">
+            <Input
+              id="lekha-slug"
+              value={lekhaUrlSlugify(title) || '—'}
+              disabled
+              class="min-w-0 flex-1 font-mono text-sm"
+              title="Derived from the title; turn off “Auto from title” to set manually."
+            />
+            <div
+              class="flex w-9 shrink-0 items-center justify-center self-center"
+              aria-live="polite"
+            >
+              {@render slug_status_icon()}
+            </div>
+          </div>
+          <p class="text-xs text-muted-foreground">Updates when the title changes.</p>
+        {:else}
+          <div class="flex gap-2">
+            <Input
+              id="lekha-slug"
+              bind:value={url_slug_manual}
+              class="min-w-0 flex-1 font-mono text-sm"
+              placeholder="my-post-slug"
+              autocomplete="off"
+            />
+            <div
+              class="flex w-9 shrink-0 items-center justify-center self-center"
+              aria-live="polite"
+            >
+              {@render slug_status_icon()}
+            </div>
+          </div>
+          <p class="text-xs text-muted-foreground">Lowercase, letters, digits, and hyphens only.</p>
+        {/if}
+      {:else}
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <Label for="lekha-slug-locked" class="mb-0">URL slug</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            class="shrink-0"
+            onclick={() => (unlock_slug_dialog_open = true)}
+          >
+            Change URL slug
+          </Button>
+        </div>
         <div class="flex gap-2">
           <Input
-            id="lekha-slug"
-            value={lekhaUrlSlugify(title) || '—'}
+            id="lekha-slug-locked"
+            value={initial?.url_slug || '—'}
             disabled
             class="min-w-0 flex-1 font-mono text-sm"
-            title="Derived from the title; turn off “Auto from title” to set manually."
+            title="The URL slug is locked. Use “Change URL slug” to edit it (may break existing links)."
           />
           <div class="flex w-9 shrink-0 items-center justify-center self-center" aria-live="polite">
             {@render slug_status_icon()}
           </div>
         </div>
-        <p class="text-xs text-muted-foreground">Updates when the title changes.</p>
-      {:else}
-        <div class="flex gap-2">
-          <Input
-            id="lekha-slug"
-            bind:value={url_slug_manual}
-            class="min-w-0 flex-1 font-mono text-sm"
-            placeholder="my-post-slug"
-            autocomplete="off"
-          />
-          <div class="flex w-9 shrink-0 items-center justify-center self-center" aria-live="polite">
-            {@render slug_status_icon()}
-          </div>
-        </div>
-        <p class="text-xs text-muted-foreground">Lowercase, letters, digits, and hyphens only.</p>
+        <p class="text-xs text-muted-foreground">
+          The URL slug is locked to avoid broken links. Use “Change URL slug” to edit it; you will
+          be asked to confirm.
+        </p>
       {/if}
     </div>
   </div>
@@ -444,6 +518,64 @@
     </Tabs.Root>
   </div>
 </form>
+
+<AlertDialog.Root bind:open={unlock_slug_dialog_open}>
+  <AlertDialog.Content class="max-w-md">
+    <AlertDialog.Header>
+      <AlertDialog.Title>Change URL slug?</AlertDialog.Title>
+      <AlertDialog.Description class="text-sm text-muted-foreground">
+        Changing the URL slug updates the post&rsquo;s public address. Old links, bookmarks, and
+        search results that used the previous slug will stop working unless you set up a redirect
+        elsewhere. Only continue if you intend to change how this post is reached.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
+      <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Action
+        onclick={() => {
+          unlock_slug_dialog_open = false;
+          slug_edit_unlocked = true;
+        }}
+      >
+        Unlock and edit
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={delete_dialog_open}>
+  <AlertDialog.Content class="max-w-md">
+    <AlertDialog.Header>
+      <AlertDialog.Title>Delete this lekha?</AlertDialog.Title>
+      <AlertDialog.Description class="text-sm text-muted-foreground">
+        This will permanently remove the post, including its content and URL. This action
+        <strong>cannot be undone</strong> and the post cannot be restored. Any links to this lekha will
+        stop working.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    {#if $delete_mut.isError}
+      <p class="px-6 text-sm text-destructive" role="alert">
+        {String($delete_mut.error)}
+      </p>
+    {/if}
+    <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
+      <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+      <Button
+        type="button"
+        variant="destructive"
+        class="shrink-0"
+        disabled={$delete_mut.isPending}
+        onclick={() => {
+          if (lekha_id != null) {
+            $delete_mut.mutate({ id: lekha_id });
+          }
+        }}
+      >
+        {$delete_mut.isPending ? 'Deleting…' : 'Delete permanently'}
+      </Button>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
 
 <style>
   :global(.lekha-carta .carta-theme__default) {

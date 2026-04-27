@@ -21,7 +21,7 @@ export const MediaAttachmentSchemaZod = createSelectSchema(media_attachment, {
 });
 
 export const SiteLekhaSchemaZod = createSelectSchema(site_lekhas, {
-  published_at: z.coerce.date(),
+  published_at: z.coerce.date().optional().nullable(),
   updated_at: z.coerce.date()
 });
 

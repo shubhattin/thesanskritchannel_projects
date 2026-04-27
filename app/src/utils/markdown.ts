@@ -93,13 +93,25 @@ export async function transliterateLipiSpansInMarkdown(
  * When `script` is set, transliterates `<lipi>` inner text to that script before render.
  * Pass `lipiTransliterator` (e.g. `transliterate_node` from `lipilekhika/node`) on the server for faster batch transliteration.
  * This intentionally avoids Astro-specific server helpers so it can run in browser too.
+ *
+ * By default, runs `removeDangerousTagsFromMarkdownSource` on the source (defense in depth for unsanitized editor input).
+ * Set `skipSourceSanitization: true` only for markdown that was already persisted via `sanitizeAndFormatLekhaMarkdownForStorage` (e.g. `site_lekhas.content`) to avoid redundant regex work.
  */
 export async function renderLekhaMarkdownToHtml(
   markdown: string,
-  options: { script: script_list_type; lipiTransliterator?: typeof transliterate }
+  options: {
+    script: script_list_type;
+    lipiTransliterator?: typeof transliterate;
+    skipSourceSanitization?: boolean;
+  }
 ) {
+  const normalized = markdown.replace(/\r\n/g, '\n');
+  const md =
+    options.skipSourceSanitization === true
+      ? normalized
+      : removeDangerousTagsFromMarkdownSource(normalized);
   const after_lipi = await transliterateLipiSpansInMarkdown(
-    markdown,
+    md,
     options.script,
     options.lipiTransliterator
   );

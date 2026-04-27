@@ -67,7 +67,7 @@ export const media_attachment = pgTable(
     link: text().notNull(),
     name: text().notNull()
   },
-  ({ project_id, path }) => [index('media_link_index').on(project_id, path)]
+  ({ project_id, path }) => [index().on(project_id, path)]
 );
 
 export const site_lekhas = pgTable(
@@ -80,7 +80,7 @@ export const site_lekhas = pgTable(
     url_slug: text('url_slug').notNull().unique(),
     /** Markdown content */
     content: text('content').notNull(),
-    published_at: timestamp('published_at', { withTimezone: true }).notNull().defaultNow(),
+    published_at: timestamp('published_at', { withTimezone: true }),
     updated_at: timestamp('updated_at', { withTimezone: true })
       .notNull()
       .$onUpdate(() => new Date()),
@@ -90,7 +90,7 @@ export const site_lekhas = pgTable(
     /** search index, indexed by search engine */
     search_indexed: boolean('search_indexed').notNull().default(true)
   },
-  (table) => [index('published_at_idx').on(table.published_at)]
+  (table) => [index().on(table.published_at)]
 );
 
 // join tables

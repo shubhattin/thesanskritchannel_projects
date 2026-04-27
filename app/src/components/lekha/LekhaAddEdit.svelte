@@ -56,8 +56,8 @@
   let content = $derived(initial?.content ?? '');
   let tags = $derived(initial?.tags ?? []);
   /** Create mode: always true when saving. Edit: synced from server, false after publish. */
-  let is_draft = $state(true);
-  let published_at_shown = $state<Date | null>(null);
+  let is_draft = $derived(initial?.draft ?? true);
+  let published_at_shown = $derived(initial?.published_at ?? null);
   let listed = $state(true);
   let search_indexed = $state(true);
   /** When true, slug is derived from title and the slug field is read-only. */
@@ -83,7 +83,6 @@
 
   $effect(() => {
     if (mode === 'create') {
-      is_draft = true;
       published_at_shown = null;
       if (last_seeded !== 'new') {
         last_seeded = 'new';
@@ -614,7 +613,7 @@
           </div>
         {:else}
           <div
-            class="flex min-h-[24rem] items-center justify-center rounded-lg border bg-muted/20 text-sm text-muted-foreground"
+            class="flex min-h-96 items-center justify-center rounded-lg border bg-muted/20 text-sm text-muted-foreground"
           >
             Loading editor…
           </div>

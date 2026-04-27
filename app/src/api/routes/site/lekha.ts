@@ -44,11 +44,12 @@ async function normalizeLekhaPostForStorage(
 const add_lekha_route = protectedAdminProcedure
   .input(
     z.object({
-      post_data: lekha_post_input
+      post_data: lekha_post_input.omit({ draft: true })
     })
   )
   .mutation(async ({ input: { post_data } }) => {
-    const normalized = await normalizeLekhaPostForStorage(post_data);
+    // on add the lekha is always a draft
+    const normalized = await normalizeLekhaPostForStorage({ ...post_data, draft: true });
     const lekha = await db.insert(site_lekhas).values(normalized).returning();
     return {
       id: lekha[0].id

@@ -71,6 +71,13 @@
       "when": 1770308760923,
       "tag": "0009_0x_add_trigram_search",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1777310734814,
+      "tag": "0010_serious_jack_power",
+      "breakpoints": true
     }
   ]
 }

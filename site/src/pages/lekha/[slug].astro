@@ -54,23 +54,12 @@ const lekha_body_font_class =
           <div class="mt-4 flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
             <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <time datetime={entry.data.pubDate.toISOString()}>
-                Published{' '}
                 {entry.data.pubDate.toLocaleDateString('en-IN', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric'
                 })}
               </time>
-              {entry.data.updatedDate && (
-                <time datetime={entry.data.updatedDate.toISOString()}>
-                  Updated{' '}
-                  {entry.data.updatedDate.toLocaleDateString('en-IN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </time>
-              )}
             </div>
             <MainTextScriptSelector client:load initial_script_id={selected_script_id} />
           </div>

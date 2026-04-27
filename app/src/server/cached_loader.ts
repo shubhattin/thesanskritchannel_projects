@@ -150,3 +150,35 @@ export const get_site_lekha_data_func = async (
   }
   return data satisfies SiteLekha;
 };
+
+/**
+ * TODO : implement caching, paging and sorting
+ *
+ * Gives listed non-draft lekhas
+ */
+export const get_site_lekha_list_func = async (options: {
+  defer?: defer_promise_type;
+  db: DBType;
+  redis: Redis;
+}) => {
+  const { db } = options;
+
+  const data = await db.query.site_lekhas.findMany({
+    columns: {
+      id: true,
+      title: true,
+      description: true,
+      tags: true,
+      published_at: true,
+      updated_at: true,
+      draft: true,
+      listed: true,
+      search_indexed: true,
+      url_slug: true
+    },
+    orderBy: ({ published_at }, { desc }) => desc(published_at),
+    where: (tbl, { eq, and }) => and(eq(tbl.draft, false), eq(tbl.listed, true))
+  });
+
+  return data;
+};

@@ -9,13 +9,13 @@ import remarkGfm from 'remark-gfm';
 import remarkStringify from 'remark-stringify';
 import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
-import type { script_list_type } from '~/state/lang_list';
-import { expandCartaStyleVideoEmbedsInMarkdown } from '$lib/carta/video/cartaVideoEmbeds';
+import type { script_list_type } from '../state/lang_list';
+import { expandCartaStyleVideoEmbedsInMarkdown } from '../lib/carta/video/cartaVideoEmbeds';
 import {
   expandShlokaSpansInMarkdown,
   stripShlokaTagsFromHtml
-} from '$lib/carta/shloka/shlokaMarkdown';
-import { transliterate_custom } from '~/tools/converter';
+} from '../lib/carta/shloka/shlokaMarkdown';
+import { transliterate_custom } from '../tools/converter';
 import { transliterate } from 'lipilekhika';
 
 export { expandCartaStyleVideoEmbedsInMarkdown };
@@ -23,7 +23,7 @@ export {
   expandShlokaSpansInMarkdown,
   stripShlokaTagsFromHtml,
   SHLOKA_TAG_RE
-} from '$lib/carta/shloka/shlokaMarkdown';
+} from '../lib/carta/shloka/shlokaMarkdown';
 
 /** `<lipi>…</lipi>` wraps Devanagari source; inner text is transliterated for preview. */
 export const LIPI_TAG_RE = /<\s*lipi\b[^>]*>([\s\S]*?)<\/\s*lipi\s*>/gi;
@@ -89,15 +89,20 @@ export async function transliterateLipiSpansInMarkdown(
 }
 
 /**
- * Render markdown to HTML (for admin preview or future site).
- * When `scriptId` is set, transliterates `<lipi>` inner text to that script before render.
+ * Render markdown to HTML (for admin preview or site).
+ * When `script` is set, transliterates `<lipi>` inner text to that script before render.
+ * Pass `lipiTransliterator` (e.g. `transliterate_node` from `lipilekhika/node`) on the server for faster batch transliteration.
  * This intentionally avoids Astro-specific server helpers so it can run in browser too.
  */
 export async function renderLekhaMarkdownToHtml(
   markdown: string,
-  options: { script: script_list_type }
+  options: { script: script_list_type; lipiTransliterator?: typeof transliterate }
 ) {
-  const after_lipi = await transliterateLipiSpansInMarkdown(markdown, options.script);
+  const after_lipi = await transliterateLipiSpansInMarkdown(
+    markdown,
+    options.script,
+    options.lipiTransliterator
+  );
   const with_shloka = expandShlokaSpansInMarkdown(after_lipi);
   const with_videos = expandCartaStyleVideoEmbedsInMarkdown(with_shloka);
   const file = await unified()

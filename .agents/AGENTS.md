@@ -1,6 +1,6 @@
 # Package Manager
 
-- Use the bun package manager for all things
+- Use the bun package manager for all things, so even if somewhere it says to use `npx` just use `bun x` as prefix instead always use bun over npm
 
 # Shadcn component addition
 
@@ -11,6 +11,7 @@
 
 - Never start the dev server, as it would be already running on the provisioned port.
 - The project is a monorepo with two seperate apps
+- For icons you can use `svelte-icons-pack` or `@lucide/svelte`, this is same for both `site` and `app`, NEVER use raw svg fool
 
 ## /app (SvelteKit)
 

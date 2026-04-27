@@ -71,6 +71,13 @@
       "when": 1770308760923,
       "tag": "0009_0x_add_trigram_search",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1777313153130,
+      "tag": "0010_giant_impossible_man",
+      "breakpoints": true
     }
   ]
 }

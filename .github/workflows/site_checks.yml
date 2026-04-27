@@ -41,6 +41,10 @@ jobs:
         working-directory: site
         run: bun x vitest run
 
-      - name: Build site
+      - name: Run site checks
         working-directory: site
-        run: bun run build
+        run: bun run check
+
+      # - name: Build site
+      #   working-directory: site
+      #   run: bun run build

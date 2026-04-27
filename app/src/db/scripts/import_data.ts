@@ -13,6 +13,7 @@ export const import_data = async (confirm_env = true) => {
   const texts = await db.query.texts.findMany();
   const other = await db.query.other.findMany();
   const media_attachment = await db.query.media_attachment.findMany();
+  const site_lekhas = await db.query.site_lekhas.findMany();
 
   const json_data = {
     user_project_join,
@@ -20,7 +21,8 @@ export const import_data = async (confirm_env = true) => {
     translations,
     texts,
     other,
-    media_attachment
+    media_attachment,
+    site_lekhas
   };
 
   await make_dir('./out');

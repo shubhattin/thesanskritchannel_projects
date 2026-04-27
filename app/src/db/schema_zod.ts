@@ -5,7 +5,8 @@ import {
   translations,
   texts,
   media_attachment,
-  other
+  other,
+  site_lekhas
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 
@@ -18,3 +19,10 @@ export const OtherSchemaZod = createSelectSchema(other);
 export const MediaAttachmentSchemaZod = createSelectSchema(media_attachment, {
   link: z.string().url()
 });
+
+export const SiteLekhaSchemaZod = createSelectSchema(site_lekhas, {
+  published_at: z.coerce.date().optional().nullable(),
+  updated_at: z.coerce.date().optional().nullable()
+});
+
+export type SiteLekha = z.infer<typeof SiteLekhaSchemaZod>;

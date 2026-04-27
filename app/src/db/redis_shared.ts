@@ -15,12 +15,14 @@ export const REDIS_CACHE_KEYS_CLIENT = {
     let key = `media_links:${project_id}:`;
     if (Array.isArray(path_params)) return key + path_params.join('/');
     return key + path_params;
-  }
+  },
+  site_lekha_data: (lekha_id: number) => `site_lekha_data:${lekha_id}`
 };
 
 export const REDIS_CACHES_ARGUMENTS_LIST: Record<keyof typeof REDIS_CACHE_KEYS_CLIENT, string[]> = {
   user_project_info: ['user_id', 'project_id'],
   text_data: ['project_id', 'path_params'],
   translation: ['project_id', 'lang_id', 'path_params'],
-  media_links: ['project_id', 'path_params']
+  media_links: ['project_id', 'path_params'],
+  site_lekha_data: ['lekha_id']
 };

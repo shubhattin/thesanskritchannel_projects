@@ -7,7 +7,8 @@ import {
   translations,
   media_attachment,
   other,
-  texts
+  texts,
+  site_lekhas
 } from '~/db/schema';
 import {
   UserProjectJoinSchemaZod,
@@ -15,7 +16,8 @@ import {
   TranslationSchemaZod,
   TextSchemaZod,
   MediaAttachmentSchemaZod,
-  OtherSchemaZod
+  OtherSchemaZod,
+  SiteLekhaSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -51,7 +53,8 @@ const main = async () => {
       translations: TranslationSchemaZod.array(),
       texts: intermedia_text_schema.array(),
       other: OtherSchemaZod.array(),
-      media_attachment: MediaAttachmentSchemaZod.array()
+      media_attachment: MediaAttachmentSchemaZod.array(),
+      site_lekhas: SiteLekhaSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
@@ -76,6 +79,7 @@ const main = async () => {
     await db.delete(texts);
     await db.delete(other);
     await db.delete(media_attachment);
+    await db.delete(site_lekhas);
     console.log(chalk.green('✓ Deleted All Tables Successfully'));
   } catch (e) {
     console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
@@ -147,10 +151,21 @@ const main = async () => {
     console.log(chalk.red('✗ Error while inserting media_attachment:'), chalk.yellow(e));
   }
 
+  // resetting site_lekhas
+  try {
+    await db.insert(site_lekhas).values(data.site_lekhas);
+    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`site_lekhas`'));
+  } catch (e) {
+    console.log(chalk.red('✗ Error while inserting site_lekhas:'), chalk.yellow(e));
+  }
+
   // resetting SERIAL
   try {
     await db.execute(
       sql`SELECT setval('"media_attachment_id_seq"', (select MAX(id) from "media_attachment"))`
+    );
+    await db.execute(
+      sql`SELECT setval('"site_lekhas_id_seq"', (select MAX(id) from "site_lekhas"))`
     );
     console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
   } catch (e) {

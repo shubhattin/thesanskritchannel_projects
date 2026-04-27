@@ -9,6 +9,7 @@
   import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools';
   import TopAppBar from '~/components/TopAppBar.svelte';
   import PostHogInit from '~/components/tags/PostHogInit.svelte';
+  import { Toaster } from '$lib/components/ui/sonner/index.js';
 
   let { children }: { children: Snippet } = $props();
 </script>
@@ -17,10 +18,11 @@
   <ModeWatcher />
   <div class="contaiiner mx-auto mb-12 max-w-5xl">
     <TopAppBar />
-    <div class="mx-2">
+    <div class="mx-2 mt-4">
       {@render children()}
     </div>
   </div>
   <SvelteQueryDevtools initialIsOpen={false} />
+  <Toaster position="top-right" richColors={true} />
 </QueryClientProvider>
 <PostHogInit />

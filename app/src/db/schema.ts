@@ -6,7 +6,9 @@ import {
   pgEnum,
   serial,
   index,
-  jsonb
+  jsonb,
+  timestamp,
+  boolean
 } from 'drizzle-orm/pg-core';
 // import { relations } from 'drizzle-orm';
 
@@ -65,7 +67,28 @@ export const media_attachment = pgTable(
     link: text().notNull(),
     name: text().notNull()
   },
-  ({ project_id, path }) => [index('media_link_index').on(project_id, path)]
+  ({ project_id, path }) => [index().on(project_id, path)]
+);
+
+export const site_lekhas = pgTable(
+  'site_lekhas',
+  {
+    id: serial('id').primaryKey(),
+    title: text('title').notNull(),
+    description: text('description').notNull(),
+    tags: text('tags').array().notNull().default([]),
+    url_slug: text('url_slug').notNull().unique(),
+    /** Markdown content */
+    content: text('content').notNull(),
+    published_at: timestamp('published_at', { withTimezone: true }),
+    updated_at: timestamp('updated_at', { withTimezone: true }).$onUpdate(() => new Date()),
+    draft: boolean('draft').notNull().default(true),
+    /** listed on site */
+    listed: boolean('listed').notNull().default(true),
+    /** search index, indexed by search engine */
+    search_indexed: boolean('search_indexed').notNull().default(true)
+  },
+  (table) => [index().on(table.published_at)]
 );
 
 // join tables

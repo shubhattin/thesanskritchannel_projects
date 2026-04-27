@@ -42,7 +42,6 @@
     "@vercel/functions": "^3.4.4",
     "astro": "^6.1.8",
     "drizzle-orm": "^0.45.2",
-    "isomorphic-dompurify": "^3.10.0",
     "js-cookie": "^3.0.5",
     "lipilekhika": "^1.0.10",
     "postgres": "^3.4.9",

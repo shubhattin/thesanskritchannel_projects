@@ -1,8 +1,13 @@
 /**
  * Shared lekha markdown utilities for app (and future site DB loader).
  * Sanitize dangerous constructs, normalize markdown, transliterate <lipi>, expand <shloka>, render HTML.
+ *
+ * Uses `dompurify` + `linkedom` on the server (not `isomorphic-dompurify` / jsdom) so Vercel's NFT
+ * bundler does not follow jsdom's optional `canvas` peer, which is often missing and breaks `realpath`.
  */
-import DOMPurify from 'isomorphic-dompurify';
+import createDOMPurify from 'dompurify';
+import type { Config, WindowLike } from 'dompurify';
+import { parseHTML } from 'linkedom/worker';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
@@ -89,7 +94,7 @@ export async function transliterateLipiSpansInMarkdown(
 }
 
 /** DOMPurify config: keep `<lipi>`, inline styles, typical content markup, video embed HTML (`cartaVideoEmbeds`). */
-const PREVIEW_HTML_PURIFY = {
+const PREVIEW_HTML_PURIFY: Config = {
   ADD_TAGS: ['lipi', 'iframe', 'u', 'div'],
   ADD_ATTR: [
     'style',
@@ -112,13 +117,26 @@ const PREVIEW_HTML_PURIFY = {
   ]
 };
 
+let server_purify: ReturnType<typeof createDOMPurify> | undefined;
+
+function get_dom_purify(): ReturnType<typeof createDOMPurify> {
+  if (typeof window !== 'undefined' && window.document) {
+    return createDOMPurify(window as unknown as WindowLike);
+  }
+  if (!server_purify) {
+    const linkedom_window = parseHTML('<!DOCTYPE html><html><body></body></html>');
+    server_purify = createDOMPurify(linkedom_window as unknown as WindowLike);
+  }
+  return server_purify;
+}
+
 export function sanitizeRenderedHtmlForPreview(html: string) {
-  return DOMPurify.sanitize(html, PREVIEW_HTML_PURIFY);
+  return get_dom_purify().sanitize(html, PREVIEW_HTML_PURIFY);
 }
 
 /** Carta / editor HTML sanitizer hook (same policy as preview). */
 export function cartaHtmlSanitizer(dirty: string) {
-  return DOMPurify.sanitize(dirty, PREVIEW_HTML_PURIFY);
+  return get_dom_purify().sanitize(dirty, PREVIEW_HTML_PURIFY);
 }
 
 /**

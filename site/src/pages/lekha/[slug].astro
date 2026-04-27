@@ -43,9 +43,20 @@ const lekha_body_font_class =
   entry && Content ? (
     <RootLayout title={`${entry.data.title} — Lekha`} description={entry.data.description}>
       <article class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+        <p class="mb-8 text-sm text-muted-foreground">
+          <a
+            href="/lekha"
+            class="inline-flex items-center gap-1.5 text-primary transition-colors hover:text-primary/90 hover:underline"
+          >
+            <span aria-hidden="true" class="select-none">
+              ←
+            </span>
+            All posts
+          </a>
+        </p>
         <header class="mb-10 border-b border-border pb-8">
           {/* <p class="text-sm font-medium tracking-wide text-primary uppercase">Lekha</p> */}
-          <h1 class="mt-2 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+          <h1 class="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
             {entry.data.title}
           </h1>
           {entry.data.description && (
@@ -70,8 +81,14 @@ const lekha_body_font_class =
           <Content />
         </div>
         <p class="mt-12 text-sm text-muted-foreground">
-          <a href="/lekha" class="text-primary hover:underline">
-            ← All posts
+          <a
+            href="/lekha"
+            class="inline-flex items-center gap-1.5 text-primary transition-colors hover:text-primary/90 hover:underline"
+          >
+            <span aria-hidden="true" class="select-none">
+              ←
+            </span>
+            All posts
           </a>
         </p>
       </article>

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Carta, MarkdownEditor } from 'carta-md';
   import 'carta-md/default.css';
-  import 'carta-plugin-video/default.css';
+  import '$lib/carta/video/video-container.css';
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
@@ -647,7 +647,7 @@
           <p class="text-sm text-destructive">{preview_error}</p>
         {/if}
         <div
-          class="prose max-w-none rounded-lg border bg-muted/20 p-4 text-foreground prose-neutral dark:prose-invert"
+          class="markdown-body prose max-w-none rounded-lg border bg-muted/20 p-4 text-foreground prose-neutral dark:prose-invert"
         >
           <!-- eslint-disable svelte/no-at-html-tags -->
           {@html preview_html || '<p class="text-muted-foreground">Nothing to preview.</p>'}

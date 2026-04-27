@@ -1,5 +1,5 @@
 import type { Icon } from 'carta-md';
-import { createWrapTagIcon } from './createWrapTagPlugin';
+import { createWrapTagIcon } from '../shared/createWrapTagPlugin';
 import LipiToolbarIcon from './LipiToolbarIcon.svelte';
 
 /**

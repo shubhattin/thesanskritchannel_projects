@@ -1,5 +1,5 @@
 import type { Plugin } from 'carta-md';
-import { createWrapTagPlugin } from './createWrapTagPlugin';
+import { createWrapTagPlugin } from '../shared/createWrapTagPlugin';
 import UnderlineToolbarIcon from './UnderlineToolbarIcon.svelte';
 
 export function lekhaUnderlinePlugin(): Plugin {

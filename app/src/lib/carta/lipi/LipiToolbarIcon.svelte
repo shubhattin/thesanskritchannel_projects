@@ -3,8 +3,7 @@
 </script>
 
 <span
-  class="select-none text-[0.7rem] leading-none font-medium tracking-tight"
+  class="text-[0.7rem] leading-none font-medium tracking-tight select-none"
   style="font-family: 'Noto Sans Devanagari', 'Mukta', system-ui, sans-serif;"
-  aria-hidden="true"
-  >लि</span
+  aria-hidden="true">लि</span
 >

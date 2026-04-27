@@ -33,7 +33,7 @@
   import CircleAlert from '@lucide/svelte/icons/circle-alert';
   import Loader2 from '@lucide/svelte/icons/loader-2';
   import type { SiteLekha } from '~/db/schema_zod';
-  import { toast } from "svelte-sonner";
+  import { toast } from 'svelte-sonner';
 
   let {
     mode,
@@ -206,7 +206,8 @@
       return;
     }
     const url_slug = slug_auto ? lekhaUrlSlugify(title) : lekhaUrlSlugify(url_slug_manual);
-    if (!url_slug && !slug_locked) { // do not check if slug locker (edit mode)
+    if (!url_slug && !slug_locked) {
+      // do not check if slug locker (edit mode)
       form_error = slug_auto
         ? 'Title must include at least one letter or digit for the URL slug.'
         : 'URL slug is required; use only letters, digits, and hyphens.';

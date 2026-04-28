@@ -30,7 +30,11 @@ describe('transliterateLipiSpansInMarkdown', () => {
 
   it('wraps lipi with blank-line paragraphs in div', async () => {
     const inner = `line\n\n`;
-    const out = await transliterateLipiSpansInMarkdown(`<lipi>${inner}a</lipi>`, script, identityTransliterate);
+    const out = await transliterateLipiSpansInMarkdown(
+      `<lipi>${inner}a</lipi>`,
+      script,
+      identityTransliterate
+    );
     expect(out).toContain(`<div class="${LIPI_SPAN_CLASS}">`);
     expect(out).toContain(inner);
     expect(out).toContain('a');

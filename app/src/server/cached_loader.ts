@@ -9,8 +9,9 @@ import {
 } from '../state/project_list';
 import type { Redis } from '@upstash/redis/cloudflare';
 import type { db } from '~/db/db';
-import type { SiteLekha } from '~/db/schema_zod';
+import { SiteLekhaSchemaZod } from '../db/schema_zod';
 import { waitUntil } from '@vercel/functions';
+import type z from 'zod';
 
 export type defer_promise_type = (promise: Promise<unknown>) => void;
 
@@ -123,17 +124,22 @@ export const get_translation_data_func = async (
   return data_map;
 };
 
+const lekhaSchema = SiteLekhaSchemaZod;
+type lekhaType = z.infer<typeof lekhaSchema>;
+
 /** Cache laoder for `site_lekhas` */
 export const get_site_lekha_data_func = async (
   url_slug: string,
   options: { defer?: defer_promise_type; db: DBType; redis: Redis }
-) => {
+): Promise<lekhaType | null> => {
   const { db, redis } = options;
   const cache_key = REDIS_CACHE_KEYS_CLIENT.site_lekha_data(url_slug);
 
   let cache = null;
-  if (import.meta.env.PROD) cache = await redis.get<SiteLekha>(cache_key);
-  if (cache) return cache;
+  if (import.meta.env.PROD) cache = await redis.get<lekhaType>(cache_key);
+  // parsing is also essential here as we have string types for timestamps
+  // that have to be coered to Date Objects
+  if (cache) return lekhaSchema.parse(cache);
 
   const data = await db.query.site_lekhas.findFirst({
     where: (tbl, { eq }) => eq(tbl.url_slug, url_slug)
@@ -147,10 +153,11 @@ export const get_site_lekha_data_func = async (
       options.defer
     );
   }
-  return data satisfies SiteLekha;
+  return data satisfies lekhaType;
 };
 
-type lekhaListType = Omit<SiteLekha, 'content'>;
+const lekhaListSchema = lekhaSchema.omit({ content: true }).array();
+type lekhaListType = z.infer<typeof lekhaListSchema>;
 /**
  * TODO : implement caching, paging and sorting
  *
@@ -160,15 +167,15 @@ export const get_site_lekha_list_func = async (options: {
   defer?: defer_promise_type;
   db: DBType;
   redis: Redis;
-}): Promise<lekhaListType[]> => {
+}): Promise<lekhaListType> => {
   const { db, redis } = options;
   const cache_key = REDIS_CACHE_KEYS_CLIENT.site_lekha_list();
 
   let cache = null;
   if (import.meta.env.PROD) {
-    cache = await redis.get<lekhaListType[]>(cache_key);
+    cache = await redis.get<lekhaListType>(cache_key);
   }
-  if (cache) return cache;
+  if (cache) return lekhaListSchema.parse(cache);
 
   const data = await db.query.site_lekhas.findMany({
     columns: {
@@ -196,5 +203,5 @@ export const get_site_lekha_list_func = async (options: {
     );
   }
 
-  return data satisfies lekhaListType[];
+  return data satisfies lekhaListType;
 };

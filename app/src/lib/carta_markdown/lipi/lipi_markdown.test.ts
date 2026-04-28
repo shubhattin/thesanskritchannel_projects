@@ -14,13 +14,25 @@ const identityTransliterate = (async (text: string) => text) as typeof translite
 const script: script_list_type = 'Devanagari';
 
 describe('transliterateLipiSpansInMarkdown', () => {
+  it('handles single lipi with shloka tag inside', async () => {
+    const out = await transliterateLipiSpansInMarkdown(
+      `<lipi><shloka>अ</shloka></lipi>`,
+      script,
+      identityTransliterate
+    );
+    expect(out).toContain(`<div class="${LIPI_SPAN_CLASS}">`);
+    expect(out).not.toContain(`<p class="${LIPI_SPAN_CLASS}">`);
+    expect(out).toContain('<shloka>');
+    expect(out).not.toContain('<lipi>');
+  });
+
   it('wraps lipi without shloka in div', async () => {
     const out = await transliterateLipiSpansInMarkdown(
       `before <lipi>अ</lipi> after`,
       script,
       identityTransliterate
     );
-    expect(out).toContain(`<div class="${LIPI_SPAN_CLASS}">`);
+    expect(out).toContain(`<span class="${LIPI_SPAN_CLASS}">`);
     expect((out.match(/site_lipi_text_md/g) ?? []).length).toBe(1);
     expect(out).toContain('before ');
     expect(out).toContain(' after');
@@ -43,7 +55,7 @@ describe('transliterateLipiSpansInMarkdown', () => {
   it('wraps lipi containing shloka in p', async () => {
     const md = `<lipi><shloka>line\n</shloka></lipi>`;
     const out = await transliterateLipiSpansInMarkdown(md, script, identityTransliterate);
-    expect(out).toContain(`<p class="${LIPI_SPAN_CLASS}">`);
+    expect(out).toContain(`<div class="${LIPI_SPAN_CLASS}">`);
     expect(out).toContain('<shloka>');
     expect(out).not.toContain('<lipi>');
   });
@@ -52,7 +64,7 @@ describe('transliterateLipiSpansInMarkdown', () => {
     const md = `# H\n\n<lipi>one</lipi>\n\n## Between\n\n<lipi>two</lipi>`;
     const out = await transliterateLipiSpansInMarkdown(md, script, identityTransliterate);
     const wrappers = [...out.matchAll(/<(div|p) class="site_lipi_text_md">/g)];
-    expect(wrappers).toHaveLength(2);
+    expect(wrappers).toHaveLength(0);
     expect(out.indexOf('one')).toBeLessThan(out.indexOf('Between'));
     expect(out.indexOf('Between')).toBeLessThan(out.indexOf('two'));
   });

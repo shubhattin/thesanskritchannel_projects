@@ -9,6 +9,7 @@ on:
       - 'app/src/server/text_loader.ts'
       - 'app/src/state/**'
       - 'app/src/db/**'
+      - 'app/src/server/**'
       - 'package.json'
       - 'bun.lock'
       - '.github/workflows/deploy_site.yml'

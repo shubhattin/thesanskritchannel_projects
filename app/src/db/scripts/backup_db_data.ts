@@ -14,7 +14,12 @@ import {
   type _Object
 } from '@aws-sdk/client-s3';
 import mime from 'mime-types';
-import { TextSchemaZod, TranslationSchemaZod } from '../schema_zod';
+import {
+  MediaAttachmentSchemaZod,
+  SiteLekhaSchemaZod,
+  TextSchemaZod,
+  TranslationSchemaZod
+} from '../schema_zod';
 import { json2csv } from 'json-2-csv';
 import ms from 'ms';
 
@@ -105,17 +110,18 @@ async function backup_data() {
   await import_data(false).then(() => {
     fs.copyFileSync('./out/db_data.json', './backup/db_data.json');
   });
-  const text_data = TextSchemaZod.array().parse(
-    JSON.parse(fs.readFileSync('./backup/db_data.json', 'utf-8'))['texts']
-  );
-  const trans_data = TranslationSchemaZod.array().parse(
-    JSON.parse(fs.readFileSync('./backup/db_data.json', 'utf-8'))['translations']
-  );
   if (BACKUP_SQL) {
-    const trans_csv = json2csv(trans_data);
+    const data = JSON.parse(fs.readFileSync('./backup/db_data.json', 'utf-8'));
+    const trans_csv = json2csv(TranslationSchemaZod.array().parse(data['translations']));
     fs.writeFileSync(`./backup/translations.csv`, trans_csv);
-    const text_csv = json2csv(text_data);
+    const text_csv = json2csv(TextSchemaZod.array().parse(data['texts']));
     fs.writeFileSync(`./backup/texts.csv`, text_csv);
+    const site_lekhas_csv = json2csv(SiteLekhaSchemaZod.array().parse(data['site_lekhas']));
+    fs.writeFileSync(`./backup/site_lekhas.csv`, site_lekhas_csv);
+    const media_attachment_csv = json2csv(
+      MediaAttachmentSchemaZod.array().parse(data['media_attachment'])
+    );
+    fs.writeFileSync(`./backup/media_attachment.csv`, media_attachment_csv);
   }
   if (!argv.includes('--no-zip-backup')) {
     console.log('Zipping backup files');

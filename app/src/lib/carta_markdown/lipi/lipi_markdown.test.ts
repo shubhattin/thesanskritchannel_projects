@@ -14,21 +14,21 @@ const identityTransliterate = (async (text: string) => text) as typeof translite
 const script: script_list_type = 'Devanagari';
 
 describe('transliterateLipiSpansInMarkdown', () => {
-  it('wraps single-line lipi in span', async () => {
+  it('wraps lipi without shloka in div', async () => {
     const out = await transliterateLipiSpansInMarkdown(
       `before <lipi>अ</lipi> after`,
       script,
       identityTransliterate
     );
-    expect(out).toContain(`<span class="${LIPI_SPAN_CLASS}">`);
+    expect(out).toContain(`<div class="${LIPI_SPAN_CLASS}">`);
     expect((out.match(/site_lipi_text_md/g) ?? []).length).toBe(1);
     expect(out).toContain('before ');
     expect(out).toContain(' after');
     expect(out).not.toContain('<lipi>');
-    expect(out).not.toContain('<div class=');
+    expect(out).not.toContain('<p class=');
   });
 
-  it('wraps lipi with blank-line paragraphs in div', async () => {
+  it('wraps lipi with blank-line inner matter but no shloka tag still in div', async () => {
     const inner = `line\n\n`;
     const out = await transliterateLipiSpansInMarkdown(
       `<lipi>${inner}a</lipi>`,
@@ -40,10 +40,10 @@ describe('transliterateLipiSpansInMarkdown', () => {
     expect(out).toContain('a');
   });
 
-  it('wraps lipi containing shloka in div', async () => {
+  it('wraps lipi containing shloka in p', async () => {
     const md = `<lipi><shloka>line\n</shloka></lipi>`;
     const out = await transliterateLipiSpansInMarkdown(md, script, identityTransliterate);
-    expect(out).toContain(`<div class="${LIPI_SPAN_CLASS}">`);
+    expect(out).toContain(`<p class="${LIPI_SPAN_CLASS}">`);
     expect(out).toContain('<shloka>');
     expect(out).not.toContain('<lipi>');
   });
@@ -51,7 +51,7 @@ describe('transliterateLipiSpansInMarkdown', () => {
   it('matches each lipi block independently (pairs do not swallow content between blocks)', async () => {
     const md = `# H\n\n<lipi>one</lipi>\n\n## Between\n\n<lipi>two</lipi>`;
     const out = await transliterateLipiSpansInMarkdown(md, script, identityTransliterate);
-    const wrappers = [...out.matchAll(/<(span|div) class="site_lipi_text_md">/g)];
+    const wrappers = [...out.matchAll(/<(div|p) class="site_lipi_text_md">/g)];
     expect(wrappers).toHaveLength(2);
     expect(out.indexOf('one')).toBeLessThan(out.indexOf('Between'));
     expect(out.indexOf('Between')).toBeLessThan(out.indexOf('two'));

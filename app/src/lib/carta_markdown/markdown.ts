@@ -1,6 +1,8 @@
 /**
  * Shared lekha markdown utilities for app (and future site DB loader).
  * Sanitize dangerous constructs, normalize markdown, transliterate <lipi>, expand <shloka>, render HTML.
+ * `<lipi-shloka>` is expanded only in `renderLekhaMarkdownToHtml`. For save/format,
+ * `formatMarkdownSource` isolates intact `<lipi-shloka>` blocks before remark-stringify so inner blank lines are not corrupted.
  *
  * Uses `dompurify` + `linkedom` on the server (not `isomorphic-dompurify` / jsdom) so Vercel's NFT
  * bundler does not follow jsdom's optional `canvas` peer, which is often missing and breaks `realpath`.
@@ -18,6 +20,11 @@ import type { script_list_type } from '../../state/lang_list';
 import { expandCartaStyleVideoEmbedsInMarkdown } from './video/cartaVideoEmbeds';
 import { expandShlokaSpansInMarkdown, stripShlokaTagsFromHtml } from './shloka/shlokaMarkdown';
 import { transliterate } from 'lipilekhika';
+import {
+  expandLipiShlokaCompoundTags,
+  isolateLipiShlokaBlocksForRemarkFormat,
+  restoreLipiShlokaBlocksAfterRemarkFormat
+} from './lipi_shloka/lipiShlokaMarkdown';
 import { stripLipiTagsFromHtml, transliterateLipiSpansInMarkdown } from './lipi/lipiMarkdown';
 
 export { expandCartaStyleVideoEmbedsInMarkdown };
@@ -26,6 +33,12 @@ export {
   stripShlokaTagsFromHtml,
   SHLOKA_TAG_RE
 } from './shloka/shlokaMarkdown';
+export {
+  expandLipiShlokaCompoundTags,
+  isolateLipiShlokaBlocksForRemarkFormat,
+  restoreLipiShlokaBlocksAfterRemarkFormat,
+  LIPI_SHLOKA_BLOCK_RE
+} from './lipi_shloka/lipiShlokaMarkdown';
 
 /**
  * Best-effort cleanup of raw markdown source (nested tags and parser quirks can bypass this).
@@ -116,9 +129,11 @@ export async function renderLekhaMarkdownToHtml(
     options.skipSourceSanitization === true
       ? normalized
       : removeDangerousTagsFromMarkdownSource(normalized);
-  // lipi plugin
+  // lipi-shloka shorthand → nested tags (preview/render only; storage keeps `<lipi-shloka>` as authored)
+  const after_lipi_shloka = expandLipiShlokaCompoundTags(md);
+  // lipi plugin (1st then shloka plugin later)
   const after_lipi = await transliterateLipiSpansInMarkdown(
-    md,
+    after_lipi_shloka,
     options.script,
     options.lipiTransliterator
   );
@@ -139,8 +154,11 @@ export async function renderLekhaMarkdownToHtml(
 
 /**
  * Normalize markdown (GFM) for consistent storage: list style, fences, line endings.
+ * `<lipi-shloka>…</lipi-shloka>` spans are swapped for HTML-comment sentinels before remark,
+ * then restored verbatim so verse spacing survives CommonMark HTML-block quirks.
  */
 export async function formatMarkdownSource(markdown: string): Promise<string> {
+  const { text: protectedMd, blocks } = isolateLipiShlokaBlocksForRemarkFormat(markdown);
   const file = await unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -153,8 +171,12 @@ export async function formatMarkdownSource(markdown: string): Promise<string> {
       listItemIndent: 'one',
       incrementListMarker: false
     })
-    .process(markdown);
-  return String(file).replace(/\r\n/g, '\n').trimEnd();
+    .process(protectedMd);
+  let out = String(file).replace(/\r\n/g, '\n').trimEnd();
+  if (blocks.length > 0) {
+    out = restoreLipiShlokaBlocksAfterRemarkFormat(out, blocks);
+  }
+  return out;
 }
 
 export function normalizeTagsForStorage(tags: string[]): string[] {

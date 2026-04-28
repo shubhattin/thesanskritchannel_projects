@@ -2,6 +2,7 @@ import type { Icon, Plugin } from 'carta-md';
 import { defaultIcons } from 'carta-md-default-icons';
 import { lipiToolbarIcon } from './lipi/lipiPlugin';
 import { shlokaToolbarIcon } from './shloka/shlokaPlugin';
+import { lipiShlokaToolbarIcon } from './lipi_shloka/lipiShlokaPlugin';
 import { lekhaUnderlinePlugin } from './underline/lekhaUnderlinePlugin';
 import { lekhaTableToolbarPlugin } from './table/lekhaTableToolbarPlugin';
 import { lekhaVideoToolbarPlugin } from './video/lekhaVideoToolbarPlugin';
@@ -23,13 +24,14 @@ function lekhaOrderedBaseIcons(): Icon[] {
     if (icon.id === 'italic') {
       out.push(lipiToolbarIcon);
       out.push(shlokaToolbarIcon);
+      out.push(lipiShlokaToolbarIcon);
     }
   }
   return out;
 }
 
 /**
- * Lekha editor Carta extensions: full toolbar + underline + GFM table snippet + YouTube snippet; Lipi then Shloka after Italic.
+ * Lekha editor Carta extensions: full toolbar + underline + GFM table snippet + YouTube snippet; Lipi, Shloka, Lipi+Shloka after Italic.
  */
 export function getLekhaCartaExtensions(): Plugin[] {
   return [

@@ -7,11 +7,15 @@ export const LIPI_TAG_RE = /<\s*lipi\b[^>]*>([\s\S]*?)<\/\s*lipi\s*>/gi;
 
 export const LIPI_SPAN_CLASS = 'site_lipi_text_md';
 
-function wrapLipiHtml(text: string) {
-  const is_block = /\n\s*\n|<\s*shloka\b/i.test(text);
-  return is_block
-    ? `<div class="${LIPI_SPAN_CLASS}">${text}</div>`
-    : `<span class="${LIPI_SPAN_CLASS}">${text}</span>`;
+/**
+ * After `<lipi>` is stripped, output must be `<div>` vs `<p>`:
+ * prose that includes `<shloka>` verse blocks needs a flow wrapper (`p`); plain lipi-only text uses `div`.
+ * Runs during `transliterateLipiSpansInMarkdown`, while `<shloka>` markup is still in the fragment (before `expandShlokaSpansInMarkdown`).
+ */
+function wrapLipiHtml(transliteratedInner: string) {
+  const hasShlokaTag = /<\s*shloka\b/i.test(transliteratedInner);
+  const el = hasShlokaTag ? 'p' : 'div';
+  return `<${el} class="${LIPI_SPAN_CLASS}">${transliteratedInner}</${el}>`;
 }
 
 /** Remove stray `<lipi>` wrappers that survived markdown/HTML parsing. */

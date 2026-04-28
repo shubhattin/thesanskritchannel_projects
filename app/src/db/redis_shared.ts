@@ -16,7 +16,7 @@ export const REDIS_CACHE_KEYS_CLIENT = {
     if (Array.isArray(path_params)) return key + path_params.join('/');
     return key + path_params;
   },
-  site_lekha_data: (lekha_id: number) => `site_lekha_data:${lekha_id}`,
+  site_lekha_data: (url_slug: string) => `site_lekha_data:${url_slug}`,
   // TODO : implement caching, paging and sorting, key will change in future, no issues
   site_lekha_list: () => `site_lekha_list`
 };
@@ -26,6 +26,6 @@ export const REDIS_CACHES_ARGUMENTS_LIST: Record<keyof typeof REDIS_CACHE_KEYS_C
   text_data: ['project_id', 'path_params'],
   translation: ['project_id', 'lang_id', 'path_params'],
   media_links: ['project_id', 'path_params'],
-  site_lekha_data: ['lekha_id'],
+  site_lekha_data: ['url_slug'],
   site_lekha_list: []
 };

@@ -1,27 +1,18 @@
 ---
-import { site_lekhas } from '$app/db/schema';
 import RootLayout from '$components/RootLayout.astro';
 import { PROJECT_LIST } from '../../../app/src/state/project_list';
-import { and, desc, eq } from 'drizzle-orm';
 import Youtube from '@lucide/svelte/icons/youtube';
 import ArrowRight from '@lucide/svelte/icons/arrow-right';
 import ExternalLink from '@lucide/svelte/icons/external-link';
 import Heart from '@lucide/svelte/icons/heart';
 import Icon from '~/components/utils/Icon.astro';
 import { db } from '~/db/site_db';
+import { get_site_lekha_list_func } from '$app/server/cached_loader';
+import { redis } from '~/db/site_db';
+import { waitUntil } from '@vercel/functions';
 
 // TODO: shall use the cached loader later
-const latest_lekhas = await db
-  .select({
-    title: site_lekhas.title,
-    description: site_lekhas.description,
-    url_slug: site_lekhas.url_slug,
-    published_at: site_lekhas.published_at
-  })
-  .from(site_lekhas)
-  .where(and(eq(site_lekhas.draft, false), eq(site_lekhas.listed, true)))
-  .orderBy(desc(site_lekhas.published_at))
-  .limit(5);
+const latest_lekhas = await get_site_lekha_list_func({ db, redis, defer: waitUntil });
 ---
 
 <RootLayout

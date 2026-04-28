@@ -56,7 +56,7 @@ const add_lekha_route = protectedAdminProcedure
     const lekha = await db.insert(site_lekhas).values(normalized).returning();
     const id = lekha[0].id;
 
-    waitUntil(redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(id)));
+    waitUntil(redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(lekha[0].url_slug)));
 
     return {
       id
@@ -85,7 +85,7 @@ const edit_lekha_route = protectedAdminProcedure
       .set({ ...normalized, ...(setPublishedNow ? { published_at: new Date() } : {}) })
       .where(eq(site_lekhas.id, id))
       .returning();
-    await redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(id));
+    await redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(lekha[0].url_slug));
 
     return {
       id: lekha[0]?.id ?? id,
@@ -98,8 +98,18 @@ const delete_lekha_route = protectedAdminProcedure
   .input(z.object({ id: z.number() }))
   .mutation(async ({ input: { id } }) => {
     await delay(1000);
+
+    const prev_data = await db.query.site_lekhas.findFirst({
+      where: (tbl, { eq: eqId }) => eqId(tbl.id, id),
+      columns: { url_slug: true }
+    });
+    if (!prev_data) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Lekha not found' });
+    }
+    const url_slug = prev_data.url_slug;
+
     await db.delete(site_lekhas).where(eq(site_lekhas.id, id));
-    waitUntil(redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(id)));
+    waitUntil(redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(url_slug)));
     return {
       id: id
     };

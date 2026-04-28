@@ -10,14 +10,13 @@ import {
 import type { Redis } from '@upstash/redis/cloudflare';
 import type { db } from '~/db/db';
 import type { SiteLekha } from '~/db/schema_zod';
+import { waitUntil } from '@vercel/functions';
 
 export type defer_promise_type = (promise: Promise<unknown>) => void;
 
 const defer_promise = (promise: Promise<unknown>, defer?: defer_promise_type) => {
-  if (defer) {
-    defer(promise);
-    return;
-  }
+  const defer_func = defer ?? waitUntil;
+  defer_func(promise);
   void promise.catch(() => {});
 };
 
@@ -126,18 +125,18 @@ export const get_translation_data_func = async (
 
 /** Cache laoder for `site_lekhas` */
 export const get_site_lekha_data_func = async (
-  lekha_id: number,
+  url_slug: string,
   options: { defer?: defer_promise_type; db: DBType; redis: Redis }
 ) => {
   const { db, redis } = options;
-  const cache_key = REDIS_CACHE_KEYS_CLIENT.site_lekha_data(lekha_id);
+  const cache_key = REDIS_CACHE_KEYS_CLIENT.site_lekha_data(url_slug);
 
   let cache = null;
   if (import.meta.env.PROD) cache = await redis.get<SiteLekha>(cache_key);
   if (cache) return cache;
 
   const data = await db.query.site_lekhas.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, lekha_id)
+    where: (tbl, { eq }) => eq(tbl.url_slug, url_slug)
   });
   if (!data) return null;
   if (import.meta.env.PROD) {
@@ -151,6 +150,7 @@ export const get_site_lekha_data_func = async (
   return data satisfies SiteLekha;
 };
 
+type lekhaListType = Omit<SiteLekha, 'content'>;
 /**
  * TODO : implement caching, paging and sorting
  *
@@ -160,9 +160,8 @@ export const get_site_lekha_list_func = async (options: {
   defer?: defer_promise_type;
   db: DBType;
   redis: Redis;
-}) => {
+}): Promise<lekhaListType[]> => {
   const { db, redis } = options;
-  type lekhaListType = Omit<SiteLekha, 'content'>;
   const cache_key = REDIS_CACHE_KEYS_CLIENT.site_lekha_list();
 
   let cache = null;

@@ -17,7 +17,7 @@
   import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Tabs from '$lib/components/ui/tabs';
   import * as Select from '$lib/components/ui/select';
-  import { getLekhaCartaExtensions } from '$lib/carta/lekhaCartaExtensions';
+  import { getLekhaCartaExtensions } from '~/lib/carta_markdown/lekhaCartaExtensions';
   import LekhaTagsInput from './LekhaTagsInput.svelte';
   import {
     cartaHtmlSanitizer,
@@ -25,7 +25,7 @@
     normalizeLekhaTextFields,
     renderLekhaMarkdownToHtml,
     sanitizeAndFormatLekhaMarkdownForStorage
-  } from '~/utils/markdown';
+  } from '~/lib/carta_markdown/markdown';
   import {
     SCRIPT_LIST,
     get_script_from_id,

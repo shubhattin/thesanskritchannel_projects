@@ -5,7 +5,7 @@ import {
   transliterateLipiSpansInMarkdown,
   LIPI_SPAN_CLASS
 } from './lipiMarkdown';
-import { renderLekhaMarkdownToHtml } from '~/utils/markdown';
+import { renderLekhaMarkdownToHtml } from '~/lib/carta_markdown/markdown';
 import type { script_list_type } from '~/state/lang_list';
 
 /** Deterministic preview: bypass real transliteration. */

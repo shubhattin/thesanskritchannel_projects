@@ -2,7 +2,7 @@ import type { LiveLoader } from 'astro/loaders';
 import { transliterate_node } from 'lipilekhika/node';
 import { get_script_from_id, type script_list_type } from '$app/state/lang_list';
 import { get_site_lekha_data_func, get_site_lekha_list_func } from '$app/server/cached_loader';
-import { renderLekhaMarkdownToHtml } from '$app/utils/markdown';
+import { renderLekhaMarkdownToHtml } from '$app/lib/carta_markdown/markdown';
 import { db, redis } from '~/db/site_db';
 import { DEFAULT_SCRIPT_ID } from '~/lib/cookies';
 import { waitUntil } from '@vercel/functions';

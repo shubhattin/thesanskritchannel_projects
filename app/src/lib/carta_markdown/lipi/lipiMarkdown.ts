@@ -1,6 +1,6 @@
 import { transliterate } from 'lipilekhika';
-import type { script_list_type } from '~/state/lang_list';
-import { transliterate_custom } from '~/tools/converter';
+import type { script_list_type } from '../../../state/lang_list';
+import { transliterate_custom } from '../../../tools/converter';
 
 /** `<lipi>…</lipi>` wraps Devanagari source; inner text is transliterated for preview. */
 export const LIPI_TAG_RE = /<\s*lipi\b[^>]*>([\s\S]*?)<\/\s*lipi\s*>/gi;

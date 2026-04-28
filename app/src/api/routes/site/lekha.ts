@@ -13,7 +13,7 @@ import {
   lekhaUrlSlugify,
   normalizeLekhaTextFields,
   sanitizeAndFormatLekhaMarkdownForStorage
-} from '~/utils/markdown';
+} from '~/lib/carta_markdown/markdown';
 
 const lekha_post_input = SiteLekhaSchemaZod.omit({
   id: true,

@@ -14,24 +14,18 @@ import remarkGfm from 'remark-gfm';
 import remarkStringify from 'remark-stringify';
 import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
-import type { script_list_type } from '../state/lang_list';
-import { expandCartaStyleVideoEmbedsInMarkdown } from '../lib/carta/video/cartaVideoEmbeds';
-import {
-  expandShlokaSpansInMarkdown,
-  stripShlokaTagsFromHtml
-} from '../lib/carta/shloka/shlokaMarkdown';
+import type { script_list_type } from '../../state/lang_list';
+import { expandCartaStyleVideoEmbedsInMarkdown } from './video/cartaVideoEmbeds';
+import { expandShlokaSpansInMarkdown, stripShlokaTagsFromHtml } from './shloka/shlokaMarkdown';
 import { transliterate } from 'lipilekhika';
-import {
-  stripLipiTagsFromHtml,
-  transliterateLipiSpansInMarkdown
-} from '../lib/carta/lipi/lipiMarkdown';
+import { stripLipiTagsFromHtml, transliterateLipiSpansInMarkdown } from './lipi/lipiMarkdown';
 
 export { expandCartaStyleVideoEmbedsInMarkdown };
 export {
   expandShlokaSpansInMarkdown,
   stripShlokaTagsFromHtml,
   SHLOKA_TAG_RE
-} from '../lib/carta/shloka/shlokaMarkdown';
+} from './shloka/shlokaMarkdown';
 
 /**
  * Best-effort cleanup of raw markdown source (nested tags and parser quirks can bypass this).

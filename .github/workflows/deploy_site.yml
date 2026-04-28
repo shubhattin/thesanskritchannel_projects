@@ -6,10 +6,11 @@ on:
     paths:
       - 'site/**'
       - 'data/**' # map changes
-      - 'app/src/server/text_loader.ts'
+      - 'app/src/server/**'
       - 'app/src/state/**'
       - 'app/src/db/**'
-      - 'app/src/server/**'
+      # Markdown utilities
+      - 'app/src/lib/carta_markdown/**'
       - 'package.json'
       - 'bun.lock'
       - '.github/workflows/deploy_site.yml'

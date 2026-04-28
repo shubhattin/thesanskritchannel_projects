@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Carta, MarkdownEditor } from 'carta-md';
   import 'carta-md/default.css';
-  import '$lib/carta/video/video-container.css';
+  import '$lib/carta_markdown/video/video-container.css';
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';

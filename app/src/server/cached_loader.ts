@@ -161,7 +161,15 @@ export const get_site_lekha_list_func = async (options: {
   db: DBType;
   redis: Redis;
 }) => {
-  const { db } = options;
+  const { db, redis } = options;
+  type lekhaListType = Omit<SiteLekha, 'content'>;
+  const cache_key = REDIS_CACHE_KEYS_CLIENT.site_lekha_list();
+
+  let cache = null;
+  if (import.meta.env.PROD) {
+    cache = await redis.get<lekhaListType[]>(cache_key);
+  }
+  if (cache) return cache;
 
   const data = await db.query.site_lekhas.findMany({
     columns: {
@@ -180,5 +188,14 @@ export const get_site_lekha_list_func = async (options: {
     where: (tbl, { eq, and }) => and(eq(tbl.draft, false), eq(tbl.listed, true))
   });
 
-  return data;
+  if (import.meta.env.PROD) {
+    defer_promise(
+      redis.set(cache_key, data, {
+        ex: ms('30days') / 1000
+      }),
+      options.defer
+    );
+  }
+
+  return data satisfies lekhaListType[];
 };

@@ -85,8 +85,7 @@ const edit_lekha_route = protectedAdminProcedure
       .set({ ...normalized, ...(setPublishedNow ? { published_at: new Date() } : {}) })
       .where(eq(site_lekhas.id, id))
       .returning();
-    // clear cache in background
-    waitUntil(redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(id)));
+    await redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(id));
 
     return {
       id: lekha[0]?.id ?? id,

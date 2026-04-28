@@ -15,20 +15,13 @@ import {
   sanitizeAndFormatLekhaMarkdownForStorage
 } from '~/utils/markdown';
 
-const lekha_post_input = SiteLekhaSchemaZod.pick({
-  title: true,
-  content: true,
-  description: true,
-  draft: true,
-  tags: true,
-  listed: true,
-  search_indexed: true,
-  url_slug: true
+const lekha_post_input = SiteLekhaSchemaZod.omit({
+  id: true,
+  published_at: true,
+  updated_at: true
 });
 
-async function normalizeLekhaPostForStorage(
-  post_data: z.infer<typeof lekha_post_input>
-): Promise<z.infer<typeof lekha_post_input>> {
+async function normalizeLekhaPostForStorage(post_data: z.infer<typeof lekha_post_input>) {
   const trimmed = normalizeLekhaTextFields(post_data);
   const content = await sanitizeAndFormatLekhaMarkdownForStorage(trimmed.content);
 

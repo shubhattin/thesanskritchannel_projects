@@ -3,6 +3,7 @@ import { defaultIcons } from 'carta-md-default-icons';
 import { lipiToolbarIcon } from './lipi/lipiPlugin';
 import { shlokaToolbarIcon } from './shloka/shlokaPlugin';
 import { lekhaUnderlinePlugin } from './underline/lekhaUnderlinePlugin';
+import { lekhaTableToolbarPlugin } from './table/lekhaTableToolbarPlugin';
 import { lekhaVideoToolbarPlugin } from './video/lekhaVideoToolbarPlugin';
 
 const DISABLED_DEFAULT_ICONS = new Set(['strikethrough', 'code', 'taskList']);
@@ -28,8 +29,13 @@ function lekhaOrderedBaseIcons(): Icon[] {
 }
 
 /**
- * Lekha editor Carta extensions: full toolbar + underline + YouTube snippet; Lipi then Shloka after Italic.
+ * Lekha editor Carta extensions: full toolbar + underline + GFM table snippet + YouTube snippet; Lipi then Shloka after Italic.
  */
 export function getLekhaCartaExtensions(): Plugin[] {
-  return [{ icons: lekhaOrderedBaseIcons() }, lekhaUnderlinePlugin(), lekhaVideoToolbarPlugin()];
+  return [
+    { icons: lekhaOrderedBaseIcons() },
+    lekhaUnderlinePlugin(),
+    lekhaTableToolbarPlugin(),
+    lekhaVideoToolbarPlugin()
+  ];
 }

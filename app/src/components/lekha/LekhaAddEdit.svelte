@@ -19,7 +19,13 @@
   import * as Select from '$lib/components/ui/select';
   import { getLekhaCartaExtensions } from '$lib/carta/lekhaCartaExtensions';
   import LekhaTagsInput from './LekhaTagsInput.svelte';
-  import { cartaHtmlSanitizer, lekhaUrlSlugify, renderLekhaMarkdownToHtml } from '~/utils/markdown';
+  import {
+    cartaHtmlSanitizer,
+    lekhaUrlSlugify,
+    normalizeLekhaTextFields,
+    renderLekhaMarkdownToHtml,
+    sanitizeAndFormatLekhaMarkdownForStorage
+  } from '~/utils/markdown';
   import {
     SCRIPT_LIST,
     get_script_from_id,
@@ -33,6 +39,7 @@
   import Check from '@lucide/svelte/icons/check';
   import CircleAlert from '@lucide/svelte/icons/circle-alert';
   import Loader2 from '@lucide/svelte/icons/loader-2';
+  import WandSparkles from '@lucide/svelte/icons/wand-sparkles';
   import type { SiteLekha } from '~/db/schema_zod';
   import { toast } from 'svelte-sonner';
 
@@ -46,6 +53,8 @@
     initial?: Omit<SiteLekha, 'id'>;
   } = $props();
 
+  // In the new svelte versions, we can use $derived for value updating too
+  // this works till the prop values does not chnage so we can do this here
   let title = $derived(initial?.title ?? '');
   let description = $derived(initial?.description ?? '');
   let content = $derived(initial?.content ?? '');
@@ -57,7 +66,7 @@
   let search_indexed = $state(true);
   /** When true, slug is derived from title and the slug field is read-only. */
   let slug_auto = $derived(initial?.url_slug ? false : true);
-  let url_slug_manual = $state('');
+  let url_slug_manual = $derived(initial?.url_slug ?? '');
 
   let preview_script_id = $state(get_script_id('Devanagari' as script_list_type) ?? 1);
   let editor_section = $state<'write' | 'preview'>('write');
@@ -71,6 +80,8 @@
   let unlock_slug_dialog_open = $state(false);
   let delete_dialog_open = $state(false);
   let publish_dialog_open = $state(false);
+  /** Remark-format pipeline matching DB storage (manual format / post-save sync). */
+  let format_busy = $state(false);
   /** Last session synced from `initial` (`'new'` or lekha id); avoids re-sync on referential re-renders. */
   let last_seeded = $state<'new' | number | null>(null);
 
@@ -180,10 +191,15 @@
   });
 
   const edit_mut = client_q.site.lekha.edit_lekha.mutation({
-    onSuccess: async (res) => {
+    onSuccess: async (res, vars) => {
       await invalidateLekhaList();
       if (res.draft != null) is_draft = res.draft;
       if (res.published_at) published_at_shown = new Date(res.published_at);
+      const normalized = normalizeLekhaTextFields(vars.post_data);
+      title = normalized.title;
+      description = normalized.description;
+      tags = normalized.tags;
+      content = await sanitizeAndFormatLekhaMarkdownForStorage(normalized.content);
       toast.success('Lekha updated successfully');
     }
   });
@@ -231,15 +247,42 @@
       description: description.trim(),
       content,
       tags,
-      url_slug: slug_locked
-        ? (initial?.url_slug ?? '').trim()
-        : slug_auto
-          ? lekhaUrlSlugify(title)
-          : url_slug_manual.trim(),
+      url_slug: urlSlugForNormalize(),
       draft: draft_for_request,
       listed,
       search_indexed
     };
+  }
+
+  function urlSlugForNormalize() {
+    return slug_locked
+      ? (initial?.url_slug ?? '').trim()
+      : slug_auto
+        ? lekhaUrlSlugify(title)
+        : url_slug_manual.trim();
+  }
+
+  async function formatMarkdown() {
+    if (format_busy || $add_mut.isPending || $edit_mut.isPending) return;
+    form_error = null;
+    format_busy = true;
+    try {
+      const normalized = normalizeLekhaTextFields({
+        title: title.trim(),
+        description: description.trim(),
+        content,
+        tags,
+        url_slug: urlSlugForNormalize()
+      });
+      title = normalized.title;
+      description = normalized.description;
+      tags = normalized.tags;
+      content = await sanitizeAndFormatLekhaMarkdownForStorage(normalized.content);
+    } catch (e) {
+      form_error = e instanceof Error ? e.message : String(e);
+    } finally {
+      format_busy = false;
+    }
   }
 
   function validateLekhaForm(): string | null {
@@ -590,13 +633,35 @@
   <div class="space-y-1.5">
     <Label>Content</Label>
     <Tabs.Root bind:value={editor_section} class="w-full">
-      <Tabs.List class="grid w-full max-w-md grid-cols-2">
-        <Tabs.Trigger value="write">Write</Tabs.Trigger>
-        <Tabs.Trigger value="preview">Preview</Tabs.Trigger>
-      </Tabs.List>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <Tabs.List class="grid max-w-md min-w-48 flex-1 grid-cols-2">
+          <Tabs.Trigger value="write">Write</Tabs.Trigger>
+          <Tabs.Trigger value="preview">Preview</Tabs.Trigger>
+        </Tabs.List>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          class="shrink-0 gap-1.5"
+          disabled={format_busy || $add_mut.isPending || $edit_mut.isPending}
+          onclick={() => void formatMarkdown()}
+        >
+          {#if format_busy}
+            <Loader2 class="size-3.5 shrink-0 animate-spin" aria-hidden="true" />
+          {:else}
+            <WandSparkles class="size-3.5 shrink-0" aria-hidden="true" />
+          {/if}
+          {format_busy ? 'Formatting…' : 'Format markdown'}
+        </Button>
+      </div>
       <Tabs.Content value="write" class="mt-3 outline-none">
         {#if browser && editor_ready}
-          <div class="lekha-carta">
+          <div
+            class="lekha-carta"
+            class:pointer-events-none={$add_mut.isPending || $edit_mut.isPending}
+            class:opacity-60={$add_mut.isPending || $edit_mut.isPending}
+            aria-busy={$add_mut.isPending || $edit_mut.isPending}
+          >
             <MarkdownEditor
               {carta}
               bind:value={content}

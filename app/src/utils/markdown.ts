@@ -20,9 +20,11 @@ import {
   expandShlokaSpansInMarkdown,
   stripShlokaTagsFromHtml
 } from '../lib/carta/shloka/shlokaMarkdown';
-import { transliterate_custom } from '../tools/converter';
 import { transliterate } from 'lipilekhika';
-import { LIPI_TAG_RE, stripLipiTagsFromHtml } from '../lib/carta/lipi/lipiMarkdown';
+import {
+  stripLipiTagsFromHtml,
+  transliterateLipiSpansInMarkdown
+} from '../lib/carta/lipi/lipiMarkdown';
 
 export { expandCartaStyleVideoEmbedsInMarkdown };
 export {
@@ -49,32 +51,6 @@ export function removeDangerousTagsFromMarkdownSource(md: string) {
   out = out.replace(/\]\(\s*javascript:/gi, '](');
   out = out.replace(/\]\(\s*data:/gi, '](');
   return out;
-}
-
-export async function transliterateLipiSpansInMarkdown(
-  markdown: string,
-  script: script_list_type,
-  lipilekhika_func: typeof transliterate | undefined = undefined
-) {
-  LIPI_TAG_RE.lastIndex = 0;
-  const chunks: string[] = [];
-  let last = 0;
-  let m: RegExpExecArray | null;
-  while ((m = LIPI_TAG_RE.exec(markdown)) !== null) {
-    chunks.push(markdown.slice(last, m.index));
-    chunks.push(
-      await transliterate_custom(
-        m[1],
-        'Devanagari',
-        script,
-        undefined,
-        lipilekhika_func ?? transliterate
-      )
-    );
-    last = m.index + m[0].length;
-  }
-  chunks.push(markdown.slice(last));
-  return chunks.join('');
 }
 
 /** DOMPurify config: keep `<lipi>`, inline styles, typical content markup, video embed HTML (`cartaVideoEmbeds`). */

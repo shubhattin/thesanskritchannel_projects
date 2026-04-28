@@ -77,7 +77,6 @@
   let editor_ready = $state(false);
   /** Edit only: set true after the user confirms the unlock dialog. */
   let slug_edit_unlocked = $state(false);
-  let unlock_slug_dialog_open = $state(false);
   let delete_dialog_open = $state(false);
   let publish_dialog_open = $state(false);
   /** Remark-format pipeline matching DB storage (manual format / post-save sync). */
@@ -206,7 +205,6 @@
 
   const delete_mut = client_q.site.lekha.delete_lekha.mutation({
     onSuccess: async () => {
-      delete_dialog_open = false;
       await invalidateLekhaList();
       await goto('/lekha');
     }
@@ -393,16 +391,53 @@
     </div>
     <div class="flex items-center gap-2">
       {#if mode === 'edit' && lekha_id != null}
-        <Button
-          type="button"
-          variant="destructive"
-          class="shrink-0"
-          data-testid="lekha-delete"
-          disabled={$delete_mut.isPending}
-          onclick={() => (delete_dialog_open = true)}
-        >
-          Delete
-        </Button>
+        <AlertDialog.Root bind:open={delete_dialog_open}>
+          <AlertDialog.Trigger>
+            {#snippet child({ props })}
+              <Button
+                {...props}
+                type="button"
+                variant="destructive"
+                class="shrink-0"
+                data-testid="lekha-delete"
+                disabled={$delete_mut.isPending}
+              >
+                Delete
+              </Button>
+            {/snippet}
+          </AlertDialog.Trigger>
+          <AlertDialog.Content class="max-w-md">
+            <AlertDialog.Header>
+              <AlertDialog.Title>Delete this lekha?</AlertDialog.Title>
+              <AlertDialog.Description class="text-sm text-muted-foreground">
+                This will permanently remove the post, including its content and URL. This action
+                <strong>cannot be undone</strong> and the post cannot be restored. Any links to this lekha
+                will stop working.
+              </AlertDialog.Description>
+            </AlertDialog.Header>
+            {#if $delete_mut.isError}
+              <p class="px-6 text-sm text-destructive" role="alert">
+                {String($delete_mut.error)}
+              </p>
+            {/if}
+            <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
+              <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+              <Button
+                type="button"
+                variant="destructive"
+                class="shrink-0"
+                disabled={$delete_mut.isPending}
+                onclick={() => {
+                  if (lekha_id != null) {
+                    $delete_mut.mutate({ id: lekha_id });
+                  }
+                }}
+              >
+                {$delete_mut.isPending ? 'Deleting…' : 'Delete permanently'}
+              </Button>
+            </AlertDialog.Footer>
+          </AlertDialog.Content>
+        </AlertDialog.Root>
       {/if}
       {#if mode === 'create'}
         <Button type="button" variant="outline" href="/lekha">Cancel</Button>
@@ -432,17 +467,44 @@
         class="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 text-sm"
       >
         <span class="text-muted-foreground">This lekha is a draft.</span>
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          class="shrink-0"
-          data-testid="lekha-publish"
-          disabled={$edit_mut.isPending || $delete_mut.isPending}
-          onclick={() => (publish_dialog_open = true)}
-        >
-          Publish
-        </Button>
+        <AlertDialog.Root bind:open={publish_dialog_open}>
+          <AlertDialog.Trigger>
+            {#snippet child({ props })}
+              <Button
+                {...props}
+                type="button"
+                size="sm"
+                variant="secondary"
+                class="shrink-0"
+                data-testid="lekha-publish"
+                disabled={$edit_mut.isPending || $delete_mut.isPending}
+              >
+                Publish
+              </Button>
+            {/snippet}
+          </AlertDialog.Trigger>
+          <AlertDialog.Content class="max-w-md">
+            <AlertDialog.Header>
+              <AlertDialog.Title>Publish this lekha?</AlertDialog.Title>
+              <AlertDialog.Description class="text-sm text-muted-foreground">
+                This will go live per your Listed and Search indexed choices. You can still edit the
+                post afterwards.
+              </AlertDialog.Description>
+            </AlertDialog.Header>
+            <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
+              <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+              <Button
+                type="button"
+                class="shrink-0"
+                disabled={$edit_mut.isPending}
+                onclick={confirmPublish}
+                data-testid="lekha-publish-confirm"
+              >
+                {$edit_mut.isPending ? 'Publishing…' : 'Publish'}
+              </Button>
+            </AlertDialog.Footer>
+          </AlertDialog.Content>
+        </AlertDialog.Root>
       </div>
     {:else if published_at_shown}
       <div
@@ -547,18 +609,38 @@
           <p class="text-xs text-muted-foreground">Lowercase, letters, digits, and hyphens only.</p>
         {/if}
       {:else}
-        <div class="flex flex-wrap items-end justify-between gap-3">
-          <Label for="lekha-slug-locked" class="mb-0">URL slug</Label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            class="shrink-0"
-            onclick={() => (unlock_slug_dialog_open = true)}
-          >
-            Change URL slug
-          </Button>
-        </div>
+        <AlertDialog.Root>
+          <div class="flex flex-wrap items-end justify-between gap-3">
+            <Label for="lekha-slug-locked" class="mb-0">URL slug</Label>
+            <AlertDialog.Trigger>
+              {#snippet child({ props })}
+                <Button {...props} type="button" variant="outline" size="sm" class="shrink-0">
+                  Change URL slug
+                </Button>
+              {/snippet}
+            </AlertDialog.Trigger>
+          </div>
+          <AlertDialog.Content class="max-w-md">
+            <AlertDialog.Header>
+              <AlertDialog.Title>Change URL slug?</AlertDialog.Title>
+              <AlertDialog.Description class="text-sm text-muted-foreground">
+                Changing the URL slug updates the post&rsquo;s public address. Old links, bookmarks,
+                and search results that used the previous slug will stop working unless you set up a
+                redirect elsewhere. Only continue if you intend to change how this post is reached.
+              </AlertDialog.Description>
+            </AlertDialog.Header>
+            <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
+              <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+              <AlertDialog.Action
+                onclick={() => {
+                  slug_edit_unlocked = true;
+                }}
+              >
+                Unlock and edit
+              </AlertDialog.Action>
+            </AlertDialog.Footer>
+          </AlertDialog.Content>
+        </AlertDialog.Root>
         <div class="flex gap-2">
           <Input
             id="lekha-slug-locked"
@@ -715,88 +797,6 @@
     </Tabs.Root>
   </div>
 </form>
-
-<AlertDialog.Root bind:open={unlock_slug_dialog_open}>
-  <AlertDialog.Content class="max-w-md">
-    <AlertDialog.Header>
-      <AlertDialog.Title>Change URL slug?</AlertDialog.Title>
-      <AlertDialog.Description class="text-sm text-muted-foreground">
-        Changing the URL slug updates the post&rsquo;s public address. Old links, bookmarks, and
-        search results that used the previous slug will stop working unless you set up a redirect
-        elsewhere. Only continue if you intend to change how this post is reached.
-      </AlertDialog.Description>
-    </AlertDialog.Header>
-    <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
-      <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-      <AlertDialog.Action
-        onclick={() => {
-          unlock_slug_dialog_open = false;
-          slug_edit_unlocked = true;
-        }}
-      >
-        Unlock and edit
-      </AlertDialog.Action>
-    </AlertDialog.Footer>
-  </AlertDialog.Content>
-</AlertDialog.Root>
-
-<AlertDialog.Root bind:open={publish_dialog_open}>
-  <AlertDialog.Content class="max-w-md">
-    <AlertDialog.Header>
-      <AlertDialog.Title>Publish this lekha?</AlertDialog.Title>
-      <AlertDialog.Description class="text-sm text-muted-foreground">
-        This will go live per your Listed and Search indexed choices. You can still edit the post
-        afterwards.
-      </AlertDialog.Description>
-    </AlertDialog.Header>
-    <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
-      <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-      <Button
-        type="button"
-        class="shrink-0"
-        disabled={$edit_mut.isPending}
-        onclick={confirmPublish}
-        data-testid="lekha-publish-confirm"
-      >
-        {$edit_mut.isPending ? 'Publishing…' : 'Publish'}
-      </Button>
-    </AlertDialog.Footer>
-  </AlertDialog.Content>
-</AlertDialog.Root>
-
-<AlertDialog.Root bind:open={delete_dialog_open}>
-  <AlertDialog.Content class="max-w-md">
-    <AlertDialog.Header>
-      <AlertDialog.Title>Delete this lekha?</AlertDialog.Title>
-      <AlertDialog.Description class="text-sm text-muted-foreground">
-        This will permanently remove the post, including its content and URL. This action
-        <strong>cannot be undone</strong> and the post cannot be restored. Any links to this lekha will
-        stop working.
-      </AlertDialog.Description>
-    </AlertDialog.Header>
-    {#if $delete_mut.isError}
-      <p class="px-6 text-sm text-destructive" role="alert">
-        {String($delete_mut.error)}
-      </p>
-    {/if}
-    <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
-      <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-      <Button
-        type="button"
-        variant="destructive"
-        class="shrink-0"
-        disabled={$delete_mut.isPending}
-        onclick={() => {
-          if (lekha_id != null) {
-            $delete_mut.mutate({ id: lekha_id });
-          }
-        }}
-      >
-        {$delete_mut.isPending ? 'Deleting…' : 'Delete permanently'}
-      </Button>
-    </AlertDialog.Footer>
-  </AlertDialog.Content>
-</AlertDialog.Root>
 
 <style>
   :global(.lekha-carta .carta-theme__default) {

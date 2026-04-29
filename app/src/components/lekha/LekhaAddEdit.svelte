@@ -1,6 +1,8 @@
 <script lang="ts">
   import { Carta, MarkdownEditor } from 'carta-md';
   import 'carta-md/default.css';
+  import '@cartamd/plugin-code/default.css';
+  import '$lib/carta_markdown/code/shiki-theme.css';
   import '$lib/carta_markdown/video/video-container.css';
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
@@ -26,6 +28,8 @@
     renderLekhaMarkdownToHtml,
     sanitizeAndFormatLekhaMarkdownForStorage
   } from '~/lib/carta_markdown/markdown';
+  import { LEKHA_SHIKI_DUAL } from '~/lib/carta_markdown/code/lekhaShikiThemes';
+  import { LEKHA_SHIKI_LANGS } from '~/lib/carta_markdown/code/lekhaShikiLangs';
   import {
     SCRIPT_LIST,
     get_script_from_id,
@@ -160,9 +164,14 @@
 
   const carta = new Carta({
     sanitizer: cartaHtmlSanitizer,
+    /** Align Shiki with `renderLekhaMarkdownToHtml` / site (`LEKHA_SHIKI_*`). */
+    theme: LEKHA_SHIKI_DUAL,
+    shikiOptions: {
+      langs: [...LEKHA_SHIKI_LANGS]
+    },
     /** Use `getLekhaCartaExtensions()` for custom order (Lipi after Italic); no default icon strip. */
     disableIcons: true,
-    disableShortcuts: ['strikethrough', 'code'],
+    disableShortcuts: ['strikethrough'],
     disablePrefixes: ['taskList'],
     extensions: getLekhaCartaExtensions()
   });
@@ -788,7 +797,7 @@
           <p class="text-sm text-destructive">{preview_error}</p>
         {/if}
         <div
-          class="markdown-body prose max-w-none rounded-lg border bg-muted/20 p-4 text-foreground prose-neutral dark:prose-invert"
+          class="lekha-markdown markdown-body prose max-w-none rounded-lg border bg-muted/20 p-4 text-foreground prose-neutral dark:prose-invert"
         >
           <!-- eslint-disable svelte/no-at-html-tags -->
           {@html preview_html || '<p class="text-muted-foreground">Nothing to preview.</p>'}
@@ -849,10 +858,27 @@
     background: var(--card);
   }
 
+  :global(.lekha-carta .carta-theme__default .carta-toolbar),
+  :global(.lekha-carta .carta-theme__default .carta-icons-menu) {
+    color: var(--foreground);
+  }
+
   :global(.lekha-carta .carta-theme__default .carta-input),
   :global(.lekha-carta .carta-theme__default .carta-renderer),
   :global(.lekha-carta .carta-theme__default .carta-icons-menu) {
     background: var(--background);
+  }
+
+  /*
+   * Avoid `color: var(--foreground)` on `.carta-input` — it cascades onto `.carta-highlight` / Shiki
+   * overlay and washes out per-token hues (preview uses raw HTML outside this subtree).
+   * Keep Shiki-controlled colors on `pre`/spans only; textarea must stay transparent.
+   */
+  :global(.lekha-carta .carta-theme__default .carta-input textarea) {
+    color: transparent !important;
+  }
+
+  :global(.lekha-carta .carta-theme__default .carta-renderer) {
     color: var(--foreground);
   }
 
@@ -860,24 +886,9 @@
     color: var(--muted-foreground);
   }
 
-  :global(.lekha-carta .carta-theme__default .carta-input textarea),
-  :global(.lekha-carta .carta-theme__default .carta-input pre) {
-    color: var(--foreground);
-  }
-
   :global(.lekha-carta .carta-theme__default .carta-input),
   :global(.lekha-carta .carta-theme__default .carta-renderer) {
     min-height: 24rem;
-  }
-
-  /* Carta docs dark-mode guidance for Shiki token colors. */
-  :global(.lekha-carta .shiki) {
-    background: var(--background) !important;
-  }
-
-  :global(html.dark .lekha-carta .shiki),
-  :global(html.dark .lekha-carta .shiki span) {
-    color: var(--shiki-dark) !important;
   }
 
   :global(.carta-font-code) {

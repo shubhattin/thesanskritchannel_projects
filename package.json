@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "version": "0.0.1",
+  "scripts": {
+    "format": "bun --cwd app format && bun --cwd site format"
+  },
   "workspaces": [
     "app",
     "site"

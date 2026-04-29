@@ -1,6 +1,7 @@
 /**
  * Shared lekha markdown utilities for app (and future site DB loader).
  * Sanitize dangerous constructs, normalize markdown, transliterate <lipi>, expand <shloka>, render HTML.
+ * Fenced code blocks use Shiki dual themes (`./code/`) in `renderLekhaMarkdownToHtml`, matching the Carta editor.
  * `<lipi-shloka>` is expanded only in `renderLekhaMarkdownToHtml`. For save/format,
  * `formatMarkdownSource` isolates intact `<lipi-shloka>` blocks before remark-stringify so inner blank lines are not corrupted.
  *
@@ -16,6 +17,7 @@ import remarkGfm from 'remark-gfm';
 import remarkStringify from 'remark-stringify';
 import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
+import rehypeShikiFromHighlighter from '@shikijs/rehype/core';
 import type { script_list_type } from '../../state/lang_list';
 import { expandCartaStyleVideoEmbedsInMarkdown } from './video/cartaVideoEmbeds';
 import { expandShlokaSpansInMarkdown, stripShlokaTagsFromHtml } from './shloka/shlokaMarkdown';
@@ -26,8 +28,11 @@ import {
   restoreLipiShlokaBlocksAfterRemarkFormat
 } from './lipi_shloka/lipiShlokaMarkdown';
 import { stripLipiTagsFromHtml, transliterateLipiSpansInMarkdown } from './lipi/lipiMarkdown';
+import { getLekhaShikiHighlighter } from './code/lekhaShikiHighlighter';
+import { LEKHA_SHIKI_DUAL } from './code/lekhaShikiThemes';
 
 export { expandCartaStyleVideoEmbedsInMarkdown };
+export { LEKHA_SHIKI_DUAL, LEKHA_SHIKI_LANGS } from './code';
 export {
   expandShlokaSpansInMarkdown,
   stripShlokaTagsFromHtml,
@@ -141,10 +146,18 @@ export async function renderLekhaMarkdownToHtml(
   const with_shloka = expandShlokaSpansInMarkdown(after_lipi);
   // video plugin
   const with_videos = expandCartaStyleVideoEmbedsInMarkdown(with_shloka);
+  const highlighter = await getLekhaShikiHighlighter();
   const file = await unified()
     .use(remarkParse)
     .use(remarkGfm)
     .use(remarkRehype, { allowDangerousHtml: true })
+    .use(rehypeShikiFromHighlighter, highlighter, {
+      themes: {
+        light: LEKHA_SHIKI_DUAL.light,
+        dark: LEKHA_SHIKI_DUAL.dark
+      },
+      fallbackLanguage: 'markdown'
+    })
     .use(rehypeStringify, { allowDangerousHtml: true })
     .process(with_videos);
   const raw_html = file.toString();

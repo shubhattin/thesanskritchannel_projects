@@ -8,6 +8,7 @@ import { lekhaUnderlinePlugin } from './underline/lekhaUnderlinePlugin';
 import { lekhaTableToolbarPlugin } from './table/lekhaTableToolbarPlugin';
 import { lekhaVideoToolbarPlugin } from './video/lekhaVideoToolbarPlugin';
 import { LEKHA_SHIKI_DUAL } from './code/lekhaShikiThemes';
+import { LEKHA_CARTA_GRAMMAR_RULES } from './lekhaCartaGrammarRules';
 
 const DISABLED_DEFAULT_ICONS = new Set(['strikethrough', 'taskList']);
 
@@ -38,6 +39,7 @@ function lekhaOrderedBaseIcons(): Icon[] {
  */
 export function getLekhaCartaExtensions(): Plugin[] {
   return [
+    { grammarRules: LEKHA_CARTA_GRAMMAR_RULES },
     code({ theme: LEKHA_SHIKI_DUAL }),
     { icons: lekhaOrderedBaseIcons() },
     lekhaUnderlinePlugin(),

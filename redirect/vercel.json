@@ -1,5 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "hono",
-  "installCommand": "bun install --frozen-lockfile"
+  "framework": "hono"
 }

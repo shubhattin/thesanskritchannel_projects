@@ -30,17 +30,6 @@ jobs:
         with:
           bun-version: latest
 
-      # Vercel CLI runs `spawn('bun', ...)` for install; it must resolve `bun` on PATH
-      # (setup-bun often only adds ~/.bun/bin for the runner shell, not for all child processes).
-      - name: Link bun for Vercel CLI
-        run: |
-          BUN_BIN="$(command -v bun)"
-          echo "BUN_BIN=$BUN_BIN"
-          test -n "$BUN_BIN"
-          sudo mkdir -p /usr/local/bin
-          sudo ln -sf "$BUN_BIN" /usr/local/bin/bun
-          /usr/local/bin/bun --version
-
       - name: Install monorepo dependencies
         run: bun install --frozen-lockfile
 

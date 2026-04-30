@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "bun run --hot src/bun-serve.ts",
     "build": "vite build",
-    "start": "bun run dist/index.js",
+    "start": "cd dist && bun index.js",
+    "start:node": "cd dist && node index.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },

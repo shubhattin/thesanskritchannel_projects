@@ -1,7 +1,9 @@
-/**
- * Vercel + Hono: default export must be the Hono app (not Bun.serve config).
- * @see https://vercel.com/docs/frameworks/backend/hono
- */
 import { createRedirectApp } from './redirect-app'
 
-export default createRedirectApp(process.env.MAIN_SITE_URL)
+/**
+ * Vercel runs this as a Hono app (default export).
+ * @see https://vercel.com/docs/frameworks/backend/hono
+ */
+const app = createRedirectApp(process.env.MAIN_SITE_URL)
+
+export default app

@@ -3,6 +3,6 @@
   "bunVersion": "1.x",
   "framework": null,
   "outputDirectory": null,
-  "installCommand": "bun install --frozen-lockfile --cwd .. && cd ../app && bun run sync && cd ../site && bunx astro sync",
+  "installCommand": "bun install --frozen-lockfile",
   "buildCommand": "bun run build"
 }

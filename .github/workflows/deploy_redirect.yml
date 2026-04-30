@@ -49,6 +49,14 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_REDIRECT_PROJECT_ID }}
         run: bunx vercel env pull .env.production.local --environment=production --token="$VERCEL_TOKEN" --yes
 
+      - name: Pull Vercel project settings
+        working-directory: redirect
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_REDIRECT_PROJECT_ID }}
+        run: bunx vercel pull --environment=production --token="$VERCEL_TOKEN" --yes
+
       - name: Build (Vercel prebuilt output)
         working-directory: redirect
         env:
@@ -64,4 +72,4 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_REDIRECT_PROJECT_ID }}
-        run: bunx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" --yes
+        run: bunx vercel deploy --prebuilt --archive=tgz --prod --token="$VERCEL_TOKEN" --yes

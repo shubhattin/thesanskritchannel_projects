@@ -25,6 +25,14 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+      
+      - name: Sync app
+        working-directory: app
+        run: bun run sync
+      
+      - name: Sync site
+        working-directory: site
+        run: bun astro sync
 
       - name: Pull Vercel env (production)
         working-directory: redirect

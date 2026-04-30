@@ -30,6 +30,17 @@ jobs:
         with:
           bun-version: latest
 
+      # `vercel build` auto-detects `bun.lock` and spawns `bun` directly.
+      # In Actions, that child process can miss the setup-bun PATH entry, so
+      # expose `bun` on a standard system path.
+      - name: Expose bun for Vercel CLI
+        run: |
+          BUN_BIN="$(command -v bun)"
+          echo "bun=$BUN_BIN"
+          test -n "$BUN_BIN"
+          sudo ln -sf "$BUN_BIN" /usr/local/bin/bun
+          /usr/local/bin/bun --version
+
       - name: Install monorepo dependencies
         run: bun install --frozen-lockfile
 

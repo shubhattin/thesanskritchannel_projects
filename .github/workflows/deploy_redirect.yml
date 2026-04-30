@@ -1,0 +1,58 @@
+name: Deploy Redirect to Vercel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'redirect/**'
+      - 'data/**'
+      - 'site/src/utils/text-routes.ts'
+      - 'app/src/state/**'
+      - '.github/workflows/deploy_redirect.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install redirect dependencies
+        working-directory: redirect
+        run: bun install --frozen-lockfile
+
+      - name: Pull Vercel env (production)
+        working-directory: redirect
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_REDIRECT_PROJECT_ID }}
+        run: bunx vercel env pull .env.production.local --environment=production --token="$VERCEL_TOKEN" --yes
+
+      - name: Build (Vercel prebuilt output)
+        working-directory: redirect
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_REDIRECT_PROJECT_ID }}
+        run: bunx vercel build --prod --token="$VERCEL_TOKEN" --yes
+
+      - name: Deploy to Vercel
+        if: success()
+        working-directory: redirect
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_REDIRECT_PROJECT_ID }}
+        run: bunx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" --yes

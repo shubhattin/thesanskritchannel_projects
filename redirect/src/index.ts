@@ -1,9 +1,10 @@
-import { Hono } from 'hono'
+import { createRedirectApp } from './redirect-app'
 
-const app = new Hono()
+const app = createRedirectApp(process.env.MAIN_SITE_URL)
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
+const port = Number(process.env.PORT) || 5273
 
-export default app
+export default {
+  port,
+  fetch: app.fetch,
+}

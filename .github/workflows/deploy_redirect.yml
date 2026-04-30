@@ -28,9 +28,16 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install redirect dependencies
-        working-directory: redirect
+      - name: Install monorepo dependencies
         run: bun install --frozen-lockfile
+
+      - name: Sync SvelteKit (app)
+        working-directory: app
+        run: bun run sync
+
+      - name: Sync Astro (site)
+        working-directory: site
+        run: bunx astro sync
 
       - name: Pull Vercel env (production)
         working-directory: redirect

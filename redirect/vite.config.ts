@@ -1,9 +1,12 @@
-import path from 'node:path'
+import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
 
-const dataDir = path.resolve(__dirname, '../data')
+const dir = path.dirname(fileURLToPath(import.meta.url))
+const dataDir = path.resolve(dir, '../data')
 
 export default defineConfig({
+  root: dir,
   resolve: {
     alias: {
       '@data': dataDir,

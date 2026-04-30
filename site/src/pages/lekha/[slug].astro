@@ -36,6 +36,8 @@ const rendered = entry
   ? await render({ ...entry, collection: 'lekha' } as Parameters<typeof render>[0])
   : null;
 const Content = rendered?.Content;
+// @ts-ignore
+const HAS_SCRIPT_INDICATOR = entry?.has_script_indicator ?? false;
 
 const lekha_body_font_class =
   getFontClass(get_display_script_from_id(selected_script_id)) ?? 'font-normal';
@@ -74,7 +76,9 @@ const lekha_body_font_class =
                 }) ?? ''}
               </time>
             </div>
-            <MainTextScriptSelector client:load initial_script_id={selected_script_id} />
+            {HAS_SCRIPT_INDICATOR && (
+              <MainTextScriptSelector client:load initial_script_id={selected_script_id} />
+            )}
           </div>
         </header>
         <div

@@ -15,6 +15,9 @@ function script_from_id(script_id: number | undefined): script_list_type {
   return (s ?? fallback ?? 'Devanagari') as script_list_type;
 }
 
+/** Indicators which tell if Script change component is needed */
+const SCRIPT_INDICATORS = ['<lipi>', '<lipi-shloka>'] as const;
+
 export type LekhaLiveEntryFilter = { id: string; scriptId?: number };
 
 export function lekhaDbLiveLoader(): LiveLoader<
@@ -54,6 +57,9 @@ export function lekhaDbLiveLoader(): LiveLoader<
         return {
           id: row.url_slug,
           data: row,
+          has_script_indicator: SCRIPT_INDICATORS.some((indicator) =>
+            row.content.includes(indicator)
+          ),
           rendered: { html }
         };
       } catch (error) {

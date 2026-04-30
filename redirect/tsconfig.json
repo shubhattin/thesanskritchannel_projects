@@ -1,13 +1,16 @@
 {
   "compilerOptions": {
-    "strict": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
     "target": "ESNext",
-    "esModuleInterop": true,
+    "module": "NodeNext",
+    "strict": true,
+    "verbatimModuleSyntax": true,
     "skipLibCheck": true,
+    "types": [
+      "node"
+    ],
     "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx"
+    "jsxImportSource": "hono/jsx",
+    "outDir": "./dist"
   },
-  "include": ["src/**/*.ts", "vitest.config.ts"]
+  "exclude": ["node_modules"]
 }

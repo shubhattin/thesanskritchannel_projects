@@ -39,13 +39,13 @@ jobs:
         working-directory: site
         run: npx astro sync
 
+      # Vercel project Root Directory is `redirect`: run CLI from repo root or path becomes redirect/redirect.
       - name: Pull Vercel env (production)
-        working-directory: redirect
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_REDIRECT_PROJECT_ID }}
-        run: bunx vercel env pull .env.production.local --environment=production --token="$VERCEL_TOKEN" --yes
+        run: bunx vercel env pull redirect/.env.production.local --environment=production --token="$VERCEL_TOKEN" --yes
 
       - name: Build (Vercel)
         working-directory: redirect
@@ -54,10 +54,9 @@ jobs:
         run: bun run build
 
       - name: Deploy to Vercel
-        working-directory: redirect
+        if: success()
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_REDIRECT_PROJECT_ID }}
-        run: bunx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" --yes
-        if: success()
+        run: bunx vercel deploy redirect --prebuilt --prod --token="$VERCEL_TOKEN" --yes

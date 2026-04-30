@@ -1,0 +1,50 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'redirect/**'
+      - 'package.json'
+      - 'bun.lock'
+      - 'data/**' # sub to *_map.json changes
+      - '.github/workflows/deploy_redirect.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Pull Vercel env (production)
+        working-directory: redirect
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_REDIRECT_PROJECT_ID: ${{ secrets.VERCEL_REDIRECT_PROJECT_ID }}
+        run: bunx vercel env pull .env.production.local --environment=production --token="$VERCEL_TOKEN" --yes
+
+      - name: Build (Vercel)
+        working-directory: redirect
+        env:
+          BUILD_MODE: vercel
+        run: bun run build
+
+      - name: Deploy to Vercel
+        working-directory: redirect
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_REDIRECT_PROJECT_ID: ${{ secrets.VERCEL_REDIRECT_PROJECT_ID }}
+        run: bunx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" --yes
+        if: success()

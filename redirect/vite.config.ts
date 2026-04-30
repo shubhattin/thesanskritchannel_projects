@@ -13,7 +13,7 @@ export default defineConfig({
     },
   },
   build: {
-    ssr: path.resolve(__dirname, 'src/index.ts'),
+    ssr: path.resolve(dir, 'src/bun-serve.ts'),
     outDir: 'dist',
     emptyOutDir: true,
     target: 'node18',

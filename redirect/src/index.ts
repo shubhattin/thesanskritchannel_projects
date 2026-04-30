@@ -1,10 +1,7 @@
+/**
+ * Vercel + Hono: default export must be the Hono app (not Bun.serve config).
+ * @see https://vercel.com/docs/frameworks/backend/hono
+ */
 import { createRedirectApp } from './redirect-app'
 
-const app = createRedirectApp(process.env.MAIN_SITE_URL)
-
-const port = Number(process.env.PORT) || 5273
-
-export default {
-  port,
-  fetch: app.fetch,
-}
+export default createRedirectApp(process.env.MAIN_SITE_URL)

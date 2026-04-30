@@ -1,8 +1,10 @@
 {
   "name": "redirect",
+  "type": "module",
   "scripts": {
-    "dev": "bun run --hot src/index.ts",
+    "dev": "bun run --hot src/bun-serve.ts",
     "build": "vite build",
+    "build:vercel": "exit 0",
     "start": "bun run dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest"

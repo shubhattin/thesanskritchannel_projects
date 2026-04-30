@@ -1,14 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.x",
-  "framework": null,
-  "buildCommand": null,
-  "outputDirectory": null,
-  "installCommand": "bun install --frozen-lockfile",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/index"
-    }
-  ]
+  "framework": "hono",
+  "installCommand": "bun install --frozen-lockfile"
 }

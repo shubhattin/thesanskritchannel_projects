@@ -3,28 +3,13 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
 
 const dir = path.dirname(fileURLToPath(import.meta.url))
-const dataDir = path.resolve(dir, '../data')
 
 export default defineConfig({
   root: dir,
   resolve: {
     alias: {
-      '@data': dataDir,
+      '@data': path.resolve(dir, '../data'),
     },
-  },
-  build: {
-    ssr: path.resolve(dir, 'src/bun-serve.ts'),
-    outDir: 'dist',
-    emptyOutDir: true,
-    target: 'node18',
-    rollupOptions: {
-      output: {
-        entryFileNames: 'index.js',
-      },
-    },
-  },
-  ssr: {
-    noExternal: true,
   },
   test: {
     environment: 'node',

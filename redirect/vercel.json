@@ -2,5 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.x",
   "installCommand": "bun install --frozen-lockfile --cwd .. && cd ../app && bun run sync && cd ../site && bunx astro sync",
-  "buildCommand": "bun run build:vercel"
+  "buildCommand": "bun run build"
 }

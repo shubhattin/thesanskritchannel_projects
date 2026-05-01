@@ -46,6 +46,13 @@
   import WandSparkles from '@lucide/svelte/icons/wand-sparkles';
   import type { SiteLekha } from '~/db/schema_zod';
   import { toast } from 'svelte-sonner';
+  import {
+    clearTypingContextOnKeyDown,
+    createTypingContext,
+    handleTypingBeforeInputEvent
+  } from 'lipilekhika/typing';
+  import Icon from '~/tools/Icon.svelte';
+  import { LanguageIcon } from '~/components/icons';
 
   let {
     mode,
@@ -56,6 +63,9 @@
     lekha_id?: number;
     initial?: Omit<SiteLekha, 'id'>;
   } = $props();
+
+  let ctx = $derived(createTypingContext('Devanagari'));
+  let typing_enabled = $state(false);
 
   // In the new svelte versions, we can use $derived for value updating too
   // this works till the prop values does not chnage so we can do this here
@@ -729,21 +739,37 @@
           <Tabs.Trigger value="write">Write</Tabs.Trigger>
           <Tabs.Trigger value="preview">Preview</Tabs.Trigger>
         </Tabs.List>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          class="shrink-0 gap-1.5"
-          disabled={format_busy || $add_mut.isPending || $edit_mut.isPending}
-          onclick={() => void formatMarkdown()}
-        >
-          {#if format_busy}
-            <Loader2 class="size-3.5 shrink-0 animate-spin" aria-hidden="true" />
-          {:else}
-            <WandSparkles class="size-3.5 shrink-0" aria-hidden="true" />
-          {/if}
-          {format_busy ? 'Formatting…' : 'Format markdown'}
-        </Button>
+        <div class="flex flex-wrap items-center justify-end gap-3">
+          <div class="flex items-center gap-2">
+            <Icon src={LanguageIcon} outerClass="shrink-0 text-muted-foreground" class="size-4" />
+            <Label
+              for="lekha-typing-enabled"
+              class="cursor-pointer text-xs font-normal text-muted-foreground select-none"
+              >Typing</Label
+            >
+            <Switch
+              id="lekha-typing-enabled"
+              bind:checked={typing_enabled}
+              disabled={$add_mut.isPending || $edit_mut.isPending}
+              title="Transliteration typing (Alt+X)"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            class="shrink-0 gap-1.5"
+            disabled={format_busy || $add_mut.isPending || $edit_mut.isPending}
+            onclick={() => void formatMarkdown()}
+          >
+            {#if format_busy}
+              <Loader2 class="size-3.5 shrink-0 animate-spin" aria-hidden="true" />
+            {:else}
+              <WandSparkles class="size-3.5 shrink-0" aria-hidden="true" />
+            {/if}
+            {format_busy ? 'Formatting…' : 'Format markdown'}
+          </Button>
+        </div>
       </div>
       <Tabs.Content value="write" class="mt-3 outline-none">
         {#if browser && editor_ready}
@@ -760,6 +786,20 @@
               scroll="async"
               placeholder="Write markdown…"
               selectedTab="write"
+              textarea={{
+                onbeforeinput: (e: Event) =>
+                  handleTypingBeforeInputEvent(ctx, e, (v) => (content = v), typing_enabled),
+                onblur: () => ctx.clearContext(),
+                onkeydown: (e: KeyboardEvent) => {
+                  // Toggle typing on Alt+X
+                  if (e.altKey && (e.key === 'x' || e.key === 'X')) {
+                    e.preventDefault();
+                    typing_enabled = !typing_enabled;
+                    return;
+                  }
+                  clearTypingContextOnKeyDown(e, ctx);
+                }
+              }}
             />
           </div>
         {:else}

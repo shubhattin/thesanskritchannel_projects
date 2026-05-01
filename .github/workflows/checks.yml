@@ -31,7 +31,7 @@ jobs:
         run: bun run sync
       - run: |
           cd app
-          bun x vitest run --dir src
+          bunx vitest run
 
   svelte_and_type_check:
     runs-on: ubuntu-latest

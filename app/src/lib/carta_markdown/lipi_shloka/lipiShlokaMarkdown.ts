@@ -1,12 +1,12 @@
 /**
- * `<lipi-shloka>…</lipi-shloka>` convenience wrapper: expanded to nested `<lipi>` + `<shloka>`
+ * `<lipi-shloka>…</lipi-shloka>` convenience wrapper: expanded to nested `<shloka>` + `<lipi>`
  * in `renderLekhaMarkdownToHtml` only. For save/format, whole blocks are preserved via
  * `isolateLipiShlokaBlocksForRemarkFormat` (not this expand).
  */
 export function expandLipiShlokaCompoundTags(markdown: string): string {
   return markdown
-    .replace(/<\s*lipi-shloka\b[^>]*>/gi, '<lipi>\n<shloka>')
-    .replace(/<\s*\/\s*lipi-shloka\s*>/gi, '</shloka>\n</lipi>');
+    .replace(/<\s*lipi-shloka\b[^>]*>/gi, '<shloka>\n<lipi>')
+    .replace(/<\s*\/\s*lipi-shloka\s*>/gi, '</lipi>\n</shloka>');
 }
 
 /** Non-greedy paired match for one block (no nesting). */

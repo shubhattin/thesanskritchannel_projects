@@ -24,7 +24,7 @@ export const LEKHA_CARTA_GRAMMAR_RULES: GrammarRule[] = [
         '3': { name: 'entity.name.tag.html' }
       },
       name: 'meta.embedded.block.lipi.markdown',
-      patterns: [{ include: 'text.html.derivative' }]
+      patterns: [{ include: 'text.html.markdown' }]
     }
   },
   {
@@ -42,7 +42,7 @@ export const LEKHA_CARTA_GRAMMAR_RULES: GrammarRule[] = [
         '3': { name: 'entity.name.tag.html' }
       },
       name: 'meta.embedded.block.shloka.markdown',
-      patterns: [{ include: 'text.html.derivative' }]
+      patterns: [{ include: 'text.html.markdown' }]
     }
   },
   {
@@ -60,7 +60,7 @@ export const LEKHA_CARTA_GRAMMAR_RULES: GrammarRule[] = [
         '3': { name: 'entity.name.tag.html' }
       },
       name: 'meta.embedded.block.lipi-shloka.markdown',
-      patterns: [{ include: 'text.html.derivative' }]
+      patterns: [{ include: 'text.html.markdown' }]
     }
   }
 ];

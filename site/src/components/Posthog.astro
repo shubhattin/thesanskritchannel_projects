@@ -1,5 +1,5 @@
 ---
-const posthogKey = !import.meta.env.PROD && import.meta.env.PUBLIC_POSTHOG_KEY;
+const posthogKey = import.meta.env.PROD && import.meta.env.PUBLIC_POSTHOG_KEY;
 const posthogUrl = import.meta.env.PUBLIC_POSTHOG_URL ?? 'https://us.i.posthog.com';
 ---
 {posthogKey && (

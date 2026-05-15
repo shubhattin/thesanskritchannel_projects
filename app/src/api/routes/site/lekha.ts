@@ -176,7 +176,7 @@ const list_lekhas_route = protectedAdminProcedure
 const check_url_slug_route = protectedAdminProcedure
   .input(
     z.object({
-      url_slug: z.string().max(500),
+      url_slug: z.string().max(100),
       exclude_id: z.number().int().positive().optional()
     })
   )

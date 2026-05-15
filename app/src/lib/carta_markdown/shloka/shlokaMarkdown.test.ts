@@ -47,7 +47,14 @@ describe('expandShlokaSpansInMarkdown', () => {
 
 describe('renderLekhaMarkdownToHtml + shloka snippets', () => {
   it('documented limitation: shloka containing embedded ``` does not strip shloka / parse inner markdown until expand handles inner fences', async () => {
-    const md = ['<shloka>', '**bold**', '```', 'some link https://example.com', '```', '</shloka>'].join('\n');
+    const md = [
+      '<shloka>',
+      '**bold**',
+      '```',
+      'some link https://example.com',
+      '```',
+      '</shloka>'
+    ].join('\n');
     const html = await renderLekhaMarkdownToHtml(md, {
       script,
       lipiTransliterator: identityTransliterate,
@@ -60,11 +67,14 @@ describe('renderLekhaMarkdownToHtml + shloka snippets', () => {
   });
 
   it('renders markdown link inside shloka', async () => {
-    const html = await renderLekhaMarkdownToHtml('<shloka>\n[label](https://example.test/foo)\n</shloka>', {
-      script,
-      lipiTransliterator: identityTransliterate,
-      skipSourceSanitization: true
-    });
+    const html = await renderLekhaMarkdownToHtml(
+      '<shloka>\n[label](https://example.test/foo)\n</shloka>',
+      {
+        script,
+        lipiTransliterator: identityTransliterate,
+        skipSourceSanitization: true
+      }
+    );
     expect(html).toContain('href="https://example.test/foo"');
     expect(html).toContain('label');
   });
@@ -80,7 +90,16 @@ describe('renderLekhaMarkdownToHtml + shloka snippets', () => {
   });
 
   it('renders bold plus fenced code when fenced block is outside shloka (verse line then code block)', async () => {
-    const md = ['<shloka>', '**bold** verse line', '</shloka>', '', '```', 'some link https://example.org', '```', ''].join('\n');
+    const md = [
+      '<shloka>',
+      '**bold** verse line',
+      '</shloka>',
+      '',
+      '```',
+      'some link https://example.org',
+      '```',
+      ''
+    ].join('\n');
     const html = await renderLekhaMarkdownToHtml(md, {
       script,
       lipiTransliterator: identityTransliterate,

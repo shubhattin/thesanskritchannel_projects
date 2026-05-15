@@ -134,7 +134,11 @@ describe('renderLekhaMarkdownToHtml + lipi-shloka formatting', () => {
   });
 
   it('parses markdown links inside lipi-shloka', async () => {
-    const md = ['<lipi-shloka>', '[some link](https://example.com/path?q=1)', '</lipi-shloka>'].join('\n');
+    const md = [
+      '<lipi-shloka>',
+      '[some link](https://example.com/path?q=1)',
+      '</lipi-shloka>'
+    ].join('\n');
     const html = await renderLekhaMarkdownToHtml(md, {
       script,
       lipiTransliterator: identityTransliterate,
@@ -146,11 +150,14 @@ describe('renderLekhaMarkdownToHtml + lipi-shloka formatting', () => {
   });
 
   it('parses inline code inside lipi-shloka', async () => {
-    const html = await renderLekhaMarkdownToHtml('<lipi-shloka>\nuse `snippet()` here\n</lipi-shloka>', {
-      script,
-      lipiTransliterator: identityTransliterate,
-      skipSourceSanitization: true
-    });
+    const html = await renderLekhaMarkdownToHtml(
+      '<lipi-shloka>\nuse `snippet()` here\n</lipi-shloka>',
+      {
+        script,
+        lipiTransliterator: identityTransliterate,
+        skipSourceSanitization: true
+      }
+    );
     expect(html).toContain('<code>');
     expect(html).toContain('snippet()');
     expect(html).toContain('site_lipi_text_md');
@@ -174,7 +181,9 @@ describe('renderLekhaMarkdownToHtml + lipi-shloka formatting', () => {
   });
 
   it('does not swallow a following heading after lipi-shloka', async () => {
-    const md = ['<lipi-shloka>', 'verse **line**', '</lipi-shloka>', '', '## After block', ''].join('\n');
+    const md = ['<lipi-shloka>', 'verse **line**', '</lipi-shloka>', '', '## After block', ''].join(
+      '\n'
+    );
     const html = await renderLekhaMarkdownToHtml(md, {
       script,
       lipiTransliterator: identityTransliterate,
@@ -198,7 +207,14 @@ describe('renderLekhaMarkdownToHtml + lipi-shloka formatting', () => {
   });
 
   it('documented limitation: embedded ``` inside lipi-shloka leaves markdown literals inside the lipi wrapper (shloka not expanded when split by fences)', async () => {
-    const md = ['<lipi-shloka>', '**note**', '```', 'some link https://example.com', '```', '</lipi-shloka>'].join('\n');
+    const md = [
+      '<lipi-shloka>',
+      '**note**',
+      '```',
+      'some link https://example.com',
+      '```',
+      '</lipi-shloka>'
+    ].join('\n');
     const html = await renderLekhaMarkdownToHtml(md, {
       script,
       lipiTransliterator: identityTransliterate,

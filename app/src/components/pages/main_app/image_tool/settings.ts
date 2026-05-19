@@ -3,6 +3,28 @@ import { writable } from 'svelte/store';
 import { get_font_family_and_size, type font_config_type } from '~/tools/font_tools';
 import type { script_and_lang_list_type } from '~/state/lang_list';
 
+/** Canvas line strokes and text fill colors used by the image tool renderer. */
+export const IMAGE_RENDER_COLORS = {
+  line: {
+    boundingBox: 'hsla(215, 40%, 60%, 1)',
+    referenceLine: 'hsla(0, 59%, 41%, 1)'
+  },
+  text: {
+    main: 'hsla(38, 100%, 15%, 1)',
+    normal: 'hsla(44, 100%, 10%, 1)',
+    number: 'hsla(37, 80%, 25%, 0.8)',
+    translation: 'hsla(44, 100%, 10%, 1)'
+  }
+} as const;
+
+export type ImageTextRenderColors = {
+  main: string;
+  normal: string;
+  /** Shared by main and normal shloka number indicators. */
+  number: string;
+  translation: string;
+};
+
 type bounding_coords_type = {
   left: number;
   top: number;
@@ -116,26 +138,6 @@ export const TRANSLATION_BOUNDIND_COORDS = {
   top: 650,
   right: 1860,
   bottom: 970
-};
-
-// Other configs
-
-export const TEXT_CONFIGS = {
-  main_text: {
-    color: 'hsla(38, 100%, 15%, 1)'
-  },
-  norm_text: {
-    color: 'hsla(44, 100%, 10%, 1)'
-  },
-  main_numb_text: {
-    color: 'hsla(37, 80%, 25%, 0.8)'
-  },
-  norm_numb_text: {
-    color: 'hsla(37, 80%, 25%, 0.8)'
-  },
-  trans_text: {
-    color: 'hsla(44, 100%, 10%, 1)'
-  }
 };
 
 type image_font_config_type = font_config_type &

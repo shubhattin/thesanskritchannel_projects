@@ -14,7 +14,7 @@
     image_lang,
     image_rendering_state,
     zip_download_state
-  } from './state';
+  } from './image_state';
   import { download_file_in_browser } from '~/tools/download_file_browser';
   import JSZip from 'jszip';
   import { dataURLToBlob } from '~/tools/kry';

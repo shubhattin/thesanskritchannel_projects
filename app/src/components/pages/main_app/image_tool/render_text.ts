@@ -4,11 +4,13 @@ import {
   image_shloka,
   image_shloka_data,
   image_text_data_q,
-  image_trans_data_q,
   main_text_font_configs,
   normal_text_font_config,
-  trans_text_font_configs
-} from './state';
+  trans_text_font_configs,
+  image_render_colors,
+  image_trans_text,
+  canvas
+} from './image_state';
 import * as fabric from 'fabric';
 import {
   get_text_svg_path,
@@ -17,13 +19,12 @@ import {
 } from '~/tools/harfbuzz';
 import {
   current_shloka_type,
+  IMAGE_RENDER_COLORS,
   shloka_configs,
   SPACE_ABOVE_REFERENCE_LINE,
-  TEXT_CONFIGS,
   TRANSLATION_BOUNDIND_COORDS,
   type shloka_type_config
 } from './settings';
-import { canvas } from './state';
 import { get } from 'svelte/store';
 import { browser } from '$app/environment';
 import {
@@ -36,6 +37,17 @@ import { transliterate_custom } from '~/tools/converter';
 import { get_font_url } from '~/tools/font_tools';
 import { BASE_SCRIPT, project_state } from '~/state/main_app/state.svelte';
 import type { ScriptLangType } from 'lipilekhika';
+
+const get_text_configs = () => {
+  const colors = get(image_render_colors);
+  return {
+    main_text: { color: colors.main },
+    norm_text: { color: colors.normal },
+    main_numb_text: { color: colors.number },
+    norm_numb_text: { color: colors.number },
+    trans_text: { color: colors.translation }
+  };
+};
 
 const render_text_args_schema = z.object({
   text: z.string(),
@@ -282,7 +294,7 @@ const draw_bounding_and_reference_lines = async (shloka_config: shloka_type_conf
             get_units(line_pos[3])
           ],
           {
-            stroke: 'hsla(215, 40%, 60%, 1)',
+            stroke: IMAGE_RENDER_COLORS.line.boundingBox,
             strokeWidth: get_units(1.5),
             selectable: false,
             evented: false
@@ -296,7 +308,7 @@ const draw_bounding_and_reference_lines = async (shloka_config: shloka_type_conf
       new fabric.Line(
         [get_units(shloka.left), get_units(top), get_units(shloka.right), get_units(top)],
         {
-          stroke: 'hsla(0, 59%, 41%, 1)',
+          stroke: IMAGE_RENDER_COLORS.line.referenceLine,
           strokeWidth: get_units(2),
           selectable: false,
           evented: false
@@ -324,7 +336,6 @@ export const render_all_texts = async (
   const $trans_text_font_configs = get(trans_text_font_configs);
   const $normal_text_font_config = get(normal_text_font_config);
   const $SPACE_ABOVE_REFERENCE_LINE = get(SPACE_ABOVE_REFERENCE_LINE);
-  const $image_trans_data = get(image_trans_data_q);
   const $project_key = get(project_state).project_key!;
   const $project_levels = get(project_state).levels;
 
@@ -374,6 +385,7 @@ export const render_all_texts = async (
   const shloka_config = $shloka_configs[get(current_shloka_type)];
 
   const canvasObjects: fabric.Object[] = [];
+  const text_configs = get_text_configs();
 
   // shloka
   for (let line_i = 0; line_i < shloka_lines.length; line_i++) {
@@ -387,7 +399,7 @@ export const render_all_texts = async (
       font_url: get_font_url(main_text_font_info.key, 'bold'),
       font_size: shloka_config.main_text_font_size,
       font_scale: main_text_font_info.size,
-      ...TEXT_CONFIGS.main_text,
+      ...text_configs.main_text,
       line_index: line_i,
       total_lines: shloka_lines.length,
       text_type: 'main',
@@ -406,7 +418,7 @@ export const render_all_texts = async (
       font_url: get_font_url(norm_text_font_info.key, 'regular'),
       font_size: shloka_config.norm_text_font_size,
       font_scale: norm_text_font_info.size,
-      ...TEXT_CONFIGS.norm_text,
+      ...text_configs.norm_text,
       line_index: line_i,
       total_lines: shloka_lines.length,
       text_type: 'normal',
@@ -437,7 +449,7 @@ export const render_all_texts = async (
         font_url: get_font_url(main_text_font_info.key, 'bold'),
         font_size: 42,
         font_scale: main_text_font_info.size * 0.8,
-        ...TEXT_CONFIGS.main_numb_text,
+        ...text_configs.main_numb_text,
         right: shloka_config.bounding_coords.right,
         left: shloka_config.bounding_coords.left,
         width_usage_factor: 0.985,
@@ -451,7 +463,7 @@ export const render_all_texts = async (
         font_url: get_font_url('ROBOTO', 'bold'),
         font_size: 28,
         font_scale: norm_text_font_info.size * 0.98,
-        ...TEXT_CONFIGS.norm_numb_text,
+        ...text_configs.norm_numb_text,
         right: shloka_config.bounding_coords.right,
         left: shloka_config.bounding_coords.left,
         width_usage_factor: 0.985,
@@ -466,13 +478,12 @@ export const render_all_texts = async (
   }
 
   // trans
-  const trans_data = $image_trans_data.data!;
-  if (trans_data.has($image_shloka)) {
-    const trans_text_data = trans_data.get($image_shloka)!;
+  const trans_text_data = get(image_trans_text);
+  if (trans_text_data) {
     const trans_text = await render_text({
       text: trans_text_data,
       align: 'right',
-      ...TEXT_CONFIGS.trans_text,
+      ...text_configs.trans_text,
       font_url: get_font_url(trans_text_font_info.key, 'regular'),
       font_size: shloka_config.trans_text_font_size,
       font_scale: trans_text_font_info.size,

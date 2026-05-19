@@ -19,8 +19,10 @@
     main_text_font_configs,
     normal_text_font_config,
     image_rendering_state,
-    image_shloka_data
-  } from './state';
+    image_shloka_data,
+    image_render_colors,
+    image_trans_text
+  } from './image_state';
   import {
     selected_text_levels,
     viewing_script,
@@ -245,24 +247,44 @@
 
   $effect(() => {
     if (
-      mounted &&
-      !$image_text_data_q.isFetching &&
-      $image_text_data_q.isSuccess &&
-      !$image_trans_data_q.isFetching &&
-      $image_trans_data_q.isSuccess &&
-      $SPACE_ABOVE_REFERENCE_LINE &&
-      $image_selected_levels &&
-      $shloka_configs &&
-      $normal_text_font_config &&
-      $trans_text_font_configs &&
-      $main_text_font_configs
+      !mounted ||
+      $image_text_data_q.isFetching ||
+      !$image_text_data_q.isSuccess ||
+      $image_trans_data_q.isFetching ||
+      !$image_trans_data_q.isSuccess ||
+      !$image_selected_levels ||
+      !$shloka_configs ||
+      !$normal_text_font_config ||
+      !$trans_text_font_configs ||
+      !$main_text_font_configs
     )
-      (async () => {
-        $image_rendering_state = true;
-        $image_shloka;
-        await render_all_texts(null, $image_script, $image_lang);
-        $image_rendering_state = false;
-      })();
+      return;
+
+    // Explicit deps so text color edits always trigger a canvas re-render.
+    const color_deps = [
+      $image_render_colors.main,
+      $image_render_colors.normal,
+      $image_render_colors.number,
+      $image_render_colors.translation,
+      $image_shloka,
+      $image_script,
+      $image_lang,
+      $SPACE_ABOVE_REFERENCE_LINE,
+      $image_shloka_data?.text,
+      $image_trans_text
+    ].join('\x1e');
+    void color_deps;
+
+    let cancelled = false;
+    (async () => {
+      $image_rendering_state = true;
+      await render_all_texts(null, $image_script, $image_lang);
+      if (!cancelled) $image_rendering_state = false;
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   });
 </script>
 

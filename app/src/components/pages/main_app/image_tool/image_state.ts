@@ -16,7 +16,7 @@ import {
 } from '~/state/lang_list';
 import { type shloka_list_type } from '~/state/data_types';
 import { copy_plain_object } from '~/tools/kry';
-import { get_image_font_info } from './settings';
+import { get_image_font_info, IMAGE_RENDER_COLORS, type ImageTextRenderColors } from './settings';
 import { project_state, text_data_present } from '~/state/main_app/state.svelte';
 
 export let canvas = writable<fabric.Canvas>();
@@ -48,6 +48,18 @@ export let image_selected_levels = writable<(number | null)[]>([null, null]);
 export let image_shloka = writable(1);
 export let image_rendering_state = writable(false);
 export let image_shloka_data = writable<shloka_list_type[0]>(null!);
+export let image_trans_text = writable('');
+
+export const DEFAULT_IMAGE_TEXT_RENDER_COLORS: ImageTextRenderColors = copy_plain_object(
+  IMAGE_RENDER_COLORS.text
+);
+export let image_render_colors = writable<ImageTextRenderColors>(
+  copy_plain_object(DEFAULT_IMAGE_TEXT_RENDER_COLORS)
+);
+
+export function set_image_text_color(key: keyof ImageTextRenderColors, value: string) {
+  image_render_colors.update((colors) => ({ ...colors, [key]: value }));
+}
 
 export let zip_download_state = writable<[number, number] | null>(null);
 

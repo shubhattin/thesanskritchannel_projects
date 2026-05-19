@@ -14,8 +14,12 @@
     shaded_background_image_status,
     trans_text_font_configs,
     image_text_data_q,
-    image_shloka_data
-  } from './state';
+    image_shloka_data,
+    image_trans_text,
+    image_render_colors,
+    DEFAULT_IMAGE_TEXT_RENDER_COLORS,
+    set_image_text_color
+  } from './image_state';
   import { LANG_LIST, LANG_LIST_IDS, type lang_list_type } from '~/state/lang_list';
   import Icon from '~/tools/Icon.svelte';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
@@ -40,12 +44,19 @@
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Textarea } from '$lib/components/ui/textarea';
+  import ImageColorField from './ImageColorField.svelte';
 
   let total_count = $derived(
     $project_map_q.isSuccess ? get_total_count($image_selected_levels) : 0
   );
 
   let settings_tab: 'depend' | 'non-depend' = $state('non-depend');
+
+  let text_data = $state('');
+  let text_textarea_disabled = $state(true);
+  let trans_text_data = $state('');
+  let trans_textarea_disabled = $state(true);
+  let trans_text_available = $state(false);
 
   const reset_func = () => {
     $shloka_configs[$current_shloka_type] = copy_plain_object(
@@ -55,16 +66,35 @@
     $normal_text_font_config = copy_plain_object(get_image_font_info('Normal'));
     $main_text_font_configs = copy_plain_object(DEFAULT_MAIN_TEXT_FONT_CONFIGS);
     $trans_text_font_configs = copy_plain_object(DEFAULT_TRANS_TEXT_FONT_CONFIGS);
+    $image_render_colors = copy_plain_object(DEFAULT_IMAGE_TEXT_RENDER_COLORS);
     $image_shloka_data = deepCopy($image_text_data_q.data![$image_shloka]);
+    if ($image_trans_data_q.data?.has($image_shloka)) {
+      const translation = $image_trans_data_q.data.get($image_shloka)!;
+      trans_text_data = translation;
+      $image_trans_text = translation;
+    } else {
+      trans_text_data = '';
+      $image_trans_text = '';
+    }
+    trans_textarea_disabled = true;
   };
-
-  let text_data = $state('');
-  let text_textarea_disabled = $state(true);
 
   $effect(() => {
     if ($image_shloka_data) {
       text_data = $image_shloka_data.text;
       text_textarea_disabled = true;
+    }
+  });
+
+  $effect(() => {
+    $image_shloka;
+    $image_lang;
+    if ($image_trans_data_q.isSuccess && $image_trans_data_q.data) {
+      const translation = $image_trans_data_q.data.get($image_shloka) ?? '';
+      trans_text_data = translation;
+      $image_trans_text = translation;
+      trans_text_available = $image_trans_data_q.data.has($image_shloka);
+      trans_textarea_disabled = true;
     }
   });
 </script>
@@ -165,68 +195,66 @@
               ><span class="text-sm">Shloka Type Dependent</span></Tabs.Trigger
             >
           </Tabs.List>
-          <Tabs.Content value="non-depend">
-            <div class="flex justify-center space-x-16">
-              <div class="flex flex-col justify-center space-y-1">
-                <div class="text-center text-sm font-semibold">Spaces</div>
-                <div class="space-y-1 text-center">
-                  <label class="block space-x-1">
-                    <span class="text-sm">Above Reference Line</span>
-                    <Input
-                      type="number"
-                      class="inline-block h-7 w-16 px-1 py-0 text-sm"
-                      bind:value={$SPACE_ABOVE_REFERENCE_LINE}
-                      min={0}
-                      max={40}
-                    />
-                  </label>
-                  <label class="block space-x-1">
-                    <span class="text-sm">Between Main and Normal</span>
-                    <Input
-                      type="number"
-                      class="inline-block h-7 w-16 px-1 py-0 text-sm"
-                      bind:value={
-                        $main_text_font_configs[$image_script].space_between_main_and_normal
-                      }
-                      min={0}
-                      max={20}
-                    />
-                  </label>
-                </div>
-              </div>
-              <div class="flex flex-col justify-center space-y-1">
-                <div class="text-center text-sm font-semibold">Text Scaling factors</div>
-                <div class="flex justify-center space-x-3 text-center">
-                  <div class="flex flex-col justify-center space-y-1">
-                    <label class="block space-x-1">
-                      <span class="text-sm">Main</span>
+          <Tabs.Content value="non-depend" class="pt-2">
+            <div class="grid gap-5 xl:grid-cols-2">
+              <div class="grid gap-4 sm:grid-cols-2">
+                <section class="space-y-2">
+                  <h3 class="text-sm font-semibold">Spaces</h3>
+                  <div class="space-y-2">
+                    <label class="flex items-center justify-between gap-3 text-sm">
+                      <span class="text-muted-foreground">Above ref. line</span>
                       <Input
                         type="number"
-                        class="inline-block h-7 w-20 px-1 py-0 text-sm"
+                        class="h-7 w-16 shrink-0 px-1 py-0 text-sm"
+                        bind:value={$SPACE_ABOVE_REFERENCE_LINE}
+                        min={0}
+                        max={40}
+                      />
+                    </label>
+                    <label class="flex items-center justify-between gap-3 text-sm">
+                      <span class="text-muted-foreground">Main ↔ normal</span>
+                      <Input
+                        type="number"
+                        class="h-7 w-16 shrink-0 px-1 py-0 text-sm"
+                        bind:value={
+                          $main_text_font_configs[$image_script].space_between_main_and_normal
+                        }
+                        min={0}
+                        max={20}
+                      />
+                    </label>
+                  </div>
+                </section>
+                <section class="space-y-2">
+                  <h3 class="text-sm font-semibold">Text scaling</h3>
+                  <div class="grid grid-cols-2 gap-2">
+                    <label class="flex flex-col gap-1 text-sm">
+                      <span class="text-muted-foreground">Main</span>
+                      <Input
+                        type="number"
+                        class="h-7 w-full px-1 py-0 text-sm"
                         bind:value={$main_text_font_configs[$image_script].size}
                         min={0}
                         max={10}
                         step={0.05}
                       />
                     </label>
-                    <label class="block space-x-1">
-                      <span class="text-sm">Normal</span>
+                    <label class="flex flex-col gap-1 text-sm">
+                      <span class="text-muted-foreground">Normal</span>
                       <Input
                         type="number"
-                        class="inline-block h-7 w-20 px-1 py-0 text-sm"
+                        class="h-7 w-full px-1 py-0 text-sm"
                         bind:value={$normal_text_font_config.size}
                         min={0}
                         max={10}
                         step={0.05}
                       />
                     </label>
-                  </div>
-                  <div class="flex flex-col justify-center space-y-1">
-                    <label class="space-x-1">
-                      <span class="text-sm">Translation</span>
+                    <label class="flex flex-col gap-1 text-sm">
+                      <span class="text-muted-foreground">Translation</span>
                       <Input
                         type="number"
-                        class="inline-block h-7 w-20 px-1 py-0 text-sm"
+                        class="h-7 w-full px-1 py-0 text-sm"
                         bind:value={
                           $trans_text_font_configs[
                             LANG_LIST[LANG_LIST_IDS.indexOf($image_lang)] as lang_list_type
@@ -237,11 +265,11 @@
                         step={0.05}
                       />
                     </label>
-                    <label class="space-x-1">
-                      <span class="text-sm">Line Spacing</span>
+                    <label class="flex flex-col gap-1 text-sm">
+                      <span class="text-muted-foreground">Line spacing</span>
                       <Input
                         type="number"
-                        class="inline-block h-7 w-20 px-1 py-0 text-sm"
+                        class="h-7 w-full px-1 py-0 text-sm"
                         bind:value={
                           $trans_text_font_configs[
                             LANG_LIST[LANG_LIST_IDS.indexOf($image_lang)] as lang_list_type
@@ -253,8 +281,33 @@
                       />
                     </label>
                   </div>
-                </div>
+                </section>
               </div>
+              <section class="min-w-0 space-y-2">
+                <h3 class="text-sm font-semibold">Text colors</h3>
+                <div class="grid gap-2">
+                  <ImageColorField
+                    label="Main"
+                    value={$image_render_colors.main}
+                    onValueChange={(v) => set_image_text_color('main', v)}
+                  />
+                  <ImageColorField
+                    label="Normal"
+                    value={$image_render_colors.normal}
+                    onValueChange={(v) => set_image_text_color('normal', v)}
+                  />
+                  <ImageColorField
+                    label="Number"
+                    value={$image_render_colors.number}
+                    onValueChange={(v) => set_image_text_color('number', v)}
+                  />
+                  <ImageColorField
+                    label="Translation"
+                    value={$image_render_colors.translation}
+                    onValueChange={(v) => set_image_text_color('translation', v)}
+                  />
+                </div>
+              </section>
             </div>
           </Tabs.Content>
           <Tabs.Content value="depend">
@@ -264,7 +317,7 @@
                   Current Shloka Type : {$current_shloka_type}
                 </span>
               </div>
-              <div class="flex justify-center space-x-16">
+              <div class="flex flex-wrap justify-center gap-x-16 gap-y-4">
                 <div class="flex flex-col justify-center space-y-1">
                   <label class="space-x-1">
                     <span class="text-sm">Main Text</span>
@@ -396,6 +449,50 @@
           bind:value={text_data}
           disabled={text_textarea_disabled}
         ></Textarea>
+        <div class="mt-4">
+          <div class="flex items-center space-x-2">
+            <span class="mt-1 text-base font-semibold">Translation</span>
+            {#if trans_textarea_disabled}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                disabled={!trans_text_available}
+                onclick={() => (trans_textarea_disabled = false)}
+                ><Icon src={FiEdit} class="size-4" /></Button
+              >
+            {:else}
+              <div class="flex items-center space-x-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={$image_rendering_state}
+                  onclick={() => {
+                    $image_trans_text = trans_text_data;
+                    $image_rendering_state = true;
+                    render_all_texts(null, $image_script, $image_lang).then(() => {
+                      $image_rendering_state = false;
+                      trans_textarea_disabled = true;
+                    });
+                  }}><Icon src={FiSave} class="size-4" /></Button
+                >
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onclick={() => {
+                    trans_text_data = $image_trans_text;
+                    trans_textarea_disabled = true;
+                  }}><Icon src={CgClose} class="size-4" /></Button
+                >
+              </div>
+            {/if}
+          </div>
+          <Textarea
+            class="mt-1 h-24 w-2/3 rounded-md border-2 border-input bg-background p-2 text-sm"
+            bind:value={trans_text_data}
+            disabled={trans_textarea_disabled || !trans_text_available}
+            placeholder={trans_text_available ? '' : 'No translation for this shloka'}
+          ></Textarea>
+        </div>
       </div>
     </Accordion.Content>
   </Accordion.Item>

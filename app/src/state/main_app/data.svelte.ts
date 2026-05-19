@@ -262,6 +262,6 @@ export const get_starting_index = (
   else if (key === 'narayaneeyam') {
     starting = 4;
     if (lowest_selected === 1) starting = 5;
-  } else if (key === 'saundaryalahari') starting = 3;
+  } else if (key === 'saundarya-lahari') starting = 3;
   return starting;
 };

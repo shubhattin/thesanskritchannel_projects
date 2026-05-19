@@ -5,8 +5,8 @@ const PROJECT_KEYS = [
   'ramayanam',
   'bhagavadgita',
   'narayaneeyam',
-  'shivatandavastotram',
-  'saundaryalahari',
+  'shiva-tandava-stotram',
+  'saundarya-lahari',
   'veda'
 ] as const;
 export const project_keys_enum_schema = z.enum(PROJECT_KEYS);
@@ -57,20 +57,20 @@ export const PROJECT_LIST: project_type[] = [
     id: 4,
     name: 'Shiva Tandava Stotra',
     name_dev: 'शिवताण्डवस्तोत्रम्',
-    key: 'shivatandavastotram',
+    key: 'shiva-tandava-stotram',
     get_map: async () =>
       recursive_list_schema.parse(
-        (await import('@data/4. shivatandavastotram/shivatandavastotram_map.json')).default
+        (await import('@data/4. shiva-tandava-stotram/shivatandavastotram_map.json')).default
       )
   },
   {
     id: 5,
     name: 'Saundarya Lahari',
     name_dev: 'सौन्दर्यलहरी',
-    key: 'saundaryalahari',
+    key: 'saundarya-lahari',
     get_map: async () =>
       recursive_list_schema.parse(
-        (await import('@data/5. saundaryalahari/saundaryalahari_map.json')).default
+        (await import('@data/5. saundarya-lahari/saundaryalahari_map.json')).default
       )
   },
   {

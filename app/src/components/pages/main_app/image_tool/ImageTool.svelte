@@ -266,7 +266,7 @@
   });
 </script>
 
-<div class="flex h-full flex-col space-y-4 overflow-hidden">
+<div class="flex flex-col space-y-4">
   <!-- Controls Section -->
   <div class="flex items-start justify-between gap-4">
     <div bind:this={layout_el} class="flex-1 space-y-3">
@@ -397,7 +397,7 @@
     {/if}
   </div>
 
-  <div class="mt-2 flex flex-1 justify-center space-y-2 overflow-auto">
+  <div class="mt-2 flex justify-center space-y-2">
     <canvas bind:this={canvas_element}></canvas>
   </div>
 </div>

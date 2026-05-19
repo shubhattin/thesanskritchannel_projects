@@ -209,11 +209,15 @@
 <Dialog.Root bind:open={$image_tool_opened}>
   <Dialog.Content
     showCloseButton={false}
-    class="flex h-[95vh] w-[80vw] max-w-5xl flex-col gap-0 overflow-hidden p-4 sm:w-[90vw] sm:max-w-6xl md:w-[86vw] lg:w-[65vw]"
+    class="flex h-[95vh] max-h-[95vh] w-[80vw] max-w-5xl flex-col gap-0 overflow-hidden p-4 sm:w-[90vw] sm:max-w-6xl md:w-[86vw] lg:w-[65vw]"
   >
-    {#await import('../../image_tool/ImageTool.svelte') then ImageTool}
-      <ImageTool.default onClose={() => ($image_tool_opened = false)} />
-    {/await}
+    <div
+      class="min-h-0 flex-1 scrollbar-none overflow-y-auto overscroll-contain [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+    >
+      {#await import('../../image_tool/ImageTool.svelte') then ImageTool}
+        <ImageTool.default onClose={() => ($image_tool_opened = false)} />
+      {/await}
+    </div>
   </Dialog.Content>
 </Dialog.Root>
 

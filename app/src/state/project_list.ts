@@ -88,7 +88,9 @@ export const PROJECT_LIST: project_type[] = [
     name_dev: 'विज्ञानभैरवतन्त्रम्',
     key: 'vijnana-bhairava-tantram',
     get_map: async () =>
-      recursive_list_schema.parse((await import('@data/7. vijnana-bhairava-tantram/vijnanabhairavatantra.json')).default)
+      recursive_list_schema.parse(
+        (await import('@data/7. vijnana-bhairava-tantram/vijnanabhairavatantra.json')).default
+      )
   }
 ];
 

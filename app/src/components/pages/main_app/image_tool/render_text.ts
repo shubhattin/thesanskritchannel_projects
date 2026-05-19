@@ -137,25 +137,57 @@ const render_text = async (input: z.input<typeof render_text_args_schema>) => {
   let prev_height = 0;
   let NEW_LINE_SPACING = 0;
 
-  const render_line = async (line: string) => {
-    const get_text_path_element = async (line_text: string) => {
-      const text_path = new fabric.Path(await get_text_svg_path(line_text, font_url), {
-        fill: color
-      });
-      let height = text_path.height * text_path_scale;
-      let width = text_path.width * text_path_scale;
-      if (WIDTH / width < 1) text_path_scale = (text_path_scale / width) * WIDTH;
-      text_path.set({
-        scaleX: text_path_scale,
-        scaleY: text_path_scale
-      });
-      height = text_path.height * text_path_scale;
-      width = text_path.width * text_path_scale;
-      return { text_path, height, width };
+  const measure_path = async (line_text: string) => {
+    const text_path = new fabric.Path(await get_text_svg_path(line_text, font_url), {
+      fill: color
+    });
+    return { text_path, width: text_path.width, height: text_path.height };
+  };
+
+  const scale_to_fit_width = (scale: number, unscaled_width: number) =>
+    unscaled_width * scale <= WIDTH ? scale : WIDTH / unscaled_width;
+
+  const get_text_path_element = async (line_text: string, scale: number) => {
+    const {
+      text_path,
+      width: unscaled_width,
+      height: unscaled_height
+    } = await measure_path(line_text);
+    const applied_scale = multi_line_text ? scale : scale_to_fit_width(scale, unscaled_width);
+    text_path.set({
+      scaleX: applied_scale,
+      scaleY: applied_scale
+    });
+    return {
+      text_path,
+      height: unscaled_height * applied_scale,
+      width: unscaled_width * applied_scale,
+      applied_scale
     };
-    let { text_path, width, height } = await get_text_path_element(line);
+  };
+
+  const wrap_line_to_segments = async (line: string, scale: number) => {
+    const words = line.split(' ');
+    const segments: string[] = [];
+    let allowed_words: string[] = [];
+    for (let word_i = 0; word_i < words.length; word_i++) {
+      const word = words[word_i];
+      const current_word = allowed_words.join(' ') + (allowed_words.length !== 0 ? ' ' : '') + word;
+      const { width } = await measure_path(current_word);
+      if (width * scale <= WIDTH) allowed_words.push(word);
+      else {
+        if (allowed_words.length !== 0) segments.push(allowed_words.join(' '));
+        allowed_words = [word];
+      }
+    }
+    if (allowed_words.length !== 0) segments.push(allowed_words.join(' '));
+    return segments;
+  };
+
+  const render_line = async (line: string, scale: number) => {
+    let { text_path, width, height, applied_scale } = await get_text_path_element(line, scale);
     if (text_for_min_height) {
-      let { height } = await get_text_path_element(line + text_for_min_height);
+      ({ height } = await get_text_path_element(line + text_for_min_height, applied_scale));
       text_group_height = height;
     }
     if (opts.top) text_path.set({ top: get_units(opts.top) + prev_height });
@@ -173,7 +205,6 @@ const render_text = async (input: z.input<typeof render_text_args_schema>) => {
       });
     text_group.add(text_path);
     if (!multi_line_text) return;
-    // console.log(prev_height, height);
     prev_height += height + NEW_LINE_SPACING;
   };
 
@@ -182,44 +213,33 @@ const render_text = async (input: z.input<typeof render_text_args_schema>) => {
     const net_scale = font_scale - iter * FONT_SCALE_STEP;
     NEW_LINE_SPACING = get_units(font_size * net_scale) * new_line_spacing_factor;
     text_path_scale = get_font_size_for_path(font_size * net_scale);
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (!multi_line_text) {
-        await render_line(line);
-        break;
-      } else {
-        const words = line.split(' ');
-        const render_multiple_line = async () => {
-          let allowed_words: string[] = [];
-          for (let word_i = 0; word_i < words.length; word_i++) {
-            const word = words[word_i];
-            let current_word =
-              allowed_words.join(' ') + (allowed_words.length !== 0 ? ' ' : '') + word;
-            const text_path = new fabric.Path(await get_text_svg_path(current_word, font_url), {
-              fill: color
-            });
-            let height = text_path.height * text_path_scale;
-            let width = text_path.width * text_path_scale;
-            if (WIDTH > width) allowed_words.push(word);
-            else {
-              await render_line(allowed_words.join(' '));
-              // new line should be started as the current word is not fitting
-              allowed_words = [word];
-            }
-          }
-          // last group of allowed words will rendered after done here
-          if (allowed_words.length !== 0) await render_line(allowed_words.join(' '));
-        };
-        await render_multiple_line();
-      }
+    const base_text_path_scale = text_path_scale;
+
+    if (!multi_line_text) {
+      await render_line(lines[0] ?? '', text_path_scale);
+      break;
     }
-    if (!multi_line_text) break;
-    else {
-      if (HEIGHT / text_group.height >= 1) {
-        break;
-      } else {
-        text_group.removeAll();
-      }
+
+    const wrapped_segments: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      wrapped_segments.push(...(await wrap_line_to_segments(lines[i], text_path_scale)));
+    }
+    let line_scale = text_path_scale;
+    for (const segment of wrapped_segments) {
+      const { width } = await measure_path(segment);
+      line_scale = scale_to_fit_width(line_scale, width);
+    }
+    text_path_scale = line_scale;
+    NEW_LINE_SPACING *= line_scale / base_text_path_scale;
+
+    for (const segment of wrapped_segments) {
+      await render_line(segment, line_scale);
+    }
+
+    if (HEIGHT / text_group.height >= 1) {
+      break;
+    } else {
+      text_group.removeAll();
     }
   }
   text_group_width = text_group.width;

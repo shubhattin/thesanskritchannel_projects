@@ -59,12 +59,12 @@
   };
 
   let text_data = $state('');
-  let textarea_disabled = $state(true);
+  let text_textarea_disabled = $state(true);
 
   $effect(() => {
     if ($image_shloka_data) {
       text_data = $image_shloka_data.text;
-      textarea_disabled = true;
+      text_textarea_disabled = true;
     }
   });
 </script>
@@ -360,8 +360,8 @@
       <div class="mt-2 block">
         <div class="flex items-center space-x-2">
           <span class="mt-1 text-base font-semibold">Text</span>
-          {#if textarea_disabled}
-            <Button variant="ghost" size="icon-sm" onclick={() => (textarea_disabled = false)}
+          {#if text_textarea_disabled}
+            <Button variant="ghost" size="icon-sm" onclick={() => (text_textarea_disabled = false)}
               ><Icon src={FiEdit} class="size-4" /></Button
             >
           {:else}
@@ -376,7 +376,7 @@
                   $image_rendering_state = true;
                   render_all_texts(null, $image_script, $image_lang).then(() => {
                     $image_rendering_state = false;
-                    textarea_disabled = true;
+                    text_textarea_disabled = true;
                   });
                 }}><Icon src={FiSave} class="size-4" /></Button
               >
@@ -385,7 +385,7 @@
                 size="icon-sm"
                 onclick={() => {
                   text_data = $image_shloka_data.text;
-                  textarea_disabled = true;
+                  text_textarea_disabled = true;
                 }}><Icon src={CgClose} class="size-4" /></Button
               >
             </div>
@@ -394,7 +394,7 @@
         <Textarea
           class="indic-font mt-1 h-24 w-2/3 rounded-md border-2 border-input bg-background p-2 text-sm"
           bind:value={text_data}
-          disabled={textarea_disabled}
+          disabled={text_textarea_disabled}
         ></Textarea>
       </div>
     </Accordion.Content>

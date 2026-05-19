@@ -15,7 +15,9 @@ vite.config.ts.timestamp-*
 
 **/a.ts
 **/a.js
+**/b.py
 **/a.json
+**/b.json
 **/a.py
 **/a.txt
 **/tmp/

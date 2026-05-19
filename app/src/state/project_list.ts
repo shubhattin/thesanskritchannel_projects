@@ -7,7 +7,8 @@ const PROJECT_KEYS = [
   'narayaneeyam',
   'shiva-tandava-stotram',
   'saundarya-lahari',
-  'veda'
+  'veda',
+  'vijnana-bhairava-tantram'
 ] as const;
 export const project_keys_enum_schema = z.enum(PROJECT_KEYS);
 export type project_keys_type = z.infer<typeof project_keys_enum_schema>;
@@ -80,6 +81,14 @@ export const PROJECT_LIST: project_type[] = [
     key: 'veda',
     get_map: async () =>
       recursive_list_schema.parse((await import('@data/6. veda/veda_map.json')).default)
+  },
+  {
+    id: 7,
+    name: 'Vijnana Bhairava Tantra',
+    name_dev: 'विज्ञानभैरवतन्त्रम्',
+    key: 'vijnana-bhairava-tantram',
+    get_map: async () =>
+      recursive_list_schema.parse((await import('@data/7. vijnana-bhairava-tantram/vijnanabhairavatantra.json')).default)
   }
 ];
 

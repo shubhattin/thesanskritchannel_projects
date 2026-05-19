@@ -61,7 +61,7 @@ export const PROJECT_LIST: project_type[] = [
     key: 'shiva-tandava-stotram',
     get_map: async () =>
       recursive_list_schema.parse(
-        (await import('@data/4. shiva-tandava-stotram/shivatandavastotram_map.json')).default
+        (await import('@data/4. shiva-tandava-stotram/shiva-tandava-stotram_map.json')).default
       )
   },
   {
@@ -71,7 +71,7 @@ export const PROJECT_LIST: project_type[] = [
     key: 'saundarya-lahari',
     get_map: async () =>
       recursive_list_schema.parse(
-        (await import('@data/5. saundarya-lahari/saundaryalahari_map.json')).default
+        (await import('@data/5. saundarya-lahari/saundarya-lahari_map.json')).default
       )
   },
   {
@@ -89,7 +89,7 @@ export const PROJECT_LIST: project_type[] = [
     key: 'vijnana-bhairava-tantram',
     get_map: async () =>
       recursive_list_schema.parse(
-        (await import('@data/7. vijnana-bhairava-tantram/vijnanabhairavatantra.json')).default
+        (await import('@data/7. vijnana-bhairava-tantram/vijnana-bhairava-tantram_map.json')).default
       )
   }
 ];

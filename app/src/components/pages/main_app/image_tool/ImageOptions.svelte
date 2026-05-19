@@ -40,7 +40,7 @@
   import { copy_plain_object, deepCopy } from '~/tools/kry';
   import { FiEdit, FiSave } from 'svelte-icons-pack/fi';
   import { CgClose } from 'svelte-icons-pack/cg';
-  import { render_all_texts } from './render_text';
+
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Textarea } from '$lib/components/ui/textarea';
@@ -426,11 +426,7 @@
                 onclick={() => {
                   $image_shloka_data.text = text_data;
                   $image_shloka_data = $image_shloka_data;
-                  $image_rendering_state = true;
-                  render_all_texts(null, $image_script, $image_lang).then(() => {
-                    $image_rendering_state = false;
-                    text_textarea_disabled = true;
-                  });
+                  text_textarea_disabled = true;
                 }}><Icon src={FiSave} class="size-4" /></Button
               >
               <Button
@@ -468,11 +464,7 @@
                   disabled={$image_rendering_state}
                   onclick={() => {
                     $image_trans_text = trans_text_data;
-                    $image_rendering_state = true;
-                    render_all_texts(null, $image_script, $image_lang).then(() => {
-                      $image_rendering_state = false;
-                      trans_textarea_disabled = true;
-                    });
+                    trans_textarea_disabled = true;
                   }}><Icon src={FiSave} class="size-4" /></Button
                 >
                 <Button

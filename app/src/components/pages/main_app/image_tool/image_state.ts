@@ -1,5 +1,4 @@
 import { get, writable } from 'svelte/store';
-import type * as fabric from 'fabric';
 import { get_derived_query } from '~/tools/query';
 import { browser } from '$app/environment';
 import { trans_lang_data_q_options, text_data_q_options } from '~/state/main_app/data.svelte';
@@ -18,27 +17,33 @@ import { type shloka_list_type } from '~/state/data_types';
 import { copy_plain_object } from '~/tools/kry';
 import { get_image_font_info, IMAGE_RENDER_COLORS, type ImageTextRenderColors } from './settings';
 import { project_state, text_data_present } from '~/state/main_app/state.svelte';
+import type Konva from 'konva';
 
-export let canvas = writable<fabric.Canvas>();
-export let background_image = writable<fabric.FabricImage>();
+// --- Konva Stage/Layer refs (replaces old fabric.Canvas / fabric.Image) ---
+
+/** Reference to the Konva Stage node — set by ImageTool once mounted. */
+export let stage_node = writable<Konva.Stage | null>(null);
+
+/** URL of the background image currently displayed. */
+export const BACKGROUND_IMAGE_URLS = {
+  normal: background_image_url,
+  template: background_image_template_url
+} as const;
+
 export let shaded_background_image_status = writable(import.meta.env.DEV);
-export let scaling_factor = writable<number>(0); // Scale factor for the background image
+export let scaling_factor = writable<number>(0); // Scale factor for the canvas
 
-export const IMAGE_DIMENSIONS = [1920, 1080];
+export const IMAGE_DIMENSIONS = [1920, 1080] as const;
+
+/** Convert a value in the base 1920×1080 coordinate space to screen pixels. */
 export const get_units = (value: number) => {
   return value * get(scaling_factor);
 };
-export async function set_background_image_type(shaded_image: boolean) {
-  const $background_image = get(background_image);
-  if (!$background_image) return;
-  await $background_image.setSrc(
-    shaded_image ? background_image_template_url : background_image_url
-  );
-  background_image.set($background_image);
-  const $canvas = get(canvas);
-  $canvas.requestRenderAll();
-  canvas.set($canvas);
-}
+
+/** Whether fonts needed for image rendering have been loaded. */
+export let fonts_loaded = writable(false);
+
+// --- Data state (unchanged) ---
 
 export let image_script = writable<script_list_type>();
 export let image_lang = writable<number>(lang_list_obj.English);

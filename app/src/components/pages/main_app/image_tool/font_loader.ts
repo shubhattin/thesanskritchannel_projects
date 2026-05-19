@@ -1,4 +1,4 @@
-import { FONT_FAMILY_NAME, type font_config_type } from '~/tools/font_tools';
+import { FONT_FAMILY_NAME } from '~/tools/font_tools';
 
 const loaded_fonts = new Set<string>();
 

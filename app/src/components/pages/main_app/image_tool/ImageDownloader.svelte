@@ -5,14 +5,12 @@
     image_selected_levels,
     image_script,
     image_shloka,
-    scaling_factor,
     shaded_background_image_status,
     BACKGROUND_IMAGE_URLS,
     IMAGE_DIMENSIONS,
     image_lang,
     image_rendering_state,
-    zip_download_state,
-    stage_node
+    zip_download_state
   } from './image_state';
   import { download_file_in_browser } from '~/tools/download_file_browser';
   import JSZip from 'jszip';
@@ -67,10 +65,7 @@
 
     // Background
     if (!opts.remove_background) {
-      const bg_src = $shaded_background_image_status
-        ? BACKGROUND_IMAGE_URLS.normal // export always uses non-template
-        : BACKGROUND_IMAGE_URLS.normal;
-      const bg_img = await load_image(bg_src);
+      const bg_img = await load_image(BACKGROUND_IMAGE_URLS.normal);
       layer.add(
         new Konva.Image({
           image: bg_img,
@@ -114,26 +109,9 @@
     return { url, name };
   }
 
-  // --- Single image downloads (use visible stage) ---
-  const download_from_visible_stage = async (
-    remove_background: boolean,
-    download = true
-  ): Promise<{ url: string; name: string }> => {
-    const stage = $stage_node;
-    if (!stage) throw new Error('Stage not available');
-
-    // For visible stage export, we need to temporarily adjust
-    const pixel_ratio = 1 / $scaling_factor;
-
-    // If we need to remove background or hide lines, export via offscreen
-    const { url, name } = await export_shloka_to_dataurl($image_shloka, { remove_background });
-
-    if (download) download_file_in_browser(url, name);
-    return { url, name };
-  };
-
   const download_image_as_png = async (remove_background: boolean) => {
-    await download_from_visible_stage(remove_background);
+    const { url, name } = await export_shloka_to_dataurl($image_shloka, { remove_background });
+    download_file_in_browser(url, name);
   };
 
   // --- Bulk downloads ---
@@ -199,7 +177,7 @@
       </div>
     </Popover.Content>
   </Popover.Root>
-{:else if $zip_download_state}
+{:else}
   <ProgressRing
     value={($zip_download_state[0] / $zip_download_state[1]) * 100}
     max={100}

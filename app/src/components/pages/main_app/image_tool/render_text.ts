@@ -390,11 +390,11 @@ function compute_lines(shloka_config: shloka_type_config, shloka_type: number): 
  * Used by both the reactive UI (ImageTool.svelte) and the export pipeline (ImageDownloader).
  */
 export const compute_all_layouts = async (
-  $image_shloka_input: number | null,
-  $image_script: script_list_type,
-  $image_lang_id: number
+  shloka_index: number | null,
+  image_script: script_list_type,
+  image_lang_id: number
 ): Promise<CanvasLayoutResult | null> => {
-  const $image_lang = LANG_LIST[LANG_LIST_IDS.indexOf($image_lang_id)] as lang_list_type;
+  const image_lang = LANG_LIST[LANG_LIST_IDS.indexOf(image_lang_id)] as lang_list_type;
   const $shloka_configs = get(shloka_configs);
   const $main_text_font_configs = get(main_text_font_configs);
   const $image_sarga_data = get(image_text_data_q);
@@ -404,12 +404,12 @@ export const compute_all_layouts = async (
   const $project_key = get(project_state).project_key!;
   const $project_levels = get(project_state).levels;
 
-  const $image_shloka_val = $image_shloka_input === null ? get(image_shloka) : $image_shloka_input;
+  const shloka_val = shloka_index === null ? get(image_shloka) : shloka_index;
 
   if (!browser) return null;
 
-  const main_text_font_info = $main_text_font_configs[$image_script];
-  const trans_text_font_info = $trans_text_font_configs[$image_lang];
+  const main_text_font_info = $main_text_font_configs[image_script];
+  const trans_text_font_info = $trans_text_font_configs[image_lang];
   const norm_text_font_info = $normal_text_font_config;
   const SPACE_BETWEEN_MAIN_AND_NORM = main_text_font_info.space_between_main_and_normal;
 
@@ -423,32 +423,23 @@ export const compute_all_layouts = async (
 
   // Shloka data
   const shloka_data =
-    $image_shloka_input === null
-      ? get(image_shloka_data)
-      : $image_sarga_data.data![$image_shloka_val];
+    shloka_index === null ? get(image_shloka_data) : $image_sarga_data.data![shloka_val];
 
   if (!shloka_data) return null;
 
-  // Ramayanam special word splitting + line split
+  // Ramayanam special word splitting + standard newline split
   const shloka_lines = (() => {
-    if ($project_key === 'ramayanam')
-      if ($image_shloka_val === 0) {
+    if ($project_key === 'ramayanam') {
+      if (shloka_val === 0) {
         const words = shloka_data.text.split(' ');
-        const break_point = 3;
-        return [words.slice(0, break_point).join(' '), words.slice(break_point).join(' ')];
-      } else if ($image_shloka_val === $image_sarga_data.data!.length - 1) {
+        return [words.slice(0, 3).join(' '), words.slice(3).join(' ')];
+      } else if (shloka_val === $image_sarga_data.data!.length - 1) {
         const words = shloka_data.text.split(' ');
-        const break_point = 4;
-        return [words.slice(0, break_point).join(' '), words.slice(break_point).join(' ')];
+        return [words.slice(0, 4).join(' '), words.slice(4).join(' ')];
       }
-    const line_split = shloka_data.text.split('\n');
-    const new_shloka_lines: string[] = [];
-    for (let i = 0; i < line_split.length; i++) {
-      const line = line_split[i];
-      // We are not splitting words as it leads to inconsistent unexpected results
-      new_shloka_lines.push(line);
     }
-    return new_shloka_lines;
+    // We are not splitting words as it leads to inconsistent unexpected results
+    return shloka_data.text.split('\n');
   })();
 
   const shloka_type = shloka_lines.length as keyof typeof $shloka_configs;
@@ -469,7 +460,7 @@ export const compute_all_layouts = async (
     const main_text = await transliterate_custom(
       shloka_lines[line_i],
       BASE_SCRIPT,
-      $image_script as ScriptLangType
+      image_script as ScriptLangType
     );
     const norm_text = await transliterate_custom(
       shloka_lines[line_i],

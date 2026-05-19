@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, untrack } from 'svelte';
+  import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { Stage, Layer, Line, Text, Image as KonvaImage } from 'svelte-konva';
   import type Konva from 'konva';
@@ -28,7 +28,6 @@
     selected_text_levels,
     viewing_script,
     trans_lang,
-    image_tool_opened,
     editing_status_on,
     project_state,
     BASE_SCRIPT
@@ -46,7 +45,6 @@
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
   import { Button } from '$lib/components/ui/button';
   import { get_list_name_at_depth_from_selected } from '~/state/project_list';
-  import { ensure_fonts_loaded, get_font_load_descriptors } from './font_loader';
 
   type Props = {
     onClose?: () => void;
@@ -64,7 +62,7 @@
   // Background image element
   let bg_image_element = $state<HTMLImageElement | null>(null);
 
-  // Stage component ref
+  // Stage component ref — bind:this then propagate into store
   let stage_component = $state<{ node: Konva.Stage } | null>(null);
 
   // in our case we dont need to initialize inside of onMount
@@ -131,23 +129,10 @@
     // Load initial background image
     load_bg_image($shaded_background_image_status);
 
-    // Load fonts
-    ensure_fonts_loaded([
-      get_font_load_descriptors('ADOBE_DEVANAGARI', 'bold'),
-      get_font_load_descriptors('ADOBE_DEVANAGARI', 'normal'),
-      get_font_load_descriptors('ROBOTO', 'bold'),
-      get_font_load_descriptors('NIRMALA_UI', 'normal'),
-      get_font_load_descriptors('NIRMALA_UI', 'bold'),
-      get_font_load_descriptors('NOTO_SERIF_TELUGU', 'normal'),
-      get_font_load_descriptors('NOTO_SERIF_TELUGU', 'bold'),
-      get_font_load_descriptors('NOTO_SERIF_KANNADA', 'normal'),
-      get_font_load_descriptors('NOTO_SERIF_KANNADA', 'bold'),
-      get_font_load_descriptors('NOTO_SERIF_SINHALA', 'normal'),
-      get_font_load_descriptors('NOTO_SERIF_SINHALA', 'bold')
-    ]).then(() => {
-      $fonts_loaded = true;
-      mounted = true;
-    });
+    // fonts are loaded on-demand in compute_all_layouts() for whichever
+    // script/lang is actually used — no upfront preload needed.
+    $fonts_loaded = true;
+    mounted = true;
 
     return () => {
       window.removeEventListener('resize', update_layout);
@@ -181,11 +166,8 @@
     if (mounted) load_bg_image($shaded_background_image_status);
   });
 
-  // Update stage_node ref when stage component changes
   $effect(() => {
-    if (stage_component) {
-      $stage_node = stage_component.node;
-    }
+    if (stage_component) $stage_node = stage_component.node;
   });
 
   $effect(() => {

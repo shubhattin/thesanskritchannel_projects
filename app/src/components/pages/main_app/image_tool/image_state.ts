@@ -1,4 +1,4 @@
-import { get, writable } from 'svelte/store';
+import { writable } from 'svelte/store';
 import { get_derived_query } from '~/tools/query';
 import { browser } from '$app/environment';
 import { trans_lang_data_q_options, text_data_q_options } from '~/state/main_app/data.svelte';
@@ -35,10 +35,6 @@ export let scaling_factor = writable<number>(0); // Scale factor for the canvas
 
 export const IMAGE_DIMENSIONS = [1920, 1080] as const;
 
-/** Convert a value in the base 1920×1080 coordinate space to screen pixels. */
-export const get_units = (value: number) => {
-  return value * get(scaling_factor);
-};
 
 /** Whether fonts needed for image rendering have been loaded. */
 export let fonts_loaded = writable(false);

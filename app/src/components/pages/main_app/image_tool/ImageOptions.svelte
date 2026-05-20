@@ -52,6 +52,11 @@
   import { Textarea } from '$lib/components/ui/textarea';
   import ImageColorField from './ImageColorField.svelte';
   import type { Snippet } from 'svelte';
+  import {
+    clearTypingContextOnKeyDown,
+    createTypingContext,
+    handleTypingBeforeInputEvent
+  } from 'lipilekhika/typing';
 
   let total_count = $derived(
     $project_map_q.isSuccess ? get_total_count($image_selected_levels) : 0
@@ -67,6 +72,15 @@
   let trans_text_available = $state(false);
 
   const current_lang = $derived(LANG_LIST[LANG_LIST_IDS.indexOf($image_lang)] as lang_list_type);
+
+  let shloka_typing_ctx = $derived(
+    createTypingContext('Devanagari', {
+      includeInherentVowel: true
+    })
+  );
+  $effect(() => {
+    shloka_typing_ctx.ready;
+  });
 
   const reset_func = () => {
     $shloka_configs = copy_plain_object(DEFAULT_SHLOKA_CONFIG);
@@ -548,6 +562,17 @@
                 class="indic-font field-sizing-fixed h-36 w-full resize-none overflow-y-auto rounded-md border border-input bg-background p-3 text-sm"
                 bind:value={text_data}
                 disabled={text_textarea_disabled}
+                onbeforeinput={(e) =>
+                  handleTypingBeforeInputEvent(
+                    shloka_typing_ctx,
+                    e,
+                    (newValue) => {
+                      text_data = newValue;
+                    },
+                    !text_textarea_disabled
+                  )}
+                onblur={() => shloka_typing_ctx.clearContext()}
+                onkeydown={(e) => clearTypingContextOnKeyDown(e, shloka_typing_ctx)}
               />
             </div>
 

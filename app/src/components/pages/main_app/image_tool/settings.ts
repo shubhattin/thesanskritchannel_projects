@@ -25,13 +25,6 @@ export type ImageTextRenderColors = {
   translation: string;
 };
 
-type bounding_coords_type = {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-};
-
 export type shloka_type_config = {
   bounding_coords: bounding_coords_type;
   main_text_font_size: number;
@@ -43,7 +36,9 @@ export type shloka_type_config = {
   };
 };
 
-type shloka_number_type = 1 | 2 | 3 | 4 | 5;
+export type shloka_number_type = 1 | 2 | 3 | 4 | 5;
+
+export const SHLOKA_NUMBER_TYPES: shloka_number_type[] = [1, 2, 3, 4, 5];
 
 export const DEFAULT_SHLOKA_CONFIG: Record<shloka_number_type, shloka_type_config> = {
   1: {
@@ -133,7 +128,14 @@ export let shloka_configs = writable(copy_plain_object(DEFAULT_SHLOKA_CONFIG));
 
 export let current_shloka_type = writable<shloka_number_type>();
 
-export const TRANSLATION_BOUNDIND_COORDS = {
+export type bounding_coords_type = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
+
+export const DEFAULT_TRANSLATION_BOUNDING_COORDS: bounding_coords_type = {
   left: 670,
   top: 650,
   right: 1860,

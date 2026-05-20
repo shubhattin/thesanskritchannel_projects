@@ -15,7 +15,12 @@ import {
 } from '~/state/lang_list';
 import { type shloka_list_type } from '~/state/data_types';
 import { copy_plain_object } from '~/tools/kry';
-import { get_image_font_info, IMAGE_RENDER_COLORS, type ImageTextRenderColors } from './settings';
+import {
+  DEFAULT_TRANSLATION_BOUNDING_COORDS,
+  get_image_font_info,
+  IMAGE_RENDER_COLORS,
+  type ImageTextRenderColors
+} from './settings';
 import { project_state, text_data_present } from '~/state/main_app/state.svelte';
 import type Konva from 'konva';
 
@@ -116,3 +121,7 @@ export const DEFAULT_TRANS_TEXT_FONT_CONFIGS = (() => {
   return res as image_font_config_type<lang_list_type>;
 })();
 export let trans_text_font_configs = writable(copy_plain_object(DEFAULT_TRANS_TEXT_FONT_CONFIGS));
+
+export let translation_bounding_coords = writable(
+  copy_plain_object(DEFAULT_TRANSLATION_BOUNDING_COORDS)
+);

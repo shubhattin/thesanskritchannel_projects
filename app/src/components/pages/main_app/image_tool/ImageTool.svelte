@@ -24,7 +24,8 @@
     image_trans_text,
     stage_node,
     fonts_loaded,
-    show_image_on_top_right
+    show_image_on_top_right,
+    translation_bounding_coords
   } from './image_state';
   import {
     selected_text_levels,
@@ -225,7 +226,8 @@
       !$shloka_configs ||
       !$normal_text_font_config ||
       !$trans_text_font_configs ||
-      !$main_text_font_configs
+      !$main_text_font_configs ||
+      !$translation_bounding_coords
     )
       return;
 
@@ -241,7 +243,9 @@
       $SPACE_ABOVE_REFERENCE_LINE,
       $image_shloka_data?.text,
       $image_trans_text,
-      $show_image_on_top_right
+      $show_image_on_top_right,
+      $shloka_configs,
+      $translation_bounding_coords
     ].join('\x1e');
     void color_deps;
 

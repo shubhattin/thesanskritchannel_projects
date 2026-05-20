@@ -9,6 +9,7 @@
     get_level_names_from_map,
     get_levels_from_map,
     get_list_name_at_depth_from_selected,
+    get_map_list_at_depth,
     get_node_at_path,
     get_project_from_key,
     PROJECT_LIST,
@@ -96,27 +97,6 @@
     const lvls = clamp_levels_for_route(get_levels_from_map($project_map_q.data));
     return get_level_names_from_map($project_map_q.data).slice(0, lvls);
   });
-
-  const get_map_list_at_depth = (
-    project_map: any,
-    levels: number,
-    selected: (number | null)[],
-    depth: number
-  ): any[] | null => {
-    // depth: 0 -> root list (highest selector), 1 -> list under highest selection, etc.
-    let node: any = project_map;
-    for (let d = 0; d < depth; d++) {
-      const sel = selected[levels - 2 - d];
-      if (!sel) return null;
-      if (node?.info?.type !== 'list') return null;
-      const list: any[] = node.list ?? [];
-      if (!(sel >= 1 && sel <= list.length)) return null;
-      node = list[sel - 1];
-      if (!node) return null;
-    }
-    if (node?.info?.type !== 'list') return null;
-    return Array.isArray(node.list) ? node.list : null;
-  };
 
   const get_total_count_from_map = (
     levels: number,

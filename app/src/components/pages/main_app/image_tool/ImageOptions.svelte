@@ -12,6 +12,7 @@
     main_text_font_configs,
     normal_text_font_config,
     shaded_background_image_status,
+    show_image_on_top_right,
     trans_text_font_configs,
     image_text_data_q,
     image_shloka_data,
@@ -27,6 +28,7 @@
   import * as Tabs from '$lib/components/ui/tabs';
   import * as Accordion from '$lib/components/ui/accordion';
   import { Switch } from '$lib/components/ui/switch';
+  import { Label } from '$lib/components/ui/label';
   import * as Select from '$lib/components/ui/select';
   import ImageDownloader from './ImageDownloader.svelte';
   import { DEFAULT_SHLOKA_CONFIG_SHARED, get_image_font_info } from './settings';
@@ -40,7 +42,7 @@
   import { copy_plain_object, deepCopy } from '~/tools/kry';
   import { FiEdit, FiSave } from 'svelte-icons-pack/fi';
   import { CgClose } from 'svelte-icons-pack/cg';
-  import { render_all_texts } from './render_text';
+
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Textarea } from '$lib/components/ui/textarea';
@@ -168,7 +170,12 @@
     </Select.Root>
   </label>
   <ImageDownloader />
-  <Switch bind:checked={$shaded_background_image_status} />
+  <div class="inline-flex items-center gap-1.5">
+    <Switch id="use-template-image" bind:checked={$shaded_background_image_status} />
+    <Label for="use-template-image" class="cursor-pointer text-xs font-medium">
+      Use template image
+    </Label>
+  </div>
   <span class="flex flex-col items-center justify-center">
     <Button
       onclick={reset_func}
@@ -309,6 +316,12 @@
                 </div>
               </section>
             </div>
+            <div class="flex items-center gap-2 border-t border-border pt-3">
+              <Switch id="show-shloka-number" bind:checked={$show_image_on_top_right} />
+              <Label for="show-shloka-number" class="cursor-pointer text-sm font-medium">
+                Show shloka number (top right)
+              </Label>
+            </div>
           </Tabs.Content>
           <Tabs.Content value="depend">
             {#if $current_shloka_type && $shloka_configs[$current_shloka_type]}
@@ -426,11 +439,7 @@
                 onclick={() => {
                   $image_shloka_data.text = text_data;
                   $image_shloka_data = $image_shloka_data;
-                  $image_rendering_state = true;
-                  render_all_texts(null, $image_script, $image_lang).then(() => {
-                    $image_rendering_state = false;
-                    text_textarea_disabled = true;
-                  });
+                  text_textarea_disabled = true;
                 }}><Icon src={FiSave} class="size-4" /></Button
               >
               <Button
@@ -468,11 +477,7 @@
                   disabled={$image_rendering_state}
                   onclick={() => {
                     $image_trans_text = trans_text_data;
-                    $image_rendering_state = true;
-                    render_all_texts(null, $image_script, $image_lang).then(() => {
-                      $image_rendering_state = false;
-                      trans_textarea_disabled = true;
-                    });
+                    trans_textarea_disabled = true;
                   }}><Icon src={FiSave} class="size-4" /></Button
                 >
                 <Button

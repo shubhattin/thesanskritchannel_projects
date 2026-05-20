@@ -339,6 +339,80 @@ function compute_fitted_text(opts: FitTextOpts): FitTextResult {
   return { configs: [], totalHeight: 0, totalWidth: 0 };
 }
 
+// --- Wrapped text for translation (delegates word-wrap to Konva) ---
+
+type WrappedTextOpts = {
+  text: string;
+  fontFamily: string;
+  fontStyle: string;
+  baseFontSize: number;
+  fontScale: number;
+  color: string;
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  widthUsageFactor: number;
+  align: 'left' | 'center' | 'right';
+  /** Konva lineHeight multiplier (1.0 = default single-spaced). */
+  lineHeight: number;
+  id: string;
+};
+
+/**
+ * Computes a single KonvaTextConfig for multi-line wrapped text (e.g. translation).
+ *
+ * Unlike compute_fitted_text (used for shloka lines), this does NOT iteratively
+ * shrink the font to fit the bounding box. Instead, `baseFontSize * fontScale`
+ * is used directly as the fontSize, and Konva handles word-wrapping via
+ * `width` + `wrap: 'word'`.
+ *
+ * This means the "Translation text size" control directly and immediately
+ * changes the rendered font size, and text reflows naturally across lines.
+ */
+function compute_wrapped_text(opts: WrappedTextOpts): FitTextResult {
+  const { text, fontFamily, fontStyle, baseFontSize, fontScale, color, widthUsageFactor, align, lineHeight, id } = opts;
+
+  const WIDTH_ACTUAL = opts.right - opts.left;
+  const WIDTH = WIDTH_ACTUAL * widthUsageFactor;
+  const WIDTH_SPACING = (WIDTH_ACTUAL - WIDTH) / 2;
+  const HEIGHT_ACTUAL = opts.bottom - opts.top;
+
+  // Start with the desired fontSize; shrink only if it overflows the bounding box
+  let fontSize = baseFontSize * fontScale;
+
+  const measure = (fs: number) => {
+    const tmp = new Konva.Text({
+      text, fontSize: fs, fontFamily, fontStyle,
+      width: WIDTH, wrap: 'word', lineHeight, align
+    });
+    const h = tmp.height();
+    const w = tmp.getTextWidth();
+    tmp.destroy();
+    return { h, w };
+  };
+
+  // Shrink by 1px steps if text overflows the bounding box height
+  if (HEIGHT_ACTUAL > 0) {
+    while (fontSize > 1) {
+      const { h } = measure(fontSize);
+      if (h <= HEIGHT_ACTUAL) break;
+      fontSize -= 1;
+    }
+  }
+
+  const { h: totalHeight, w: totalWidth } = measure(fontSize);
+
+  const x = opts.left + WIDTH_SPACING;
+  const config: KonvaTextConfig = {
+    id, text, x, y: opts.top,
+    fontSize, fontFamily, fontStyle, fill: color,
+    align, width: WIDTH, wrap: 'word', lineHeight,
+    listening: false
+  };
+  return { configs: [config], totalHeight, totalWidth };
+}
+
 // --- Bounding box and reference line computation ---
 
 function compute_lines(
@@ -591,7 +665,7 @@ export const compute_all_layouts = async (
       ? get(image_trans_text)
       : (trans_query.data?.get(shloka_val) ?? '');
   if (trans_text_data) {
-    const transResult = compute_fitted_text({
+    const transResult = compute_wrapped_text({
       text: trans_text_data,
       fontFamily: transFontFamily,
       fontStyle: 'normal',
@@ -601,9 +675,7 @@ export const compute_all_layouts = async (
       ...TRANSLATION_BOUNDIND_COORDS,
       widthUsageFactor: 0.985,
       align: 'right',
-      multiLine: true,
-      newLineSpacingFactor: trans_text_font_info.new_line_spacing,
-      textForMinHeight: trans_text_font_info.text_for_min_height,
+      lineHeight: 1 + trans_text_font_info.new_line_spacing,
       id: 'trans'
     });
     texts.push(...transResult.configs);

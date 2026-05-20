@@ -87,6 +87,10 @@
           fontFamily: textCfg.fontFamily,
           fontStyle: textCfg.fontStyle,
           fill: textCfg.fill,
+          align: textCfg.align,
+          width: textCfg.width,
+          wrap: textCfg.wrap,
+          lineHeight: textCfg.lineHeight,
           listening: false
         })
       );

@@ -394,6 +394,10 @@
                 fontFamily={el.fontFamily}
                 fontStyle={el.fontStyle}
                 fill={el.fill}
+                align={el.align}
+                width={el.width}
+                wrap={el.wrap}
+                lineHeight={el.lineHeight}
                 listening={el.listening}
               />
             {/each}

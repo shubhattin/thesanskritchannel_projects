@@ -89,7 +89,8 @@ export const PROJECT_LIST: project_type[] = [
     key: 'vijnana-bhairava-tantram',
     get_map: async () =>
       recursive_list_schema.parse(
-        (await import('@data/7. vijnana-bhairava-tantram/vijnana-bhairava-tantram_map.json')).default
+        (await import('@data/7. vijnana-bhairava-tantram/vijnana-bhairava-tantram_map.json'))
+          .default
       )
   }
 ];
@@ -177,6 +178,17 @@ export const get_list_node_at_depth_from_selected = (
     node = list[sel - 1]!;
   }
   return node.info.type === 'list' ? node : null;
+};
+
+export const get_map_list_at_depth = (
+  map: recursive_list_type,
+  levels: number,
+  selected_text_levels: (number | null)[],
+  depth: number
+): recursive_list_type[] | null => {
+  const node = get_list_node_at_depth_from_selected(map, levels, selected_text_levels, depth);
+  if (!node || node.info.type !== 'list') return null;
+  return Array.isArray(node.list) ? node.list : null;
 };
 
 export const get_list_name_at_depth_from_selected = (

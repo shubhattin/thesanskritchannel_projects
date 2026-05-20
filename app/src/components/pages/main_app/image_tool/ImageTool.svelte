@@ -1,13 +1,12 @@
 <script lang="ts">
-  import { onMount, untrack } from 'svelte';
-  import * as fabric from 'fabric';
+  import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
+  import { Stage, Layer, Line, Text, Image as KonvaImage } from 'svelte-konva';
+  import type Konva from 'konva';
   import {
-    canvas as canvas_obj,
-    background_image,
+    BACKGROUND_IMAGE_URLS,
     scaling_factor,
-    get_units,
     shaded_background_image_status,
-    set_background_image_type,
     IMAGE_DIMENSIONS,
     image_selected_levels,
     image_script,
@@ -21,21 +20,22 @@
     image_rendering_state,
     image_shloka_data,
     image_render_colors,
-    image_trans_text
+    image_trans_text,
+    stage_node,
+    fonts_loaded
   } from './image_state';
   import {
     selected_text_levels,
     viewing_script,
     trans_lang,
-    image_tool_opened,
     editing_status_on,
     project_state,
     BASE_SCRIPT
   } from '~/state/main_app/state.svelte';
   import { get_script_for_lang, get_text_font_class } from '~/tools/font_tools';
   import { SCRIPT_LIST, type script_list_type } from '~/state/lang_list';
-  import { shloka_configs, SPACE_ABOVE_REFERENCE_LINE } from './settings';
-  import { render_all_texts } from './render_text';
+  import { current_shloka_type, shloka_configs, SPACE_ABOVE_REFERENCE_LINE } from './settings';
+  import { compute_all_layouts, type CanvasLayoutResult } from './render_text';
   import ImageOptions from './ImageOptions.svelte';
   import { get_starting_index, project_map_q } from '~/state/main_app/data.svelte';
   import { transliterate_custom } from '~/tools/converter';
@@ -44,7 +44,10 @@
   import Icon from '~/tools/Icon.svelte';
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
   import { Button } from '$lib/components/ui/button';
-  import { get_list_name_at_depth_from_selected } from '~/state/project_list';
+  import {
+    get_list_name_at_depth_from_selected,
+    get_map_list_at_depth
+  } from '~/state/project_list';
 
   type Props = {
     onClose?: () => void;
@@ -56,6 +59,15 @@
   let layout_el = $state<HTMLDivElement>(null!);
   let layout_width = $state<number | null>(null);
 
+  // Canvas layout data (computed reactively)
+  let layout_result = $state<CanvasLayoutResult | null>(null);
+
+  // Background image element
+  let bg_image_element = $state<HTMLImageElement | null>(null);
+
+  // Stage component ref — bind:this then propagate into store
+  let stage_component = $state<{ node: Konva.Stage } | null>(null);
+
   // in our case we dont need to initialize inside of onMount
   $image_selected_levels = $selected_text_levels;
   $image_script = $viewing_script;
@@ -65,27 +77,6 @@
   const level_names = $derived($project_state.level_names);
   type option_type = { text?: string; value?: number };
 
-  const get_map_list_at_depth = (
-    project_map: any,
-    levels: number,
-    selected: (number | null)[],
-    depth: number
-  ): any[] | null => {
-    // depth: 0 -> root list (highest selector), 1 -> list under highest selection, etc.
-    let node: any = project_map;
-    for (let d = 0; d < depth; d++) {
-      const sel = selected[levels - 2 - d];
-      if (!sel) return null;
-      if (node?.info?.type !== 'list') return null;
-      const list: any[] = node.list ?? [];
-      if (!(sel >= 1 && sel <= list.length)) return null;
-      node = list[sel - 1];
-      if (!node) return null;
-    }
-    if (node?.info?.type !== 'list') return null;
-    return Array.isArray(node.list) ? node.list : null;
-  };
-
   const transliterate_options = async (options: option_type[], script: script_list_type) => {
     const transliterate_texts = await transliterate_custom(
       options.map((v) => v.text!),
@@ -94,6 +85,16 @@
     );
     return options.map((v, i) => ({ ...v, text: transliterate_texts[i] }));
   };
+
+  // Load background image
+  function load_bg_image(use_template: boolean) {
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.src = use_template ? BACKGROUND_IMAGE_URLS.template : BACKGROUND_IMAGE_URLS.normal;
+    img.onload = () => {
+      bg_image_element = img;
+    };
+  }
 
   onMount(() => {
     const update_layout = () => {
@@ -107,9 +108,13 @@
     const ro = new ResizeObserver(update_layout);
     if (layout_el) ro.observe(layout_el);
 
-    paint_init_convas().then(() => {
-      mounted = true;
-    });
+    // Load initial background image
+    load_bg_image($shaded_background_image_status);
+
+    // fonts are loaded on-demand in compute_all_layouts() for whichever
+    // script/lang is actually used — no upfront preload needed.
+    $fonts_loaded = true;
+    mounted = true;
 
     return () => {
       window.removeEventListener('resize', update_layout);
@@ -128,8 +133,6 @@
     }
   });
 
-  let canvas_element = $state<HTMLCanvasElement>(null!);
-
   function update_scaling_factor() {
     // size the canvas relative to the dialog width (not the full window)
     const width_basis = layout_width ?? window.innerWidth;
@@ -140,103 +143,13 @@
     $scaling_factor = min_value;
   }
 
-  const paint_init_convas = async () => {
-    $canvas_obj = new fabric.Canvas(canvas_element, {
-      width: get_units(IMAGE_DIMENSIONS[0]),
-      height: get_units(IMAGE_DIMENSIONS[1]),
-      backgroundColor: 'transparent'
-    });
-    const img = await fabric.util.loadImage('');
-    $background_image = new fabric.Image(img, {
-      originX: 'left',
-      originY: 'top',
-      scaleX: $scaling_factor,
-      scaleY: $scaling_factor,
-      selectable: false,
-      evented: false,
-      selection: false
-    });
-    // Add the image to the canvas
-    $canvas_obj.add($background_image);
-
-    $canvas_obj.requestRenderAll();
-  };
-
-  const update_canvas_dimensions = () => {
-    if (!$canvas_obj || !mounted) return;
-    // Update canvas dimensions
-    $canvas_obj.setWidth(get_units(IMAGE_DIMENSIONS[0]));
-    $canvas_obj.setHeight(get_units(IMAGE_DIMENSIONS[1]));
-    const prev_scaling_factor = $background_image.scaleX;
-    // Scale background image
-    $background_image.scaleX = $scaling_factor;
-    $background_image.scaleY = $scaling_factor;
-
-    const scale_object = (obj: fabric.FabricObject) => {
-      const type = obj.type;
-      if (!obj || type === 'image') return;
-      let options: Record<string, any> = {};
-      if (['text', 'textbox'].includes(obj.type)) {
-        const base_top = obj.get('top') / prev_scaling_factor;
-        const base_left = obj.get('left') / prev_scaling_factor;
-        const base_font_size = obj.get('fontSize') / prev_scaling_factor;
-        options = {
-          left: get_units(base_left),
-          top: get_units(base_top),
-          fontSize: get_units(base_font_size)
-        };
-        if (type === 'textbox') {
-          const base_width = obj.get('width') / prev_scaling_factor;
-          options['width'] = get_units(base_width);
-        }
-      } else if (type === 'line') {
-        const base_x1 = obj.get('x1') / prev_scaling_factor;
-        const base_y1 = obj.get('y1') / prev_scaling_factor;
-        const base_x2 = obj.get('x2') / prev_scaling_factor;
-        const base_y2 = obj.get('y2') / prev_scaling_factor;
-        const stroke_width = obj.get('strokeWidth') / prev_scaling_factor;
-        options = {
-          x1: get_units(base_x1),
-          y1: get_units(base_y1),
-          x2: get_units(base_x2),
-          y2: get_units(base_y2),
-          strokeWidth: get_units(stroke_width)
-        };
-      } else if (['path', 'group'].includes(type)) {
-        const resize_path = (path_obj: fabric.Path) => {
-          const base_left = path_obj.get('left') / prev_scaling_factor;
-          const base_top = path_obj.get('top') / prev_scaling_factor;
-          const base_scaleX = path_obj.get('scaleX') / prev_scaling_factor;
-          const base_scaleY = path_obj.get('scaleY') / prev_scaling_factor;
-          options = {
-            left: get_units(base_left),
-            top: get_units(base_top),
-            scaleX: get_units(base_scaleX),
-            scaleY: get_units(base_scaleY)
-          };
-        };
-        if (type === 'group' && obj instanceof fabric.Group) {
-          obj.forEachObject((e) => {
-            obj.remove(e);
-            scale_object(e);
-            obj.add(e);
-          });
-        } else {
-          resize_path(obj as fabric.Path);
-        }
-      } // Update object's corner positions
-      obj.set(options);
-      obj.setCoords();
-    };
-    // Update positions and scales of text objects
-    $canvas_obj.getObjects().forEach(scale_object);
-    $canvas_obj.requestRenderAll();
-  };
+  // Update background image when toggle changes
   $effect(() => {
-    if (mounted && $scaling_factor) untrack(() => update_canvas_dimensions());
+    if (mounted) load_bg_image($shaded_background_image_status);
   });
+
   $effect(() => {
-    if (mounted) set_background_image_type($shaded_background_image_status);
+    if (stage_component) $stage_node = stage_component.node;
   });
 
   $effect(() => {
@@ -245,9 +158,11 @@
     }
   });
 
+  // Reactive layout computation — replaces the old render_all_texts $effect
   $effect(() => {
     if (
       !mounted ||
+      !$fonts_loaded ||
       $image_text_data_q.isFetching ||
       !$image_text_data_q.isSuccess ||
       $image_trans_data_q.isFetching ||
@@ -260,7 +175,7 @@
     )
       return;
 
-    // Explicit deps so text color edits always trigger a canvas re-render.
+    // Explicit deps so text color edits always trigger a re-layout.
     const color_deps = [
       $image_render_colors.main,
       $image_render_colors.normal,
@@ -278,8 +193,12 @@
     let cancelled = false;
     (async () => {
       $image_rendering_state = true;
-      await render_all_texts(null, $image_script, $image_lang);
-      if (!cancelled) $image_rendering_state = false;
+      const result = await compute_all_layouts(null, $image_script, $image_lang);
+      if (!cancelled) {
+        layout_result = result;
+        if (result) current_shloka_type.set(result.shloka_type);
+        $image_rendering_state = false;
+      }
     })();
 
     return () => {
@@ -420,6 +339,71 @@
   </div>
 
   <div class="mt-2 flex justify-center space-y-2">
-    <canvas bind:this={canvas_element}></canvas>
+    {#if browser && mounted && $scaling_factor > 0}
+      <Stage
+        bind:this={stage_component}
+        width={IMAGE_DIMENSIONS[0] * $scaling_factor}
+        height={IMAGE_DIMENSIONS[1] * $scaling_factor}
+        scaleX={$scaling_factor}
+        scaleY={$scaling_factor}
+      >
+        <!-- Background Layer -->
+        <Layer listening={false}>
+          {#if bg_image_element}
+            <KonvaImage
+              image={bg_image_element}
+              x={0}
+              y={0}
+              width={IMAGE_DIMENSIONS[0]}
+              height={IMAGE_DIMENSIONS[1]}
+            />
+          {/if}
+        </Layer>
+
+        <!-- Lines Layer -->
+        {#if layout_result}
+          <Layer listening={false}>
+            {#each layout_result.bounding_lines as line (line.id)}
+              <Line
+                points={line.points}
+                stroke={line.stroke}
+                strokeWidth={line.strokeWidth}
+                listening={false}
+              />
+            {/each}
+            {#each layout_result.reference_lines as line (line.id)}
+              <Line
+                points={line.points}
+                stroke={line.stroke}
+                strokeWidth={line.strokeWidth}
+                listening={false}
+              />
+            {/each}
+          </Layer>
+        {/if}
+
+        <!-- Text Layer -->
+        {#if layout_result}
+          <Layer>
+            {#each layout_result.texts as el (el.id)}
+              <Text
+                text={el.text}
+                x={el.x}
+                y={el.y}
+                fontSize={el.fontSize}
+                fontFamily={el.fontFamily}
+                fontStyle={el.fontStyle}
+                fill={el.fill}
+                align={el.align}
+                width={el.width}
+                wrap={el.wrap}
+                lineHeight={el.lineHeight}
+                listening={el.listening}
+              />
+            {/each}
+          </Layer>
+        {/if}
+      </Stage>
+    {/if}
   </div>
 </div>

@@ -1,24 +1,17 @@
-import { z } from 'zod';
+import Konva from 'konva';
 import {
-  get_units,
   image_shloka,
   image_shloka_data,
   image_text_data_q,
+  image_trans_data_q,
   main_text_font_configs,
   normal_text_font_config,
   trans_text_font_configs,
   image_render_colors,
-  image_trans_text,
-  canvas
+  image_trans_text
 } from './image_state';
-import * as fabric from 'fabric';
 import {
-  get_text_svg_path,
-  preload_font_from_url,
-  preload_harfbuzzjs_wasm
-} from '~/tools/harfbuzz';
-import {
-  current_shloka_type,
+  DEFAULT_SHLOKA_CONFIG,
   IMAGE_RENDER_COLORS,
   shloka_configs,
   SPACE_ABOVE_REFERENCE_LINE,
@@ -34,302 +27,453 @@ import {
   type script_list_type
 } from '~/state/lang_list';
 import { transliterate_custom } from '~/tools/converter';
-import { get_font_url } from '~/tools/font_tools';
+import { FONT_FAMILY_NAME } from '~/tools/font_tools';
 import { BASE_SCRIPT, project_state } from '~/state/main_app/state.svelte';
 import type { ScriptLangType } from 'lipilekhika';
+import { ensure_fonts_loaded, get_font_load_descriptors } from './font_loader';
 
-const get_text_configs = () => {
-  const colors = get(image_render_colors);
-  return {
-    main_text: { color: colors.main },
-    norm_text: { color: colors.normal },
-    main_numb_text: { color: colors.number },
-    norm_numb_text: { color: colors.number },
-    trans_text: { color: colors.translation }
-  };
+// --- Types ---
+
+export type KonvaTextConfig = {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  fontFamily: string;
+  fontStyle: string;
+  fill: string;
+  align: 'left' | 'center' | 'right';
+  width?: number;
+  wrap?: 'word' | 'char' | 'none';
+  lineHeight?: number;
+  listening: boolean;
 };
 
-const render_text_args_schema = z.object({
-  text: z.string(),
-  font_url: z.string(),
-  font_size: z.number(),
-  font_scale: z.number(),
-  color: z.string(),
-  line_index: z.number().optional(),
-  text_type: z.union([z.literal('main'), z.literal('normal')]).optional(),
-  text_for_min_height: z.string().optional().nullable(),
-  total_lines: z.number().optional(),
-  left: z.number(),
-  right: z.number(),
-  top: z.number().optional().default(0),
-  bottom: z.number().optional().default(0),
-  width_usage_factor: z.number(),
-  align: z.union([z.literal('left'), z.literal('right'), z.literal('center')]),
-  multi_line_text: z.boolean().optional().default(false),
-  lockMovementY: z.boolean().optional().default(false),
-  lockMovementX: z.boolean().optional().default(false),
-  lockScalingX: z.boolean().optional().default(false),
-  lockScalingY: z.boolean().optional().default(false),
-  new_line_spacing_factor: z.number().optional().default(1)
-});
+export type KonvaLineConfig = {
+  id: string;
+  points: number[];
+  stroke: string;
+  strokeWidth: number;
+  listening: boolean;
+};
+
+export type CanvasLayoutResult = {
+  texts: KonvaTextConfig[];
+  bounding_lines: KonvaLineConfig[];
+  reference_lines: KonvaLineConfig[];
+  shloka_config: shloka_type_config;
+  shloka_type: keyof typeof DEFAULT_SHLOKA_CONFIG;
+};
+
+// --- Text measurement helpers using Konva ---
 
 /**
- * This function will also set the left coordinate of the text.
- * left has to be set outside
+ * Measures the width of a single-line text string using a temporary Konva.Text node.
+ * This replaces the old HarfBuzz SVG path measurement.
  */
-const render_text = async (input: z.input<typeof render_text_args_schema>) => {
-  const opts = render_text_args_schema.parse(input);
+function measure_text_width(
+  text: string,
+  fontSize: number,
+  fontFamily: string,
+  fontStyle: string
+): number {
+  const tmp = new Konva.Text({
+    text,
+    fontSize,
+    fontFamily,
+    fontStyle
+  });
+  const w = tmp.getTextWidth();
+  tmp.destroy();
+  return w;
+}
+
+/**
+ * Measures the height of a single-line text string.
+ */
+function measure_text_height(
+  text: string,
+  fontSize: number,
+  fontFamily: string,
+  fontStyle: string
+): number {
+  const tmp = new Konva.Text({
+    text,
+    fontSize,
+    fontFamily,
+    fontStyle
+  });
+  const h = tmp.height();
+  tmp.destroy();
+  return h;
+}
+
+// --- Core text fitting algorithm ---
+
+type FitTextOpts = {
+  text: string;
+  fontFamily: string;
+  fontStyle: string;
+  baseFontSize: number;
+  fontScale: number;
+  color: string;
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  widthUsageFactor: number;
+  align: 'left' | 'center' | 'right';
+  multiLine: boolean;
+  newLineSpacingFactor: number;
+  lineIndex?: number;
+  totalLines?: number;
+  textType?: 'main' | 'normal';
+  textForMinHeight?: string | null;
+  id: string;
+};
+
+type FitTextResult = {
+  configs: KonvaTextConfig[];
+  totalHeight: number;
+  totalWidth: number;
+};
+
+/**
+ * Computes text layout config(s) that fit within a bounding box.
+ *
+ * For single-line text: produces one KonvaTextConfig with fontSize scaled to fit width.
+ * For multi-line text: wraps and produces one KonvaTextConfig per visual line,
+ *   iteratively shrinking fontScale until all lines fit within the bounding height.
+ *
+ * This replaces the old HarfBuzz-based render_text function.
+ */
+function compute_fitted_text(opts: FitTextOpts): FitTextResult {
   const {
     text,
-    font_url,
-    font_size,
+    fontFamily,
+    fontStyle,
+    baseFontSize,
     color,
-    line_index,
-    text_type,
-    width_usage_factor,
+    widthUsageFactor,
     align,
-    total_lines,
-    multi_line_text,
-    lockMovementX,
-    lockMovementY,
-    lockScalingX,
-    lockScalingY,
-    new_line_spacing_factor,
-    text_for_min_height
+    multiLine,
+    newLineSpacingFactor,
+    lineIndex,
+    totalLines,
+    textType,
+    textForMinHeight,
+    id
   } = opts;
+  let fontScale = opts.fontScale;
 
-  const get_font_size_for_path = (font_size: number) => {
-    const PATH_SCALING_FACTOR = 1 / 15.125;
-    return get_units((font_size / 65) * PATH_SCALING_FACTOR);
-  };
-
-  const right = get_units(opts.right);
-  const left = get_units(opts.left);
-  const top = get_units(opts.top);
-  const bottom = get_units(opts.bottom);
-  let font_scale = opts.font_scale;
-
-  const WIDTH_ACTUAL = right - left;
-  const WIDTH = WIDTH_ACTUAL * width_usage_factor;
+  const WIDTH_ACTUAL = opts.right - opts.left;
+  const WIDTH = WIDTH_ACTUAL * widthUsageFactor;
   const WIDTH_SPACING = (WIDTH_ACTUAL - WIDTH) / 2;
-  const HEIGHT_ACTUAL = bottom - top;
-  const HEIGHT = HEIGHT_ACTUAL;
+  const HEIGHT_ACTUAL = opts.bottom - opts.top;
 
-  let text_group_height = 0;
-  let text_group_width = 0;
-
-  let text_used = '';
+  // Process text: strip last word from last shloka line for main text (number indicator)
+  let textUsed = '';
   const words = text.split(' ');
   for (let i = 0; i < words.length; i++) {
     const word = words[i];
     if (word === '') continue;
     else if (
-      line_index &&
-      total_lines &&
-      text_type &&
+      lineIndex !== undefined &&
+      totalLines !== undefined &&
+      textType &&
       i === words.length - 1 &&
-      line_index === total_lines - 1
+      lineIndex === totalLines - 1
     ) {
-      if (text_type === 'main') text_used += word[0];
+      if (textType === 'main') textUsed += word[0];
       continue;
     }
-    text_used += word + (i === words.length - 1 ? '' : ' ');
+    textUsed += word + (i === words.length - 1 ? '' : ' ');
   }
 
   const FONT_SCALE_STEP = 0.05;
-  let text_path_scale: number = 0;
-  const text_group = new fabric.Group([], {
-    lockRotation: true,
-    lockMovementY: lockMovementY,
-    lockMovementX: lockMovementX,
-    lockScalingX: lockScalingX,
-    lockScalingY: lockScalingY
-  });
-  const lines = text_used.split('\n');
-  let prev_height = 0;
-  let NEW_LINE_SPACING = 0;
+  const inputLines = textUsed.split('\n');
 
-  const measure_path = async (line_text: string) => {
-    const text_path = new fabric.Path(await get_text_svg_path(line_text, font_url), {
-      fill: color
-    });
-    return { text_path, width: text_path.width, height: text_path.height };
-  };
+  const compute_font_size = (scale: number) => baseFontSize * scale;
 
-  const scale_to_fit_width = (scale: number, unscaled_width: number) =>
-    unscaled_width * scale <= WIDTH ? scale : WIDTH / unscaled_width;
+  const measure_w = (str: string, fontSize: number) =>
+    measure_text_width(str, fontSize, fontFamily, fontStyle);
 
-  const get_text_path_element = async (line_text: string, scale: number) => {
-    const {
-      text_path,
-      width: unscaled_width,
-      height: unscaled_height
-    } = await measure_path(line_text);
-    const applied_scale = multi_line_text ? scale : scale_to_fit_width(scale, unscaled_width);
-    text_path.set({
-      scaleX: applied_scale,
-      scaleY: applied_scale
-    });
-    return {
-      text_path,
-      height: unscaled_height * applied_scale,
-      width: unscaled_width * applied_scale,
-      applied_scale
-    };
-  };
+  const measure_h = (str: string, fontSize: number) =>
+    measure_text_height(str, fontSize, fontFamily, fontStyle);
 
-  const wrap_line_to_segments = async (line: string, scale: number) => {
-    const words = line.split(' ');
+  const scale_to_fit_width = (fontSize: number, textWidth: number) =>
+    textWidth <= WIDTH ? fontSize : (WIDTH / textWidth) * fontSize;
+
+  // Wrap a line into segments that each fit within WIDTH at the given fontSize
+  const wrap_line_to_segments = (line: string, fontSize: number): string[] => {
+    const lineWords = line.split(' ');
     const segments: string[] = [];
-    let allowed_words: string[] = [];
-    for (let word_i = 0; word_i < words.length; word_i++) {
-      const word = words[word_i];
-      const current_word = allowed_words.join(' ') + (allowed_words.length !== 0 ? ' ' : '') + word;
-      const { width } = await measure_path(current_word);
-      if (width * scale <= WIDTH) allowed_words.push(word);
-      else {
-        if (allowed_words.length !== 0) segments.push(allowed_words.join(' '));
-        allowed_words = [word];
+    let allowed: string[] = [];
+    for (const word of lineWords) {
+      const candidate = allowed.length > 0 ? allowed.join(' ') + ' ' + word : word;
+      const w = measure_w(candidate, fontSize);
+      if (w <= WIDTH) {
+        allowed.push(word);
+      } else {
+        if (allowed.length > 0) segments.push(allowed.join(' '));
+        allowed = [word];
       }
     }
-    if (allowed_words.length !== 0) segments.push(allowed_words.join(' '));
+    if (allowed.length > 0) segments.push(allowed.join(' '));
     return segments;
   };
 
-  const render_line = async (line: string, scale: number) => {
-    let { text_path, width, height, applied_scale } = await get_text_path_element(line, scale);
-    if (text_for_min_height) {
-      ({ height } = await get_text_path_element(line + text_for_min_height, applied_scale));
-      text_group_height = height;
-    }
-    if (opts.top) text_path.set({ top: get_units(opts.top) + prev_height });
-    if (align === 'center')
-      text_path.set({
-        left: left + WIDTH_SPACING + (WIDTH - width) / 2
-      });
-    else if (align === 'left')
-      text_path.set({
-        left: left + WIDTH_SPACING
-      });
-    else if (align === 'right')
-      text_path.set({
-        left: right - WIDTH_SPACING - width
-      });
-    text_group.add(text_path);
-    if (!multi_line_text) return;
-    prev_height += height + NEW_LINE_SPACING;
+  // Compute x position for a text element based on alignment
+  const compute_x = (textWidth: number): number => {
+    if (align === 'center') return opts.left + WIDTH_SPACING + (WIDTH - textWidth) / 2;
+    if (align === 'left') return opts.left + WIDTH_SPACING;
+    // right
+    return opts.right - WIDTH_SPACING - textWidth;
   };
 
-  for (let iter = 0; true; iter++) {
-    prev_height = 0;
-    const net_scale = font_scale - iter * FONT_SCALE_STEP;
-    NEW_LINE_SPACING = get_units(font_size * net_scale) * new_line_spacing_factor;
-    text_path_scale = get_font_size_for_path(font_size * net_scale);
-    const base_text_path_scale = text_path_scale;
+  // --- Main fitting loop ---
+  for (let iter = 0; ; iter++) {
+    const netScale = fontScale - iter * FONT_SCALE_STEP;
+    if (netScale <= 0) break; // safety
+    const fontSize = compute_font_size(netScale);
+    const lineSpacing = fontSize * newLineSpacingFactor;
 
-    if (!multi_line_text) {
-      await render_line(lines[0] ?? '', text_path_scale);
-      break;
-    }
+    if (!multiLine) {
+      // Single-line text
+      const textWidth = measure_w(inputLines[0] ?? '', fontSize);
+      const fittedFontSize = scale_to_fit_width(fontSize, textWidth);
+      const fittedWidth = measure_w(inputLines[0] ?? '', fittedFontSize);
 
-    const wrapped_segments: string[] = [];
-    for (let i = 0; i < lines.length; i++) {
-      wrapped_segments.push(...(await wrap_line_to_segments(lines[i], text_path_scale)));
-    }
-    let line_scale = text_path_scale;
-    for (const segment of wrapped_segments) {
-      const { width } = await measure_path(segment);
-      line_scale = scale_to_fit_width(line_scale, width);
-    }
-    text_path_scale = line_scale;
-    NEW_LINE_SPACING *= line_scale / base_text_path_scale;
+      // Height: use textForMinHeight reference string if provided (for consistent line heights)
+      let textHeight: number;
+      if (textForMinHeight) {
+        textHeight = measure_h((inputLines[0] ?? '') + textForMinHeight, fittedFontSize);
+      } else {
+        textHeight = measure_h(inputLines[0] ?? '', fittedFontSize);
+      }
 
-    for (const segment of wrapped_segments) {
-      await render_line(segment, line_scale);
-    }
-
-    if (HEIGHT / text_group.height >= 1) {
-      break;
-    } else {
-      text_group.removeAll();
-    }
-  }
-  text_group_width = text_group.width;
-  if (!text_for_min_height) {
-    text_group_height = text_group.height;
-    // ^ for normal text height will not be calculated after adding letters like `y,p,g,q,j` etc
-  }
-  return { group: text_group, height: text_group_height, width: text_group_width };
-};
-
-const draw_bounding_and_reference_lines = async (shloka_config: shloka_type_config) => {
-  const shloka = shloka_config.bounding_coords;
-  const $canvas = get(canvas);
-  const $current_shloka_type = get(current_shloka_type);
-  const trans = TRANSLATION_BOUNDIND_COORDS;
-  for (let line_coord of [
-    [
-      // the main area bounding box
-      // x1 y1 x2 y2
-      [shloka.left, shloka.top, shloka.left, shloka.bottom], // left line
-      [shloka.right, shloka.top, shloka.right, shloka.bottom], // top line
-      [shloka.left, shloka.top, shloka.right, shloka.top], // right line
-      [shloka.left, shloka.bottom, shloka.right, shloka.bottom] // bottom line
-    ],
-    [
-      // translation area bounding box
-      [trans.left, trans.top, trans.left, trans.bottom], // left line
-      [trans.right, trans.top, trans.right, trans.bottom], // top line
-      [trans.left, trans.top, trans.right, trans.top], // right line
-      [trans.left, trans.bottom, trans.right, trans.bottom] // bottom line
-    ]
-  ])
-    for (let line_pos of line_coord)
-      $canvas.add(
-        new fabric.Line(
-          [
-            get_units(line_pos[0]),
-            get_units(line_pos[1]),
-            get_units(line_pos[2]),
-            get_units(line_pos[3])
-          ],
-          {
-            stroke: IMAGE_RENDER_COLORS.line.boundingBox,
-            strokeWidth: get_units(1.5),
-            selectable: false,
-            evented: false
-          }
-        )
-      );
-  // drawing shloka reference lines
-  for (let top_i = 0; top_i < $current_shloka_type; top_i++) {
-    const top = shloka_config.reference_lines.top + top_i * shloka_config.reference_lines.spacing;
-    $canvas.add(
-      new fabric.Line(
-        [get_units(shloka.left), get_units(top), get_units(shloka.right), get_units(top)],
+      const x = compute_x(fittedWidth);
+      const configs: KonvaTextConfig[] = [
         {
-          stroke: IMAGE_RENDER_COLORS.line.referenceLine,
-          strokeWidth: get_units(2),
-          selectable: false,
-          evented: false
+          id,
+          text: inputLines[0] ?? '',
+          x,
+          y: opts.top, // will be repositioned by caller for reference line alignment
+          fontSize: fittedFontSize,
+          fontFamily,
+          fontStyle,
+          fill: color,
+          align: 'left', // We position manually via x, so use 'left' for Konva
+          listening: false
         }
-      )
-    );
+      ];
+      return { configs, totalHeight: textHeight, totalWidth: fittedWidth };
+    }
+
+    // Multi-line text: wrap all input lines, find uniform scale, check height
+    const wrappedSegments: string[] = [];
+    for (const line of inputLines) {
+      wrappedSegments.push(...wrap_line_to_segments(line, fontSize));
+    }
+
+    // Find the fontSize that fits the widest segment
+    let fittedFontSize = fontSize;
+    for (const segment of wrappedSegments) {
+      const segW = measure_w(segment, fittedFontSize);
+      if (segW > WIDTH) {
+        fittedFontSize = (WIDTH / segW) * fittedFontSize;
+      }
+    }
+
+    const fittedLineSpacing = lineSpacing * (fittedFontSize / fontSize);
+
+    // Compute total height
+    let totalHeight = 0;
+    const segmentHeights: number[] = [];
+    for (const segment of wrappedSegments) {
+      let h: number;
+      if (textForMinHeight) {
+        h = measure_h(segment + textForMinHeight, fittedFontSize);
+      } else {
+        h = measure_h(segment, fittedFontSize);
+      }
+      segmentHeights.push(h);
+      totalHeight += h;
+    }
+    totalHeight += fittedLineSpacing * Math.max(0, wrappedSegments.length - 1);
+
+    if (totalHeight > HEIGHT_ACTUAL && HEIGHT_ACTUAL > 0) {
+      // Doesn't fit — try smaller scale
+      continue;
+    }
+
+    // Build configs
+    const configs: KonvaTextConfig[] = [];
+    let yOffset = opts.top;
+    let maxWidth = 0;
+    for (let si = 0; si < wrappedSegments.length; si++) {
+      const segment = wrappedSegments[si];
+      const segW = measure_w(segment, fittedFontSize);
+      maxWidth = Math.max(maxWidth, segW);
+      const x = compute_x(segW);
+      configs.push({
+        id: `${id}_line${si}`,
+        text: segment,
+        x,
+        y: yOffset,
+        fontSize: fittedFontSize,
+        fontFamily,
+        fontStyle,
+        fill: color,
+        align: 'left',
+        listening: false
+      });
+      yOffset += segmentHeights[si] + fittedLineSpacing;
+    }
+
+    return { configs, totalHeight, totalWidth: maxWidth };
   }
-  // canvas.set($canvas); // not needed
-  return shloka_config;
+
+  // Fallback: return empty if nothing fits
+  return { configs: [], totalHeight: 0, totalWidth: 0 };
+}
+
+// --- Wrapped text for translation (delegates word-wrap to Konva) ---
+
+type WrappedTextOpts = {
+  text: string;
+  fontFamily: string;
+  fontStyle: string;
+  baseFontSize: number;
+  fontScale: number;
+  color: string;
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  widthUsageFactor: number;
+  align: 'left' | 'center' | 'right';
+  /** Konva lineHeight multiplier (1.0 = default single-spaced). */
+  lineHeight: number;
+  id: string;
 };
 
 /**
- * Renders all text for the particular `shloka>Chapter``
+ * Computes a single KonvaTextConfig for multi-line wrapped text (e.g. translation).
+ *
+ * Unlike compute_fitted_text (used for shloka lines), this does NOT iteratively
+ * shrink the font to fit the bounding box. Instead, `baseFontSize * fontScale`
+ * is used directly as the fontSize, and Konva handles word-wrapping via
+ * `width` + `wrap: 'word'`.
+ *
+ * This means the "Translation text size" control directly and immediately
+ * changes the rendered font size, and text reflows naturally across lines.
  */
-export const render_all_texts = async (
-  $image_shloka_input: number | null,
-  $image_script: script_list_type,
-  $image_lang_id: number
-) => {
-  const $image_lang = LANG_LIST[LANG_LIST_IDS.indexOf($image_lang_id)] as lang_list_type;
-  const $canvas = get(canvas);
+function compute_wrapped_text(opts: WrappedTextOpts): FitTextResult {
+  const { text, fontFamily, fontStyle, baseFontSize, fontScale, color, widthUsageFactor, align, lineHeight, id } = opts;
+
+  const WIDTH_ACTUAL = opts.right - opts.left;
+  const WIDTH = WIDTH_ACTUAL * widthUsageFactor;
+  const WIDTH_SPACING = (WIDTH_ACTUAL - WIDTH) / 2;
+  const HEIGHT_ACTUAL = opts.bottom - opts.top;
+
+  // Start with the desired fontSize; shrink only if it overflows the bounding box
+  let fontSize = baseFontSize * fontScale;
+
+  const measure = (fs: number) => {
+    const tmp = new Konva.Text({
+      text, fontSize: fs, fontFamily, fontStyle,
+      width: WIDTH, wrap: 'word', lineHeight, align
+    });
+    const h = tmp.height();
+    const w = tmp.getTextWidth();
+    tmp.destroy();
+    return { h, w };
+  };
+
+  // Shrink by 1px steps if text overflows the bounding box height
+  if (HEIGHT_ACTUAL > 0) {
+    while (fontSize > 1) {
+      const { h } = measure(fontSize);
+      if (h <= HEIGHT_ACTUAL) break;
+      fontSize -= 1;
+    }
+  }
+
+  const { h: totalHeight, w: totalWidth } = measure(fontSize);
+
+  const x = opts.left + WIDTH_SPACING;
+  const config: KonvaTextConfig = {
+    id, text, x, y: opts.top,
+    fontSize, fontFamily, fontStyle, fill: color,
+    align, width: WIDTH, wrap: 'word', lineHeight,
+    listening: false
+  };
+  return { configs: [config], totalHeight, totalWidth };
+}
+
+// --- Bounding box and reference line computation ---
+
+function compute_lines(
+  shloka_config: shloka_type_config,
+  shloka_type: number
+): {
+  bounding_lines: KonvaLineConfig[];
+  reference_lines: KonvaLineConfig[];
+} {
+  const shloka = shloka_config.bounding_coords;
+  const trans = TRANSLATION_BOUNDIND_COORDS;
+
+  const bounding_line_coords = [
+    // Shloka bounding box
+    [shloka.left, shloka.top, shloka.left, shloka.bottom],
+    [shloka.right, shloka.top, shloka.right, shloka.bottom],
+    [shloka.left, shloka.top, shloka.right, shloka.top],
+    [shloka.left, shloka.bottom, shloka.right, shloka.bottom],
+    // Translation bounding box
+    [trans.left, trans.top, trans.left, trans.bottom],
+    [trans.right, trans.top, trans.right, trans.bottom],
+    [trans.left, trans.top, trans.right, trans.top],
+    [trans.left, trans.bottom, trans.right, trans.bottom]
+  ];
+
+  const bounding_lines: KonvaLineConfig[] = bounding_line_coords.map((coords, i) => ({
+    id: `bounding_line_${i}`,
+    points: coords,
+    stroke: IMAGE_RENDER_COLORS.line.boundingBox,
+    strokeWidth: 1.5,
+    listening: false
+  }));
+
+  const reference_lines: KonvaLineConfig[] = [];
+  for (let i = 0; i < shloka_type; i++) {
+    const top = shloka_config.reference_lines.top + i * shloka_config.reference_lines.spacing;
+    reference_lines.push({
+      id: `ref_line_${i}`,
+      points: [shloka.left, top, shloka.right, top],
+      stroke: IMAGE_RENDER_COLORS.line.referenceLine,
+      strokeWidth: 2,
+      listening: false
+    });
+  }
+
+  return { bounding_lines, reference_lines };
+}
+
+// --- Main layout computation (replaces render_all_texts) ---
+
+/**
+ * Computes all text and line layout data for a given shloka.
+ * This is the pure computation function — no side effects, no canvas mutation.
+ * Used by both the reactive UI (ImageTool.svelte) and the export pipeline (ImageDownloader).
+ */
+export const compute_all_layouts = async (
+  shloka_index: number | null,
+  image_script: script_list_type,
+  image_lang_id: number
+): Promise<CanvasLayoutResult | null> => {
+  const image_lang = LANG_LIST[LANG_LIST_IDS.indexOf(image_lang_id)] as lang_list_type;
   const $shloka_configs = get(shloka_configs);
   const $main_text_font_configs = get(main_text_font_configs);
   const $image_sarga_data = get(image_text_data_q);
@@ -339,173 +483,206 @@ export const render_all_texts = async (
   const $project_key = get(project_state).project_key!;
   const $project_levels = get(project_state).levels;
 
-  const $image_shloka = $image_shloka_input === null ? get(image_shloka) : $image_shloka_input;
+  const shloka_val = shloka_index === null ? get(image_shloka) : shloka_index;
 
-  if (!browser) return $shloka_configs[2]; // just like has no meaning
+  if (!browser) return null;
 
-  const main_text_font_info = $main_text_font_configs[$image_script];
-  const trans_text_font_info = $trans_text_font_configs[$image_lang];
+  const main_text_font_info = $main_text_font_configs[image_script];
+  const trans_text_font_info = $trans_text_font_configs[image_lang];
   const norm_text_font_info = $normal_text_font_config;
-  const $SPACE_BETWEEN_MAIN_AND_NORM = main_text_font_info.space_between_main_and_normal;
+  const SPACE_BETWEEN_MAIN_AND_NORM = main_text_font_info.space_between_main_and_normal;
 
-  // preloading fonts
-  await Promise.all([
-    preload_font_from_url(get_font_url(norm_text_font_info.key, 'regular')),
-    preload_font_from_url(get_font_url(main_text_font_info.key, 'bold')),
-    preload_font_from_url(get_font_url('ROBOTO', 'bold')),
-    preload_font_from_url(get_font_url(trans_text_font_info.key, 'regular')),
-    preload_harfbuzzjs_wasm()
+  // Ensure fonts are loaded via browser's native API
+  await ensure_fonts_loaded([
+    get_font_load_descriptors(norm_text_font_info.key, 'normal'),
+    get_font_load_descriptors(main_text_font_info.key, 'bold'),
+    get_font_load_descriptors('ROBOTO', 'bold'),
+    get_font_load_descriptors(trans_text_font_info.key, 'normal')
   ]);
 
-  // fetch shloka config
+  // Shloka data: editor stores for preview/current shloka, query data for other exports
+  const selected_shloka = get(image_shloka);
   const shloka_data =
-    $image_shloka_input === null ? get(image_shloka_data) : $image_sarga_data.data![$image_shloka];
+    shloka_index === null || shloka_val === selected_shloka
+      ? get(image_shloka_data)
+      : $image_sarga_data.data?.[shloka_val];
 
+  if (!shloka_data) return null;
+
+  // Ramayanam special word splitting + standard newline split
   const shloka_lines = (() => {
-    if ($project_key === 'ramayanam')
-      if ($image_shloka === 0) {
+    if ($project_key === 'ramayanam') {
+      if (shloka_val === 0) {
         const words = shloka_data.text.split(' ');
-        const break_point = 3;
-        return [words.slice(0, break_point).join(' '), words.slice(break_point).join(' ')];
-      } else if ($image_shloka === $image_sarga_data.data!.length - 1) {
+        return [words.slice(0, 3).join(' '), words.slice(3).join(' ')];
+      } else if (shloka_val === $image_sarga_data.data!.length - 1) {
         const words = shloka_data.text.split(' ');
-        const break_point = 4;
-        return [words.slice(0, break_point).join(' '), words.slice(break_point).join(' ')];
+        return [words.slice(0, 4).join(' '), words.slice(4).join(' ')];
       }
-    const line_split = shloka_data.text.split('\n');
-    const new_shloka_lines: string[] = [];
-    for (let i = 0; i < line_split.length; i++) {
-      const line = line_split[i];
-      // We are not splitiing words as it leading to inconsistent unexpected results
-      new_shloka_lines.push(line);
     }
-    return new_shloka_lines;
+    // We are not splitting words as it leads to inconsistent unexpected results
+    return shloka_data.text.split('\n');
   })();
-  current_shloka_type.set(shloka_lines.length as keyof typeof $shloka_configs);
-  const shloka_config = $shloka_configs[get(current_shloka_type)];
 
-  const canvasObjects: fabric.Object[] = [];
-  const text_configs = get_text_configs();
+  const shloka_type = shloka_lines.length as keyof typeof $shloka_configs;
+  const shloka_config = $shloka_configs[shloka_type];
 
-  // shloka
+  const colors = get(image_render_colors);
+  const texts: KonvaTextConfig[] = [];
+
+  // Font families from keys
+  const mainFontFamily = FONT_FAMILY_NAME[main_text_font_info.key];
+  const normFontFamily = FONT_FAMILY_NAME[norm_text_font_info.key];
+  const transFontFamily = FONT_FAMILY_NAME[trans_text_font_info.key];
+  const robotoFamily = FONT_FAMILY_NAME['ROBOTO'];
+
+  // --- Shloka lines ---
   for (let line_i = 0; line_i < shloka_lines.length; line_i++) {
     const main_text = await transliterate_custom(
       shloka_lines[line_i],
       BASE_SCRIPT,
-      $image_script as ScriptLangType
+      image_script as ScriptLangType
     );
-    const text_main_group = await render_text({
-      text: main_text,
-      font_url: get_font_url(main_text_font_info.key, 'bold'),
-      font_size: shloka_config.main_text_font_size,
-      font_scale: main_text_font_info.size,
-      ...text_configs.main_text,
-      line_index: line_i,
-      total_lines: shloka_lines.length,
-      text_type: 'main',
-      text_for_min_height: main_text_font_info.text_for_min_height,
-      ...shloka_config.bounding_coords,
-      width_usage_factor: 0.985,
-      align: 'center'
-    });
     const norm_text = await transliterate_custom(
       shloka_lines[line_i],
       BASE_SCRIPT,
       'Normal' as ScriptLangType
     );
-    const text_norm_group = await render_text({
-      text: norm_text,
-      font_url: get_font_url(norm_text_font_info.key, 'regular'),
-      font_size: shloka_config.norm_text_font_size,
-      font_scale: norm_text_font_info.size,
-      ...text_configs.norm_text,
-      line_index: line_i,
-      total_lines: shloka_lines.length,
-      text_type: 'normal',
-      text_for_min_height: norm_text_font_info.text_for_min_height,
-      ...shloka_config.bounding_coords,
-      width_usage_factor: 0.985,
-      align: 'center'
-    });
-    const top_pos = get_units(
-      shloka_config.reference_lines.top + line_i * shloka_config.reference_lines.spacing
-    );
-    text_norm_group.group.set({
-      top: top_pos - (text_norm_group.height + get_units($SPACE_ABOVE_REFERENCE_LINE))
-    });
-    text_main_group.group.set({
-      top:
-        top_pos -
-        (text_main_group.height +
-          get_units($SPACE_BETWEEN_MAIN_AND_NORM) +
-          (text_norm_group.height + get_units($SPACE_ABOVE_REFERENCE_LINE)))
-    });
-    canvasObjects.push(text_main_group.group);
-    canvasObjects.push(text_norm_group.group);
-    if (line_i === shloka_lines.length - 1 && (shloka_data.shloka_num || $project_levels >= 3)) {
-      const number_main_text = main_text.split(' ').at(-1)!;
-      const number_indicator_main = await render_text({
-        text: number_main_text.substring(1, number_main_text.length - 1),
-        font_url: get_font_url(main_text_font_info.key, 'bold'),
-        font_size: 42,
-        font_scale: main_text_font_info.size * 0.8,
-        ...text_configs.main_numb_text,
-        right: shloka_config.bounding_coords.right,
-        left: shloka_config.bounding_coords.left,
-        width_usage_factor: 0.985,
-        align: 'right',
-        top: shloka_config.bounding_coords.top + 8
-      });
-      canvasObjects.push(number_indicator_main.group);
 
-      const number_indicator_norm = await render_text({
-        text: norm_text.split(' ').at(-1)!,
-        font_url: get_font_url('ROBOTO', 'bold'),
-        font_size: 28,
-        font_scale: norm_text_font_info.size * 0.98,
-        ...text_configs.norm_numb_text,
-        right: shloka_config.bounding_coords.right,
+    // Main text
+    const mainResult = compute_fitted_text({
+      text: main_text,
+      fontFamily: mainFontFamily,
+      fontStyle: 'bold',
+      baseFontSize: shloka_config.main_text_font_size,
+      fontScale: main_text_font_info.size,
+      color: colors.main,
+      lineIndex: line_i,
+      totalLines: shloka_lines.length,
+      textType: 'main',
+      textForMinHeight: main_text_font_info.text_for_min_height,
+      ...shloka_config.bounding_coords,
+      widthUsageFactor: 0.985,
+      align: 'center',
+      multiLine: false,
+      newLineSpacingFactor: 1,
+      id: `main_text_${line_i}`
+    });
+
+    // Normal text
+    const normResult = compute_fitted_text({
+      text: norm_text,
+      fontFamily: normFontFamily,
+      fontStyle: 'normal',
+      baseFontSize: shloka_config.norm_text_font_size,
+      fontScale: norm_text_font_info.size,
+      color: colors.normal,
+      lineIndex: line_i,
+      totalLines: shloka_lines.length,
+      textType: 'normal',
+      textForMinHeight: norm_text_font_info.text_for_min_height,
+      ...shloka_config.bounding_coords,
+      widthUsageFactor: 0.985,
+      align: 'center',
+      multiLine: false,
+      newLineSpacingFactor: 1,
+      id: `norm_text_${line_i}`
+    });
+
+    // Position relative to reference lines (same logic as original)
+    const refLineTop =
+      shloka_config.reference_lines.top + line_i * shloka_config.reference_lines.spacing;
+
+    const normY = refLineTop - (normResult.totalHeight + $SPACE_ABOVE_REFERENCE_LINE);
+    const mainY =
+      refLineTop -
+      (mainResult.totalHeight +
+        SPACE_BETWEEN_MAIN_AND_NORM +
+        (normResult.totalHeight + $SPACE_ABOVE_REFERENCE_LINE));
+
+    // Update y positions
+    for (const cfg of normResult.configs) cfg.y = normY;
+    for (const cfg of mainResult.configs) cfg.y = mainY;
+
+    texts.push(...mainResult.configs);
+    texts.push(...normResult.configs);
+
+    // Number indicators (on last line if shloka_num exists or levels >= 3)
+    if (line_i === shloka_lines.length - 1 && (shloka_data.shloka_num || $project_levels >= 3)) {
+      const number_main_text_raw = main_text.split(' ').at(-1)!;
+      const number_main_text = number_main_text_raw.substring(1, number_main_text_raw.length - 1);
+
+      const numMainResult = compute_fitted_text({
+        text: number_main_text,
+        fontFamily: mainFontFamily,
+        fontStyle: 'bold',
+        baseFontSize: 42,
+        fontScale: main_text_font_info.size * 0.8,
+        color: colors.number,
         left: shloka_config.bounding_coords.left,
-        width_usage_factor: 0.985,
-        align: 'right'
+        right: shloka_config.bounding_coords.right,
+        top: shloka_config.bounding_coords.top + 8,
+        bottom: shloka_config.bounding_coords.bottom,
+        widthUsageFactor: 0.985,
+        align: 'right',
+        multiLine: false,
+        newLineSpacingFactor: 1,
+        id: 'num_main'
       });
-      // top has to be set outiside as itss a mix of scaled and non scaled values
-      number_indicator_norm.group.set({
-        top: number_indicator_main.group.top + get_units(5) + number_indicator_main.height
+      texts.push(...numMainResult.configs);
+
+      const normNumText = norm_text.split(' ').at(-1)!;
+      const numNormResult = compute_fitted_text({
+        text: normNumText,
+        fontFamily: robotoFamily,
+        fontStyle: 'bold',
+        baseFontSize: 28,
+        fontScale: norm_text_font_info.size * 0.98,
+        color: colors.number,
+        left: shloka_config.bounding_coords.left,
+        right: shloka_config.bounding_coords.right,
+        top: 0, // will be positioned after
+        bottom: shloka_config.bounding_coords.bottom,
+        widthUsageFactor: 0.985,
+        align: 'right',
+        multiLine: false,
+        newLineSpacingFactor: 1,
+        id: 'num_norm'
       });
-      canvasObjects.push(number_indicator_norm.group);
+      // Position: below main number indicator
+      const numMainY = numMainResult.configs[0]?.y ?? shloka_config.bounding_coords.top + 8;
+      for (const cfg of numNormResult.configs) {
+        cfg.y = numMainY + 5 + numMainResult.totalHeight;
+      }
+      texts.push(...numNormResult.configs);
     }
   }
 
-  // trans
-  const trans_text_data = get(image_trans_text);
+  // --- Translation text ---
+  const trans_query = get(image_trans_data_q);
+  const trans_text_data =
+    shloka_index === null || shloka_val === selected_shloka
+      ? get(image_trans_text)
+      : (trans_query.data?.get(shloka_val) ?? '');
   if (trans_text_data) {
-    const trans_text = await render_text({
+    const transResult = compute_wrapped_text({
       text: trans_text_data,
-      align: 'right',
-      ...text_configs.trans_text,
-      font_url: get_font_url(trans_text_font_info.key, 'regular'),
-      font_size: shloka_config.trans_text_font_size,
-      font_scale: trans_text_font_info.size,
+      fontFamily: transFontFamily,
+      fontStyle: 'normal',
+      baseFontSize: shloka_config.trans_text_font_size,
+      fontScale: trans_text_font_info.size,
+      color: colors.translation,
       ...TRANSLATION_BOUNDIND_COORDS,
-      width_usage_factor: 0.985,
-      text_for_min_height: trans_text_font_info.text_for_min_height,
-      multi_line_text: true,
-      new_line_spacing_factor: trans_text_font_info.new_line_spacing
+      widthUsageFactor: 0.985,
+      align: 'right',
+      lineHeight: 1 + trans_text_font_info.new_line_spacing,
+      id: 'trans'
     });
-    canvasObjects.push(trans_text.group);
+    texts.push(...transResult.configs);
   }
 
-  // remove all previous texts, textboxes and lines
-  $canvas.getObjects().forEach((obj) => {
-    if (!obj || obj.type === 'image') return;
-    $canvas.remove(obj);
-  });
-  $canvas.discardActiveObject();
-  await draw_bounding_and_reference_lines(shloka_config);
-  canvasObjects.forEach((obj) => {
-    $canvas.add(obj);
-  });
-  $canvas.requestRenderAll();
-  return shloka_config;
+  // --- Lines ---
+  const { bounding_lines, reference_lines } = compute_lines(shloka_config, shloka_type);
+
+  return { texts, bounding_lines, reference_lines, shloka_config, shloka_type };
 };

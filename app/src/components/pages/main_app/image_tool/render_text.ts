@@ -9,15 +9,15 @@ import {
   trans_text_font_configs,
   image_render_colors,
   image_trans_text,
-  show_image_on_top_right
+  show_image_on_top_right,
+  translation_bounding_coords
 } from './image_state';
 import {
-  DEFAULT_SHLOKA_CONFIG,
   IMAGE_RENDER_COLORS,
   shloka_configs,
   SPACE_ABOVE_REFERENCE_LINE,
-  TRANSLATION_BOUNDIND_COORDS,
-  type shloka_type_config
+  type shloka_type_config,
+  type shloka_number_type
 } from './settings';
 import { get } from 'svelte/store';
 import { browser } from '$app/environment';
@@ -64,7 +64,7 @@ export type CanvasLayoutResult = {
   bounding_lines: KonvaLineConfig[];
   reference_lines: KonvaLineConfig[];
   shloka_config: shloka_type_config;
-  shloka_type: keyof typeof DEFAULT_SHLOKA_CONFIG;
+  shloka_type: shloka_number_type;
 };
 
 // --- Text measurement helpers using Konva ---
@@ -448,13 +448,14 @@ function compute_wrapped_text(opts: WrappedTextOpts): FitTextResult {
 
 function compute_lines(
   shloka_config: shloka_type_config,
-  shloka_type: number
+  shloka_type: number,
+  translation_coords: { left: number; top: number; right: number; bottom: number }
 ): {
   bounding_lines: KonvaLineConfig[];
   reference_lines: KonvaLineConfig[];
 } {
   const shloka = shloka_config.bounding_coords;
-  const trans = TRANSLATION_BOUNDIND_COORDS;
+  const trans = translation_coords;
 
   const bounding_line_coords = [
     // Shloka bounding box
@@ -513,6 +514,7 @@ export const compute_all_layouts = async (
   const $trans_text_font_configs = get(trans_text_font_configs);
   const $normal_text_font_config = get(normal_text_font_config);
   const $SPACE_ABOVE_REFERENCE_LINE = get(SPACE_ABOVE_REFERENCE_LINE);
+  const $translation_bounding_coords = get(translation_bounding_coords);
   const $project_key = get(project_state).project_key!;
   const $project_levels = get(project_state).levels;
 
@@ -710,7 +712,7 @@ export const compute_all_layouts = async (
       baseFontSize: shloka_config.trans_text_font_size,
       fontScale: trans_text_font_info.size,
       color: colors.translation,
-      ...TRANSLATION_BOUNDIND_COORDS,
+      ...$translation_bounding_coords,
       widthUsageFactor: 0.985,
       align: 'right',
       lineHeight: 1 + trans_text_font_info.new_line_spacing,
@@ -720,7 +722,11 @@ export const compute_all_layouts = async (
   }
 
   // --- Lines ---
-  const { bounding_lines, reference_lines } = compute_lines(shloka_config, shloka_type);
+  const { bounding_lines, reference_lines } = compute_lines(
+    shloka_config,
+    shloka_type,
+    $translation_bounding_coords
+  );
 
   return { texts, bounding_lines, reference_lines, shloka_config, shloka_type };
 };

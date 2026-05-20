@@ -5,7 +5,6 @@
     image_selected_levels,
     image_script,
     image_shloka,
-    shaded_background_image_status,
     BACKGROUND_IMAGE_URLS,
     IMAGE_DIMENSIONS,
     image_lang,
@@ -65,8 +64,7 @@
 
     // Background
     if (!opts.remove_background) {
-      const bg_key = $shaded_background_image_status ? 'template' : 'normal';
-      const bg_img = await load_image(BACKGROUND_IMAGE_URLS[bg_key]);
+      const bg_img = await load_image(BACKGROUND_IMAGE_URLS.normal);
       layer.add(
         new Konva.Image({
           image: bg_img,

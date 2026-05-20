@@ -19,8 +19,6 @@ import { get_image_font_info, IMAGE_RENDER_COLORS, type ImageTextRenderColors } 
 import { project_state, text_data_present } from '~/state/main_app/state.svelte';
 import type Konva from 'konva';
 
-// --- Konva Stage/Layer refs (replaces old fabric.Canvas / fabric.Image) ---
-
 /** Reference to the Konva Stage node — set by ImageTool once mounted. */
 export let stage_node = writable<Konva.Stage | null>(null);
 
@@ -38,8 +36,7 @@ export const IMAGE_DIMENSIONS = [1920, 1080] as const;
 /** Whether fonts needed for image rendering have been loaded. */
 export let fonts_loaded = writable(false);
 
-// --- Data state (unchanged) ---
-
+// --- Data state ---
 export let image_script = writable<script_list_type>();
 export let image_lang = writable<number>(lang_list_obj.English);
 export let image_selected_levels = writable<(number | null)[]>([null, null]);

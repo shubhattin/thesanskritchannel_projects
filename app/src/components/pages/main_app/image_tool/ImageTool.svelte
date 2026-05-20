@@ -44,7 +44,10 @@
   import Icon from '~/tools/Icon.svelte';
   import { AiOutlineClose } from 'svelte-icons-pack/ai';
   import { Button } from '$lib/components/ui/button';
-  import { get_list_name_at_depth_from_selected } from '~/state/project_list';
+  import {
+    get_list_name_at_depth_from_selected,
+    get_map_list_at_depth
+  } from '~/state/project_list';
 
   type Props = {
     onClose?: () => void;
@@ -73,27 +76,6 @@
   const levels = $derived($project_state.levels);
   const level_names = $derived($project_state.level_names);
   type option_type = { text?: string; value?: number };
-
-  const get_map_list_at_depth = (
-    project_map: any,
-    levels: number,
-    selected: (number | null)[],
-    depth: number
-  ): any[] | null => {
-    // depth: 0 -> root list (highest selector), 1 -> list under highest selection, etc.
-    let node: any = project_map;
-    for (let d = 0; d < depth; d++) {
-      const sel = selected[levels - 2 - d];
-      if (!sel) return null;
-      if (node?.info?.type !== 'list') return null;
-      const list: any[] = node.list ?? [];
-      if (!(sel >= 1 && sel <= list.length)) return null;
-      node = list[sel - 1];
-      if (!node) return null;
-    }
-    if (node?.info?.type !== 'list') return null;
-    return Array.isArray(node.list) ? node.list : null;
-  };
 
   const transliterate_options = async (options: option_type[], script: script_list_type) => {
     const transliterate_texts = await transliterate_custom(

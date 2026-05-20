@@ -3,6 +3,7 @@ import {
   image_shloka,
   image_shloka_data,
   image_text_data_q,
+  image_trans_data_q,
   main_text_font_configs,
   normal_text_font_config,
   trans_text_font_configs,
@@ -10,7 +11,7 @@ import {
   image_trans_text
 } from './image_state';
 import {
-  current_shloka_type,
+  DEFAULT_SHLOKA_CONFIG,
   IMAGE_RENDER_COLORS,
   shloka_configs,
   SPACE_ABOVE_REFERENCE_LINE,
@@ -62,6 +63,7 @@ export type CanvasLayoutResult = {
   bounding_lines: KonvaLineConfig[];
   reference_lines: KonvaLineConfig[];
   shloka_config: shloka_type_config;
+  shloka_type: keyof typeof DEFAULT_SHLOKA_CONFIG;
 };
 
 // --- Text measurement helpers using Konva ---
@@ -177,8 +179,8 @@ function compute_fitted_text(opts: FitTextOpts): FitTextResult {
     const word = words[i];
     if (word === '') continue;
     else if (
-      lineIndex &&
-      totalLines &&
+      lineIndex !== undefined &&
+      totalLines !== undefined &&
       textType &&
       i === words.length - 1 &&
       lineIndex === totalLines - 1
@@ -339,7 +341,10 @@ function compute_fitted_text(opts: FitTextOpts): FitTextResult {
 
 // --- Bounding box and reference line computation ---
 
-function compute_lines(shloka_config: shloka_type_config, shloka_type: number): {
+function compute_lines(
+  shloka_config: shloka_type_config,
+  shloka_type: number
+): {
   bounding_lines: KonvaLineConfig[];
   reference_lines: KonvaLineConfig[];
 } {
@@ -421,9 +426,12 @@ export const compute_all_layouts = async (
     get_font_load_descriptors(trans_text_font_info.key, 'normal')
   ]);
 
-  // Shloka data
+  // Shloka data: editor stores for preview/current shloka, query data for other exports
+  const selected_shloka = get(image_shloka);
   const shloka_data =
-    shloka_index === null ? get(image_shloka_data) : $image_sarga_data.data![shloka_val];
+    shloka_index === null || shloka_val === selected_shloka
+      ? get(image_shloka_data)
+      : $image_sarga_data.data?.[shloka_val];
 
   if (!shloka_data) return null;
 
@@ -443,7 +451,6 @@ export const compute_all_layouts = async (
   })();
 
   const shloka_type = shloka_lines.length as keyof typeof $shloka_configs;
-  current_shloka_type.set(shloka_type);
   const shloka_config = $shloka_configs[shloka_type];
 
   const colors = get(image_render_colors);
@@ -578,7 +585,11 @@ export const compute_all_layouts = async (
   }
 
   // --- Translation text ---
-  const trans_text_data = get(image_trans_text);
+  const trans_query = get(image_trans_data_q);
+  const trans_text_data =
+    shloka_index === null || shloka_val === selected_shloka
+      ? get(image_trans_text)
+      : (trans_query.data?.get(shloka_val) ?? '');
   if (trans_text_data) {
     const transResult = compute_fitted_text({
       text: trans_text_data,
@@ -601,5 +612,5 @@ export const compute_all_layouts = async (
   // --- Lines ---
   const { bounding_lines, reference_lines } = compute_lines(shloka_config, shloka_type);
 
-  return { texts, bounding_lines, reference_lines, shloka_config };
+  return { texts, bounding_lines, reference_lines, shloka_config, shloka_type };
 };

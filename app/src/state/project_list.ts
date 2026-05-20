@@ -89,7 +89,8 @@ export const PROJECT_LIST: project_type[] = [
     key: 'vijnana-bhairava-tantram',
     get_map: async () =>
       recursive_list_schema.parse(
-        (await import('@data/7. vijnana-bhairava-tantram/vijnana-bhairava-tantram_map.json')).default
+        (await import('@data/7. vijnana-bhairava-tantram/vijnana-bhairava-tantram_map.json'))
+          .default
       )
   }
 ];

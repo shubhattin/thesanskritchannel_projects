@@ -35,7 +35,6 @@ export let scaling_factor = writable<number>(0); // Scale factor for the canvas
 
 export const IMAGE_DIMENSIONS = [1920, 1080] as const;
 
-
 /** Whether fonts needed for image rendering have been loaded. */
 export let fonts_loaded = writable(false);
 

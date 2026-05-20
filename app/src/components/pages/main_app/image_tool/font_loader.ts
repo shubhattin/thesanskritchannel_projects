@@ -10,9 +10,7 @@ const loaded_fonts = new Set<string>();
 export async function ensure_fonts_loaded(
   families: { family: string; weight: 'normal' | 'bold' }[]
 ): Promise<void> {
-  const to_load = families.filter(
-    (f) => !loaded_fonts.has(`${f.family}:${f.weight}`)
-  );
+  const to_load = families.filter((f) => !loaded_fonts.has(`${f.family}:${f.weight}`));
   if (to_load.length === 0) return;
 
   await Promise.all(

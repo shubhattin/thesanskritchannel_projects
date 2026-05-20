@@ -34,7 +34,7 @@
   } from '~/state/main_app/state.svelte';
   import { get_script_for_lang, get_text_font_class } from '~/tools/font_tools';
   import { SCRIPT_LIST, type script_list_type } from '~/state/lang_list';
-  import { shloka_configs, SPACE_ABOVE_REFERENCE_LINE } from './settings';
+  import { current_shloka_type, shloka_configs, SPACE_ABOVE_REFERENCE_LINE } from './settings';
   import { compute_all_layouts, type CanvasLayoutResult } from './render_text';
   import ImageOptions from './ImageOptions.svelte';
   import { get_starting_index, project_map_q } from '~/state/main_app/data.svelte';
@@ -214,6 +214,7 @@
       const result = await compute_all_layouts(null, $image_script, $image_lang);
       if (!cancelled) {
         layout_result = result;
+        if (result) current_shloka_type.set(result.shloka_type);
         $image_rendering_state = false;
       }
     })();

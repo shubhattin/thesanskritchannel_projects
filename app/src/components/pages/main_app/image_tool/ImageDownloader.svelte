@@ -65,7 +65,8 @@
 
     // Background
     if (!opts.remove_background) {
-      const bg_img = await load_image(BACKGROUND_IMAGE_URLS.normal);
+      const bg_key = $shaded_background_image_status ? 'template' : 'normal';
+      const bg_img = await load_image(BACKGROUND_IMAGE_URLS[bg_key]);
       layer.add(
         new Konva.Image({
           image: bg_img,
@@ -119,22 +120,26 @@
     const zip = new JSZip();
     $image_rendering_state = true;
     $zip_download_state = [0, total_count + 2];
-    for (let i = 0; i < total_count; i++) {
-      const { url, name } = await export_shloka_to_dataurl(i, {
-        remove_background: remove_back
-      });
-      const blob = dataURLToBlob(url);
-      zip.file(name, blob);
-      $zip_download_state[0]++;
-      $zip_download_state = $zip_download_state;
+    try {
+      for (let i = 0; i < total_count; i++) {
+        const { url, name } = await export_shloka_to_dataurl(i, {
+          remove_background: remove_back
+        });
+        const blob = dataURLToBlob(url);
+        zip.file(name, blob);
+        $zip_download_state[0]++;
+        $zip_download_state = $zip_download_state;
+      }
+
+      const zip_blob = await zip.generateAsync({ type: 'blob' });
+      download_file_in_browser(
+        URL.createObjectURL(zip_blob),
+        `${image_loc} PNG files${remove_back ? '' : ' (with background)'}.zip`
+      );
+    } finally {
+      $image_rendering_state = false;
+      $zip_download_state = null;
     }
-    $image_rendering_state = false;
-    const zip_blob = await zip.generateAsync({ type: 'blob' });
-    download_file_in_browser(
-      URL.createObjectURL(zip_blob),
-      `${image_loc} PNG files${remove_back ? '' : ' (with background)'}.zip`
-    );
-    $zip_download_state = null;
   };
 </script>
 

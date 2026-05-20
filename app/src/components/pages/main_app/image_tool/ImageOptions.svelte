@@ -12,6 +12,7 @@
     main_text_font_configs,
     normal_text_font_config,
     shaded_background_image_status,
+    show_image_on_top_right,
     trans_text_font_configs,
     image_text_data_q,
     image_shloka_data,
@@ -27,6 +28,7 @@
   import * as Tabs from '$lib/components/ui/tabs';
   import * as Accordion from '$lib/components/ui/accordion';
   import { Switch } from '$lib/components/ui/switch';
+  import { Label } from '$lib/components/ui/label';
   import * as Select from '$lib/components/ui/select';
   import ImageDownloader from './ImageDownloader.svelte';
   import { DEFAULT_SHLOKA_CONFIG_SHARED, get_image_font_info } from './settings';
@@ -168,7 +170,12 @@
     </Select.Root>
   </label>
   <ImageDownloader />
-  <Switch bind:checked={$shaded_background_image_status} />
+  <div class="inline-flex items-center gap-1.5">
+    <Switch id="use-template-image" bind:checked={$shaded_background_image_status} />
+    <Label for="use-template-image" class="cursor-pointer text-xs font-medium">
+      Use template image
+    </Label>
+  </div>
   <span class="flex flex-col items-center justify-center">
     <Button
       onclick={reset_func}
@@ -308,6 +315,12 @@
                   />
                 </div>
               </section>
+            </div>
+            <div class="flex items-center gap-2 border-t border-border pt-3">
+              <Switch id="show-shloka-number" bind:checked={$show_image_on_top_right} />
+              <Label for="show-shloka-number" class="cursor-pointer text-sm font-medium">
+                Show shloka number (top right)
+              </Label>
             </div>
           </Tabs.Content>
           <Tabs.Content value="depend">

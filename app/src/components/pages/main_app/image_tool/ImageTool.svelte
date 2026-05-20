@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
-  import { Stage, Layer, Line, Text, Image as KonvaImage } from 'svelte-konva';
+  import { Stage, Layer, Line, Text, Image as KonvaImage, Transformer } from 'svelte-konva';
   import type Konva from 'konva';
+  import type { KonvaEventObject } from 'konva/lib/Node';
   import {
     BACKGROUND_IMAGE_URLS,
     scaling_factor,
@@ -22,7 +23,8 @@
     image_render_colors,
     image_trans_text,
     stage_node,
-    fonts_loaded
+    fonts_loaded,
+    show_image_on_top_right
   } from './image_state';
   import {
     selected_text_levels,
@@ -67,6 +69,58 @@
 
   // Stage component ref — bind:this then propagate into store
   let stage_component = $state<{ node: Konva.Stage } | null>(null);
+
+  // --- Drag & Selection state ---
+
+  /** Per-element position overrides from user drags. Keyed by element id. */
+  let drag_offsets = $state<Record<string, { x: number; y: number }>>({});
+
+  /** Currently selected Konva node (for Transformer handles). */
+  let selected_node = $state<Konva.Node | null>(null);
+
+  /** Ref to the svelte-konva Transformer component. */
+  let transformer_ref = $state<{ node: Konva.Transformer } | null>(null);
+
+  /** Attach/detach the Transformer to the selected node. */
+  function update_transformer() {
+    if (!transformer_ref) return;
+    const tr = transformer_ref.node;
+    tr.nodes(selected_node ? [selected_node] : []);
+    tr.getLayer()?.batchDraw();
+  }
+
+  // When selected_node changes, update the transformer
+  $effect(() => {
+    void selected_node;
+    update_transformer();
+  });
+
+  function handle_text_click(e: KonvaEventObject<MouseEvent>) {
+    // Select the clicked text node
+    const node = e.target;
+    selected_node = node;
+  }
+
+  function handle_dragend(
+    e: KonvaEventObject<Event>,
+    el_id: string,
+    original_x: number,
+    original_y: number
+  ) {
+    const node = e.target;
+    drag_offsets[el_id] = {
+      x: node.x() - original_x,
+      y: node.y() - original_y
+    };
+    drag_offsets = { ...drag_offsets }; // trigger reactivity
+  }
+
+  function handle_stage_click(e: KonvaEventObject<MouseEvent>) {
+    // Deselect when clicking on empty stage area
+    if (e.target === stage_component?.node) {
+      selected_node = null;
+    }
+  }
 
   // in our case we dont need to initialize inside of onMount
   $image_selected_levels = $selected_text_levels;
@@ -186,9 +240,14 @@
       $image_lang,
       $SPACE_ABOVE_REFERENCE_LINE,
       $image_shloka_data?.text,
-      $image_trans_text
+      $image_trans_text,
+      $show_image_on_top_right
     ].join('\x1e');
     void color_deps;
+
+    // Clear drag offsets and selection when layout recomputes
+    drag_offsets = {};
+    selected_node = null;
 
     let cancelled = false;
     (async () => {
@@ -346,6 +405,7 @@
         height={IMAGE_DIMENSIONS[1] * $scaling_factor}
         scaleX={$scaling_factor}
         scaleY={$scaling_factor}
+        onclick={handle_stage_click}
       >
         <!-- Background Layer -->
         <Layer listening={false}>
@@ -382,14 +442,14 @@
           </Layer>
         {/if}
 
-        <!-- Text Layer -->
+        <!-- Text Layer (draggable + selectable) -->
         {#if layout_result}
           <Layer>
             {#each layout_result.texts as el (el.id)}
               <Text
                 text={el.text}
-                x={el.x}
-                y={el.y}
+                x={el.x + (drag_offsets[el.id]?.x ?? 0)}
+                y={el.y + (drag_offsets[el.id]?.y ?? 0)}
                 fontSize={el.fontSize}
                 fontFamily={el.fontFamily}
                 fontStyle={el.fontStyle}
@@ -398,9 +458,21 @@
                 width={el.width}
                 wrap={el.wrap}
                 lineHeight={el.lineHeight}
-                listening={el.listening}
+                draggable={true}
+                onclick={handle_text_click}
+                ondragend={(e) => handle_dragend(e, el.id, el.x, el.y)}
               />
             {/each}
+            <Transformer
+              bind:this={transformer_ref}
+              rotateEnabled={false}
+              keepRatio={false}
+              boundBoxFunc={(_oldBox, newBox) => {
+                // Prevent too small
+                if (newBox.width < 10 || newBox.height < 10) return _oldBox;
+                return newBox;
+              }}
+            />
           </Layer>
         {/if}
       </Stage>

@@ -40,11 +40,14 @@ export let fonts_loaded = writable(false);
 export let image_script = writable<script_list_type>();
 export let image_lang = writable<number>(lang_list_obj.English);
 export let image_selected_levels = writable<(number | null)[]>([null, null]);
+export let show_image_on_top_right = writable(true);
 
 // ^ chapter will be inherited from the main during mount
 export let image_shloka = writable(1);
 export let image_rendering_state = writable(false);
+/** The shloka data for the current image. */
 export let image_shloka_data = writable<shloka_list_type[0]>(null!);
+/** The translation text for the current image. */
 export let image_trans_text = writable('');
 
 export const DEFAULT_IMAGE_TEXT_RENDER_COLORS: ImageTextRenderColors = copy_plain_object(

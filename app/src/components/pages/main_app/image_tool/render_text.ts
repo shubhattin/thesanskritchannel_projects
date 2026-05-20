@@ -8,7 +8,8 @@ import {
   normal_text_font_config,
   trans_text_font_configs,
   image_render_colors,
-  image_trans_text
+  image_trans_text,
+  show_image_on_top_right
 } from './image_state';
 import {
   DEFAULT_SHLOKA_CONFIG,
@@ -129,6 +130,8 @@ type FitTextOpts = {
   lineIndex?: number;
   totalLines?: number;
   textType?: 'main' | 'normal';
+  /** When false, last-line number words stay in the shloka body (no extraction). */
+  showNumberIndicator?: boolean;
   textForMinHeight?: string | null;
   id: string;
 };
@@ -162,6 +165,7 @@ function compute_fitted_text(opts: FitTextOpts): FitTextResult {
     lineIndex,
     totalLines,
     textType,
+    showNumberIndicator = true,
     textForMinHeight,
     id
   } = opts;
@@ -179,6 +183,7 @@ function compute_fitted_text(opts: FitTextOpts): FitTextResult {
     const word = words[i];
     if (word === '') continue;
     else if (
+      showNumberIndicator &&
       lineIndex !== undefined &&
       totalLines !== undefined &&
       textType &&
@@ -371,7 +376,18 @@ type WrappedTextOpts = {
  * changes the rendered font size, and text reflows naturally across lines.
  */
 function compute_wrapped_text(opts: WrappedTextOpts): FitTextResult {
-  const { text, fontFamily, fontStyle, baseFontSize, fontScale, color, widthUsageFactor, align, lineHeight, id } = opts;
+  const {
+    text,
+    fontFamily,
+    fontStyle,
+    baseFontSize,
+    fontScale,
+    color,
+    widthUsageFactor,
+    align,
+    lineHeight,
+    id
+  } = opts;
 
   const WIDTH_ACTUAL = opts.right - opts.left;
   const WIDTH = WIDTH_ACTUAL * widthUsageFactor;
@@ -383,8 +399,14 @@ function compute_wrapped_text(opts: WrappedTextOpts): FitTextResult {
 
   const measure = (fs: number) => {
     const tmp = new Konva.Text({
-      text, fontSize: fs, fontFamily, fontStyle,
-      width: WIDTH, wrap: 'word', lineHeight, align
+      text,
+      fontSize: fs,
+      fontFamily,
+      fontStyle,
+      width: WIDTH,
+      wrap: 'word',
+      lineHeight,
+      align
     });
     const h = tmp.height();
     const w = tmp.getTextWidth();
@@ -405,9 +427,18 @@ function compute_wrapped_text(opts: WrappedTextOpts): FitTextResult {
 
   const x = opts.left + WIDTH_SPACING;
   const config: KonvaTextConfig = {
-    id, text, x, y: opts.top,
-    fontSize, fontFamily, fontStyle, fill: color,
-    align, width: WIDTH, wrap: 'word', lineHeight,
+    id,
+    text,
+    x,
+    y: opts.top,
+    fontSize,
+    fontFamily,
+    fontStyle,
+    fill: color,
+    align,
+    width: WIDTH,
+    wrap: 'word',
+    lineHeight,
     listening: false
   };
   return { configs: [config], totalHeight, totalWidth };
@@ -471,7 +502,9 @@ function compute_lines(
 export const compute_all_layouts = async (
   shloka_index: number | null,
   image_script: script_list_type,
-  image_lang_id: number
+  image_lang_id: number,
+  /** When true, always use raw query data (not editable stores). Used for bulk export. */
+  use_raw_data = false
 ): Promise<CanvasLayoutResult | null> => {
   const image_lang = LANG_LIST[LANG_LIST_IDS.indexOf(image_lang_id)] as lang_list_type;
   const $shloka_configs = get(shloka_configs);
@@ -500,14 +533,14 @@ export const compute_all_layouts = async (
     get_font_load_descriptors(trans_text_font_info.key, 'normal')
   ]);
 
-  // Shloka data: editor stores for preview/current shloka, query data for other exports
+  // Shloka data: editor stores for preview/current shloka, query data for bulk exports
   const selected_shloka = get(image_shloka);
-  const shloka_data =
-    shloka_index === null || shloka_val === selected_shloka
-      ? get(image_shloka_data)
-      : $image_sarga_data.data?.[shloka_val];
+  const use_editable = !use_raw_data && (shloka_index === null || shloka_val === selected_shloka);
+  const shloka_data = use_editable ? get(image_shloka_data) : $image_sarga_data.data?.[shloka_val];
 
   if (!shloka_data) return null;
+
+  const show_shloka_number = get(show_image_on_top_right);
 
   // Ramayanam special word splitting + standard newline split
   const shloka_lines = (() => {
@@ -560,6 +593,7 @@ export const compute_all_layouts = async (
       lineIndex: line_i,
       totalLines: shloka_lines.length,
       textType: 'main',
+      showNumberIndicator: show_shloka_number,
       textForMinHeight: main_text_font_info.text_for_min_height,
       ...shloka_config.bounding_coords,
       widthUsageFactor: 0.985,
@@ -580,6 +614,7 @@ export const compute_all_layouts = async (
       lineIndex: line_i,
       totalLines: shloka_lines.length,
       textType: 'normal',
+      showNumberIndicator: show_shloka_number,
       textForMinHeight: norm_text_font_info.text_for_min_height,
       ...shloka_config.bounding_coords,
       widthUsageFactor: 0.985,
@@ -607,8 +642,12 @@ export const compute_all_layouts = async (
     texts.push(...mainResult.configs);
     texts.push(...normResult.configs);
 
-    // Number indicators (on last line if shloka_num exists or levels >= 3)
-    if (line_i === shloka_lines.length - 1 && (shloka_data.shloka_num || $project_levels >= 3)) {
+    // Number indicators (top-right; optional via show_image_on_top_right)
+    if (
+      show_shloka_number &&
+      line_i === shloka_lines.length - 1 &&
+      (shloka_data.shloka_num || $project_levels >= 3)
+    ) {
       const number_main_text_raw = main_text.split(' ').at(-1)!;
       const number_main_text = number_main_text_raw.substring(1, number_main_text_raw.length - 1);
 
@@ -660,10 +699,9 @@ export const compute_all_layouts = async (
 
   // --- Translation text ---
   const trans_query = get(image_trans_data_q);
-  const trans_text_data =
-    shloka_index === null || shloka_val === selected_shloka
-      ? get(image_trans_text)
-      : (trans_query.data?.get(shloka_val) ?? '');
+  const trans_text_data = use_editable
+    ? get(image_trans_text)
+    : (trans_query.data?.get(shloka_val) ?? '');
   if (trans_text_data) {
     const transResult = compute_wrapped_text({
       text: trans_text_data,

@@ -5,19 +5,29 @@
     image_selected_levels,
     image_script,
     image_shloka,
+    scaling_factor,
+    shaded_background_image_status,
     BACKGROUND_IMAGE_URLS,
     IMAGE_DIMENSIONS,
     image_lang,
     image_rendering_state,
-    zip_download_state
+    zip_download_state,
+    stage_node
   } from './image_state';
   import { download_file_in_browser } from '~/tools/download_file_browser';
   import JSZip from 'jszip';
   import { dataURLToBlob } from '~/tools/kry';
   import { BsDownload } from 'svelte-icons-pack/bs';
   import Icon from '~/tools/Icon.svelte';
+  import Info from '@lucide/svelte/icons/info';
+  import ImageOff from '@lucide/svelte/icons/image-off';
+  import ImageIcon from '@lucide/svelte/icons/image';
+  import FileArchive from '@lucide/svelte/icons/file-archive';
+  import FileImage from '@lucide/svelte/icons/file-image';
   import { compute_all_layouts } from './render_text';
   import * as Popover from '$lib/components/ui/popover';
+  import { Button } from '$lib/components/ui/button';
+  import { Separator } from '$lib/components/ui/separator';
   import { ProgressRing } from '$lib/components/ui/progress-ring';
   import { project_state } from '~/state/main_app/state.svelte';
   import { get_path_params } from '~/state/project_list';
@@ -29,7 +39,75 @@
     get_path_params($image_selected_levels, $project_state.levels!).join('.')
   );
 
-  // --- Helper: load an image as HTMLImageElement ---
+  const get_image_name = (shloka_index: number, remove_background: boolean) =>
+    (image_loc !== '' ? `${image_loc} ` : '') +
+    `Index No. ${shloka_index}${remove_background ? '' : ' (with background)'}.png`;
+
+  // --- Single-image download: exports the visible stage (with drag offsets) ---
+  const download_image_as_png = async (remove_background: boolean) => {
+    const stage = $stage_node;
+    if (!stage) return;
+
+    // Layers: 0 = background, 1 = lines, 2 = text+transformer
+    const layers = stage.getLayers();
+    const bg_layer = layers[0];
+    const lines_layer = layers[1];
+    const text_layer = layers[2];
+
+    // If template background is showing, swap to normal for export
+    const was_template = $shaded_background_image_status;
+    let bg_swap_promise: Promise<void> | null = null;
+    if (was_template && !remove_background) {
+      bg_swap_promise = new Promise<void>((resolve) => {
+        const img = new window.Image();
+        img.crossOrigin = 'anonymous';
+        img.src = BACKGROUND_IMAGE_URLS.normal;
+        img.onload = () => {
+          // Replace the background image node's image
+          const bg_image_node = bg_layer?.findOne('Image') as Konva.Image | undefined;
+          if (bg_image_node) bg_image_node.image(img);
+          resolve();
+        };
+        img.onerror = () => resolve(); // fall through on error
+      });
+      await bg_swap_promise;
+    }
+
+    // Hide lines layer (not exported)
+    lines_layer?.hide();
+    // Optionally hide background
+    if (remove_background) bg_layer?.hide();
+
+    // Hide the transformer temporarily
+    const transformer_nodes = text_layer?.find('Transformer') ?? [];
+    transformer_nodes.forEach((t) => t.hide());
+
+    const url = stage.toDataURL({ pixelRatio: 1 / $scaling_factor });
+    const name = get_image_name($image_shloka, remove_background);
+
+    // Restore visibility
+    lines_layer?.show();
+    if (remove_background) bg_layer?.show();
+    transformer_nodes.forEach((t) => t.show());
+
+    // Restore template background if it was swapped
+    if (was_template && !remove_background) {
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      img.src = BACKGROUND_IMAGE_URLS.template;
+      img.onload = () => {
+        const bg_image_node = bg_layer?.findOne('Image') as Konva.Image | undefined;
+        if (bg_image_node) bg_image_node.image(img);
+        stage.batchDraw();
+      };
+    }
+
+    stage.batchDraw();
+    download_file_in_browser(url, name);
+  };
+
+  // --- Offscreen export for bulk downloads (no drag offsets, default positions) ---
+
   function load_image(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
       const img = new window.Image();
@@ -40,15 +118,13 @@
     });
   }
 
-  // --- Export a single shloka to an offscreen Konva stage ---
   async function export_shloka_to_dataurl(
     shloka_index: number,
     opts: { remove_background: boolean }
   ): Promise<{ url: string; name: string }> {
-    const layout = await compute_all_layouts(shloka_index, $image_script, $image_lang);
+    const layout = await compute_all_layouts(shloka_index, $image_script, $image_lang, true);
     if (!layout) throw new Error(`Failed to compute layout for shloka ${shloka_index}`);
 
-    // Create offscreen stage at full resolution
     const container = document.createElement('div');
     container.style.position = 'absolute';
     container.style.left = '-9999px';
@@ -62,7 +138,6 @@
     const layer = new Konva.Layer();
     stage.add(layer);
 
-    // Background
     if (!opts.remove_background) {
       const bg_img = await load_image(BACKGROUND_IMAGE_URLS.normal);
       layer.add(
@@ -76,7 +151,6 @@
       );
     }
 
-    // Text elements
     for (const textCfg of layout.texts) {
       layer.add(
         new Konva.Text({
@@ -96,26 +170,13 @@
       );
     }
 
-    // No bounding/reference lines in exports (same as original — lines are hidden before export)
-
     layer.draw();
     const url = stage.toDataURL({ pixelRatio: 1 });
-
-    // Cleanup
     stage.destroy();
     container.remove();
 
-    const name =
-      (image_loc !== '' ? `${image_loc} ` : '') +
-      `Index No. ${shloka_index}${opts.remove_background ? '' : ' (with background)'}.png`;
-
-    return { url, name };
+    return { url, name: get_image_name(shloka_index, opts.remove_background) };
   }
-
-  const download_image_as_png = async (remove_background: boolean) => {
-    const { url, name } = await export_shloka_to_dataurl($image_shloka, { remove_background });
-    download_file_in_browser(url, name);
-  };
 
   // --- Bulk downloads ---
   const download_png_zip = async (remove_back: boolean) => {
@@ -145,43 +206,107 @@
   };
 </script>
 
+{#snippet info_popover(aria_label: string, message: string)}
+  <Popover.Root>
+    <Popover.Trigger
+      type="button"
+      class="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors outline-none hover:bg-muted/60 hover:text-foreground focus-visible:ring-1 focus-visible:ring-muted-foreground/40"
+      aria-label={aria_label}
+      onclick={(e) => e.stopPropagation()}
+    >
+      <Info class="size-3.5" aria-hidden="true" />
+    </Popover.Trigger>
+    <Popover.Content side="top" class="z-70 w-auto max-w-52 p-2.5 text-pretty" sideOffset={6}>
+      <p class="text-xs leading-snug text-muted-foreground">{message}</p>
+    </Popover.Content>
+  </Popover.Root>
+{/snippet}
+
 {#if !$zip_download_state}
   <Popover.Root>
-    <Popover.Trigger class="inline-flex rounded-lg p-1 text-sm">
+    <Popover.Trigger
+      type="button"
+      class="inline-flex rounded-lg p-1 text-sm outline-none"
+      aria-label="Download images"
+    >
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <span ondblclick={() => download_image_as_png(true)}>
         <Icon src={BsDownload} class="-mt-1 mr-1 text-2xl" />
       </span>
     </Popover.Trigger>
-    <Popover.Content side="bottom" class="w-auto space-y-0 p-1">
-      <div class="flex items-center justify-center space-x-2">
-        <button
-          onclick={() => download_image_as_png(true)}
-          class="rounded-md p-1 text-sm hover:bg-muted"
-        >
-          PNG
-        </button>
-        <button
-          onclick={() => download_image_as_png(false)}
-          class="rounded-md p-1 text-xs hover:bg-muted"
-        >
-          PNG (with background)
-        </button>
-      </div>
-      <div class="flex items-center justify-center space-x-2">
-        <button
-          onclick={() => download_png_zip(true)}
-          class="rounded-md p-1 text-sm hover:bg-muted"
-        >
-          PNG Zip
-        </button>
-        <button
-          onclick={() => download_png_zip(false)}
-          class="rounded-md p-1 text-xs hover:bg-muted"
-        >
-          PNG Zip (with background)
-        </button>
-      </div>
+    <Popover.Content
+      side="bottom"
+      align="end"
+      class="z-60 w-auto min-w-64 space-y-2 p-2"
+      sideOffset={6}
+    >
+      <section class="space-y-1.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="flex items-center gap-1.5 text-xs font-medium">
+            <ImageIcon class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            Current image
+          </span>
+          {@render info_popover(
+            'About current image download',
+            'Downloads the canvas as shown. Layout, text, and translation match what you see, including moved text.'
+          )}
+        </div>
+        <div class="grid grid-cols-2 gap-1.5">
+          <Button
+            variant="outline"
+            size="xs"
+            class="h-auto min-h-7 min-w-0 flex-col gap-1 px-1.5 py-1.5 text-xs whitespace-normal"
+            onclick={() => download_image_as_png(true)}
+          >
+            <ImageOff class="size-3.5 shrink-0" aria-hidden="true" />
+            No background
+          </Button>
+          <Button
+            variant="outline"
+            size="xs"
+            class="h-auto min-h-7 min-w-0 flex-col gap-1 px-1.5 py-1.5 text-xs whitespace-normal"
+            onclick={() => download_image_as_png(false)}
+          >
+            <ImageIcon class="size-3.5 shrink-0" aria-hidden="true" />
+            With background
+          </Button>
+        </div>
+      </section>
+
+      <Separator />
+
+      <section class="space-y-1.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="flex items-center gap-1.5 text-xs font-medium">
+            <FileArchive class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            All images (ZIP)
+          </span>
+          {@render info_popover(
+            'About ZIP download',
+            'Every image uses original text, translation, and default text positions. Moves and unsaved edits are not included.'
+          )}
+        </div>
+        <div class="grid grid-cols-2 gap-1.5">
+          <Button
+            variant="outline"
+            size="xs"
+            class="h-auto min-h-7 min-w-0 flex-col gap-1 px-1.5 py-1.5 text-xs whitespace-normal"
+            onclick={() => download_png_zip(true)}
+          >
+            <ImageOff class="size-3.5 shrink-0" aria-hidden="true" />
+            No background
+          </Button>
+          <Button
+            variant="outline"
+            size="xs"
+            class="h-auto min-h-7 min-w-0 flex-col gap-1 px-1.5 py-1.5 text-xs whitespace-normal"
+            onclick={() => download_png_zip(false)}
+          >
+            <FileImage class="size-3.5 shrink-0" aria-hidden="true" />
+            With background
+          </Button>
+        </div>
+      </section>
     </Popover.Content>
   </Popover.Root>
 {:else}

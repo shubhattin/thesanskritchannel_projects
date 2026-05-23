@@ -3,9 +3,7 @@ import {
   get_list_name_for_path_param_index,
   get_node_at_path,
   get_project_from_key,
-  get_project_info_from_key,
-  project_keys_enum_schema,
-  type project_keys_type
+  get_project_info_from_key
 } from '../../../app/src/state/project_list';
 
 const NUMERIC_SEGMENT_RE = /^[1-9]\d*$/;
@@ -57,7 +55,7 @@ export const get_pretty_segments_for_path_params = (
 };
 
 export const build_project_path = (
-  project_key: project_keys_type,
+  project_key: string,
   map: recursive_list_type,
   path_params: number[]
 ) => {
@@ -69,7 +67,7 @@ export const build_project_path = (
 export const resolve_substitute_url = (_url: string) => null;
 
 export type resolved_text_route_type = {
-  project_key: project_keys_type;
+  project_key: string;
   project_name: string;
   level_names: string[];
   levels: number;
@@ -86,11 +84,9 @@ export const resolve_text_route = async (
   raw_project_key: string,
   raw_segments: string[]
 ): Promise<resolved_text_route_type | null> => {
-  const parsed_project_key = project_keys_enum_schema.safeParse(raw_project_key);
-  if (!parsed_project_key.success) return null;
-
-  const project_key = parsed_project_key.data;
-  const project = get_project_from_key(project_key);
+  const project = get_project_from_key(raw_project_key);
+  if (!project) throw new Error(`Project not found: ${raw_project_key}`);
+  const project_key = project.key;
   const project_info = await get_project_info_from_key(project_key);
   const map = await project.get_map();
   const segments = raw_segments.filter((segment) => segment.length > 0);
@@ -174,7 +170,7 @@ function is_child_nav_disabled(
 }
 
 export const get_child_route_items = (
-  project_key: project_keys_type,
+  project_key: string,
   map: recursive_list_type,
   path_params: number[],
   levels: number

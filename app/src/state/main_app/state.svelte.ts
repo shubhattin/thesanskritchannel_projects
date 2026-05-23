@@ -1,4 +1,3 @@
-import type { project_keys_type } from '~/state/project_list';
 import { writable } from 'svelte/store';
 import type { script_list_type } from '~/state/lang_list';
 import type { ai_text_models_type } from '~/api/routes/ai/ai_types';
@@ -12,7 +11,7 @@ import type { ai_text_models_type } from '~/api/routes/ai/ai_types';
  */
 export let selected_text_levels = writable<(number | null)[]>([null, null]);
 export let project_state = writable<{
-  project_key: project_keys_type | null;
+  project_key: string | null;
   project_id: number | null;
   levels: number;
   level_names: string[];

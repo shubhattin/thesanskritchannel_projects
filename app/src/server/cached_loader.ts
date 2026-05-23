@@ -4,8 +4,7 @@ import type { shloka_list_type } from '../state/data_types';
 import {
   get_path_params,
   get_project_from_key,
-  get_project_info_from_id,
-  type project_keys_type
+  get_project_info_from_id
 } from '../state/project_list';
 import type { Redis } from '@upstash/redis/cloudflare';
 import type { db } from '~/db/db';
@@ -31,7 +30,9 @@ export const get_text_data_func = async (
 ) => {
   const { db, redis } = options;
 
-  const project_id = get_project_from_key(key as project_keys_type).id;
+  const project = get_project_from_key(key);
+  if (!project) throw new Error(`Project not found: ${key}`);
+  const project_id = project.id;
   if (import.meta.env.DEV) {
     // only for LOCAL DEV
     const { resolve } = await import('node:path');

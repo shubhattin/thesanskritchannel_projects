@@ -4,7 +4,7 @@ import { db } from '~/db/db';
 import { texts } from '~/db/schema';
 import { delay } from '~/tools/delay';
 import { get_text_data_func } from '~/server/cached_loader';
-import { get_project_from_key, type project_keys_type } from '~/state/project_list';
+import { get_project_from_key } from '~/state/project_list';
 import { waitUntil } from '@vercel/functions';
 import { and, eq, like, sql } from 'drizzle-orm';
 import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
@@ -41,7 +41,9 @@ export const search_text_in_texts_route = publicProcedure
   .query(async ({ input: { project_key, search_text, path_params, limit, offset } }) => {
     const conditions = [like(texts.text_search, `%${search_text}%`)];
     if (project_key) {
-      const project_id = get_project_from_key(project_key as project_keys_type).id;
+      const project = get_project_from_key(project_key);
+      if (!project) throw new Error(`Project not found: ${project_key}`);
+      const project_id = project.id;
       conditions.push(eq(texts.project_id, project_id));
     }
     if (typeof path_params !== 'undefined') {

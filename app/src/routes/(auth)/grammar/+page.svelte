@@ -12,8 +12,7 @@
     get_map_list_at_depth,
     get_node_at_path,
     get_project_from_key,
-    PROJECT_LIST,
-    type project_keys_type
+    PROJECT_LIST
   } from '~/state/project_list';
   import { createQuery } from '@tanstack/svelte-query';
   import { project_map_q_options, text_data_q_options } from '~/state/main_app/data.svelte';
@@ -74,7 +73,7 @@
   }
 
   let load_text_source = $state(true);
-  let selected_project_key = $state<project_keys_type | null>(null);
+  let selected_project_key = $state<string | null>(null);
 
   let project = $derived(selected_project_key ? get_project_from_key(selected_project_key!) : null);
 

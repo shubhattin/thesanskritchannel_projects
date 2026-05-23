@@ -4,8 +4,7 @@ import {
   get_level_names_from_map,
   get_levels_from_map,
   get_list_name_for_path_param_index,
-  get_project_from_key,
-  project_keys_enum_schema
+  get_project_from_key
 } from '~/state/project_list';
 import { z } from 'zod';
 import { get_text_data_func } from '~/server/cached_loader';
@@ -32,12 +31,9 @@ const parse_path_params = (path: string | undefined) => {
 
 export const load: PageServerLoad = async (opts) => {
   const { params, isDataRequest } = opts;
-  const project_key_ = project_keys_enum_schema.safeParse(params.project_key);
-  if (!project_key_.success) {
-    error(404, `Not found`);
-  }
-  const project_key = project_key_.data;
+  const project_key = params.project_key;
   const project = get_project_from_key(project_key);
+  if (!project) throw new Error(`Project not found: ${project_key}`);
   const project_map = await project.get_map();
   const levels = get_levels_from_map(project_map);
   const level_names = get_level_names_from_map(project_map).slice(0, levels);

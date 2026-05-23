@@ -1,4 +1,4 @@
-import { get_project_from_key, type project_keys_type } from '~/state/project_list';
+import { get_project_from_key } from '~/state/project_list';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import simpleGit from 'simple-git';
 import { z } from 'zod';
@@ -59,8 +59,10 @@ const get_invalidation_keys_for_files = (files: Set<string>) => {
     // only handle project text json files under data/<id>. <key>/*
     if (!/^data\/\d+\. [^/]+\//.test(file)) return;
     if (!file.endsWith('.json')) return;
-    const project_key = file.split('/')[1].split('. ')[1] as project_keys_type;
-    const project_id = get_project_from_key(project_key).id;
+    const project_key = file.split('/')[1].split('. ')[1];
+    const project = get_project_from_key(project_key);
+    if (!project) throw new Error(`Project not found: ${project_key}`);
+    const project_id = project.id;
     const parts = file.split('/').filter(Boolean);
     // level-1 projects store texts at: data/<id>. <key>/data.json
     if (parts.length === 3 && file.endsWith('data.json')) {

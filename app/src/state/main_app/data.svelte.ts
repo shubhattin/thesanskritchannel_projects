@@ -16,7 +16,7 @@ import { browser } from '$app/environment';
 import { delay } from '~/tools/delay';
 import { derived, get, writable } from 'svelte/store';
 import { lang_list_obj } from '../lang_list';
-import { get_node_at_path, get_project_from_key, type project_keys_type } from '../project_list';
+import { get_node_at_path, get_project_from_key } from '../project_list';
 import { user_info } from '../user.svelte';
 
 const get_dynamic_path_params = (
@@ -49,11 +49,13 @@ export const user_project_info_q = get_derived_query(
     )
 );
 
-export const project_map_q_options = (project_id: number, project_key: project_keys_type) => {
+export const project_map_q_options = (project_id: number, project_key: string) => {
   return queryOptions({
     queryKey: ['project_map', project_id],
     queryFn: async () => {
-      return await get_project_from_key(project_key).get_map();
+      const project = get_project_from_key(project_key);
+      if (!project) throw new Error(`Project not found: ${project_key}`);
+      return await project.get_map();
     }
   });
 };
@@ -89,7 +91,7 @@ let one_time_page_text_data_use_done = false;
 
 export const text_data_q_options = (
   selected_text_levels: (number | null)[],
-  project_key: project_keys_type,
+  project_key: string,
   project_levels: number
 ) => {
   const path_params = get_dynamic_path_params(selected_text_levels, project_levels);
@@ -251,10 +253,7 @@ export const get_last_level_name = (selected_text_levels: (number | null)[]) => 
   };
 };
 
-export const get_starting_index = (
-  key: project_keys_type,
-  selected_text_levels?: (number | null)[]
-) => {
+export const get_starting_index = (key: string, selected_text_levels?: (number | null)[]) => {
   const lowest_selected =
     selected_text_levels?.find((v): v is number => typeof v === 'number') ?? null;
   let starting = 1;

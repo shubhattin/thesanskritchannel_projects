@@ -1,24 +1,12 @@
 import { z } from 'zod';
 import { recursive_list_schema, type recursive_list_type } from './data_types';
 
-const PROJECT_KEYS = [
-  'ramayanam',
-  'bhagavadgita',
-  'narayaneeyam',
-  'shiva-tandava-stotram',
-  'saundarya-lahari',
-  'veda',
-  'vijnana-bhairava-tantram'
-] as const;
-export const project_keys_enum_schema = z.enum(PROJECT_KEYS);
-export type project_keys_type = z.infer<typeof project_keys_enum_schema>;
-
 export type project_type = {
   id: number;
   name: string;
   name_dev: string;
   description?: string;
-  key: project_keys_type;
+  key: string;
   get_map: () => Promise<recursive_list_type>;
 };
 
@@ -99,8 +87,8 @@ export const get_project_from_id = (id: number) => {
   return PROJECT_LIST[id - 1];
 };
 
-export const get_project_from_key = (key: project_keys_type) => {
-  return PROJECT_LIST[PROJECT_KEYS.indexOf(key)];
+export const get_project_from_key = (key: string) => {
+  return PROJECT_LIST.find((p) => p.key === key);
 };
 
 export const clamp_levels_for_route = (levels: number) => {
@@ -249,16 +237,15 @@ export type project_info_type = project_type & {
   level_names: string[];
 };
 
-const project_info_cache = new Map<project_keys_type, Promise<project_info_type>>();
+const project_info_cache = new Map<string, Promise<project_info_type>>();
 
-export const get_project_info_from_key = async (
-  key: project_keys_type
-): Promise<project_info_type> => {
+export const get_project_info_from_key = async (key: string): Promise<project_info_type> => {
   const cached = project_info_cache.get(key);
   if (cached) return cached;
 
   const promise = (async () => {
     const project = get_project_from_key(key);
+    if (!project) throw new Error(`Project not found: ${key}`);
     const map = await project.get_map();
     const levels = get_levels_from_map(map);
     const level_names = get_level_names_from_map(map);

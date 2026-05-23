@@ -31,7 +31,7 @@
 
   const project_key = $derived(data.project_key);
   const levels = $derived(data.levels);
-  const project_id = $derived(get_project_from_key(project_key).id);
+  const project_id = $derived(get_project_from_key(project_key)!.id);
   function set_project_state() {
     $project_state = {
       project_key,
@@ -100,7 +100,7 @@
             {:else}
               <Icon src={BsChevronUp} class="mb-1 text-lg" />
             {/if}
-            <span>{get_project_from_key(project_key).name}</span>
+            <span>{get_project_from_key(project_key)!.name}</span>
           </div>
         </Popover.Trigger>
         <Popover.Content side="bottom" class="w-auto space-y-2 p-2">

@@ -33,8 +33,7 @@
   import {
     get_list_name_at_depth_from_selected,
     get_map_list_at_depth,
-    get_node_at_path,
-    type project_keys_type
+    get_node_at_path
   } from '~/state/project_list';
   import { transliterate_custom } from '~/tools/converter';
   import { delay } from '~/tools/delay';
@@ -119,7 +118,7 @@
 
   type option_type = { text?: string; value?: number; empty_child?: boolean };
 
-  const get_link = (project_key: project_keys_type, path_params: (number | null | undefined)[]) => {
+  const get_link = (project_key: string, path_params: (number | null | undefined)[]) => {
     let link = `/${project_key}`;
     for (const p of path_params) {
       if (!p) break;

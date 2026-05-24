@@ -11,6 +11,7 @@
   } from '~/state/main_app/state.svelte';
   import { get_project_from_key, PROJECT_LIST } from '~/state/project_list';
   import UserControls from '~/components/pages/main_app/user/UserControls.svelte';
+  import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
   import MainAppPage from '~/components/pages/main_app/MainAppPage.svelte';
   import * as Popover from '$lib/components/ui/popover';
   import { cl_join } from '~/tools/cl_join';
@@ -149,7 +150,7 @@
     </div>
 
     <div>
-      <UserControls />
+      <UserControls currentpage={APP_SCOPE_ID_PROJECT_PORTAL} />
     </div>
   </div>
   <MainAppPage {...data} />

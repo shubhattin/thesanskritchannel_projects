@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Popover from '$lib/components/ui/popover';
+  import * as Tabs from '$lib/components/ui/tabs';
   import { CgMenuGridO } from 'svelte-icons-pack/cg';
   import { BiLogOut } from 'svelte-icons-pack/bi';
   import { signOut, authClient } from '~/lib/auth-client';
@@ -12,16 +13,21 @@
   import { LuRefreshCw } from 'svelte-icons-pack/lu';
   import { cn } from '$lib/utils';
   import UpdateName from './UpdateName.svelte';
+  import { APP_SCOPE_IDENTIFIERS, APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
+  import { APP_SCOPE_STATUS_QUERY_KEY } from '~/state/app_scope_queries';
+  import type { AppScopeId } from '~/state/app_scope_queries';
 
   const query_client = useQueryClient();
 
   type SessionType = typeof authClient.$Infer.Session;
 
-  let { user, is_current_app_scope }: { user: SessionType['user']; is_current_app_scope: boolean } =
-    $props();
+  let { user }: { user: SessionType['user'] } = $props();
 
   let dot_popover_status = $state(false);
   let logout_modal_status = $state(false);
+  let active_scope_tab = $state<AppScopeId>(APP_SCOPE_ID_PROJECT_PORTAL);
+
+  const scope_ids = Object.keys(APP_SCOPE_IDENTIFIERS) as AppScopeId[];
 
   const log_out = async () => {
     await signOut({
@@ -38,6 +44,11 @@
       query_client.invalidateQueries({
         queryKey: ['user_info']
       }),
+      ...scope_ids.map((scope_id) =>
+        query_client.invalidateQueries({
+          queryKey: [APP_SCOPE_STATUS_QUERY_KEY, user.id, scope_id]
+        })
+      ),
       user.role === 'admin' &&
         query_client.invalidateQueries({
           queryKey: ['users_list']
@@ -51,9 +62,14 @@
   const users_list_is_fetching = useIsFetching({
     queryKey: ['users_list']
   });
+  const scope_status_is_fetching = useIsFetching({
+    queryKey: [APP_SCOPE_STATUS_QUERY_KEY]
+  });
 
   let is_fetching = $derived(
-    user.role === 'admin' ? !!$users_list_is_fetching : !!$user_info_is_fetching
+    user.role === 'admin'
+      ? !!$users_list_is_fetching
+      : !!$user_info_is_fetching || !!$scope_status_is_fetching
   );
 </script>
 
@@ -117,7 +133,20 @@
   >
   <div class="mt-3">
     {#if user?.role === 'user'}
-      <NonAdminInfo user_info={user} user_is_current_app_scope={is_current_app_scope} />
+      <Tabs.Root bind:value={active_scope_tab}>
+        <Tabs.List>
+          {#each scope_ids as scope_id (scope_id)}
+            <Tabs.Trigger value={scope_id} class="rounded-md font-semibold">
+              {APP_SCOPE_IDENTIFIERS[scope_id]}
+            </Tabs.Trigger>
+          {/each}
+        </Tabs.List>
+        {#each scope_ids as scope_id (scope_id)}
+          <Tabs.Content value={scope_id}>
+            <NonAdminInfo user_info={user} {scope_id} />
+          </Tabs.Content>
+        {/each}
+      </Tabs.Root>
     {:else if user?.role === 'admin'}
       <AdminPanel />
     {/if}

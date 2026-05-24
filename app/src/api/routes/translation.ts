@@ -2,7 +2,7 @@ import { and, eq, exists, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import {
   protectedAdminProcedure,
-  protectedAppScopeProcedure,
+  protectedAppScopeProcedure_ProjectsPortal,
   publicProcedure,
   t
 } from '~/api/trpc_init';
@@ -34,7 +34,7 @@ const get_translation_route = publicProcedure
     });
   });
 
-const edit_translation_route = protectedAppScopeProcedure
+const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
   .input(
     z.object({
       project_id: z.int(),
@@ -118,7 +118,7 @@ const edit_translation_route = protectedAppScopeProcedure
     }
   );
 
-const get_all_langs_translation_route = protectedAppScopeProcedure
+const get_all_langs_translation_route = protectedAppScopeProcedure_ProjectsPortal
   .input(
     z.object({
       project_id: z.int(),

@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { env } from '$env/dynamic/private';
-import { protectedAdminProcedure, protectedAppScopeProcedure, t } from '~/api/trpc_init';
+import {
+  protectedAdminProcedure,
+  protectedAppScopeProcedure_ProjectsPortal,
+  t
+} from '~/api/trpc_init';
 import { tasks, auth, runs } from '@trigger.dev/sdk/v3';
 import {
   translate_route_schema,
@@ -16,7 +20,7 @@ auth.configure({
   secretKey: env.TRIGGER_SECRET_KEY
 });
 
-const translate_route = protectedAppScopeProcedure
+const translate_route = protectedAppScopeProcedure_ProjectsPortal
   .input(translate_route_schema.input)
   .mutation(
     async ({ ctx: { user }, input: { lang_id, model, text_name, text_data, project_id } }) => {
@@ -63,7 +67,7 @@ const generate_image_trigger_route = protectedAdminProcedure
     return { run_id, output_type: null! as z.infer<typeof image_gen_route_schema.output> };
   });
 
-const retrive_run_info_route = protectedAppScopeProcedure
+const retrive_run_info_route = protectedAppScopeProcedure_ProjectsPortal
   .input(z.object({ run_id: z.string() }))
   .output(
     z.union([

@@ -48,7 +48,7 @@
     project_map_q,
     user_project_info_q
   } from '~/state/main_app/data.svelte';
-  import { is_current_app_scope, user_info } from '~/state/user.svelte';
+  import { user_info } from '~/state/user.svelte';
   import { BiEdit, BiHelpCircle } from 'svelte-icons-pack/bi';
   import { Switch } from '$lib/components/ui/switch';
   import { BsKeyboard } from 'svelte-icons-pack/bs';
@@ -234,7 +234,6 @@
       $trans_lang === 0 &&
       ($user_info?.role === 'admin' ||
         ($user_project_info_q.isSuccess &&
-          !!$is_current_app_scope &&
           $user_project_info_q.data
             .languages!.map((l) => l.lang_id)
             .includes(lang_list_obj.English)));
@@ -503,7 +502,7 @@
               </Select.Content>
             </Select.Root>
           </label>
-          {#if !$editing_status_on && $user_info && $is_current_app_scope}
+          {#if !$editing_status_on && $user_info}
             {@const languages =
               $user_info.role !== 'admin' && $user_project_info_q.isSuccess
                 ? $user_project_info_q.data.languages!.map((l) => l.lang_id)

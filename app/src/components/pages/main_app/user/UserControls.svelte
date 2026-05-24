@@ -1,10 +1,8 @@
 <script lang="ts">
   import Icon from '~/tools/Icon.svelte';
-  import { TrOutlineLogin2 } from 'svelte-icons-pack/tr';
-  import { LuRefreshCw, LuUserPlus } from 'svelte-icons-pack/lu';
+  import { LuRefreshCw } from 'svelte-icons-pack/lu';
   import { RiUserFacesAdminLine } from 'svelte-icons-pack/ri';
   import { BiLogOut } from 'svelte-icons-pack/bi';
-  import { writable } from 'svelte/store';
   import { AiOutlineUser } from 'svelte-icons-pack/ai';
   import { LanguageIcon } from '~/components/icons';
   import { editing_status_on } from '~/state/main_app/state.svelte';
@@ -12,26 +10,39 @@
   import { VscAccount } from 'svelte-icons-pack/vsc';
   import { OiLinkExternal16, OiSync16 } from 'svelte-icons-pack/oi';
   import { signOut, useSession } from '~/lib/auth-client';
-  import Login from './Login.svelte';
-  import Signup from './Signup.svelte';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
-  import * as Dialog from '$lib/components/ui/dialog';
   import * as Popover from '$lib/components/ui/popover';
   import { get_lang_from_id } from '~/state/lang_list';
   import { client } from '~/api/client';
   import { cn } from '$lib/utils';
-  import { is_current_app_scope } from '~/state/user.svelte';
   import { Skeleton } from '$lib/components/ui/skeleton';
+  import { goto } from '$app/navigation';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { APP_SCOPE_IDENTIFIERS, APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
+  import { app_scope_status_query_options, type AppScopeId } from '~/state/app_scope_queries';
+
+  let {
+    currentpage = 'home'
+  }: {
+    currentpage?: AppScopeId | 'home';
+  } = $props();
 
   const session = useSession();
 
   let user_info = $derived($session.data?.user);
 
-  let pass_enterer_status = writable(false);
-  let user_create_modal_status = writable(false);
+  const projects_portal_scope_q = $derived(
+    createQuery(app_scope_status_query_options(user_info?.id, APP_SCOPE_ID_PROJECT_PORTAL))
+  );
+
+  const show_projects_scope_info = $derived(
+    currentpage === APP_SCOPE_ID_PROJECT_PORTAL && user_info?.role !== 'admin'
+  );
 
   const log_out = () => {
-    signOut();
+    signOut().then(() => {
+      goto('/');
+    });
     user_popover_status = false;
   };
 
@@ -69,8 +80,6 @@
           <a
             class="inline-block p-0 hover:text-blue-600 dark:hover:text-blue-500"
             href="/user"
-            target="_blank"
-            rel="noopener noreferrer"
             title="Account Settings"
           >
             <Icon src={OiLinkExternal16} class="text-xl" />
@@ -93,7 +102,7 @@
             </button>
           </ConfirmModal>
         </div>
-        {#if user_info.role !== 'admin' && $user_project_info_q.isSuccess}
+        {#if show_projects_scope_info}
           <button
             class={cn(
               'mb-1 block p-0 text-sm outline-none select-none hover:text-muted-foreground',
@@ -106,9 +115,9 @@
           >
             <Icon src={LuRefreshCw} class="text-lg" />
           </button>
-          {#if $user_project_info_q.isFetching}
+          {#if $projects_portal_scope_q.isFetching || $user_project_info_q.isFetching}
             <Skeleton class="h-5 w-full bg-muted" />
-          {:else if $is_current_app_scope}
+          {:else if $projects_portal_scope_q.isSuccess && $projects_portal_scope_q.data && $user_project_info_q.isSuccess}
             {@const langs = $user_project_info_q.data.languages!}
             {#if langs && langs.length > 0}
               <div>
@@ -120,9 +129,10 @@
             {:else}
               <div class="text-sm text-amber-600 dark:text-amber-500">No languages assigned</div>
             {/if}
-          {:else}
+          {:else if $projects_portal_scope_q.isSuccess && !$projects_portal_scope_q.data}
             <div class="text-sm text-amber-600 dark:text-amber-500">
-              You account is not added to Projects Portal scope by Admin
+              Your account is not added to {APP_SCOPE_IDENTIFIERS[APP_SCOPE_ID_PROJECT_PORTAL]} scope
+              by Admin
             </div>
           {/if}
         {/if}
@@ -145,46 +155,6 @@
           </ConfirmModal>
         {/if}
       </div>
-    {:else}
-      <div class="space-y-1 sm:space-y-2">
-        <button
-          onclick={() => {
-            $pass_enterer_status = true;
-          }}
-          class="group flex w-full items-center space-x-2 rounded-md px-2 py-1 font-bold hover:bg-muted"
-        >
-          <Icon
-            src={TrOutlineLogin2}
-            class="-mt-1 -ml-1 text-2xl group-hover:text-muted-foreground sm:text-3xl"
-          />
-          <span class="text-sm sm:text-base">Login</span>
-        </button>
-        <button
-          onclick={() => {
-            $user_create_modal_status = true;
-          }}
-          class="group flex w-full items-center space-x-2 rounded-md px-2 py-1 font-bold hover:bg-muted"
-        >
-          <Icon src={LuUserPlus} class="text-xl group-hover:text-muted-foreground sm:text-2xl" />
-          <span class="text-sm sm:text-base">Signup</span>
-        </button>
-      </div>
     {/if}
   </Popover.Content>
 </Popover.Root>
-
-<Dialog.Root bind:open={$pass_enterer_status}>
-  <Dialog.Content class="w-80 max-w-[calc(100vw-2rem)] p-3">
-    <div class="m-2 mb-3">
-      <Login />
-    </div>
-  </Dialog.Content>
-</Dialog.Root>
-
-<Dialog.Root bind:open={$user_create_modal_status}>
-  <Dialog.Content class="w-80 max-w-[calc(100vw-2rem)] p-3">
-    <div class="m-2 mb-3">
-      <Signup />
-    </div>
-  </Dialog.Content>
-</Dialog.Root>

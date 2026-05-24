@@ -6,10 +6,7 @@
   import NonAdminInfo from './NonAdminInfo.svelte';
   import { selected_user_id, selected_user_type } from '~/components/pages/user/user_state.svelte';
   import RevokeSessions from './RevokeSessions.svelte';
-  import {
-    APP_SCOPE_IDENTIFIERS,
-    APP_SCOPE_ID_PROJECT_PORTAL
-  } from '~/state/data_types';
+  import { APP_SCOPE_IDENTIFIERS, APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
   import type { AppScopeId } from '~/state/app_scope_queries';
   import { fetch_get } from '~/tools/fetch';
   import { user_info } from '~/state/user.svelte';

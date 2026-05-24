@@ -35,4 +35,12 @@ export const shloka_schema = z.object({
 export const shloka_list_schema = shloka_schema.array();
 export type shloka_list_type = z.infer<typeof shloka_list_schema>;
 
-export const CURRENT_APP_SCOPE_PROJECT_PORTAL = 'projects_portal' as const;
+/** Identifier for projects portal (Texts Management) */
+export const APP_SCOPE_ID_PROJECT_PORTAL = 'projects_portal' as const;
+/** Identifier for Lekha Publishing and Management */
+export const APP_SCOPE_ID_LEKHA = 'lekha' as const;
+
+export const APP_SCOPE_IDENTIFIERS = {
+  [APP_SCOPE_ID_PROJECT_PORTAL]: 'Projects Portal',
+  [APP_SCOPE_ID_LEKHA]: 'Lekha'
+}

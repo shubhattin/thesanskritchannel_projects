@@ -15,7 +15,6 @@
   import { get_lang_from_id } from '~/state/lang_list';
   import { client } from '~/api/client';
   import { cn } from '$lib/utils';
-  import { is_current_app_scope } from '~/state/user.svelte';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { goto } from '$app/navigation';
 
@@ -101,7 +100,8 @@
           </button>
           {#if $user_project_info_q.isFetching}
             <Skeleton class="h-5 w-full bg-muted" />
-          {:else if $is_current_app_scope}
+            <!-- TODO: Move it to some control or display panel under (project`) -->
+            <!-- {:else if $is_current_app_scope}
             {@const langs = $user_project_info_q.data.languages!}
             {#if langs && langs.length > 0}
               <div>
@@ -112,7 +112,7 @@
               </div>
             {:else}
               <div class="text-sm text-amber-600 dark:text-amber-500">No languages assigned</div>
-            {/if}
+            {/if} -->
           {:else}
             <div class="text-sm text-amber-600 dark:text-amber-500">
               You account is not added to Projects Portal scope by Admin

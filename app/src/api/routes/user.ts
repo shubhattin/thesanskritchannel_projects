@@ -9,7 +9,7 @@ import { get_languages_for_project_user } from './project';
 import { get_user_app_scope_status } from '../trpc_init';
 import { fetch_post } from '~/tools/fetch';
 import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
-import { CURRENT_APP_SCOPE_PROJECT_PORTAL } from '~/state/data_types';
+import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
 
 const get_user_info_route = protectedProcedure
   .input(z.object({ user_id: z.string() }))
@@ -52,7 +52,7 @@ const remove_user_from_current_app_scope_route = protectedAdminProcedure
     const res = await fetch_post(`${PUBLIC_BETTER_AUTH_URL}/api/app_scope/remove_user_app_scope`, {
       json: {
         user_id: user_id,
-        scope: CURRENT_APP_SCOPE_PROJECT_PORTAL
+        scope: APP_SCOPE_ID_PROJECT_PORTAL
       },
       headers: {
         Cookie: cookie!

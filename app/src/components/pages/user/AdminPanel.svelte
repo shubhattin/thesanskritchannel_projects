@@ -6,7 +6,7 @@
   import NonAdminInfo from './NonAdminInfo.svelte';
   import { selected_user_id, selected_user_type } from '~/components/pages/user/user_state.svelte';
   import RevokeSessions from './RevokeSessions.svelte';
-  import { CURRENT_APP_SCOPE_PROJECT_PORTAL } from '~/state/data_types';
+  import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
   import { fetch_get } from '~/tools/fetch';
   import { user_info } from '~/state/user.svelte';
   import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
@@ -50,13 +50,13 @@
       return users.filter(
         (user) =>
           user.role === 'user' &&
-          user.app_scopes.some((scope) => scope.scope === CURRENT_APP_SCOPE_PROJECT_PORTAL)
+          user.app_scopes.some((scope) => scope.scope === APP_SCOPE_ID_PROJECT_PORTAL)
       );
     } else if ($selected_user_type === 'non_project_scope') {
       return users.filter(
         (user) =>
           user.role !== 'admin' &&
-          !user.app_scopes.some((scope) => scope.scope === CURRENT_APP_SCOPE_PROJECT_PORTAL)
+          !user.app_scopes.some((scope) => scope.scope === APP_SCOPE_ID_PROJECT_PORTAL)
       );
     }
   };
@@ -112,7 +112,7 @@
                       user_info={user}
                       admin_edit={true}
                       user_is_current_app_scope={user.app_scopes.some(
-                        (scope) => scope.scope === CURRENT_APP_SCOPE_PROJECT_PORTAL
+                        (scope) => scope.scope === APP_SCOPE_ID_PROJECT_PORTAL
                       )}
                     />
                   {:else if $selected_user_type === 'admin'}

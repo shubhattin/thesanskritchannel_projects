@@ -1,7 +1,7 @@
 import type { Context } from './context';
 import { TRPCError, initTRPC } from '@trpc/server';
 import transformer from './transformer';
-import { CURRENT_APP_SCOPE_PROJECT_PORTAL } from '~/state/data_types';
+import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
 import { fetch_get } from '~/tools/fetch';
 import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
 
@@ -52,7 +52,7 @@ export const get_user_app_scope_status = async (user_id: string, cookie: string)
   const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/app_scope/get_user_app_scope_status`, {
     params: {
       user_id,
-      scope_name: CURRENT_APP_SCOPE_PROJECT_PORTAL
+      scope_name: APP_SCOPE_ID_PROJECT_PORTAL
     },
     headers: {
       Cookie: cookie

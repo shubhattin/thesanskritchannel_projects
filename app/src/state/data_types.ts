@@ -35,4 +35,4 @@ export const shloka_schema = z.object({
 export const shloka_list_schema = shloka_schema.array();
 export type shloka_list_type = z.infer<typeof shloka_list_schema>;
 
-export const CURRENT_APP_SCOPE = 'projects_portal' as const;
+export const CURRENT_APP_SCOPE_PROJECT_PORTAL = 'projects_portal' as const;

@@ -20,7 +20,7 @@
   import { OiLinkExternal16 } from 'svelte-icons-pack/oi';
   import RevokeSessions from './RevokeSessions.svelte';
   import ms from 'ms';
-  import { CURRENT_APP_SCOPE } from '~/state/data_types';
+  import { CURRENT_APP_SCOPE_PROJECT_PORTAL } from '~/state/data_types';
   import { AiOutlinePlus } from 'svelte-icons-pack/ai';
   import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
   import { fetch_post } from '~/tools/fetch';
@@ -91,7 +91,7 @@
     const res = await fetch_post(`${PUBLIC_BETTER_AUTH_URL}/api/app_scope/add_user_app_scope`, {
       json: {
         user_id: user_id,
-        scope: CURRENT_APP_SCOPE
+        scope: CURRENT_APP_SCOPE_PROJECT_PORTAL
       },
       credentials: 'include'
     });

@@ -1,10 +1,8 @@
 <script lang="ts">
   import Icon from '~/tools/Icon.svelte';
-  import { TrOutlineLogin2 } from 'svelte-icons-pack/tr';
-  import { LuRefreshCw, LuUserPlus } from 'svelte-icons-pack/lu';
+  import { LuRefreshCw } from 'svelte-icons-pack/lu';
   import { RiUserFacesAdminLine } from 'svelte-icons-pack/ri';
   import { BiLogOut } from 'svelte-icons-pack/bi';
-  import { writable } from 'svelte/store';
   import { AiOutlineUser } from 'svelte-icons-pack/ai';
   import { LanguageIcon } from '~/components/icons';
   import { editing_status_on } from '~/state/main_app/state.svelte';
@@ -13,7 +11,6 @@
   import { OiLinkExternal16, OiSync16 } from 'svelte-icons-pack/oi';
   import { signOut, useSession } from '~/lib/auth-client';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
-  import * as Dialog from '$lib/components/ui/dialog';
   import * as Popover from '$lib/components/ui/popover';
   import { get_lang_from_id } from '~/state/lang_list';
   import { client } from '~/api/client';
@@ -28,7 +25,7 @@
 
   const log_out = () => {
     signOut().then(() => {
-      goto('/login');
+      goto('/');
     });
     user_popover_status = false;
   };
@@ -67,8 +64,6 @@
           <a
             class="inline-block p-0 hover:text-blue-600 dark:hover:text-blue-500"
             href="/user"
-            target="_blank"
-            rel="noopener noreferrer"
             title="Account Settings"
           >
             <Icon src={OiLinkExternal16} class="text-xl" />

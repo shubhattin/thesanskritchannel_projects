@@ -9,7 +9,6 @@
 
 {#if $user_info}
   <div class="mt-8 px-1 sm:mt-12 sm:px-1.5">
-    <!-- TODO -->
-    <MainProfilePage user={$user_info} is_current_app_scope={true} />
+    <MainProfilePage user={$user_info} />
   </div>
 {/if}

@@ -6,10 +6,9 @@ import { user_project_join, user_project_language_join } from '~/db/schema';
 import { eq } from 'drizzle-orm';
 import { t } from '../trpc_init';
 import { get_languages_for_project_user } from './project';
-import { get_user_app_scope_status } from '../trpc_init';
 import { fetch_post } from '~/tools/fetch';
 import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
-import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
+import { APP_SCOPE_ID_LEKHA, APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
 
 const get_user_info_route = protectedProcedure
   .input(z.object({ user_id: z.string() }))
@@ -41,18 +40,21 @@ const get_user_info_route = protectedProcedure
       })
     );
 
-    const current_app_scope = await get_user_app_scope_status(user_id, cookie);
-
-    return { projects, current_app_scope };
+    return { projects };
   });
 
-const remove_user_from_current_app_scope_route = protectedAdminProcedure
-  .input(z.object({ user_id: z.string() }))
-  .mutation(async ({ input: { user_id }, ctx: { cookie } }) => {
+const remove_user_from_app_scope_route = protectedAdminProcedure
+  .input(
+    z.object({
+      user_id: z.string(),
+      scope: z.enum([APP_SCOPE_ID_PROJECT_PORTAL, APP_SCOPE_ID_LEKHA])
+    })
+  )
+  .mutation(async ({ input: { user_id, scope }, ctx: { cookie } }) => {
     const res = await fetch_post(`${PUBLIC_BETTER_AUTH_URL}/api/app_scope/remove_user_app_scope`, {
       json: {
         user_id: user_id,
-        scope: APP_SCOPE_ID_PROJECT_PORTAL
+        scope
       },
       headers: {
         Cookie: cookie!
@@ -60,17 +62,21 @@ const remove_user_from_current_app_scope_route = protectedAdminProcedure
     });
     if (!res.ok) return { success: false };
 
-    await db.transaction(async (tx) => {
-      await Promise.all([
-        tx.delete(user_project_join).where(eq(user_project_join.user_id, user_id)),
-        tx.delete(user_project_language_join).where(eq(user_project_language_join.user_id, user_id))
-      ]);
-    });
+    if (scope === APP_SCOPE_ID_PROJECT_PORTAL) {
+      await db.transaction(async (tx) => {
+        await Promise.all([
+          tx.delete(user_project_join).where(eq(user_project_join.user_id, user_id)),
+          tx
+            .delete(user_project_language_join)
+            .where(eq(user_project_language_join.user_id, user_id))
+        ]);
+      });
+    }
 
     return { success: true };
   });
 
 export const user_router = t.router({
   user_info: get_user_info_route,
-  remove_user_from_current_app_scope: remove_user_from_current_app_scope_route
+  remove_user_from_app_scope: remove_user_from_app_scope_route
 });

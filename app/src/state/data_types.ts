@@ -43,4 +43,4 @@ export const APP_SCOPE_ID_LEKHA = 'lekha' as const;
 export const APP_SCOPE_IDENTIFIERS = {
   [APP_SCOPE_ID_PROJECT_PORTAL]: 'Projects Portal',
   [APP_SCOPE_ID_LEKHA]: 'Lekha'
-}
+};

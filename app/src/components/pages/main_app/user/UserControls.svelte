@@ -17,10 +17,27 @@
   import { cn } from '$lib/utils';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { goto } from '$app/navigation';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { APP_SCOPE_IDENTIFIERS, APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
+  import { app_scope_status_query_options, type AppScopeId } from '~/state/app_scope_queries';
+
+  let {
+    currentpage = 'home'
+  }: {
+    currentpage?: AppScopeId | 'home';
+  } = $props();
 
   const session = useSession();
 
   let user_info = $derived($session.data?.user);
+
+  const projects_portal_scope_q = $derived(
+    createQuery(app_scope_status_query_options(user_info?.id ?? '', APP_SCOPE_ID_PROJECT_PORTAL))
+  );
+
+  const show_projects_scope_info = $derived(
+    currentpage === APP_SCOPE_ID_PROJECT_PORTAL && user_info?.role !== 'admin'
+  );
 
   const log_out = () => {
     signOut().then(() => {
@@ -85,7 +102,7 @@
             </button>
           </ConfirmModal>
         </div>
-        {#if user_info.role !== 'admin' && $user_project_info_q.isSuccess}
+        {#if show_projects_scope_info}
           <button
             class={cn(
               'mb-1 block p-0 text-sm outline-none select-none hover:text-muted-foreground',
@@ -98,10 +115,9 @@
           >
             <Icon src={LuRefreshCw} class="text-lg" />
           </button>
-          {#if $user_project_info_q.isFetching}
+          {#if $projects_portal_scope_q.isFetching || $user_project_info_q.isFetching}
             <Skeleton class="h-5 w-full bg-muted" />
-            <!-- TODO: Move it to some control or display panel under (project`) -->
-            <!-- {:else if $is_current_app_scope}
+          {:else if $projects_portal_scope_q.isSuccess && $projects_portal_scope_q.data && $user_project_info_q.isSuccess}
             {@const langs = $user_project_info_q.data.languages!}
             {#if langs && langs.length > 0}
               <div>
@@ -112,10 +128,11 @@
               </div>
             {:else}
               <div class="text-sm text-amber-600 dark:text-amber-500">No languages assigned</div>
-            {/if} -->
-          {:else}
+            {/if}
+          {:else if $projects_portal_scope_q.isSuccess && !$projects_portal_scope_q.data}
             <div class="text-sm text-amber-600 dark:text-amber-500">
-              You account is not added to Projects Portal scope by Admin
+              Your account is not added to {APP_SCOPE_IDENTIFIERS[APP_SCOPE_ID_PROJECT_PORTAL]} scope
+              by Admin
             </div>
           {/if}
         {/if}

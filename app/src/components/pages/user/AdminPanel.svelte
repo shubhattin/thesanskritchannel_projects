@@ -6,11 +6,19 @@
   import NonAdminInfo from './NonAdminInfo.svelte';
   import { selected_user_id, selected_user_type } from '~/components/pages/user/user_state.svelte';
   import RevokeSessions from './RevokeSessions.svelte';
-  import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
+  import {
+    APP_SCOPE_IDENTIFIERS,
+    APP_SCOPE_ID_PROJECT_PORTAL
+  } from '~/state/data_types';
+  import type { AppScopeId } from '~/state/app_scope_queries';
   import { fetch_get } from '~/tools/fetch';
   import { user_info } from '~/state/user.svelte';
   import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
   import { Skeleton } from '$lib/components/ui/skeleton';
+
+  const scope_ids = Object.keys(APP_SCOPE_IDENTIFIERS) as AppScopeId[];
+
+  let active_scope_tab = $state<AppScopeId>(APP_SCOPE_ID_PROJECT_PORTAL);
 
   const users_list = createQuery({
     queryKey: ['users_list'],
@@ -37,8 +45,11 @@
   });
 
   $effect(() => {
-    // on tab change reset the selected user id
     if ($selected_user_type) $selected_user_id = null;
+  });
+
+  $effect(() => {
+    if ($selected_user_id) active_scope_tab = APP_SCOPE_ID_PROJECT_PORTAL;
   });
 
   const get_filtered_users = () => {
@@ -46,19 +57,8 @@
 
     if ($selected_user_type === 'admin') {
       return users.filter((user) => user.role === 'admin');
-    } else if ($selected_user_type === 'project_scope') {
-      return users.filter(
-        (user) =>
-          user.role === 'user' &&
-          user.app_scopes.some((scope) => scope.scope === APP_SCOPE_ID_PROJECT_PORTAL)
-      );
-    } else if ($selected_user_type === 'non_project_scope') {
-      return users.filter(
-        (user) =>
-          user.role !== 'admin' &&
-          !user.app_scopes.some((scope) => scope.scope === APP_SCOPE_ID_PROJECT_PORTAL)
-      );
     }
+    return users.filter((user) => user.role !== 'admin');
   };
 
   const get_string_trimmed = (str: string, limit: number = 15) => {
@@ -71,14 +71,9 @@
   <Tabs.Root bind:value={$selected_user_type} class="mt-6">
     <Tabs.List>
       <Tabs.Trigger value="admin" class="rounded-md font-semibold">Admin</Tabs.Trigger>
-      <Tabs.Trigger value="project_scope" class="rounded-md font-semibold"
-        >Projects Portal</Tabs.Trigger
-      >
-      <Tabs.Trigger value="non_project_scope" class="rounded-md text-sm font-semibold"
-        >Others</Tabs.Trigger
-      >
+      <Tabs.Trigger value="users" class="rounded-md font-semibold">Users</Tabs.Trigger>
     </Tabs.List>
-    {#each ['admin', 'project_scope', 'non_project_scope'] as tabValue (tabValue)}
+    {#each ['admin', 'users'] as tabValue (tabValue)}
       <Tabs.Content value={tabValue}>
         {@const users = get_filtered_users() ?? []}
         {@const user = users.find((user) => user.id === $selected_user_id)}
@@ -107,14 +102,21 @@
               </div>
               <div class="mt-2 ml-0 w-full sm:ml-2">
                 {#if user}
-                  {#if $selected_user_type === 'project_scope' || $selected_user_type === 'non_project_scope'}
-                    <NonAdminInfo
-                      user_info={user}
-                      admin_edit={true}
-                      user_is_current_app_scope={user.app_scopes.some(
-                        (scope) => scope.scope === APP_SCOPE_ID_PROJECT_PORTAL
-                      )}
-                    />
+                  {#if $selected_user_type === 'users'}
+                    <Tabs.Root bind:value={active_scope_tab}>
+                      <Tabs.List>
+                        {#each scope_ids as scope_id (scope_id)}
+                          <Tabs.Trigger value={scope_id} class="rounded-md font-semibold">
+                            {APP_SCOPE_IDENTIFIERS[scope_id]}
+                          </Tabs.Trigger>
+                        {/each}
+                      </Tabs.List>
+                      {#each scope_ids as scope_id (scope_id)}
+                        <Tabs.Content value={scope_id}>
+                          <NonAdminInfo user_info={user} admin_edit={true} {scope_id} />
+                        </Tabs.Content>
+                      {/each}
+                    </Tabs.Root>
                   {:else if $selected_user_type === 'admin'}
                     <div class="mt-2 text-base font-semibold">{user.name}</div>
                     <a

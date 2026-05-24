@@ -1,3 +1,4 @@
+import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types'; // Adjust the path based on your project structure
 import { get_user_app_scope_status } from '~/api/trpc_init';
 import get_seesion_from_cookie from '~/lib/get_auth_from_cookie';
@@ -11,6 +12,7 @@ export const load: LayoutServerLoad = async ({ request }) => {
       : session?.user.role === 'admin'
         ? true
         : false;
+
   return {
     user_info: session?.user, // This can be undefined if the user is not authenticated
     is_current_app_scope

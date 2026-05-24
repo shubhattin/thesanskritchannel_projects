@@ -26,13 +26,11 @@
 
   let user_info = $derived($session.data?.user);
 
-  let pass_enterer_status = writable(false);
-  let user_create_modal_status = writable(false);
-
   const log_out = () => {
-    signOut();
+    signOut().then(() => {
+      goto('/login');
+    });
     user_popover_status = false;
-    goto('/login');
   };
 
   const trigger_translations_update = async () => {
@@ -148,4 +146,3 @@
     {/if}
   </Popover.Content>
 </Popover.Root>
-

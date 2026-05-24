@@ -1,7 +1,7 @@
 import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
 import type { authClient } from '$lib/auth-client';
 
-const get_seesion_from_cookie = async (cookie: string) => {
+const get_session_from_cookie = async (cookie: string) => {
   try {
     const res = await fetch(`${PUBLIC_BETTER_AUTH_URL}/api/auth/get-session`, {
       method: 'GET',
@@ -19,4 +19,4 @@ const get_seesion_from_cookie = async (cookie: string) => {
   }
 };
 
-export default get_seesion_from_cookie;
+export default get_session_from_cookie;

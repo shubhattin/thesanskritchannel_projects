@@ -36,7 +36,7 @@
     admin_edit?: boolean;
   } = $props();
 
-  let langugae_select_popover = $state(false);
+  let language_select_popover = $state(false);
   let selected_langs_ids = $state.raw<number[]>([]);
   let selected_project_id = $state<string>('');
   let add_project_popup = $state(false);
@@ -72,10 +72,14 @@
     }
   });
 
+  let last_seeded_user_id = $state<string | null>(null);
+
   $effect(() => {
     if (!$projects_info.isSuccess) return;
     if ($projects_info.data?.projects.length === 0) return;
+    if (last_seeded_user_id === user_info.id) return;
     selected_project_id = $projects_info.data!.projects[0]?.project_id.toString();
+    last_seeded_user_id = user_info.id;
   });
 
   const remove_user_from_app_scope_mut = client_q.user.remove_user_from_app_scope.mutation({
@@ -324,7 +328,7 @@
   {/if}
 {/snippet}
 {#snippet add_language(new_list = false)}
-  <Popover.Root bind:open={langugae_select_popover}>
+  <Popover.Root bind:open={language_select_popover}>
     <Popover.Trigger class="ml-1">
       {#if admin_edit}
         {#if new_list}
@@ -361,7 +365,7 @@
       </div>
       <Button
         onclick={() => {
-          langugae_select_popover = false;
+          language_select_popover = false;
           add_language_to_project(parseInt(selected_project_id), selected_langs_ids);
         }}
         class="mt-2 w-full"

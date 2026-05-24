@@ -32,7 +32,7 @@
   let user_info = $derived($session.data?.user);
 
   const projects_portal_scope_q = $derived(
-    createQuery(app_scope_status_query_options(user_info?.id ?? '', APP_SCOPE_ID_PROJECT_PORTAL))
+    createQuery(app_scope_status_query_options(user_info?.id, APP_SCOPE_ID_PROJECT_PORTAL))
   );
 
   const show_projects_scope_info = $derived(

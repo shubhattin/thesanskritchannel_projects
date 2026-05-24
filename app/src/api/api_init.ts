@@ -1,8 +1,8 @@
-import get_seesion_from_cookie from '$lib/get_auth_from_cookie';
+import get_session_from_cookie from '$lib/get_auth_from_cookie';
 
 export const protected_route_check = async (headers: Headers) => {
   const cookie = headers.get('cookie') ?? '';
-  const session = await get_seesion_from_cookie(cookie);
+  const session = await get_session_from_cookie(cookie);
   const user = session?.user;
   if (!user) return null;
   return user;

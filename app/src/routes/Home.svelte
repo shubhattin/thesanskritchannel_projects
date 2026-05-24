@@ -9,7 +9,7 @@
 </script>
 
 <MetaTags
-  title="Admin Panel | The Sanskrit Channel"
+  title="Admin Portal | The Sanskrit Channel"
   description="Portal to manage all content on the Sanskrit Channel Site"
 />
 

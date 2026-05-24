@@ -3,7 +3,7 @@
   import * as Tabs from '$lib/components/ui/tabs';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import { Label } from '$lib/components/ui/label';
-  import NonAdminInfo from './NonAdminInfo.svelte';
+  import AdminUserScopePanel from './AdminUserScopePanel.svelte';
   import { selected_user_id, selected_user_type } from '~/components/pages/user/user_state.svelte';
   import RevokeSessions from './RevokeSessions.svelte';
   import { APP_SCOPE_IDENTIFIERS, APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
@@ -110,7 +110,7 @@
                       </Tabs.List>
                       {#each scope_ids as scope_id (scope_id)}
                         <Tabs.Content value={scope_id}>
-                          <NonAdminInfo user_info={user} admin_edit={true} {scope_id} />
+                          <AdminUserScopePanel user_info={user} {scope_id} />
                         </Tabs.Content>
                       {/each}
                     </Tabs.Root>

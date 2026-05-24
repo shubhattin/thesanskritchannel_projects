@@ -7,7 +7,6 @@
 
   let {
     user_info,
-    admin_edit = false,
     scope_id = APP_SCOPE_ID_PROJECT_PORTAL
   }: {
     user_info: {
@@ -16,14 +15,13 @@
       email: string;
       role?: string | null;
     };
-    admin_edit?: boolean;
     scope_id?: AppScopeId;
   } = $props();
 </script>
 
-<AppScopeStatusGate user_id={user_info.id} {scope_id} {admin_edit}>
+<AppScopeStatusGate user_id={user_info.id} {scope_id}>
   {#if scope_id === APP_SCOPE_ID_PROJECT_PORTAL}
-    <ProjectsPortalProfile {user_info} {admin_edit} />
+    <ProjectsPortalProfile {user_info} />
   {:else if scope_id === APP_SCOPE_ID_LEKHA}
     <LekhaProfilePanel {scope_id} />
   {/if}

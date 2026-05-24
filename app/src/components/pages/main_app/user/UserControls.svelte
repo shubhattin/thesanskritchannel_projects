@@ -12,8 +12,6 @@
   import { VscAccount } from 'svelte-icons-pack/vsc';
   import { OiLinkExternal16, OiSync16 } from 'svelte-icons-pack/oi';
   import { signOut, useSession } from '~/lib/auth-client';
-  import Login from './Login.svelte';
-  import Signup from './Signup.svelte';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Popover from '$lib/components/ui/popover';
@@ -22,6 +20,7 @@
   import { cn } from '$lib/utils';
   import { is_current_app_scope } from '~/state/user.svelte';
   import { Skeleton } from '$lib/components/ui/skeleton';
+  import { goto } from '$app/navigation';
 
   const session = useSession();
 
@@ -33,6 +32,7 @@
   const log_out = () => {
     signOut();
     user_popover_status = false;
+    goto('/login');
   };
 
   const trigger_translations_update = async () => {
@@ -145,46 +145,7 @@
           </ConfirmModal>
         {/if}
       </div>
-    {:else}
-      <div class="space-y-1 sm:space-y-2">
-        <button
-          onclick={() => {
-            $pass_enterer_status = true;
-          }}
-          class="group flex w-full items-center space-x-2 rounded-md px-2 py-1 font-bold hover:bg-muted"
-        >
-          <Icon
-            src={TrOutlineLogin2}
-            class="-mt-1 -ml-1 text-2xl group-hover:text-muted-foreground sm:text-3xl"
-          />
-          <span class="text-sm sm:text-base">Login</span>
-        </button>
-        <button
-          onclick={() => {
-            $user_create_modal_status = true;
-          }}
-          class="group flex w-full items-center space-x-2 rounded-md px-2 py-1 font-bold hover:bg-muted"
-        >
-          <Icon src={LuUserPlus} class="text-xl group-hover:text-muted-foreground sm:text-2xl" />
-          <span class="text-sm sm:text-base">Signup</span>
-        </button>
-      </div>
     {/if}
   </Popover.Content>
 </Popover.Root>
 
-<Dialog.Root bind:open={$pass_enterer_status}>
-  <Dialog.Content class="w-80 max-w-[calc(100vw-2rem)] p-3">
-    <div class="m-2 mb-3">
-      <Login />
-    </div>
-  </Dialog.Content>
-</Dialog.Root>
-
-<Dialog.Root bind:open={$user_create_modal_status}>
-  <Dialog.Content class="w-80 max-w-[calc(100vw-2rem)] p-3">
-    <div class="m-2 mb-3">
-      <Signup />
-    </div>
-  </Dialog.Content>
-</Dialog.Root>

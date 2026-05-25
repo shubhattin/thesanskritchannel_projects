@@ -17,8 +17,11 @@
   import { cn } from '$lib/utils';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { goto } from '$app/navigation';
-  import { createQuery } from '@tanstack/svelte-query';
-  import { APP_SCOPE_IDENTIFIERS, APP_SCOPE_ID_PROJECT_PORTAL, type AppScopeEnum } from '~/state/data_types';
+  import {
+    APP_SCOPE_IDENTIFIERS,
+    APP_SCOPE_ID_PROJECT_PORTAL,
+    type AppScopeEnum
+  } from '~/state/data_types';
 
   let {
     currentpage = 'home'
@@ -30,11 +33,12 @@
 
   let user_info = $derived($session.data?.user);
 
-  const projects_portal_scope_q = $derived(
-    client_q.user.get_user_app_scope_status.query({
-      user_id: user_info?.id ?? '',
-      scope_name: APP_SCOPE_ID_PROJECT_PORTAL
-    })
+  const user_scopes_q = $derived(
+    client_q.user.list_user_app_scopes.query({ user_id: user_info?.id ?? '' })
+  );
+
+  const has_projects_portal_scope = $derived(
+    $user_scopes_q.isSuccess && $user_scopes_q.data.scopes.includes(APP_SCOPE_ID_PROJECT_PORTAL)
   );
 
   const show_projects_scope_info = $derived(
@@ -117,9 +121,9 @@
           >
             <Icon src={LuRefreshCw} class="text-lg" />
           </button>
-          {#if $projects_portal_scope_q.isFetching || $user_project_info_q.isFetching}
+          {#if $user_scopes_q.isFetching || $user_project_info_q.isFetching}
             <Skeleton class="h-5 w-full bg-muted" />
-          {:else if $projects_portal_scope_q.isSuccess && $projects_portal_scope_q.data && $user_project_info_q.isSuccess}
+          {:else if $user_scopes_q.isSuccess && has_projects_portal_scope && $user_project_info_q.isSuccess}
             {@const langs = $user_project_info_q.data.languages!}
             {#if langs && langs.length > 0}
               <div>
@@ -131,7 +135,7 @@
             {:else}
               <div class="text-sm text-amber-600 dark:text-amber-500">No languages assigned</div>
             {/if}
-          {:else if $projects_portal_scope_q.isSuccess && !$projects_portal_scope_q.data}
+          {:else if $user_scopes_q.isSuccess && !has_projects_portal_scope}
             <div class="text-sm text-amber-600 dark:text-amber-500">
               Your account is not added to {APP_SCOPE_IDENTIFIERS[APP_SCOPE_ID_PROJECT_PORTAL]} scope
               by Admin

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createQuery, useQueryClient } from '@tanstack/svelte-query';
+  import { useQueryClient } from '@tanstack/svelte-query';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import ConfirmPopover from '~/components/PopoverModals/ConfirmPopover.svelte';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
@@ -31,23 +31,26 @@
     scope_id?: AppScopeEnum;
   } = $props();
 
-  const scope_status_q = $derived(
-    client_q.user.get_user_app_scope_status.query({
-      user_id: user_info.id,
-      scope_name: scope_id
-    })
+  const user_scopes_q = $derived(
+    client_q.user.list_user_app_scopes.query({ user_id: user_info.id })
+  );
+
+  const has_scope = $derived(
+    $user_scopes_q.isSuccess && $user_scopes_q.data.scopes.includes(scope_id)
   );
 
   let approve_popup_state = $state(false);
 
   const scope_label = $derived(APP_SCOPE_IDENTIFIERS[scope_id]);
-  
+
   const add_user_app_scope_mut = client_q.user.add_user_to_app_scope.mutation({
     onSuccess() {
-       client_q.user.get_user_app_scope_status.utils.invalidate({
-        user_id: user_info.id,
-        scope_name: scope_id
-       });
+      query_client.invalidateQueries({
+        queryKey: [
+          ['user', 'list_user_app_scopes'],
+          { input: { user_id: user_info.id }, type: 'query' }
+        ]
+      });
       query_client.invalidateQueries({ queryKey: ['user_info', user_info.id] });
       query_client.invalidateQueries({ queryKey: ['users_list'] });
     },
@@ -66,12 +69,11 @@
 
   const remove_user_from_app_scope_mut = client_q.user.remove_user_from_app_scope.mutation({
     onSuccess() {
-      // query_client.invalidateQueries({
-      //   queryKey: [APP_SCOPE_STATUS_QUERY_KEY, user_info.id, scope_id]
-      // });
-      client_q.user.get_user_app_scope_status.utils.invalidate({
-        user_id: user_info.id,
-        scope_name: scope_id
+      query_client.invalidateQueries({
+        queryKey: [
+          ['user', 'list_user_app_scopes'],
+          { input: { user_id: user_info.id }, type: 'query' }
+        ]
       });
       query_client.invalidateQueries({ queryKey: ['user_info', user_info.id] });
       query_client.invalidateQueries({ queryKey: ['users_list'] });
@@ -86,19 +88,19 @@
   };
 </script>
 
-{#if $scope_status_q.isFetching}
+{#if $user_scopes_q.isFetching}
   <Skeleton class="h-40 w-full" />
-{:else if $scope_status_q.isError}
+{:else if $user_scopes_q.isError}
   <div class="space-y-2 text-destructive">
     <p class="text-sm">Failed to load {scope_label} scope status.</p>
     <button
       class="rounded-md bg-muted px-2 py-1 text-sm font-semibold hover:bg-muted/80"
-      onclick={() => $scope_status_q.refetch()}
+      onclick={() => $user_scopes_q.refetch()}
     >
       Retry
     </button>
   </div>
-{:else if $scope_status_q.isSuccess && !$scope_status_q.data}
+{:else if $user_scopes_q.isSuccess && !has_scope}
   <div class="mt-2 text-amber-600 dark:text-amber-500">
     This account has not been added to {scope_label} scope.
   </div>
@@ -120,7 +122,7 @@
       </span>
     </ConfirmPopover>
   </div>
-{:else if $scope_status_q.isSuccess}
+{:else if $user_scopes_q.isSuccess}
   {#if scope_id === APP_SCOPE_ID_PROJECT_PORTAL}
     <ProjectsPortalProfile {user_info} admin_edit={true} />
   {:else if scope_id === APP_SCOPE_ID_LEKHA}

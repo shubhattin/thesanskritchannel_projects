@@ -6,16 +6,19 @@
   import AdminUserScopePanel from './AdminUserScopePanel.svelte';
   import { selected_user_id, selected_user_type } from '~/components/pages/user/user_state.svelte';
   import RevokeSessions from './RevokeSessions.svelte';
-  import { APP_SCOPE_IDENTIFIERS, APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
-  import type { AppScopeId } from '~/state/app_scope_queries';
+  import {
+    APP_SCOPE_IDENTIFIERS,
+    APP_SCOPE_ID_PROJECT_PORTAL,
+    type AppScopeEnum
+  } from '~/state/data_types';
   import { fetch_get } from '~/tools/fetch';
   import { user_info } from '~/state/user.svelte';
   import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
   import { Skeleton } from '$lib/components/ui/skeleton';
 
-  const scope_ids = Object.keys(APP_SCOPE_IDENTIFIERS) as AppScopeId[];
+  const scope_ids = Object.keys(APP_SCOPE_IDENTIFIERS) as AppScopeEnum[];
 
-  let active_scope_tab = $state<AppScopeId>(APP_SCOPE_ID_PROJECT_PORTAL);
+  let active_scope_tab = $state<AppScopeEnum>(APP_SCOPE_ID_PROJECT_PORTAL);
 
   const users_list = createQuery({
     queryKey: ['users_list'],
@@ -100,20 +103,22 @@
               <div class="mt-2 ml-0 w-full sm:ml-2">
                 {#if user}
                   {#if $selected_user_type === 'users'}
-                    <Tabs.Root bind:value={active_scope_tab}>
-                      <Tabs.List>
+                    {#key user.id}
+                      <Tabs.Root bind:value={active_scope_tab}>
+                        <Tabs.List>
+                          {#each scope_ids as scope_id (scope_id)}
+                            <Tabs.Trigger value={scope_id} class="rounded-md font-semibold">
+                              {APP_SCOPE_IDENTIFIERS[scope_id]}
+                            </Tabs.Trigger>
+                          {/each}
+                        </Tabs.List>
                         {#each scope_ids as scope_id (scope_id)}
-                          <Tabs.Trigger value={scope_id} class="rounded-md font-semibold">
-                            {APP_SCOPE_IDENTIFIERS[scope_id]}
-                          </Tabs.Trigger>
+                          <Tabs.Content value={scope_id}>
+                            <AdminUserScopePanel user_info={user} {scope_id} />
+                          </Tabs.Content>
                         {/each}
-                      </Tabs.List>
-                      {#each scope_ids as scope_id (scope_id)}
-                        <Tabs.Content value={scope_id}>
-                          <AdminUserScopePanel user_info={user} {scope_id} />
-                        </Tabs.Content>
-                      {/each}
-                    </Tabs.Root>
+                      </Tabs.Root>
+                    {/key}
                   {:else if $selected_user_type === 'admin'}
                     <div class="mt-2 text-base font-semibold">{user.name}</div>
                     <a

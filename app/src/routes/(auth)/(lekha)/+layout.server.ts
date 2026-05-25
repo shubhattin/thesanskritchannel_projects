@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
-import { get_user_app_scope_status } from '~/utils/app_scope_utils';
+import { get_user_app_scope_status } from '~/utils/app_scope_utils.server';
 import { APP_SCOPE_ID_LEKHA } from '~/state/data_types';
 
 export const load: LayoutServerLoad = async ({ parent, request }) => {

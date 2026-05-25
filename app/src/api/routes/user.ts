@@ -8,7 +8,11 @@ import { t } from '../trpc_init';
 import { get_languages_for_project_user } from './project';
 import { fetch_get, fetch_post } from '~/tools/fetch';
 import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
-import { APP_SCOPE_ID_PROJECT_PORTAL, APP_SCOPES_ENUM, type AppScopeEnum } from '~/state/data_types';
+import {
+  APP_SCOPE_ID_PROJECT_PORTAL,
+  APP_SCOPES_ENUM,
+  type AppScopeEnum
+} from '~/state/data_types';
 import { get_user_app_scope_status } from '~/utils/app_scope_utils.server';
 
 const get_user_info_route = protectedProcedure
@@ -97,12 +101,12 @@ const get_user_app_scope_status_route = protectedProcedure
 const list_user_app_scopes_route = protectedProcedure
   // for both admin users and self only
   .input(z.object({ user_id: z.string() }))
-  .query(async ({ input: { user_id }, ctx: { cookie } }) => {
+  .query(async ({ input: { user_id }, ctx: { user, cookie } }) => {
     const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/app_scope/get_user_app_scope_list`, {
       params: { user_id: user_id },
       headers: { Cookie: cookie! }
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { scopes: [] as AppScopeEnum[] };
     return (await res.json()) as { scopes: AppScopeEnum[] };
   });
 

@@ -2,7 +2,11 @@
   import AppScopeStatusGate from './AppScopeStatusGate.svelte';
   import ProjectsPortalProfile from './ProjectsPortalProfile.svelte';
   import LekhaProfilePanel from './LekhaProfilePanel.svelte';
-  import { APP_SCOPE_ID_LEKHA, APP_SCOPE_ID_PROJECT_PORTAL, type AppScopeEnum } from '~/state/data_types';
+  import {
+    APP_SCOPE_ID_LEKHA,
+    APP_SCOPE_ID_PROJECT_PORTAL,
+    type AppScopeEnum
+  } from '~/state/data_types';
 
   let {
     user_info,

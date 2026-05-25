@@ -91,9 +91,11 @@
         queryKey: ['users_list'],
         exact: true
       });
-      client_q.user.get_user_app_scope_status.utils.invalidate({
-        user_id: user_info.id,
-        scope_name: APP_SCOPE_ID_PROJECT_PORTAL
+      query_client.invalidateQueries({
+        queryKey: [
+          ['user', 'list_user_app_scopes'],
+          { input: { user_id: user_info.id }, type: 'query' }
+        ]
       });
     }
   });

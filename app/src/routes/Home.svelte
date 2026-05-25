@@ -16,7 +16,7 @@
     client_q.user.list_user_app_scopes.query(
       { user_id: $user_info?.id ?? '' },
       {
-        enabled: is_admin
+        enabled: !is_admin
       }
     )
   );
@@ -76,16 +76,20 @@
         projects anytime on the main site homepage.
       </p>
       <p class="mt-5">
-        <a
-          href={`${main_origin}/`}
-          class="inline-flex items-center gap-1 text-sm font-semibold text-primary underline underline-offset-4 hover:text-primary/90"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Go to the main site home
-          <span class="sr-only">(opens in a new tab)</span>
-        </a>
-        <span class="mt-1 block font-mono text-xs text-muted-foreground">/</span>
+        {#if main_origin}
+          <a
+            href={`${main_origin}/`}
+            class="inline-flex items-center gap-1 text-sm font-semibold text-primary underline underline-offset-4 hover:text-primary/90"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Go to the main site home
+            <span class="sr-only">(opens in a new tab)</span>
+          </a>
+          <span class="mt-1 block font-mono text-xs text-muted-foreground">/</span>
+        {:else}
+          <span class="text-sm text-muted-foreground">Main site link unavailable.</span>
+        {/if}
       </p>
     </div>
   {/if}
@@ -129,16 +133,20 @@
         site.
       </p>
       <p class="mt-5">
-        <a
-          href={`${main_origin}/lekha`}
-          class="inline-flex items-center gap-1 text-sm font-semibold text-primary underline underline-offset-4 hover:text-primary/90"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open Lekha on the main site
-          <span class="sr-only">(opens in a new tab)</span>
-        </a>
-        <span class="mt-1 block font-mono text-xs text-muted-foreground">/lekha</span>
+        {#if main_origin}
+          <a
+            href={`${main_origin}/lekha`}
+            class="inline-flex items-center gap-1 text-sm font-semibold text-primary underline underline-offset-4 hover:text-primary/90"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open Lekha on the main site
+            <span class="sr-only">(opens in a new tab)</span>
+          </a>
+          <span class="mt-1 block font-mono text-xs text-muted-foreground">/lekha</span>
+        {:else}
+          <span class="text-sm text-muted-foreground">Main site link unavailable.</span>
+        {/if}
       </p>
     </div>
   {/if}

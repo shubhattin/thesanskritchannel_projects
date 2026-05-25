@@ -94,7 +94,8 @@ const add_user_to_app_scope_route = protectedAdminProcedure
 
 const get_user_app_scope_status_route = protectedProcedure
   .input(z.object({ user_id: z.string(), scope_name: APP_SCOPES_ENUM }))
-  .query(async ({ input: { user_id, scope_name }, ctx: { cookie } }) => {
+  .query(async ({ input: { user_id, scope_name }, ctx: { user, cookie } }) => {
+    if (user.role !== 'admin' && user.id !== user_id) return false;
     return await get_user_app_scope_status(user_id, scope_name, cookie);
   });
 
@@ -102,12 +103,22 @@ const list_user_app_scopes_route = protectedProcedure
   // for both admin users and self only
   .input(z.object({ user_id: z.string() }))
   .query(async ({ input: { user_id }, ctx: { user, cookie } }) => {
+    if (user.role !== 'admin' && user.id !== user_id) {
+      return { scopes: [] as AppScopeEnum[] };
+    }
+
     const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/app_scope/get_user_app_scope_list`, {
       params: { user_id: user_id },
       headers: { Cookie: cookie! }
     });
     if (!res.ok) return { scopes: [] as AppScopeEnum[] };
-    return (await res.json()) as { scopes: AppScopeEnum[] };
+
+    const resp = await res.json();
+    return z
+      .object({
+        scopes: APP_SCOPES_ENUM.array()
+      })
+      .parse(resp);
   });
 
 export const user_router = t.router({

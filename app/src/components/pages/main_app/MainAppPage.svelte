@@ -21,7 +21,6 @@
     selected_text_levels,
     BASE_SCRIPT,
     text_data_present,
-    list_count,
     ai_tool_opened,
     trans_lang,
     view_translation_status,
@@ -31,10 +30,12 @@
     image_tool_opened
   } from '~/state/main_app/state.svelte';
   import {
+    get_list_length_for_last_param,
     get_list_name_at_depth_from_selected,
     get_map_list_at_depth,
     get_node_at_path
   } from '~/state/project_list';
+  import type { recursive_list_type } from '~/state/data_types';
   import { transliterate_custom } from '~/tools/converter';
   import { delay } from '~/tools/delay';
   import { get_script_for_lang, get_text_font_class } from '~/tools/font_tools';
@@ -45,6 +46,8 @@
   import Display from './display/Display.svelte';
   import {
     english_edit_status,
+    prefetch_text_data,
+    prefetch_translation_data,
     project_map_q,
     user_project_info_q
   } from '~/state/main_app/data.svelte';
@@ -60,15 +63,7 @@
 
   const query_client = useQueryClient();
 
-  let {
-    path_params = [],
-    path_names = [],
-    path_level_names = []
-  }: {
-    path_params?: number[];
-    path_names?: (string | undefined)[];
-    path_level_names?: string[];
-  } = $props();
+  let { path_params = [] }: { path_params?: number[] } = $props();
 
   let mounted = $state(false);
   onMount(async () => {
@@ -127,13 +122,46 @@
     return link;
   };
 
-  const get_initial_option_for_state_index = (levels: number, state_index: number) => {
-    // state_index is lower->higher (0 is lowest route param, levels-2 is highest route param)
-    const depth_from_highest = levels - 2 - state_index;
-    return {
-      value: path_params[depth_from_highest],
-      text: path_names[depth_from_highest]
-    } satisfies option_type;
+  const get_path_params_from_selected = (selected: (number | null)[], project_levels: number) => {
+    const params = selected.slice(0, project_levels - 1).reverse();
+    while (params.length && params[params.length - 1] == null) params.pop();
+    if (params.some((v) => v == null)) return [] as number[];
+    return params as number[];
+  };
+
+  const derived_list_count = $derived.by(() => {
+    if (!$project_map_q.isSuccess) return null;
+    const dynamic_path = get_path_params_from_selected($selected_text_levels, levels);
+    if (dynamic_path.length === 0) return null;
+    return get_list_length_for_last_param($project_map_q.data, dynamic_path);
+  });
+
+  const get_initial_option_for_state_index = (
+    project_levels: number,
+    state_index: number,
+    map_root: recursive_list_type | false
+  ) => {
+    const depth_from_highest = project_levels - 2 - state_index;
+    const value = path_params[depth_from_highest];
+    let text: string | undefined;
+    if (map_root && value) {
+      const node = get_node_at_path(map_root, path_params.slice(0, depth_from_highest + 1));
+      text = node?.name_dev;
+    }
+    return { value, text } satisfies option_type;
+  };
+
+  const prefetch_adjacent_text = (direction: 'prev' | 'next') => {
+    if (!browser || !$text_data_present || !$project_state.project_key) return;
+    const idx = active_leaf_state_index;
+    const cur = $selected_text_levels[idx] ?? 1;
+    const max = derived_list_count ?? cur;
+    const next_value = direction === 'prev' ? Math.max(1, cur - 1) : Math.min(max, cur + 1);
+    if (next_value === cur) return;
+    const adjacent_levels = [...$selected_text_levels];
+    adjacent_levels[idx] = next_value;
+    prefetch_text_data(adjacent_levels, $project_state.project_key, levels);
+    prefetch_translation_data(adjacent_levels, $trans_lang ?? 0);
   };
 
   $effect(() => {
@@ -299,9 +327,13 @@
 </label>
 {#each { length: levels - 1 } as _, i}
   {@const text_level_state_index = levels - i - 2}
-  {@const initial_option_base = get_initial_option_for_state_index(levels, text_level_state_index)}
   {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
-  {@const fallback_level_name = path_level_names[i] ?? level_names[levels - i - 1] ?? 'Level'}
+  {@const initial_option_base = get_initial_option_for_state_index(
+    levels,
+    text_level_state_index,
+    map_root || false
+  )}
+  {@const fallback_level_name = level_names[levels - i - 1] ?? 'Level'}
   {@const level_name =
     map_root && levels > 0
       ? get_list_name_at_depth_from_selected(
@@ -439,6 +471,7 @@
             const cur = $selected_text_levels[idx] ?? 1;
             $selected_text_levels[idx] = Math.max(1, cur - 1);
           }}
+          onmouseenter={() => prefetch_adjacent_text('prev')}
           variant="outline"
           size="sm"
           disabled={$editing_status_on}
@@ -447,14 +480,15 @@
           Previous
         </Button>
       {/if}
-      {#if active_leaf_value !== $list_count}
+      {#if active_leaf_value !== derived_list_count}
         <Button
           onclick={() => {
             const idx = active_leaf_state_index;
             const cur = $selected_text_levels[idx] ?? 1;
-            const max = $list_count ?? cur;
+            const max = derived_list_count ?? cur;
             $selected_text_levels[idx] = Math.min(max, cur + 1);
           }}
+          onmouseenter={() => prefetch_adjacent_text('next')}
           variant="outline"
           size="sm"
           disabled={$editing_status_on}

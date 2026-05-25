@@ -10,14 +10,17 @@ import {
   view_translation_status,
   trans_lang
 } from './state.svelte';
-import { page } from '$app/state';
-import type { shloka_list_type } from '~/state/data_types';
 import { browser } from '$app/environment';
 import { delay } from '~/tools/delay';
 import { derived, get, writable } from 'svelte/store';
 import { lang_list_obj } from '../lang_list';
 import { get_node_at_path, get_project_from_key } from '../project_list';
 import { user_info } from '../user.svelte';
+import type { shloka_list_type } from '~/state/data_types';
+
+/** Keeps previous text visible across query-key changes (e.g. next/prev navigation). */
+let last_successful_text_data: shloka_list_type | undefined;
+let last_successful_text_project_id: number | null = null;
 
 const get_dynamic_path_params = (
   selected_text_levels: (number | null)[],
@@ -60,6 +63,7 @@ export const project_map_q_options = (project_id: number, project_key: string) =
   });
 };
 
+/** Derives from the current selected project */
 export const project_map_q = get_derived_query([project_state], ([prject_state_]) =>
   createQuery(
     project_map_q_options(prject_state_.project_id!, prject_state_.project_key!),
@@ -87,14 +91,13 @@ export const QUERY_KEYS = {
   text_data: (path_params: number[]) => ['text_data', get(project_state).project_id, ...path_params]
 };
 
-let one_time_page_text_data_use_done = false;
-
 export const text_data_q_options = (
   selected_text_levels: (number | null)[],
   project_key: string,
   project_levels: number
 ) => {
   const path_params = get_dynamic_path_params(selected_text_levels, project_levels);
+  const project_id = get(project_state).project_id;
   return queryOptions({
     queryKey: QUERY_KEYS.text_data(path_params),
     queryFn: async () => {
@@ -102,34 +105,41 @@ export const text_data_q_options = (
         project_key: project_key,
         path_params
       });
+      last_successful_text_data = data;
+      last_successful_text_project_id = project_id ?? null;
       return data;
-    }
+    },
+    placeholderData: () =>
+      project_id === last_successful_text_project_id ? last_successful_text_data : undefined
   });
 };
 
 export const text_data_q = get_derived_query(
   [project_state, selected_text_levels, text_data_present],
-  ([prject_state_, selected_text_levels_, text_data_present_]) => {
-    const query = createQuery(
+  ([prject_state_, selected_text_levels_, text_data_present_]) =>
+    createQuery(
       {
         ...text_data_q_options(
           selected_text_levels_,
           prject_state_.project_key!,
           prject_state_.levels!
         ),
-        enabled: text_data_present_,
-        ...(page.data.text && !one_time_page_text_data_use_done
-          ? {
-              initialData: page.data.text as shloka_list_type
-            }
-          : {})
+        enabled: text_data_present_
       },
       queryClient
-    );
-    if (page.data.text && browser) one_time_page_text_data_use_done = true;
-    return query;
-  }
+    )
 );
+
+export const prefetch_text_data = (
+  selected_text_levels: (number | null)[],
+  project_key: string,
+  project_levels: number
+) => {
+  if (!browser) return;
+  return queryClient.prefetchQuery(
+    text_data_q_options(selected_text_levels, project_key, project_levels)
+  );
+};
 
 // Translations
 export const trans_lang_data_q_options = (
@@ -198,6 +208,24 @@ export async function get_translations(selected_text_levels: (number | null)[], 
   });
   return data_map;
 }
+
+export const prefetch_translation_data = (
+  selected_text_levels: (number | null)[],
+  current_trans_lang: number
+) => {
+  if (!browser) return;
+  const prefetches = [
+    queryClient.prefetchQuery(
+      trans_lang_data_q_options(lang_list_obj.English, selected_text_levels)
+    )
+  ];
+  if (current_trans_lang !== 0 && current_trans_lang !== lang_list_obj.English) {
+    prefetches.push(
+      queryClient.prefetchQuery(trans_lang_data_q_options(current_trans_lang, selected_text_levels))
+    );
+  }
+  return Promise.all(prefetches);
+};
 
 export let english_edit_status = writable(false);
 

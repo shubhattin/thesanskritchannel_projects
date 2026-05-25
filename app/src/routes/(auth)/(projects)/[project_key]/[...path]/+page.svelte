@@ -4,7 +4,6 @@
   import type { PageData } from './$types';
   import MetaTags from '~/components/tags/MetaTags.svelte';
   import {
-    list_count,
     project_state,
     selected_text_levels,
     text_data_present
@@ -25,8 +24,6 @@
     levels: number;
     level_names: string[];
     path_params: number[];
-    path_names: (string | undefined)[];
-    path_level_names: string[];
   };
   let { data }: { data: PageDataWithLevels } = $props();
 
@@ -55,20 +52,13 @@
     }
     $selected_text_levels = next;
   }
-  function set_list_count() {
-    $list_count = data.list_count!;
-  }
   set_project_state();
   set_selected_text_levels();
-  set_list_count();
   $effect(() => {
     set_project_state();
   });
   $effect(() => {
     set_selected_text_levels();
-  });
-  $effect(() => {
-    set_list_count();
   });
 
   let page_title_info = $derived.by(() => {
@@ -153,5 +143,5 @@
       <UserControls currentpage={APP_SCOPE_ID_PROJECT_PORTAL} />
     </div>
   </div>
-  <MainAppPage {...data} />
+  <MainAppPage path_params={data.path_params} />
 </div>

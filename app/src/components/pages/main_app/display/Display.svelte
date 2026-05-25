@@ -41,6 +41,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Textarea } from '$lib/components/ui/textarea';
   import AiTranslate from './ai_translate/AITranslate.svelte';
+  import { Skeleton } from '$lib/components/ui/skeleton';
   import {
     clearTypingContextOnKeyDown,
     createTypingContext,
@@ -247,7 +248,9 @@
       if (!copy_btn_popup_state) text_portion_hovered = false;
     }}
   >
-    {#if !$text_data_q.isFetching && $text_data_q.isSuccess}
+    {#if !$text_data_q.data}
+      <Skeleton class="m-2 h-[80vh] w-[calc(100%-1rem)] rounded-lg" />
+    {:else if $text_data_q.isSuccess && $text_data_q.data}
       <div transition:fade={{ duration: 250 }} class="space-y-[0.15rem]">
         {#each transliterated_data as shloka_lines, i (i)}
           {@const is_spacing_allowed =

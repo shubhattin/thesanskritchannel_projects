@@ -7,11 +7,6 @@ import {
   get_project_from_key
 } from '~/state/project_list';
 import { z } from 'zod';
-import { get_text_data_func } from '~/server/cached_loader';
-import type { shloka_list_type } from '~/state/data_types';
-import { waitUntil } from '@vercel/functions';
-import { db } from '~/db/db';
-import { redis } from '~/db/redis';
 
 const path_params_schema = z.array(z.coerce.number().int());
 
@@ -30,7 +25,7 @@ const parse_path_params = (path: string | undefined) => {
 };
 
 export const load: PageServerLoad = async (opts) => {
-  const { params, isDataRequest } = opts;
+  const { params } = opts;
   const project_key = params.project_key;
   const project = get_project_from_key(project_key);
   if (!project) throw new Error(`Project not found: ${project_key}`);
@@ -39,53 +34,30 @@ export const load: PageServerLoad = async (opts) => {
   const level_names = get_level_names_from_map(project_map).slice(0, levels);
   const path_params = parse_path_params(params.path);
 
-  let text: shloka_list_type | undefined = undefined;
-  let list_count: number | null = null;
-  let path_names: (string | undefined)[] = [];
-  let path_level_names: string[] = [];
-
   if (path_params.length > levels - 1) {
     error(404, `Not found`);
   }
 
-  if (levels === 1) {
-    text = await get_text_data_func(project_key, [], { defer: waitUntil, db: db, redis: redis });
-  } else if (path_params.length > 0) {
-    // Traverse dynamic map for names and validation.
-    let node: any = project_map;
+  if (path_params.length > 0) {
+    let node = project_map;
     for (let i = 0; i < path_params.length; i++) {
       if (node?.info?.type !== 'list') {
         error(404, `Not found`);
       }
-      const list: any[] = node.list ?? [];
+      const list = node.list ?? [];
       const sel = path_params[i]!;
       const level_name = get_list_name_for_path_param_index(project_map, path_params, i, 'Level');
-      path_level_names.push(level_name);
       if (!(sel >= 1 && sel <= list.length)) {
         error(404, `${level_name} Not found`);
       }
-      if (i === path_params.length - 1) list_count = list.length;
-      node = list[sel - 1];
-      path_names.push(node?.name_dev);
-    }
-
-    // Fetch text whenever we reach a leaf `shloka` node (subtrees can have varying depth).
-    if (node?.info?.type === 'shloka' && !isDataRequest) {
-      text = await get_text_data_func(project_key, path_params, {
-        defer: waitUntil,
-        db: db,
-        redis: redis
-      });
+      node = list[sel - 1]!;
     }
   }
+
   return {
     project_key,
     levels,
     level_names,
-    path_params,
-    path_names,
-    path_level_names,
-    text,
-    list_count
+    path_params
   };
 };

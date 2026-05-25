@@ -44,3 +44,6 @@ export const APP_SCOPE_IDENTIFIERS = {
   [APP_SCOPE_ID_PROJECT_PORTAL]: 'Projects Portal',
   [APP_SCOPE_ID_LEKHA]: 'Lekha'
 };
+
+export const APP_SCOPES_ENUM = z.enum([APP_SCOPE_ID_PROJECT_PORTAL, APP_SCOPE_ID_LEKHA]);
+export type AppScopeEnum = z.infer<typeof APP_SCOPES_ENUM>;

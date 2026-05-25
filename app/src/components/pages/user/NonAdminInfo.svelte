@@ -2,8 +2,11 @@
   import AppScopeStatusGate from './AppScopeStatusGate.svelte';
   import ProjectsPortalProfile from './ProjectsPortalProfile.svelte';
   import LekhaProfilePanel from './LekhaProfilePanel.svelte';
-  import { APP_SCOPE_ID_LEKHA, APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
-  import type { AppScopeId } from '~/state/app_scope_queries';
+  import {
+    APP_SCOPE_ID_LEKHA,
+    APP_SCOPE_ID_PROJECT_PORTAL,
+    type AppScopeEnum
+  } from '~/state/data_types';
 
   let {
     user_info,
@@ -15,7 +18,7 @@
       email: string;
       role?: string | null;
     };
-    scope_id?: AppScopeId;
+    scope_id?: AppScopeEnum;
   } = $props();
 </script>
 

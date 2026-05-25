@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { APP_SCOPE_IDENTIFIERS } from '~/state/data_types';
-  import type { AppScopeId } from '~/state/app_scope_queries';
+  import { APP_SCOPE_IDENTIFIERS, type AppScopeEnum } from '~/state/data_types';
 
-  let { scope_id }: { scope_id: AppScopeId } = $props();
+  let { scope_id }: { scope_id: AppScopeEnum } = $props();
 
   const scope_label = $derived(APP_SCOPE_IDENTIFIERS[scope_id]);
 </script>

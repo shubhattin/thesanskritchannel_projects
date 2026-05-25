@@ -13,9 +13,12 @@
   import { LuRefreshCw } from 'svelte-icons-pack/lu';
   import { cn } from '$lib/utils';
   import UpdateName from './UpdateName.svelte';
-  import { APP_SCOPE_IDENTIFIERS, APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
-  import { APP_SCOPE_STATUS_QUERY_KEY } from '~/state/app_scope_queries';
-  import type { AppScopeId } from '~/state/app_scope_queries';
+  import {
+    APP_SCOPE_IDENTIFIERS,
+    APP_SCOPE_ID_PROJECT_PORTAL,
+    type AppScopeEnum
+  } from '~/state/data_types';
+  import { client_q } from '~/api/client';
 
   const query_client = useQueryClient();
 
@@ -25,9 +28,9 @@
 
   let dot_popover_status = $state(false);
   let logout_modal_status = $state(false);
-  let active_scope_tab = $state<AppScopeId>(APP_SCOPE_ID_PROJECT_PORTAL);
+  let active_scope_tab = $state<AppScopeEnum>(APP_SCOPE_ID_PROJECT_PORTAL);
 
-  const scope_ids = Object.keys(APP_SCOPE_IDENTIFIERS) as AppScopeId[];
+  const scope_ids = Object.keys(APP_SCOPE_IDENTIFIERS) as AppScopeEnum[];
 
   const log_out = async () => {
     await signOut({
@@ -44,11 +47,9 @@
       query_client.invalidateQueries({
         queryKey: ['user_info']
       }),
-      ...scope_ids.map((scope_id) =>
-        query_client.invalidateQueries({
-          queryKey: [APP_SCOPE_STATUS_QUERY_KEY, user.id, scope_id]
-        })
-      ),
+      query_client.invalidateQueries({
+        queryKey: [['user', 'list_user_app_scopes'], { input: { user_id: user.id }, type: 'query' }]
+      }),
       user.role === 'admin' &&
         query_client.invalidateQueries({
           queryKey: ['users_list']
@@ -56,20 +57,18 @@
     ]);
   };
 
+  const user_scopes_q = $derived(client_q.user.list_user_app_scopes.query({ user_id: user.id }));
+
   const user_info_is_fetching = useIsFetching({
     queryKey: ['user_info']
   });
   const users_list_is_fetching = useIsFetching({
     queryKey: ['users_list']
   });
-  const scope_status_is_fetching = useIsFetching({
-    queryKey: [APP_SCOPE_STATUS_QUERY_KEY]
-  });
-
   let is_fetching = $derived(
     user.role === 'admin'
       ? !!$users_list_is_fetching
-      : !!$user_info_is_fetching || !!$scope_status_is_fetching
+      : !!$user_info_is_fetching || !!$user_scopes_q.isFetching
   );
 </script>
 

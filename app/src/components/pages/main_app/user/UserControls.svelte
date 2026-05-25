@@ -13,26 +13,32 @@
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import * as Popover from '$lib/components/ui/popover';
   import { get_lang_from_id } from '~/state/lang_list';
-  import { client } from '~/api/client';
+  import { client, client_q } from '~/api/client';
   import { cn } from '$lib/utils';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { goto } from '$app/navigation';
-  import { createQuery } from '@tanstack/svelte-query';
-  import { APP_SCOPE_IDENTIFIERS, APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
-  import { app_scope_status_query_options, type AppScopeId } from '~/state/app_scope_queries';
+  import {
+    APP_SCOPE_IDENTIFIERS,
+    APP_SCOPE_ID_PROJECT_PORTAL,
+    type AppScopeEnum
+  } from '~/state/data_types';
 
   let {
     currentpage = 'home'
   }: {
-    currentpage?: AppScopeId | 'home';
+    currentpage?: AppScopeEnum | 'home';
   } = $props();
 
   const session = useSession();
 
   let user_info = $derived($session.data?.user);
 
-  const projects_portal_scope_q = $derived(
-    createQuery(app_scope_status_query_options(user_info?.id, APP_SCOPE_ID_PROJECT_PORTAL))
+  const user_scopes_q = $derived(
+    client_q.user.list_user_app_scopes.query({ user_id: user_info?.id ?? '' })
+  );
+
+  const has_projects_portal_scope = $derived(
+    $user_scopes_q.isSuccess && $user_scopes_q.data.scopes.includes(APP_SCOPE_ID_PROJECT_PORTAL)
   );
 
   const show_projects_scope_info = $derived(
@@ -115,9 +121,9 @@
           >
             <Icon src={LuRefreshCw} class="text-lg" />
           </button>
-          {#if $projects_portal_scope_q.isFetching || $user_project_info_q.isFetching}
+          {#if $user_scopes_q.isFetching || $user_project_info_q.isFetching}
             <Skeleton class="h-5 w-full bg-muted" />
-          {:else if $projects_portal_scope_q.isSuccess && $projects_portal_scope_q.data && $user_project_info_q.isSuccess}
+          {:else if $user_scopes_q.isSuccess && has_projects_portal_scope && $user_project_info_q.isSuccess}
             {@const langs = $user_project_info_q.data.languages!}
             {#if langs && langs.length > 0}
               <div>
@@ -129,7 +135,7 @@
             {:else}
               <div class="text-sm text-amber-600 dark:text-amber-500">No languages assigned</div>
             {/if}
-          {:else if $projects_portal_scope_q.isSuccess && !$projects_portal_scope_q.data}
+          {:else if $user_scopes_q.isSuccess && !has_projects_portal_scope}
             <div class="text-sm text-amber-600 dark:text-amber-500">
               Your account is not added to {APP_SCOPE_IDENTIFIERS[APP_SCOPE_ID_PROJECT_PORTAL]} scope
               by Admin

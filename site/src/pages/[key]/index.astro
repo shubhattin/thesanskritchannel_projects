@@ -16,6 +16,7 @@ import {
   parse_lang_id_cookie,
   parse_script_id_cookie
 } from '~/lib/cookies';
+import { PROJECT_LIST } from '$app/server/project_list.server';
 
 export const prerender = false;
 
@@ -41,7 +42,7 @@ const text =
 const translation =
   resolved && resolved.node.info.type === 'shloka' && selected_lang_id !== -1
     ? await get_translation_data_func(
-        get_project_from_key(resolved.project_key)!.id,
+        get_project_from_key(resolved.project_key, PROJECT_LIST)!.id,
         selected_lang_id,
         get_selected_text_levels_from_path_params(resolved.path_params, resolved.levels),
         {

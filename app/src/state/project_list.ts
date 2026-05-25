@@ -1,94 +1,26 @@
-import { z } from 'zod';
-import { recursive_list_schema, type recursive_list_type } from './data_types';
+import { type recursive_list_type } from './data_types';
+import type { project_type_server } from '~/server/project_list.server';
 
-export type project_type = {
+export type project_type_client = {
   id: number;
   name: string;
   name_dev: string;
   description?: string;
   key: string;
-  get_map: () => Promise<recursive_list_type>;
 };
 
-// ALWAYS BE CAREFUL BEFORE CHANGING THIS LIST
-// AS CHANGE IN PRE-EXISTING PROJECT IDS WOULD CAUSE DATA MISMATCHs
-
-export const PROJECT_LIST: project_type[] = [
-  {
-    id: 1,
-    name: 'Valmiki Ramayanam',
-    name_dev: 'श्रीमद्रामायणम्',
-    key: 'ramayanam',
-    get_map: async () =>
-      recursive_list_schema.parse((await import('@data/1. ramayanam/ramayanam_map.json')).default)
-  },
-  {
-    id: 2,
-    name: 'Bhagavad Gita',
-    name_dev: 'श्रीमद्भगवद्गीता',
-    key: 'bhagavadgita',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/2. bhagavadgita/bhagavadgita_map.json')).default
-      )
-  },
-  {
-    id: 3,
-    name: 'Narayaneeyam',
-    name_dev: 'नारायणीयम्',
-    key: 'narayaneeyam',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/3. narayaneeyam/narayaneeyam_map.json')).default
-      )
-  },
-  {
-    id: 4,
-    name: 'Shiva Tandava Stotra',
-    name_dev: 'शिवताण्डवस्तोत्रम्',
-    key: 'shiva-tandava-stotram',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/4. shiva-tandava-stotram/shiva-tandava-stotram_map.json')).default
-      )
-  },
-  {
-    id: 5,
-    name: 'Saundarya Lahari',
-    name_dev: 'सौन्दर्यलहरी',
-    key: 'saundarya-lahari',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/5. saundarya-lahari/saundarya-lahari_map.json')).default
-      )
-  },
-  {
-    id: 6,
-    name: 'Veda',
-    name_dev: 'वेद',
-    key: 'veda',
-    get_map: async () =>
-      recursive_list_schema.parse((await import('@data/6. veda/veda_map.json')).default)
-  },
-  {
-    id: 7,
-    name: 'Vijnana Bhairava Tantra',
-    name_dev: 'विज्ञानभैरवतन्त्रम्',
-    key: 'vijnana-bhairava-tantram',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/7. vijnana-bhairava-tantram/vijnana-bhairava-tantram_map.json'))
-          .default
-      )
-  }
-];
-
-export const get_project_from_id = (id: number) => {
-  return PROJECT_LIST[id - 1];
+export const get_project_from_id = <T extends project_type_client>(
+  id: number,
+  project_list: T[]
+): T | undefined => {
+  return project_list.find((p) => p.id === id);
 };
 
-export const get_project_from_key = (key: string) => {
-  return PROJECT_LIST.find((p) => p.key === key);
+export const get_project_from_key = <T extends project_type_client>(
+  key: string,
+  project_list: T[]
+): T | undefined => {
+  return project_list.find((p) => p.key === key);
 };
 
 export const clamp_levels_for_route = (levels: number) => {
@@ -230,21 +162,26 @@ export const get_path_params = (
   return selected_text_levels.slice(0, project_levels - 1).reverse() as number[];
 };
 
-export type project_info_type = project_type & {
+export type project_info_type = project_type_client & {
   /** The project level here also includes shloka/leaf */
   levels: number;
   /** lower -> higher, index 0 is leaf */
   level_names: string[];
 };
 
+// Server side
+
 const project_info_cache = new Map<string, Promise<project_info_type>>();
 
-export const get_project_info_from_key = async (key: string): Promise<project_info_type> => {
+export const get_project_info_from_key = async (
+  key: string,
+  project_list: project_type_server[]
+): Promise<project_info_type> => {
   const cached = project_info_cache.get(key);
   if (cached) return cached;
 
   const promise = (async () => {
-    const project = get_project_from_key(key);
+    const project = project_list.find((p) => p.key === key);
     if (!project) throw new Error(`Project not found: ${key}`);
     const map = await project.get_map();
     const levels = get_levels_from_map(map);
@@ -269,7 +206,11 @@ export const get_project_info_from_key = async (key: string): Promise<project_in
   return promise;
 };
 
-export const get_project_info_from_id = async (id: number): Promise<project_info_type> => {
-  const project = get_project_from_id(id);
-  return get_project_info_from_key(project.key);
+export const get_project_info_from_id = async (
+  id: number,
+  project_list: project_type_server[]
+): Promise<project_info_type> => {
+  const project = get_project_from_id(id, project_list);
+  if (!project) throw new Error(`Project not found: ${id}`);
+  return get_project_info_from_key(project.key, project_list);
 };

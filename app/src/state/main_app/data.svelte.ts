@@ -1,5 +1,5 @@
 import { get_derived_query } from '~/tools/query';
-import { client } from '~/api/client';
+import { client, client_q } from '~/api/client';
 import { queryClient } from '~/state/queryClient';
 import { createQuery, queryOptions } from '@tanstack/svelte-query';
 import {
@@ -14,9 +14,10 @@ import { browser } from '$app/environment';
 import { delay } from '~/tools/delay';
 import { derived, get, writable } from 'svelte/store';
 import { lang_list_obj } from '../lang_list';
-import { get_node_at_path, get_project_from_key } from '../project_list';
+import { get_node_at_path, get_project_from_key, type project_type_client } from '../project_list';
 import { user_info } from '../user.svelte';
 import type { shloka_list_type } from '~/state/data_types';
+import ms from 'ms';
 
 /** Keeps previous text visible across query-key changes (e.g. next/prev navigation). */
 let last_successful_text_data: shloka_list_type | undefined;
@@ -33,6 +34,11 @@ const get_dynamic_path_params = (
   if (params.some((v) => v == null)) return [];
   return params as number[];
 };
+
+export const project_list_q = client_q.project.get_project_list.query(undefined, {
+  // can be cached forever
+  staleTime: ms('12hours')
+});
 
 export const user_project_info_q = get_derived_query(
   [project_state, user_info],
@@ -52,23 +58,33 @@ export const user_project_info_q = get_derived_query(
     )
 );
 
-export const project_map_q_options = (project_id: number, project_key: string) => {
+export const project_map_q_options = (
+  project_id: number,
+  project_key: string,
+  project_list: project_type_client[]
+) => {
   return queryOptions({
     queryKey: ['project_map', project_id],
     queryFn: async () => {
-      const project = get_project_from_key(project_key);
+      const project = get_project_from_key(project_key, project_list);
       if (!project) throw new Error(`Project not found: ${project_key}`);
-      return await project.get_map();
+      return await client.project.get_project_map.query({ project_id: project_id });
     }
   });
 };
 
 /** Derives from the current selected project */
-export const project_map_q = get_derived_query([project_state], ([prject_state_]) =>
-  createQuery(
-    project_map_q_options(prject_state_.project_id!, prject_state_.project_key!),
-    queryClient
-  )
+export const project_map_q = get_derived_query(
+  [project_state, project_list_q],
+  ([prject_state_, project_list_q_]) =>
+    createQuery(
+      project_map_q_options(
+        prject_state_.project_id!,
+        prject_state_.project_key!,
+        project_list_q_.data ?? []
+      ),
+      queryClient
+    )
 );
 
 // Keep `text_data_present` synced to whether current selection is a leaf shloka node.
@@ -163,9 +179,9 @@ export const trans_en_data_q = get_derived_query(
         enabled: browser && view_translation_status_ && text_data_present_,
         ...(editing_status_on_
           ? {
-              staleTime: Infinity
-              // while editing the data should not go stale, else it would refetch lead to data loss
-            }
+            staleTime: Infinity
+            // while editing the data should not go stale, else it would refetch lead to data loss
+          }
           : {})
       },
       queryClient
@@ -191,9 +207,9 @@ export const trans_lang_data_q = get_derived_query(
         enabled: browser && trans_lang_ !== 0 && text_data_present_,
         ...(editing_status_on_
           ? {
-              staleTime: Infinity
-              // while editing the data should not go stale, else it would refetch lead to data loss
-            }
+            staleTime: Infinity
+            // while editing the data should not go stale, else it would refetch lead to data loss
+          }
           : {})
       },
       queryClient

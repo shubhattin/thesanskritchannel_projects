@@ -9,6 +9,7 @@ import {
   parse_pretty_route_segment,
   resolve_text_route
 } from './text-routes';
+import { PROJECT_LIST } from '../../../app/src/server/project_list.server';
 
 describe('text-routes', () => {
   it('normalizes and parses pretty route segments', () => {
@@ -25,7 +26,7 @@ describe('text-routes', () => {
   });
 
   it('builds pretty segments from numeric path params', async () => {
-    const project = get_project_from_key('ramayanam');
+    const project = get_project_from_key('ramayanam', PROJECT_LIST);
     if (!project) throw new Error('Project not found');
     const map = await project.get_map();
     expect(get_pretty_segments_for_path_params(map, [1, 2])).toEqual(['kanda-1', 'sarga-2']);
@@ -74,7 +75,7 @@ describe('text-routes', () => {
   });
 
   it('builds child link items for intermediate pages', async () => {
-    const project = get_project_from_key('ramayanam');
+    const project = get_project_from_key('ramayanam', PROJECT_LIST);
     if (!project) throw new Error('Project not found');
     const map = await project.get_map();
     const levels = get_levels_from_map(map);

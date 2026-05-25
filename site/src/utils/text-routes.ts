@@ -5,6 +5,7 @@ import {
   get_project_from_key,
   get_project_info_from_key
 } from '../../../app/src/state/project_list';
+import { PROJECT_LIST } from '../../../app/src/server/project_list.server';
 
 const NUMERIC_SEGMENT_RE = /^[1-9]\d*$/;
 const PRETTY_SEGMENT_RE = /^(?<levelSlug>.+)-(?<num>[1-9]\d*)$/;
@@ -84,10 +85,10 @@ export const resolve_text_route = async (
   raw_project_key: string,
   raw_segments: string[]
 ): Promise<resolved_text_route_type | null> => {
-  const project = get_project_from_key(raw_project_key);
+  const project = get_project_from_key(raw_project_key, PROJECT_LIST);
   if (!project) throw new Error(`Project not found: ${raw_project_key}`);
   const project_key = project.key;
-  const project_info = await get_project_info_from_key(project_key);
+  const project_info = await get_project_info_from_key(project_key, PROJECT_LIST);
   const map = await project.get_map();
   const segments = raw_segments.filter((segment) => segment.length > 0);
 

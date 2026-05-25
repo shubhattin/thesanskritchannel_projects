@@ -1,6 +1,6 @@
 // this file gets all the texts from the local json files and dump them in the db compatible schema
 import z from 'zod';
-import { PROJECT_LIST } from '~/server/project_list.server';
+import { get_project_list } from '~/server/project_list.server';
 import { TextSchemaZod } from '../schema_zod';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -55,7 +55,7 @@ const data_root = fileURLToPath(new URL('../../../../data/', import.meta.url));
 
 const main = async () => {
   const texts: z.infer<typeof TextSchemaZod>[] = [];
-  for (const project of PROJECT_LIST) {
+  for (const project of await get_project_list()) {
     // console.log(`Processing ${project.key}...`);
     const project_folder = path.join(data_root, `${project.id}. ${project.key}`);
     const level1_file = path.join(project_folder, 'data.json');

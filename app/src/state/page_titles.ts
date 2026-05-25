@@ -34,7 +34,7 @@ export const PAGE_TITLES = STATIC_PAGE_TITLES;
 
 export const get_page_title_info = (
   pathname: string,
-  project_list: project_type_client[] = []
+  project_list: readonly project_type_client[] = []
 ): page_title_info_type | undefined => {
   for (const key in STATIC_PAGE_TITLES) {
     const entry = STATIC_PAGE_TITLES[key]!;

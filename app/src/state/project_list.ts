@@ -1,5 +1,4 @@
 import { type recursive_list_type } from './data_types';
-import type { project_type_server } from '~/server/project_list.server';
 
 export type project_type_client = {
   id: number;
@@ -11,14 +10,14 @@ export type project_type_client = {
 
 export const get_project_from_id = <T extends project_type_client>(
   id: number,
-  project_list: T[]
+  project_list: readonly T[]
 ): T | undefined => {
   return project_list.find((p) => p.id === id);
 };
 
 export const get_project_from_key = <T extends project_type_client>(
   key: string,
-  project_list: T[]
+  project_list: readonly T[]
 ): T | undefined => {
   return project_list.find((p) => p.key === key);
 };
@@ -169,48 +168,11 @@ export type project_info_type = project_type_client & {
   level_names: string[];
 };
 
-// Server side
-
-const project_info_cache = new Map<string, Promise<project_info_type>>();
-
-export const get_project_info_from_key = async (
-  key: string,
-  project_list: project_type_server[]
-): Promise<project_info_type> => {
-  const cached = project_info_cache.get(key);
-  if (cached) return cached;
-
-  const promise = (async () => {
-    const project = project_list.find((p) => p.key === key);
-    if (!project) throw new Error(`Project not found: ${key}`);
-    const map = await project.get_map();
-    const levels = get_levels_from_map(map);
-    const level_names = get_level_names_from_map(map);
-    return {
-      ...project,
-      levels,
-      level_names
-    } satisfies project_info_type;
-  })();
-
-  project_info_cache.set(key, promise);
-  promise.catch((err) => {
-    // If this in-flight promise rejects, clear only if it is still the stored value.
-    // This prevents transient failures from poisoning the cache, while concurrent
-    // callers still share the same in-flight promise.
-    if (project_info_cache.get(key) === promise) {
-      project_info_cache.delete(key);
-    }
-    // throw err;
-  });
-  return promise;
-};
-
-export const get_project_info_from_id = async (
-  id: number,
-  project_list: project_type_server[]
-): Promise<project_info_type> => {
-  const project = get_project_from_id(id, project_list);
-  if (!project) throw new Error(`Project not found: ${id}`);
-  return get_project_info_from_key(project.key, project_list);
-};
+export const build_project_info = (
+  project: project_type_client,
+  map: recursive_list_type
+): project_info_type => ({
+  ...project,
+  levels: get_levels_from_map(map),
+  level_names: get_level_names_from_map(map)
+});

@@ -65,7 +65,7 @@ export const user_project_info_q = get_derived_query(
 export const project_map_q_options = (
   project_id: number,
   project_key: string,
-  project_list: project_type_client[]
+  project_list: readonly project_type_client[]
 ) => {
   return queryOptions({
     queryKey: ['project_map', project_id],

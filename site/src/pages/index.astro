@@ -1,6 +1,8 @@
 ---
 import RootLayout from '$components/RootLayout.astro';
-import { PROJECT_LIST } from '$app/server/project_list.server';
+import { get_project_list } from '$app/server/project_list.server';
+
+const projects = await get_project_list();
 import Youtube from '@lucide/svelte/icons/youtube';
 import ArrowRight from '@lucide/svelte/icons/arrow-right';
 import ExternalLink from '@lucide/svelte/icons/external-link';
@@ -93,7 +95,7 @@ const latest_lekhas = await get_site_lekha_list_func({ db, redis, defer: waitUnt
 
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {
-        PROJECT_LIST.map((project, index) => (
+        projects.map((project, index) => (
           <a
             href={`/${project.key}`}
             class:list={[

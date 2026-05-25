@@ -11,8 +11,7 @@ import { translations } from '~/db/schema';
 import { delay } from '~/tools/delay';
 import { env } from '$env/dynamic/private';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
-import { get_project_info_from_id } from '~/state/project_list';
-import { PROJECT_LIST } from '~/server/project_list.server';
+import { get_project_info_by_id } from '~/server/project_list.server';
 import { fetch_post } from '~/tools/fetch';
 import { get_languages_for_project_user } from './project';
 import { get_path_params } from '~/state/project_list';
@@ -50,7 +49,7 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
       ctx: { user },
       input: { project_id, lang_id, selected_text_levels, data, indexes }
     }) => {
-      const { levels } = await get_project_info_from_id(project_id, PROJECT_LIST);
+      const { levels } = await get_project_info_by_id(project_id);
       const path_params = get_path_params(selected_text_levels, levels);
       const path = path_params.join(':');
 
@@ -129,7 +128,7 @@ const get_all_langs_translation_route = protectedAppScopeProcedure_ProjectsPorta
   .query(async ({ input: { project_id, selected_text_levels } }) => {
     await delay(400);
 
-    const { levels } = await get_project_info_from_id(project_id, PROJECT_LIST);
+    const { levels } = await get_project_info_by_id(project_id);
     const path_params = get_path_params(selected_text_levels, levels);
     const path = path_params.join(':');
     const data = await db.query.translations.findMany({

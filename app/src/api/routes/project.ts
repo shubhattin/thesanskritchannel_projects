@@ -8,8 +8,7 @@ import { t } from '../trpc_init';
 import { redis, REDIS_CACHE_KEYS, deleteKeysWithPattern } from '~/db/redis';
 import ms from 'ms';
 import { waitUntil } from '@vercel/functions';
-import { PROJECT_LIST } from '~/server/project_list.server';
-import { get_project_from_id } from '~/state/project_list';
+import { get_project_list, get_project_map_by_id } from '~/server/project_list.server';
 
 export const get_languages_for_project_user = async (
   user_id: string,
@@ -158,21 +157,13 @@ export const user_project_info_route = protectedProcedure
   });
 
 const get_project_list_route = protectedProcedure.query(async () => {
-  return PROJECT_LIST.map(({ id, name, name_dev, description, key }) => ({
-    id,
-    name,
-    name_dev,
-    description,
-    key
-  }));
+  return get_project_list();
 });
 
 const get_project_map_route = protectedProcedure
   .input(z.object({ project_id: z.int() }))
   .query(async ({ input: { project_id } }) => {
-    const project = get_project_from_id(project_id, PROJECT_LIST);
-    if (!project) throw new Error('Project not found');
-    return project.get_map();
+    return get_project_map_by_id(project_id);
   });
 
 export const project_router = t.router({

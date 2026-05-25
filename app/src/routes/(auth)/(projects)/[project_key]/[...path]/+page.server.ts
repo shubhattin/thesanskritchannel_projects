@@ -3,10 +3,9 @@ import type { PageServerLoad } from './$types';
 import {
   get_level_names_from_map,
   get_levels_from_map,
-  get_list_name_for_path_param_index,
-  get_project_from_key
+  get_list_name_for_path_param_index
 } from '~/state/project_list';
-import { PROJECT_LIST } from '~/server/project_list.server';
+import { get_project_by_key, get_project_map_by_key } from '~/server/project_list.server';
 import { z } from 'zod';
 
 const path_params_schema = z.array(z.coerce.number().int());
@@ -28,9 +27,9 @@ const parse_path_params = (path: string | undefined) => {
 export const load: PageServerLoad = async (opts) => {
   const { params } = opts;
   const project_key = params.project_key;
-  const project = get_project_from_key(project_key, PROJECT_LIST);
+  const project = await get_project_by_key(project_key);
   if (!project) throw new Error(`Project not found: ${project_key}`);
-  const project_map = await project.get_map();
+  const project_map = await get_project_map_by_key(project_key);
   const levels = get_levels_from_map(project_map);
   const level_names = get_level_names_from_map(project_map).slice(0, levels);
   const path_params = parse_path_params(params.path);

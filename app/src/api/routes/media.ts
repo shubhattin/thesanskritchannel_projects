@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { t, publicProcedure, protectedAdminProcedure } from '../trpc_init';
-import { get_project_info_from_id } from '~/state/project_list';
-import { PROJECT_LIST } from '~/server/project_list.server';
+import { get_project_info_by_id } from '~/server/project_list.server';
 import { db } from '~/db/db';
 import { MediaAttachmentSchemaZod } from '~/db/schema_zod';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
@@ -18,7 +17,7 @@ const get_media_list_route = publicProcedure
     })
   )
   .query(async ({ input: { project_id, selected_text_levels } }) => {
-    const { levels } = await get_project_info_from_id(project_id, PROJECT_LIST);
+    const { levels } = await get_project_info_by_id(project_id);
     const path_params = get_path_params(selected_text_levels, levels);
     type return_type = {
       id: number;
@@ -61,7 +60,7 @@ const add_media_link_route = protectedAdminProcedure
   )
   .mutation(
     async ({ input: { project_id, lang_id, link, media_type, selected_text_levels, name } }) => {
-      const { levels } = await get_project_info_from_id(project_id, PROJECT_LIST);
+      const { levels } = await get_project_info_by_id(project_id);
       const path_params = get_path_params(selected_text_levels, levels);
       const path = path_params.join(':');
       const [inserted] = await Promise.all([
@@ -96,7 +95,7 @@ const update_media_link_route = protectedAdminProcedure
     async ({
       input: { project_id, selected_text_levels, id, lang_id, link, media_type, name }
     }) => {
-      const { levels } = await get_project_info_from_id(project_id, PROJECT_LIST);
+      const { levels } = await get_project_info_by_id(project_id);
       const path_params = get_path_params(selected_text_levels, levels);
       // const path = path_params.join(':');
 
@@ -122,7 +121,7 @@ const delete_media_link_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { link_id, project_id, selected_text_levels } }) => {
-    const { levels } = await get_project_info_from_id(project_id, PROJECT_LIST);
+    const { levels } = await get_project_info_by_id(project_id);
     const path_params = get_path_params(selected_text_levels, levels);
 
     // await db.delete(media_attachment).where((tbl, { eq }) => eq(tbl.id, link_id));

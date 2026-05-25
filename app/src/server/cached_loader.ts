@@ -1,12 +1,8 @@
 import ms from 'ms';
 import { REDIS_CACHE_KEYS_CLIENT } from '../db/redis_shared';
 import type { shloka_list_type } from '../state/data_types';
-import {
-  get_path_params,
-  get_project_from_key,
-  get_project_info_from_id
-} from '../state/project_list';
-import { PROJECT_LIST } from './project_list.server';
+import { get_path_params } from '../state/project_list';
+import { get_project_by_key, get_project_info_by_id } from './project_list.server';
 import type { Redis } from '@upstash/redis/cloudflare';
 import type { db } from '~/db/db';
 import { SiteLekhaSchemaZod } from '../db/schema_zod';
@@ -31,7 +27,7 @@ export const get_text_data_func = async (
 ) => {
   const { db, redis } = options;
 
-  const project = get_project_from_key(key, PROJECT_LIST);
+  const project = await get_project_by_key(key);
   if (!project) throw new Error(`Project not found: ${key}`);
   const project_id = project.id;
   if (import.meta.env.DEV) {
@@ -91,7 +87,7 @@ export const get_translation_data_func = async (
 
   const { db, redis } = options;
 
-  const { levels } = await get_project_info_from_id(project_id, PROJECT_LIST);
+  const { levels } = await get_project_info_by_id(project_id);
   const path_params = get_path_params(selected_text_levels, levels);
   const path = path_params.join(':');
   let cache = null;

@@ -2,8 +2,9 @@
   import { createQuery } from '@tanstack/svelte-query';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { APP_SCOPE_IDENTIFIERS } from '~/state/data_types';
-  import { app_scope_status_query_options, type AppScopeId } from '~/state/app_scope_queries';
+  import { type AppScopeEnum } from '~/state/data_types';
   import type { Snippet } from 'svelte';
+    import { client_q } from '~/api/client';
 
   let {
     user_id,
@@ -11,11 +12,14 @@
     children
   }: {
     user_id: string;
-    scope_id: AppScopeId;
+    scope_id: AppScopeEnum;
     children: Snippet;
   } = $props();
 
-  const scope_status_q = $derived(createQuery(app_scope_status_query_options(user_id, scope_id)));
+  const scope_status_q = $derived(client_q.user.get_user_app_scope_status.query({
+    user_id: user_id,
+    scope_name: scope_id
+  }));
 
   const scope_label = $derived(APP_SCOPE_IDENTIFIERS[scope_id]);
 </script>

@@ -2,7 +2,7 @@ import type { Context } from './context';
 import { TRPCError, initTRPC } from '@trpc/server';
 import transformer from './transformer';
 import { APP_SCOPE_ID_LEKHA, APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
-import { get_user_app_scope_status } from '~/utils/app_scope_utils';
+import { get_user_app_scope_status } from '~/utils/app_scope_utils.server';
 
 export const t = initTRPC.context<Context>().create({
   transformer

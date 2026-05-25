@@ -6,13 +6,14 @@ import { user_project_join, user_project_language_join } from '~/db/schema';
 import { eq } from 'drizzle-orm';
 import { t } from '../trpc_init';
 import { get_languages_for_project_user } from './project';
-import { fetch_post } from '~/tools/fetch';
+import { fetch_get, fetch_post } from '~/tools/fetch';
 import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
-import { APP_SCOPE_ID_LEKHA, APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
+import { APP_SCOPE_ID_PROJECT_PORTAL, APP_SCOPES_ENUM, type AppScopeEnum } from '~/state/data_types';
+import { get_user_app_scope_status } from '~/utils/app_scope_utils.server';
 
 const get_user_info_route = protectedProcedure
   .input(z.object({ user_id: z.string() }))
-  .query(async ({ input: { user_id }, ctx: { user, cookie } }) => {
+  .query(async ({ input: { user_id }, ctx: { user } }) => {
     await delay(550);
 
     if (user.role !== 'admin' && user.id !== user_id) {
@@ -47,7 +48,7 @@ const remove_user_from_app_scope_route = protectedAdminProcedure
   .input(
     z.object({
       user_id: z.string(),
-      scope: z.enum([APP_SCOPE_ID_PROJECT_PORTAL, APP_SCOPE_ID_LEKHA])
+      scope: APP_SCOPES_ENUM
     })
   )
   .mutation(async ({ input: { user_id, scope }, ctx: { cookie } }) => {
@@ -76,7 +77,39 @@ const remove_user_from_app_scope_route = protectedAdminProcedure
     return { success: true };
   });
 
+const add_user_to_app_scope_route = protectedAdminProcedure
+  .input(z.object({ user_id: z.string(), scope: APP_SCOPES_ENUM }))
+  .mutation(async ({ input: { user_id, scope }, ctx: { cookie } }) => {
+    const res = await fetch_post(`${PUBLIC_BETTER_AUTH_URL}/api/app_scope/add_user_app_scope`, {
+      json: { user_id: user_id, scope },
+      headers: { Cookie: cookie! }
+    });
+    if (!res.ok) return { success: false };
+    return { success: true };
+  });
+
+const get_user_app_scope_status_route = protectedProcedure
+  .input(z.object({ user_id: z.string(), scope_name: APP_SCOPES_ENUM }))
+  .query(async ({ input: { user_id, scope_name }, ctx: { cookie } }) => {
+    return await get_user_app_scope_status(user_id, scope_name, cookie);
+  });
+
+const list_user_app_scopes_route = protectedProcedure
+  // for both admin users and self only
+  .input(z.object({ user_id: z.string() }))
+  .query(async ({ input: { user_id }, ctx: { cookie } }) => {
+    const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/app_scope/get_user_app_scope_list`, {
+      params: { user_id: user_id },
+      headers: { Cookie: cookie! }
+    });
+    if (!res.ok) return [];
+    return (await res.json()) as { scopes: AppScopeEnum[] };
+  });
+
 export const user_router = t.router({
   user_info: get_user_info_route,
-  remove_user_from_app_scope: remove_user_from_app_scope_route
+  remove_user_from_app_scope: remove_user_from_app_scope_route,
+  add_user_to_app_scope: add_user_to_app_scope_route,
+  get_user_app_scope_status: get_user_app_scope_status_route,
+  list_user_app_scopes: list_user_app_scopes_route
 });

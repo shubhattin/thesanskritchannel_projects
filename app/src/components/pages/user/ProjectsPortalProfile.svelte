@@ -19,7 +19,6 @@
   import RevokeSessions from './RevokeSessions.svelte';
   import ms from 'ms';
   import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
-  import { APP_SCOPE_STATUS_QUERY_KEY } from '~/state/app_scope_queries';
 
   const query_client = useQueryClient();
 
@@ -92,8 +91,9 @@
         queryKey: ['users_list'],
         exact: true
       });
-      query_client.invalidateQueries({
-        queryKey: [APP_SCOPE_STATUS_QUERY_KEY, user_info.id, APP_SCOPE_ID_PROJECT_PORTAL]
+      client_q.user.get_user_app_scope_status.utils.invalidate({
+        user_id: user_info.id,
+        scope_name: APP_SCOPE_ID_PROJECT_PORTAL
       });
     }
   });

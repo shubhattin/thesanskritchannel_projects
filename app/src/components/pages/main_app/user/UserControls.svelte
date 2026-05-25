@@ -13,18 +13,17 @@
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import * as Popover from '$lib/components/ui/popover';
   import { get_lang_from_id } from '~/state/lang_list';
-  import { client } from '~/api/client';
+  import { client, client_q } from '~/api/client';
   import { cn } from '$lib/utils';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { goto } from '$app/navigation';
   import { createQuery } from '@tanstack/svelte-query';
-  import { APP_SCOPE_IDENTIFIERS, APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
-  import { app_scope_status_query_options, type AppScopeId } from '~/state/app_scope_queries';
+  import { APP_SCOPE_IDENTIFIERS, APP_SCOPE_ID_PROJECT_PORTAL, type AppScopeEnum } from '~/state/data_types';
 
   let {
     currentpage = 'home'
   }: {
-    currentpage?: AppScopeId | 'home';
+    currentpage?: AppScopeEnum | 'home';
   } = $props();
 
   const session = useSession();
@@ -32,7 +31,10 @@
   let user_info = $derived($session.data?.user);
 
   const projects_portal_scope_q = $derived(
-    createQuery(app_scope_status_query_options(user_info?.id, APP_SCOPE_ID_PROJECT_PORTAL))
+    client_q.user.get_user_app_scope_status.query({
+      user_id: user_info?.id ?? '',
+      scope_name: APP_SCOPE_ID_PROJECT_PORTAL
+    })
   );
 
   const show_projects_scope_info = $derived(

@@ -5,18 +5,12 @@
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import Icon from '~/tools/Icon.svelte';
   import { AiOutlinePlus } from 'svelte-icons-pack/ai';
-  import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
-  import { fetch_post } from '~/tools/fetch';
   import {
     APP_SCOPE_IDENTIFIERS,
     APP_SCOPE_ID_LEKHA,
-    APP_SCOPE_ID_PROJECT_PORTAL
+    APP_SCOPE_ID_PROJECT_PORTAL,
+    type AppScopeEnum
   } from '~/state/data_types';
-  import {
-    app_scope_status_query_options,
-    APP_SCOPE_STATUS_QUERY_KEY,
-    type AppScopeId
-  } from '~/state/app_scope_queries';
   import { client_q } from '~/api/client';
   import { toast } from 'svelte-sonner';
   import ProjectsPortalProfile from './ProjectsPortalProfile.svelte';
@@ -34,39 +28,50 @@
       email: string;
       role?: string | null;
     };
-    scope_id?: AppScopeId;
+    scope_id?: AppScopeEnum;
   } = $props();
 
   const scope_status_q = $derived(
-    createQuery(app_scope_status_query_options(user_info.id, scope_id))
+    client_q.user.get_user_app_scope_status.query({
+      user_id: user_info.id,
+      scope_name: scope_id
+    })
   );
 
   let approve_popup_state = $state(false);
 
   const scope_label = $derived(APP_SCOPE_IDENTIFIERS[scope_id]);
+  
+  const add_user_app_scope_mut = client_q.user.add_user_to_app_scope.mutation({
+    onSuccess() {
+       client_q.user.get_user_app_scope_status.utils.invalidate({
+        user_id: user_info.id,
+        scope_name: scope_id
+       });
+      query_client.invalidateQueries({ queryKey: ['user_info', user_info.id] });
+      query_client.invalidateQueries({ queryKey: ['users_list'] });
+    },
+    onError(error) {
+      console.error('add_user_app_scope failed:', error);
+      toast.error(`Could not add user to ${scope_label} scope`);
+    }
+  });
 
   const add_user_app_scope = async () => {
-    const res = await fetch_post(`${PUBLIC_BETTER_AUTH_URL}/api/app_scope/add_user_app_scope`, {
-      json: { user_id: user_info.id, scope: scope_id },
-      credentials: 'include'
+    await $add_user_app_scope_mut.mutateAsync({
+      user_id: user_info.id,
+      scope: scope_id
     });
-    if (!res.ok) {
-      const message = await res.text().catch(() => 'Failed to add user to scope');
-      console.error('add_user_app_scope failed:', message);
-      toast.error(`Could not add user to ${scope_label} scope`);
-      return;
-    }
-    await query_client.invalidateQueries({
-      queryKey: [APP_SCOPE_STATUS_QUERY_KEY, user_info.id, scope_id]
-    });
-    await query_client.invalidateQueries({ queryKey: ['user_info', user_info.id] });
-    await query_client.invalidateQueries({ queryKey: ['users_list'] });
   };
 
   const remove_user_from_app_scope_mut = client_q.user.remove_user_from_app_scope.mutation({
     onSuccess() {
-      query_client.invalidateQueries({
-        queryKey: [APP_SCOPE_STATUS_QUERY_KEY, user_info.id, scope_id]
+      // query_client.invalidateQueries({
+      //   queryKey: [APP_SCOPE_STATUS_QUERY_KEY, user_info.id, scope_id]
+      // });
+      client_q.user.get_user_app_scope_status.utils.invalidate({
+        user_id: user_info.id,
+        scope_name: scope_id
       });
       query_client.invalidateQueries({ queryKey: ['user_info', user_info.id] });
       query_client.invalidateQueries({ queryKey: ['users_list'] });

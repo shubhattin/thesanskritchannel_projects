@@ -6,6 +6,7 @@
   import Search from '@lucide/svelte/icons/search';
   import { PROJECT_LIST } from '~/state/project_list';
   import Button from '~/lib/components/ui/button/button.svelte';
+  import { user_info } from '~/state/user.svelte';
 </script>
 
 <MetaTags
@@ -40,16 +41,18 @@
     {/each}
   </div>
 
-  <div class="mt-8 flex justify-center">
-    <a
-      href="/search"
-      class="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-6 py-3 text-base font-semibold tracking-wide text-primary transition hover:border-secondary hover:bg-muted/70 focus-visible:ring focus-visible:ring-ring/70 focus-visible:outline-none"
-      aria-label="Search across Sanskrit texts"
-    >
-      <Search class="size-5 shrink-0" aria-hidden="true" />
-      <span>Search across texts</span>
-    </a>
-  </div>
+  {#if $user_info?.role === 'admin'}
+    <div class="mt-8 flex justify-center">
+      <a
+        href="/search"
+        class="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-6 py-3 text-base font-semibold tracking-wide text-primary transition hover:border-secondary hover:bg-muted/70 focus-visible:ring focus-visible:ring-ring/70 focus-visible:outline-none"
+        aria-label="Search across Sanskrit texts"
+      >
+        <Search class="size-5 shrink-0" aria-hidden="true" />
+        <span>Search across texts</span>
+      </a>
+    </div>
+  {/if}
 
   <div class="mt-4 flex justify-center">
     <a href="/lekha" aria-label="Browse Lekha writings">

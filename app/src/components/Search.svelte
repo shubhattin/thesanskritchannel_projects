@@ -2,7 +2,8 @@
   import { createQuery } from '@tanstack/svelte-query';
   import { tick } from 'svelte';
   import { client } from '~/api/client';
-  import { PROJECT_LIST } from '~/state/project_list';
+  import { get_project_from_id } from '~/state/project_list';
+  import { project_list_q } from '~/state/main_app/data.svelte';
   import { queryClient } from '~/state/queryClient';
   import { cl_join } from '~/tools/cl_join';
   import { Button } from '$lib/components/ui/button';
@@ -40,9 +41,11 @@
     return nums.length ? nums : undefined;
   };
 
-  const get_project_key_from_id = (id: number) => PROJECT_LIST.find((p) => p.id === id)?.key;
+  const project_list = $derived($project_list_q.data ?? []);
+
+  const get_project_key_from_id = (id: number) => get_project_from_id(id, project_list)?.key;
   const get_project_name_from_id = (id: number) =>
-    PROJECT_LIST.find((p) => p.id === id)?.name ?? `Project ${id}`;
+    get_project_from_id(id, project_list)?.name ?? `Project ${id}`;
 
   const search_q = $derived(
     createQuery(
@@ -166,23 +169,27 @@
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div class="space-y-2">
           <Label for="project-select" class="text-sm font-medium">Project</Label>
-          <Select.Root
-            type="single"
-            value={project_id.toString()}
-            onValueChange={(v) => {
-              project_id = parseInt(v) || 0;
-            }}
-          >
-            <Select.Trigger id="project-select" class="w-full">
-              {PROJECT_LIST.find((p) => p.id === project_id)?.name ?? 'All'}
-            </Select.Trigger>
-            <Select.Content>
-              {#each PROJECT_LIST as project (project.id)}
-                <Select.Item value={project.id.toString()} label={project.name} />
-              {/each}
-              <Select.Item value="0" label="All" />
-            </Select.Content>
-          </Select.Root>
+          {#if $project_list_q.isPending}
+            <Skeleton class="h-10 w-full" />
+          {:else}
+            <Select.Root
+              type="single"
+              value={project_id.toString()}
+              onValueChange={(v) => {
+                project_id = parseInt(v) || 0;
+              }}
+            >
+              <Select.Trigger id="project-select" class="w-full">
+                {project_list.find((p) => p.id === project_id)?.name ?? 'All'}
+              </Select.Trigger>
+              <Select.Content>
+                {#each project_list as project (project.id)}
+                  <Select.Item value={project.id.toString()} label={project.name} />
+                {/each}
+                <Select.Item value="0" label="All" />
+              </Select.Content>
+            </Select.Root>
+          {/if}
           <input type="hidden" name="project_id" value={project_id} />
         </div>
 

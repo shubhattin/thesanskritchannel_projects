@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PROJECT_LIST } from '~/state/project_list';
+import { PROJECT_LIST } from '~/server/project_list.server';
 import { recursive_list_schema } from '~/state/data_types';
 import { type } from 'arktype';
 

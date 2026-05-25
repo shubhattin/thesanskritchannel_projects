@@ -6,6 +6,7 @@ import {
   get_list_name_for_path_param_index,
   get_project_from_key
 } from '~/state/project_list';
+import { PROJECT_LIST } from '~/server/project_list.server';
 import { z } from 'zod';
 
 const path_params_schema = z.array(z.coerce.number().int());
@@ -27,7 +28,7 @@ const parse_path_params = (path: string | undefined) => {
 export const load: PageServerLoad = async (opts) => {
   const { params } = opts;
   const project_key = params.project_key;
-  const project = get_project_from_key(project_key);
+  const project = get_project_from_key(project_key, PROJECT_LIST);
   if (!project) throw new Error(`Project not found: ${project_key}`);
   const project_map = await project.get_map();
   const levels = get_levels_from_map(project_map);

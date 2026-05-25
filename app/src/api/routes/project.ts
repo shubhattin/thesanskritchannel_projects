@@ -158,7 +158,13 @@ export const user_project_info_route = protectedProcedure
   });
 
 const get_project_list_route = protectedProcedure.query(async () => {
-  return PROJECT_LIST;
+  return PROJECT_LIST.map(({ id, name, name_dev, description, key }) => ({
+    id,
+    name,
+    name_dev,
+    description,
+    key
+  }));
 });
 
 const get_project_map_route = protectedProcedure

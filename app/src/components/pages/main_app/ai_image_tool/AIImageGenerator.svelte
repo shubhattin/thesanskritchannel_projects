@@ -2,6 +2,7 @@
   import {
     get_starting_index,
     get_total_count,
+    project_list_q,
     project_map_q,
     text_data_q,
     trans_en_data_q
@@ -55,7 +56,7 @@
 
   $effect(() => {
     base_prompt_text = format_string_text(base_prompts.main_prompt[0].content, {
-      text_name: get_project_from_id($project_state.project_id!).name
+      text_name: get_project_from_id($project_state.project_id!, $project_list_q.data ?? [])!.name
     });
   });
 
@@ -128,7 +129,7 @@
           })
           .join(', ');
       })(),
-      text_name: get_project_from_id($project_state.project_id!).name
+      text_name: get_project_from_id($project_state.project_id!, $project_list_q.data ?? [])!.name
     })
   );
 

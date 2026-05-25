@@ -1,4 +1,5 @@
 import { get_project_from_key } from '~/state/project_list';
+import { PROJECT_LIST } from '~/server/project_list.server';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import simpleGit from 'simple-git';
 import { z } from 'zod';
@@ -60,7 +61,7 @@ const get_invalidation_keys_for_files = (files: Set<string>) => {
     if (!/^data\/\d+\. [^/]+\//.test(file)) return;
     if (!file.endsWith('.json')) return;
     const project_key = file.split('/')[1].split('. ')[1];
-    const project = get_project_from_key(project_key);
+    const project = get_project_from_key(project_key, PROJECT_LIST);
     if (!project) throw new Error(`Project not found: ${project_key}`);
     const project_id = project.id;
     const parts = file.split('/').filter(Boolean);

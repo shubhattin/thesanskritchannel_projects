@@ -1,6 +1,6 @@
 // this file gets all the texts from the local json files and dump them in the db compatible schema
 import z from 'zod';
-import { PROJECT_LIST } from '../../state/project_list';
+import { PROJECT_LIST } from '~/server/project_list.server';
 import { TextSchemaZod } from '../schema_zod';
 import fs from 'node:fs';
 import path from 'node:path';

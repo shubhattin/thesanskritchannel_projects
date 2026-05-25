@@ -6,6 +6,7 @@ import {
   get_project_from_key,
   get_project_info_from_id
 } from '../state/project_list';
+import { PROJECT_LIST } from './project_list.server';
 import type { Redis } from '@upstash/redis/cloudflare';
 import type { db } from '~/db/db';
 import { SiteLekhaSchemaZod } from '../db/schema_zod';
@@ -30,7 +31,7 @@ export const get_text_data_func = async (
 ) => {
   const { db, redis } = options;
 
-  const project = get_project_from_key(key);
+  const project = get_project_from_key(key, PROJECT_LIST);
   if (!project) throw new Error(`Project not found: ${key}`);
   const project_id = project.id;
   if (import.meta.env.DEV) {
@@ -90,7 +91,7 @@ export const get_translation_data_func = async (
 
   const { db, redis } = options;
 
-  const { levels } = await get_project_info_from_id(project_id);
+  const { levels } = await get_project_info_from_id(project_id, PROJECT_LIST);
   const path_params = get_path_params(selected_text_levels, levels);
   const path = path_params.join(':');
   let cache = null;

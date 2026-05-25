@@ -11,11 +11,14 @@
     get_list_name_at_depth_from_selected,
     get_map_list_at_depth,
     get_node_at_path,
-    get_project_from_key,
-    PROJECT_LIST
+    get_project_from_key
   } from '~/state/project_list';
   import { createQuery } from '@tanstack/svelte-query';
-  import { project_map_q_options, text_data_q_options } from '~/state/main_app/data.svelte';
+  import {
+    project_list_q,
+    project_map_q_options,
+    text_data_q_options
+  } from '~/state/main_app/data.svelte';
   import Icon from '~/tools/Icon.svelte';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
   import * as Select from '$lib/components/ui/select';
@@ -75,13 +78,16 @@
   let load_text_source = $state(true);
   let selected_project_key = $state<string | null>(null);
 
-  let project = $derived(selected_project_key ? get_project_from_key(selected_project_key!) : null);
+  let project_list = $derived($project_list_q.data ?? []);
+  let project = $derived(
+    selected_project_key ? get_project_from_key(selected_project_key!, project_list) : null
+  );
 
   type option_type = { text?: string; value?: number };
   let project_map_q = $derived(
     createQuery({
-      ...project_map_q_options(project?.id!, project?.key!),
-      enabled: !!selected_project_key
+      ...project_map_q_options(project?.id!, project?.key!, project_list),
+      enabled: !!selected_project_key && !!project && $project_list_q.isSuccess
     })
   );
   let selected_text_levels = $state<(number | null)[]>([]);
@@ -211,17 +217,21 @@
     <div class="flex items-center justify-start space-x-6">
       <label class="flex items-center gap-2">
         <span class="text-base font-semibold">Project</span>
-        <Select.Root type="single" bind:value={selected_project_key as any}>
-          <Select.Trigger class="w-44 px-1.5 py-1 text-sm">
-            {PROJECT_LIST.find((p) => p.key === selected_project_key)?.name ?? 'Select Project'}
-          </Select.Trigger>
-          <Select.Content>
-            <Select.Item value={null!}>Select Project</Select.Item>
-            {#each PROJECT_LIST as project}
-              <Select.Item value={project.key}>{project.name}</Select.Item>
-            {/each}
-          </Select.Content>
-        </Select.Root>
+        {#if $project_list_q.isPending}
+          <Skeleton class="h-10 w-44" />
+        {:else}
+          <Select.Root type="single" bind:value={selected_project_key as any}>
+            <Select.Trigger class="w-44 px-1.5 py-1 text-sm">
+              {project_list.find((p) => p.key === selected_project_key)?.name ?? 'Select Project'}
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Item value={null!}>Select Project</Select.Item>
+              {#each project_list as project_item (project_item.id)}
+                <Select.Item value={project_item.key}>{project_item.name}</Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
+        {/if}
       </label>
     </div>
     {#if selected_project_key && project && $project_map_q.isSuccess && levels > 0}

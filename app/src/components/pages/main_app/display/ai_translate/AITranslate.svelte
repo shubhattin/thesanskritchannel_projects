@@ -27,6 +27,7 @@
   import { LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { get_project_from_id } from '~/state/project_list';
+  import { project_list_q } from '~/state/main_app/data.svelte';
   import { Button } from '$lib/components/ui/button';
   import * as Select from '$lib/components/ui/select';
 
@@ -106,7 +107,7 @@
       project_id: $project_state.project_id!,
       lang_id: $trans_lang === 0 ? lang_list_obj['English'] : $trans_lang,
       model: selected_model,
-      text_name: get_project_from_id($project_state.project_id!).name,
+      text_name: get_project_from_id($project_state.project_id!, $project_list_q.data ?? [])!.name,
       text_data: texts_obj_list
     });
   }

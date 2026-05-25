@@ -1,5 +1,5 @@
 import { get_derived_query } from '~/tools/query';
-import { client, client_q } from '~/api/client';
+import { client } from '~/api/client';
 import { queryClient } from '~/state/queryClient';
 import { createQuery, queryOptions } from '@tanstack/svelte-query';
 import {
@@ -35,10 +35,14 @@ const get_dynamic_path_params = (
   return params as number[];
 };
 
-export const project_list_q = client_q.project.get_project_list.query(undefined, {
-  // can be cached forever
-  staleTime: ms('12hours')
-});
+export const project_list_q = createQuery(
+  {
+    queryKey: ['project_list'],
+    queryFn: () => client.project.get_project_list.query(),
+    staleTime: ms('12hours')
+  },
+  queryClient
+);
 
 export const user_project_info_q = get_derived_query(
   [project_state, user_info],
@@ -78,11 +82,17 @@ export const project_map_q = get_derived_query(
   [project_state, project_list_q],
   ([prject_state_, project_list_q_]) =>
     createQuery(
-      project_map_q_options(
-        prject_state_.project_id!,
-        prject_state_.project_key!,
-        project_list_q_.data ?? []
-      ),
+      {
+        ...project_map_q_options(
+          prject_state_.project_id!,
+          prject_state_.project_key!,
+          project_list_q_.data ?? []
+        ),
+        enabled:
+          !!prject_state_.project_id &&
+          !!prject_state_.project_key &&
+          !!project_list_q_.data?.length
+      },
       queryClient
     )
 );
@@ -179,9 +189,9 @@ export const trans_en_data_q = get_derived_query(
         enabled: browser && view_translation_status_ && text_data_present_,
         ...(editing_status_on_
           ? {
-            staleTime: Infinity
-            // while editing the data should not go stale, else it would refetch lead to data loss
-          }
+              staleTime: Infinity
+              // while editing the data should not go stale, else it would refetch lead to data loss
+            }
           : {})
       },
       queryClient
@@ -207,9 +217,9 @@ export const trans_lang_data_q = get_derived_query(
         enabled: browser && trans_lang_ !== 0 && text_data_present_,
         ...(editing_status_on_
           ? {
-            staleTime: Infinity
-            // while editing the data should not go stale, else it would refetch lead to data loss
-          }
+              staleTime: Infinity
+              // while editing the data should not go stale, else it would refetch lead to data loss
+            }
           : {})
       },
       queryClient

@@ -4,7 +4,7 @@ export type project_type = {
   id: number;
   name: string;
   name_dev: string;
-  description?: string;
+  description?: string | null;
   key: string;
 };
 

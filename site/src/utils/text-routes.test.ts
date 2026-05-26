@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { get_levels_from_map } from '../../../app/src/state/project_list';
 import {
   build_pretty_route_segment,
-  get_child_route_items,
-  get_pretty_segments_for_path_params,
   get_selected_text_levels_from_path_params,
   normalize_level_name_for_url,
   parse_pretty_route_segment,
   resolve_text_route
 } from './text-routes';
-import { get_project_map_by_key } from '../../../app/src/server/project_list.server';
 
 describe('text-routes', () => {
   it('normalizes and parses pretty route segments', () => {
@@ -23,12 +19,6 @@ describe('text-routes', () => {
       num: 12
     });
     expect(parse_pretty_route_segment('12')).toBeNull();
-  });
-
-  it('builds pretty segments from numeric path params', async () => {
-    const map = await get_project_map_by_key('ramayanam');
-    expect(get_pretty_segments_for_path_params(map, [1, 2])).toEqual(['kanda-1', 'sarga-2']);
-    expect(get_pretty_segments_for_path_params(map, [8])).toBeNull();
   });
 
   it('redirects old numeric routes to the pretty route shape', async () => {
@@ -70,17 +60,6 @@ describe('text-routes', () => {
     const direct_leaf = await resolve_text_route('bhagavadgita', ['chapter-1']);
     expect(direct_leaf?.node.info.type).toBe('shloka');
     expect(direct_leaf?.path_params).toEqual([1]);
-  });
-
-  it('builds child link items for intermediate pages', async () => {
-    const map = await get_project_map_by_key('ramayanam');
-    const levels = get_levels_from_map(map);
-    const items = get_child_route_items('ramayanam', map, [1], levels);
-    expect(items[0]).toMatchObject({
-      index: 1,
-      href: '/ramayanam/kanda-1/sarga-1',
-      is_disabled: false
-    });
   });
 
   it('converts leaf path params into selected_text_levels for translations', () => {

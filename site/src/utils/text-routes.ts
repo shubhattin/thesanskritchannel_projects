@@ -5,9 +5,16 @@ import {
   get_project_info_by_key,
   get_project_map_by_key
 } from '$app/server/project_list.server';
+import { db, redis } from '~/db/site_db';
+import { waitUntil } from '@vercel/functions';
 
 const NUMERIC_SEGMENT_RE = /^[1-9]\d*$/;
 const PRETTY_SEGMENT_RE = /^(?<levelSlug>.+)-(?<num>[1-9]\d*)$/;
+const db_options = {
+  defer: waitUntil,
+  db: db,
+  redis: redis
+};
 
 export const normalize_level_name_for_url = (name: string) =>
   // De-accent for stable URL slugs.
@@ -85,11 +92,11 @@ export const resolve_text_route = async (
   raw_project_key: string,
   raw_segments: string[]
 ): Promise<resolved_text_route_type | null> => {
-  const project = await get_project_by_key(raw_project_key);
+  const project = await get_project_by_key(raw_project_key, db_options);
   if (!project) return null;
   const project_key = project.key;
-  const project_info = await get_project_info_by_key(project_key);
-  const map = await get_project_map_by_key(project_key);
+  const project_info = await get_project_info_by_key(project_key, db_options);
+  const map = await get_project_map_by_key(project_key, db_options);
   const segments = raw_segments.filter((segment) => segment.length > 0);
 
   if (segments.length > project_info.levels - 1) return null;

@@ -5,6 +5,7 @@ import {
   get_levels_from_map,
   get_list_name_for_path_param_index
 } from '~/state/project_list';
+import { cache_db_options_app } from '~/server/cache_db_options';
 import { get_project_by_key, get_project_map_by_key } from '~/server/project_list.server';
 import { z } from 'zod';
 
@@ -27,9 +28,9 @@ const parse_path_params = (path: string | undefined) => {
 export const load: PageServerLoad = async (opts) => {
   const { params } = opts;
   const project_key = params.project_key;
-  const project = await get_project_by_key(project_key);
+  const project = await get_project_by_key(project_key, cache_db_options_app);
   if (!project) error(404, 'Not found');
-  const project_map = await get_project_map_by_key(project_key);
+  const project_map = await get_project_map_by_key(project_key, cache_db_options_app);
   const levels = get_levels_from_map(project_map);
   const level_names = get_level_names_from_map(project_map).slice(0, levels);
   const path_params = parse_path_params(params.path);

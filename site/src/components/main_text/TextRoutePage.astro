@@ -24,7 +24,6 @@ type ChildRouteItem = {
   index: number;
   href: string;
   name_dev: string;
-  name_nor: string;
   is_leaf: boolean;
   is_disabled: boolean;
 };
@@ -211,7 +210,6 @@ const next_sibling_item: TextSiblingNavigationItem | null =
                     <p class={`truncate text-base font-medium ${scriptFontClass}`}>
                       {item.name_display}
                     </p>
-                    <p class="truncate text-sm text-muted-foreground">{item.name_nor}</p>
                   </div>
                   <div
                     class:list={[

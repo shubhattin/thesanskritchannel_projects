@@ -10,7 +10,24 @@ import {
   timestamp,
   boolean
 } from 'drizzle-orm/pg-core';
+import type { recursive_list_type } from '~/state/data_types';
 // import { relations } from 'drizzle-orm';
+
+export const projects = pgTable('projects', {
+  id: integer().notNull().primaryKey(),
+  key: text().notNull().unique(),
+  name: text().notNull(),
+  /** Sanskrit name */
+  name_dev: text().notNull(),
+  description: text(),
+  /** Project Map */
+  map: jsonb()
+    .notNull()
+    .$default(() => ({}))
+    .$type<recursive_list_type>(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
+});
 
 export const texts = pgTable(
   'texts',

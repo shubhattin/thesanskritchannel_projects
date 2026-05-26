@@ -264,31 +264,20 @@ export let get_total_count = (selected_text_levels: (number | null)[]) => {
 export const get_last_level_name = (selected_text_levels: (number | null)[]) => {
   const _project_map_q = get(project_map_q);
   const { levels } = get(project_state);
-  if (!_project_map_q.isSuccess)
-    return {
-      dev: '',
-      nor: ''
-    };
-  let dev = '';
-  let nor = '';
+  if (!_project_map_q.isSuccess) return '';
   const project_map = _project_map_q.data;
 
   if (levels === 1) {
-    dev = project_map?.name_dev ?? '';
-    nor = project_map?.name_nor ?? '';
+    return project_map?.name_dev ?? '';
   } else {
     const path_params = get_dynamic_path_params(selected_text_levels, levels);
     if (path_params.length > 0) {
       const node = get_node_at_path(project_map, path_params);
-      dev = node?.name_dev ?? '';
-      nor = node?.name_nor ?? '';
+      return node?.name_dev ?? '';
     }
   }
 
-  return {
-    dev,
-    nor
-  };
+  return '';
 };
 
 export const get_starting_index = (key: string, selected_text_levels?: (number | null)[]) => {

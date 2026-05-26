@@ -9,6 +9,7 @@ export const import_data = async (confirm_env = true) => {
 
   const user_project_join = await db.query.user_project_join.findMany();
   const user_project_language_join = await db.query.user_project_language_join.findMany();
+  const projects = await db.query.projects.findMany();
   const translations = await db.query.translations.findMany();
   const texts = await db.query.texts.findMany();
   const other = await db.query.other.findMany();
@@ -18,6 +19,7 @@ export const import_data = async (confirm_env = true) => {
   const json_data = {
     user_project_join,
     user_project_language_join,
+    projects,
     translations,
     texts,
     other,
@@ -31,14 +33,8 @@ export const import_data = async (confirm_env = true) => {
     PREVIEW: 'db_data_preview.json',
     LOCAL: 'db_data.json'
   }[dbMode];
-  const texts_file_name = {
-    PROD: 'texts_prod.json',
-    PREVIEW: 'texts_preview.json',
-    LOCAL: 'texts.json'
-  }[dbMode];
   await writeFile(`./out/${out_file_name}`, JSON.stringify(json_data, null, 2));
-  await writeFile(`./out/${texts_file_name}`, JSON.stringify(json_data.texts, null, 2));
-  console.log(`Data exported to ./out/${out_file_name} and ./out/${texts_file_name}`);
+  console.log(`Data exported to ./out/${out_file_name}`);
 };
 
 const isMainModule = () => {

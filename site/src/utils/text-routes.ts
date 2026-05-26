@@ -189,7 +189,6 @@ export const get_child_route_items = (
       index: index + 1,
       href: href ?? `/${project_key}`,
       name_dev: child.name_dev,
-      name_nor: child.name_nor,
       is_leaf,
       is_disabled: is_child_nav_disabled(child, path_params.length, levels)
     };

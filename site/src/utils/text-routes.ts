@@ -1,10 +1,10 @@
 import type { recursive_list_type } from '../../../app/src/state/data_types';
+import { get_list_name_for_path_param_index, get_node_at_path } from '$app/state/project_list';
 import {
-  get_list_name_for_path_param_index,
-  get_node_at_path,
-  get_project_from_key,
-  get_project_info_from_key
-} from '../../../app/src/state/project_list';
+  get_project_by_key,
+  get_project_info_by_key,
+  get_project_map_by_key
+} from '$app/server/project_list.server';
 
 const NUMERIC_SEGMENT_RE = /^[1-9]\d*$/;
 const PRETTY_SEGMENT_RE = /^(?<levelSlug>.+)-(?<num>[1-9]\d*)$/;
@@ -67,6 +67,7 @@ export const build_project_path = (
 export const resolve_substitute_url = (_url: string) => null;
 
 export type resolved_text_route_type = {
+  project_id: number;
   project_key: string;
   project_name: string;
   level_names: string[];
@@ -84,11 +85,11 @@ export const resolve_text_route = async (
   raw_project_key: string,
   raw_segments: string[]
 ): Promise<resolved_text_route_type | null> => {
-  const project = get_project_from_key(raw_project_key);
-  if (!project) throw new Error(`Project not found: ${raw_project_key}`);
+  const project = await get_project_by_key(raw_project_key);
+  if (!project) return null;
   const project_key = project.key;
-  const project_info = await get_project_info_from_key(project_key);
-  const map = await project.get_map();
+  const project_info = await get_project_info_by_key(project_key);
+  const map = await get_project_map_by_key(project_key);
   const segments = raw_segments.filter((segment) => segment.length > 0);
 
   if (segments.length > project_info.levels - 1) return null;
@@ -98,6 +99,7 @@ export const resolve_text_route = async (
     const canonical_path = build_project_path(project_key, map, path_params);
     if (!canonical_path) return null;
     return {
+      project_id: project.id,
       project_key,
       project_name: project.name,
       level_names: project_info.level_names.slice(0, project_info.levels),
@@ -144,6 +146,7 @@ export const resolve_text_route = async (
   if (!canonical_path) return null;
 
   return {
+    project_id: project.id,
     project_key,
     project_name: project.name,
     level_names: project_info.level_names.slice(0, project_info.levels),

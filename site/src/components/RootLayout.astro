@@ -5,6 +5,7 @@ import { ClientRouter } from 'astro:transitions';
 import Posthog from './Posthog.astro';
 import Header from './Header.svelte';
 import Footer from './Footer.astro';
+import { get_project_list } from '$app/server/project_list.server';
 
 type Props = {
   title: string;
@@ -15,6 +16,7 @@ type Props = {
 const index_site = Astro.props.index ?? true;
 
 const { title, description }: Props = Astro.props;
+const projects = await get_project_list();
 
 const shareImageInfo = {
   url: 'https://cdn.jsdelivr.net/gh/shubhattin/thesanskritchannel_projects@latest/others/project_images/share_image.jpg',
@@ -84,7 +86,7 @@ const shareImageInfo = {
     <a href="#main-content" class="skip-link">Skip to Main Content</a>
 
     <div class="flex min-h-screen flex-col">
-      <Header client:load />
+      <Header client:load {projects} />
 
       <main id="main-content" class="flex-1" tabindex="-1">
         <slot />

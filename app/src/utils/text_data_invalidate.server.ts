@@ -1,4 +1,4 @@
-import { get_project_from_key } from '~/state/project_list';
+import { get_project_by_key } from '~/server/project_list.server';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import simpleGit from 'simple-git';
 import { z } from 'zod';
@@ -30,7 +30,7 @@ async function main() {
     files = new Set([...status.modified, ...status.not_added, ...status.created, ...status.staged]);
   }
 
-  const invalidation_keys = get_invalidation_keys_for_files(files);
+  const invalidation_keys = await get_invalidation_keys_for_files(files);
   // console.log(invalidation_keys);
   if (invalidation_keys.length === 0) {
     console.log(chalk.bold(`✅ No cache to invalidate`));
@@ -48,19 +48,19 @@ async function main() {
   await invalidate_keys(invalidation_keys);
 }
 
-const get_invalidation_keys_for_files = (files: Set<string>) => {
+const get_invalidation_keys_for_files = async (files: Set<string>) => {
   const invalidation_keys: {
     project_id: number;
     path_params: number[];
     new_shloka_list: shloka_list_type;
   }[] = [];
 
-  files.forEach((file) => {
+  for (const file of files) {
     // only handle project text json files under data/<id>. <key>/*
-    if (!/^data\/\d+\. [^/]+\//.test(file)) return;
-    if (!file.endsWith('.json')) return;
+    if (!/^data\/\d+\. [^/]+\//.test(file)) continue;
+    if (!file.endsWith('.json')) continue;
     const project_key = file.split('/')[1].split('. ')[1];
-    const project = get_project_from_key(project_key);
+    const project = await get_project_by_key(project_key);
     if (!project) throw new Error(`Project not found: ${project_key}`);
     const project_id = project.id;
     const parts = file.split('/').filter(Boolean);
@@ -68,10 +68,10 @@ const get_invalidation_keys_for_files = (files: Set<string>) => {
     if (parts.length === 3 && file.endsWith('data.json')) {
       const data = shloka_list_schema.parse(JSON.parse(fs.readFileSync(file, 'utf-8')));
       invalidation_keys.push({ project_id, path_params: [], new_shloka_list: data });
-      return;
+      continue;
     }
     const folder_container_name = file.split('/')[2];
-    if (folder_container_name !== 'data') return;
+    if (folder_container_name !== 'data') continue;
     const path_params = file
       .replace(/\.json$/, '')
       .split('/')
@@ -79,7 +79,7 @@ const get_invalidation_keys_for_files = (files: Set<string>) => {
       .map((v) => Number(v));
     const data = shloka_list_schema.parse(JSON.parse(fs.readFileSync(file, 'utf-8')));
     invalidation_keys.push({ project_id, path_params, new_shloka_list: data });
-  });
+  }
 
   const grouped_keys: GroupedKey[] = [];
   const all_project_ids = new Set<number>();

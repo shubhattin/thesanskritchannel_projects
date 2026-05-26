@@ -6,7 +6,9 @@
   import { SiGithub } from 'svelte-icons-pack/si';
   import { AiOutlineMenu } from 'svelte-icons-pack/ai';
   import { page } from '$app/state';
-  import { PAGE_TITLES } from '~/state/page_titles';
+  import { get_page_title_info } from '~/state/page_titles';
+  import { project_list_q } from '~/state/main_app/data.svelte';
+  import { EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import type { Snippet } from 'svelte';
   import { ContributeIcon, SiConvertio, YoutubeIcon } from './icons';
   import { cn } from '$lib/utils';
@@ -15,17 +17,9 @@
   let { start, headline, end }: { start?: Snippet; headline?: Snippet; end?: Snippet } = $props();
 
   let pathname = $derived(page.url.pathname);
-
-  const get_page_title = () => {
-    for (let key in PAGE_TITLES) {
-      const { startsWith } = PAGE_TITLES[key];
-      if (key === pathname && !startsWith) {
-        return PAGE_TITLES[key];
-      } else if (pathname.startsWith(key) && startsWith) {
-        return PAGE_TITLES[key];
-      }
-    }
-  };
+  let page_title = $derived(
+    get_page_title_info(pathname, ($project_list_q.data ?? EMPTY_PROJECT_REGISTRY).list)
+  );
 
   let app_bar_popover_status = $state(false);
   let support_modal_status = $state(false);
@@ -52,10 +46,10 @@
     {#if headline}
       {@render headline()}
     {:else}
-      {@const page_title = get_page_title()}
-      {#if page_title}
-        <span class={page_title.classes}>
-          {page_title.title}
+      {@const page_title_info = page_title}
+      {#if page_title_info}
+        <span class={page_title_info.classes}>
+          {page_title_info.title}
         </span>
       {/if}
     {/if}

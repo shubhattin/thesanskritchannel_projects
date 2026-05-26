@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { get_project_from_key, get_levels_from_map } from '../../../app/src/state/project_list';
+import { get_levels_from_map } from '../../../app/src/state/project_list';
 import {
   build_pretty_route_segment,
   get_child_route_items,
@@ -9,6 +9,7 @@ import {
   parse_pretty_route_segment,
   resolve_text_route
 } from './text-routes';
+import { get_project_map_by_key } from '../../../app/src/server/project_list.server';
 
 describe('text-routes', () => {
   it('normalizes and parses pretty route segments', () => {
@@ -25,9 +26,7 @@ describe('text-routes', () => {
   });
 
   it('builds pretty segments from numeric path params', async () => {
-    const project = get_project_from_key('ramayanam');
-    if (!project) throw new Error('Project not found');
-    const map = await project.get_map();
+    const map = await get_project_map_by_key('ramayanam');
     expect(get_pretty_segments_for_path_params(map, [1, 2])).toEqual(['kanda-1', 'sarga-2']);
     expect(get_pretty_segments_for_path_params(map, [8])).toBeNull();
   });
@@ -74,9 +73,7 @@ describe('text-routes', () => {
   });
 
   it('builds child link items for intermediate pages', async () => {
-    const project = get_project_from_key('ramayanam');
-    if (!project) throw new Error('Project not found');
-    const map = await project.get_map();
+    const map = await get_project_map_by_key('ramayanam');
     const levels = get_levels_from_map(map);
     const items = get_child_route_items('ramayanam', map, [1], levels);
     expect(items[0]).toMatchObject({

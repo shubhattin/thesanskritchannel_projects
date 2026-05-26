@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import js_yaml from 'js-yaml';
 import { get_lang_from_id } from '~/state/lang_list';
-import { get_project_from_id, get_project_info_from_id } from '~/state/project_list';
+import { get_project_info_by_id } from '~/server/project_list.server';
 import { TranslationSchemaZod } from '~/db/schema_zod';
 import { z } from 'zod';
 
@@ -29,9 +29,9 @@ async function main() {
   } = {};
 
   for (let trans of translations.translations) {
-    const project_info = await get_project_info_from_id(trans.project_id);
+    const project_info = await get_project_info_by_id(trans.project_id);
     const project_key = project_info.key;
-    const project_id = get_project_from_id(trans.project_id).id;
+    const project_id = project_info.id;
     const levels = project_info.levels;
     const project_root = path.join(translations_root, `${project_id}. ${project_key}`);
     if (!data[project_key]) {

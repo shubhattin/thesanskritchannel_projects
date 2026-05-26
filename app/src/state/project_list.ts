@@ -1,5 +1,4 @@
-import { z } from 'zod';
-import { recursive_list_schema, type recursive_list_type } from './data_types';
+import { type recursive_list_type } from './data_types';
 
 export type project_type = {
   id: number;
@@ -7,88 +6,54 @@ export type project_type = {
   name_dev: string;
   description?: string;
   key: string;
-  get_map: () => Promise<recursive_list_type>;
 };
 
-// ALWAYS BE CAREFUL BEFORE CHANGING THIS LIST
-// AS CHANGE IN PRE-EXISTING PROJECT IDS WOULD CAUSE DATA MISMATCHs
+export type project_registry_type = {
+  list: readonly project_type[];
+  byId: ReadonlyMap<number, project_type>;
+  byKey: ReadonlyMap<string, project_type>;
+};
 
-export const PROJECT_LIST: project_type[] = [
-  {
-    id: 1,
-    name: 'Valmiki Ramayanam',
-    name_dev: 'श्रीमद्रामायणम्',
-    key: 'ramayanam',
-    get_map: async () =>
-      recursive_list_schema.parse((await import('@data/1. ramayanam/ramayanam_map.json')).default)
-  },
-  {
-    id: 2,
-    name: 'Bhagavad Gita',
-    name_dev: 'श्रीमद्भगवद्गीता',
-    key: 'bhagavadgita',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/2. bhagavadgita/bhagavadgita_map.json')).default
-      )
-  },
-  {
-    id: 3,
-    name: 'Narayaneeyam',
-    name_dev: 'नारायणीयम्',
-    key: 'narayaneeyam',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/3. narayaneeyam/narayaneeyam_map.json')).default
-      )
-  },
-  {
-    id: 4,
-    name: 'Shiva Tandava Stotra',
-    name_dev: 'शिवताण्डवस्तोत्रम्',
-    key: 'shiva-tandava-stotram',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/4. shiva-tandava-stotram/shiva-tandava-stotram_map.json')).default
-      )
-  },
-  {
-    id: 5,
-    name: 'Saundarya Lahari',
-    name_dev: 'सौन्दर्यलहरी',
-    key: 'saundarya-lahari',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/5. saundarya-lahari/saundarya-lahari_map.json')).default
-      )
-  },
-  {
-    id: 6,
-    name: 'Veda',
-    name_dev: 'वेद',
-    key: 'veda',
-    get_map: async () =>
-      recursive_list_schema.parse((await import('@data/6. veda/veda_map.json')).default)
-  },
-  {
-    id: 7,
-    name: 'Vijnana Bhairava Tantra',
-    name_dev: 'विज्ञानभैरवतन्त्रम्',
-    key: 'vijnana-bhairava-tantram',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/7. vijnana-bhairava-tantram/vijnana-bhairava-tantram_map.json'))
-          .default
-      )
+type build_project_registry_options = {
+  sort?: boolean;
+};
+
+export const build_project_registry = (
+  projects: readonly project_type[],
+  { sort = true }: build_project_registry_options = {}
+): project_registry_type => {
+  const list = sort ? [...projects].sort((a, b) => a.id - b.id) : [...projects];
+  const byId = new Map<number, project_type>();
+  const byKey = new Map<string, project_type>();
+
+  for (const project of list) {
+    if (byId.has(project.id)) {
+      throw new Error(`Duplicate project id: ${project.id}`);
+    }
+    if (byKey.has(project.key)) {
+      throw new Error(`Duplicate project key: ${project.key}`);
+    }
+    byId.set(project.id, project);
+    byKey.set(project.key, project);
   }
-];
 
-export const get_project_from_id = (id: number) => {
-  return PROJECT_LIST[id - 1];
+  return { list, byId, byKey };
 };
 
-export const get_project_from_key = (key: string) => {
-  return PROJECT_LIST.find((p) => p.key === key);
+export const EMPTY_PROJECT_REGISTRY = build_project_registry([]);
+
+export const get_project_from_id = (
+  id: number,
+  registry: project_registry_type
+): project_type | undefined => {
+  return registry.byId.get(id);
+};
+
+export const get_project_from_key = (
+  key: string,
+  registry: project_registry_type
+): project_type | undefined => {
+  return registry.byKey.get(key);
 };
 
 export const clamp_levels_for_route = (levels: number) => {
@@ -237,39 +202,11 @@ export type project_info_type = project_type & {
   level_names: string[];
 };
 
-const project_info_cache = new Map<string, Promise<project_info_type>>();
-
-export const get_project_info_from_key = async (key: string): Promise<project_info_type> => {
-  const cached = project_info_cache.get(key);
-  if (cached) return cached;
-
-  const promise = (async () => {
-    const project = get_project_from_key(key);
-    if (!project) throw new Error(`Project not found: ${key}`);
-    const map = await project.get_map();
-    const levels = get_levels_from_map(map);
-    const level_names = get_level_names_from_map(map);
-    return {
-      ...project,
-      levels,
-      level_names
-    } satisfies project_info_type;
-  })();
-
-  project_info_cache.set(key, promise);
-  promise.catch((err) => {
-    // If this in-flight promise rejects, clear only if it is still the stored value.
-    // This prevents transient failures from poisoning the cache, while concurrent
-    // callers still share the same in-flight promise.
-    if (project_info_cache.get(key) === promise) {
-      project_info_cache.delete(key);
-    }
-    // throw err;
-  });
-  return promise;
-};
-
-export const get_project_info_from_id = async (id: number): Promise<project_info_type> => {
-  const project = get_project_from_id(id);
-  return get_project_info_from_key(project.key);
-};
+export const build_project_info = (
+  project: project_type,
+  map: recursive_list_type
+): project_info_type => ({
+  ...project,
+  levels: get_levels_from_map(map),
+  level_names: get_level_names_from_map(map)
+});

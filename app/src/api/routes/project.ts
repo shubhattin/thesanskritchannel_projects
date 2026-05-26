@@ -8,6 +8,7 @@ import { t } from '../trpc_init';
 import { redis, REDIS_CACHE_KEYS, deleteKeysWithPattern } from '~/db/redis';
 import ms from 'ms';
 import { waitUntil } from '@vercel/functions';
+import { get_project_list, get_project_map_by_id } from '~/server/project_list.server';
 
 export const get_languages_for_project_user = async (
   user_id: string,
@@ -155,9 +156,21 @@ export const user_project_info_route = protectedProcedure
     return { languages };
   });
 
+const get_project_list_route = protectedProcedure.query(async () => {
+  return get_project_list();
+});
+
+const get_project_map_route = protectedProcedure
+  .input(z.object({ project_id: z.int() }))
+  .query(async ({ input: { project_id } }) => {
+    return get_project_map_by_id(project_id);
+  });
+
 export const project_router = t.router({
   add_to_project: add_to_project_route,
   remove_from_project: remove_from_project_route,
   update_project_languages: update_project_languages_route,
-  user_project_info: user_project_info_route
+  user_project_info: user_project_info_route,
+  get_project_list: get_project_list_route,
+  get_project_map: get_project_map_route
 });

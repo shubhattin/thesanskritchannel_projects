@@ -4,10 +4,10 @@
   import ArrowRight from '@lucide/svelte/icons/arrow-right';
   import PenLine from '@lucide/svelte/icons/pen-line';
   import Search from '@lucide/svelte/icons/search';
-  import { PROJECT_LIST } from '~/state/project_list';
   import Button from '~/lib/components/ui/button/button.svelte';
   import { user_info } from '~/state/user.svelte';
   import { client_q } from '~/api/client';
+  import { project_list_q } from '~/state/main_app/data.svelte';
   import { APP_SCOPE_ID_PROJECT_PORTAL, APP_SCOPE_ID_LEKHA } from '~/state/data_types';
   import { Skeleton } from '~/lib/components/ui/skeleton';
 
@@ -42,26 +42,41 @@
       <Skeleton class="h-10 w-full" />
     </div>
   {:else if is_admin || ($list_scopes_q.isSuccess && $list_scopes_q.data.scopes.includes(APP_SCOPE_ID_PROJECT_PORTAL))}
-    <div class="grid grid-cols-1 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
-      {#each PROJECT_LIST as project}
-        <a
-          href={'/' + project.key}
-          class="btn group block rounded-lg border border-border bg-card p-6 shadow-md transition duration-200 ease-out hover:-translate-y-1 hover:border-secondary hover:bg-muted/20 hover:shadow-lg focus-visible:ring focus-visible:ring-ring/70 focus-visible:outline-none"
-        >
-          <h2 class="mb-2 text-xl font-semibold">
-            {project.name}
-            <div class="text-base text-muted-foreground">{project.name_dev}</div>
-          </h2>
-          <p class="mb-4 text-sm text-muted-foreground">{project.description}</p>
-          <div
-            class="flex items-center text-primary transition-colors duration-200 group-hover:text-secondary-foreground"
+    {#if $project_list_q.isPending}
+      <div class="grid grid-cols-1 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {#each Array(6) as _, i (i)}
+          <Skeleton class="h-40 w-full rounded-lg" />
+        {/each}
+      </div>
+    {:else if $project_list_q.isError}
+      <div
+        class="mx-auto max-w-xl rounded-xl border border-destructive/50 bg-destructive/10 px-6 py-6 text-center text-destructive"
+        role="alert"
+      >
+        Failed to load projects. Please refresh the page.
+      </div>
+    {:else}
+      <div class="grid grid-cols-1 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {#each $project_list_q.data!.list as project (project.id)}
+          <a
+            href={'/' + project.key}
+            class="btn group block rounded-lg border border-border bg-card p-6 shadow-md transition duration-200 ease-out hover:-translate-y-1 hover:border-secondary hover:bg-muted/20 hover:shadow-lg focus-visible:ring focus-visible:ring-ring/70 focus-visible:outline-none"
           >
-            <span>Explore</span>
-            <ArrowRight class="ml-2 size-4" aria-hidden="true" />
-          </div>
-        </a>
-      {/each}
-    </div>
+            <h2 class="mb-2 text-xl font-semibold">
+              {project.name}
+              <div class="text-base text-muted-foreground">{project.name_dev}</div>
+            </h2>
+            <p class="mb-4 text-sm text-muted-foreground">{project.description}</p>
+            <div
+              class="flex items-center text-primary transition-colors duration-200 group-hover:text-secondary-foreground"
+            >
+              <span>Explore</span>
+              <ArrowRight class="ml-2 size-4" aria-hidden="true" />
+            </div>
+          </a>
+        {/each}
+      </div>
+    {/if}
   {:else}
     <div
       class="mx-auto max-w-xl rounded-xl border border-border bg-card px-6 py-6 text-center text-card-foreground shadow-sm"

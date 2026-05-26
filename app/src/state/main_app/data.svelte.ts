@@ -14,9 +14,10 @@ import { browser } from '$app/environment';
 import { delay } from '~/tools/delay';
 import { derived, get, writable } from 'svelte/store';
 import { lang_list_obj } from '../lang_list';
-import { get_node_at_path, get_project_from_key } from '../project_list';
+import { get_node_at_path, build_project_registry } from '../project_list';
 import { user_info } from '../user.svelte';
 import type { shloka_list_type } from '~/state/data_types';
+import ms from 'ms';
 
 /** Keeps previous text visible across query-key changes (e.g. next/prev navigation). */
 let last_successful_text_data: shloka_list_type | undefined;
@@ -33,6 +34,16 @@ const get_dynamic_path_params = (
   if (params.some((v) => v == null)) return [];
   return params as number[];
 };
+
+export const project_list_q = createQuery(
+  {
+    queryKey: ['project_list'],
+    queryFn: async () =>
+      build_project_registry(await client.project.get_project_list.query(), { sort: false }),
+    staleTime: ms('12hours')
+  },
+  queryClient
+);
 
 export const user_project_info_q = get_derived_query(
   [project_state, user_info],
@@ -52,21 +63,20 @@ export const user_project_info_q = get_derived_query(
     )
 );
 
-export const project_map_q_options = (project_id: number, project_key: string) => {
+export const project_map_q_options = (project_id: number) => {
   return queryOptions({
     queryKey: ['project_map', project_id],
-    queryFn: async () => {
-      const project = get_project_from_key(project_key);
-      if (!project) throw new Error(`Project not found: ${project_key}`);
-      return await project.get_map();
-    }
+    queryFn: () => client.project.get_project_map.query({ project_id })
   });
 };
 
 /** Derives from the current selected project */
 export const project_map_q = get_derived_query([project_state], ([prject_state_]) =>
   createQuery(
-    project_map_q_options(prject_state_.project_id!, prject_state_.project_key!),
+    {
+      ...project_map_q_options(prject_state_.project_id!),
+      enabled: !!prject_state_.project_id && !!prject_state_.project_key
+    },
     queryClient
   )
 );

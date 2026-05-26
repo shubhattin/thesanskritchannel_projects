@@ -9,7 +9,6 @@ import {
 } from '~/utils/text-routes';
 import { db, redis } from '~/db/site_db';
 import { waitUntil } from '@vercel/functions';
-import { get_project_from_key } from '$app/state/project_list';
 import {
   LANG_ID_COOKIE_NAME,
   SCRIPT_ID_COOKIE_NAME,
@@ -41,7 +40,7 @@ const text =
 const translation =
   resolved && resolved.node.info.type === 'shloka' && selected_lang_id !== -1
     ? await get_translation_data_func(
-        get_project_from_key(resolved.project_key)!.id,
+        resolved.project_id,
         selected_lang_id,
         get_selected_text_levels_from_path_params(resolved.path_params, resolved.levels),
         {

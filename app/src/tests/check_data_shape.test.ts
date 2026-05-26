@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PROJECT_LIST } from '~/state/project_list';
+import { get_project_list } from '~/server/project_list.server';
 import { recursive_list_schema } from '~/state/data_types';
 import { type } from 'arktype';
 
@@ -15,16 +15,16 @@ const ShlokaList = type({
 const data_root = fileURLToPath(new URL('../../../data/', import.meta.url));
 
 describe('Checking correct shape of data', () => {
-  it('Checking correct Map Structure', () => {
-    for (const project of PROJECT_LIST) {
+  it('Checking correct Map Structure', async () => {
+    for (const project of await get_project_list()) {
       const project_folder = path.join(data_root, `${project.id}. ${project.key}`);
       const map_loc = path.join(project_folder, `${project.key}_map.json`);
       const data = JSON.parse(fs.readFileSync(map_loc, 'utf-8'));
       recursive_list_schema.parse(data);
     }
   });
-  it('Checking Shloka Text Data', () => {
-    for (const project of PROJECT_LIST) {
+  it('Checking Shloka Text Data', async () => {
+    for (const project of await get_project_list()) {
       const project_folder = path.join(data_root, `${project.id}. ${project.key}`);
       const level1_file = path.join(project_folder, 'data.json');
       const data_folder = path.join(project_folder, 'data');

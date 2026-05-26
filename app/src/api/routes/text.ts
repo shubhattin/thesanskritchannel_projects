@@ -4,10 +4,10 @@ import { db } from '~/db/db';
 import { texts } from '~/db/schema';
 import { delay } from '~/tools/delay';
 import { get_text_data_func } from '~/server/cached_loader';
-import { get_project_from_key } from '~/state/project_list';
+import { get_project_by_key } from '~/server/project_list.server';
 import { waitUntil } from '@vercel/functions';
+// import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
 import { and, eq, like, sql } from 'drizzle-orm';
-import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
 import { redis } from '~/db/redis';
 
 const get_text_data_route = publicProcedure
@@ -41,7 +41,7 @@ export const search_text_in_texts_route = publicProcedure
   .query(async ({ input: { project_key, search_text, path_params, limit, offset } }) => {
     const conditions = [like(texts.text_search, `%${search_text}%`)];
     if (project_key) {
-      const project = get_project_from_key(project_key);
+      const project = await get_project_by_key(project_key);
       if (!project) throw new Error(`Project not found: ${project_key}`);
       const project_id = project.id;
       conditions.push(eq(texts.project_id, project_id));

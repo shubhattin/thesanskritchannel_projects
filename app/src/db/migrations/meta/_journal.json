@@ -78,6 +78,13 @@
       "when": 1777313153130,
       "tag": "0010_giant_impossible_man",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779806318552,
+      "tag": "0011_common_leech",
+      "breakpoints": true
     }
   ]
 }

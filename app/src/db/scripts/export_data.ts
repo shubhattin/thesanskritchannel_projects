@@ -1,4 +1,4 @@
-import { dbClient_ext as db, query_client } from './client';
+import { dbClient_ext, query_client } from './client';
 import { readFile } from 'fs/promises';
 import { dbMode, take_input } from '~/tools/kry.server';
 import {
@@ -54,117 +54,125 @@ const main = async () => {
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
-  // deleting all the tables initially
-  try {
-    await db.delete(user_project_join);
-    await db.delete(user_project_language_join);
-    await db.delete(user_project_language_join);
-    await db.delete(translations);
-    await db.delete(texts);
-    await db.delete(media_attachment);
-    await db.delete(projects);
-    await db.delete(other);
-    await db.delete(site_lekhas);
-    console.log(chalk.green('✓ Deleted All Tables Successfully'));
-  } catch (e) {
-    console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
-  }
-
-  // resetting projects
-  try {
-    await db.insert(projects).values(data.projects);
-    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`projects`'));
-  } catch (e) {
-    console.log(chalk.red('✗ Error while inserting projects:'), chalk.yellow(e));
-  }
-
-  // resetting user_project_join
-  try {
-    await db.insert(user_project_join).values(data.user_project_join);
-    console.log(
-      chalk.green('✓ Successfully added values into table'),
-      chalk.blue('`user_project_join`')
-    );
-  } catch (e) {
-    console.log(chalk.red('✗ Error while inserting user_project_join:'), chalk.yellow(e));
-  }
-
-  // resetting user_project_language_join
-  try {
-    await db.insert(user_project_language_join).values(data.user_project_language_join);
-    console.log(
-      chalk.green('✓ Successfully added values into table'),
-      chalk.blue('`user_project_language_join`')
-    );
-  } catch (e) {
-    console.log(chalk.red('✗ Error while inserting user_project_language_join:'), chalk.yellow(e));
-  }
-
-  // resetting texts
-  try {
-    const chunks = chunkArray(data.texts, 5000);
-    for (const chunk of chunks) {
-      await db.insert(texts).values(chunk);
+  dbClient_ext.transaction(async (tx) => {
+    // deleting all the tables initially
+    try {
+      await tx.delete(user_project_join);
+      await tx.delete(user_project_language_join);
+      await tx.delete(user_project_language_join);
+      await tx.delete(translations);
+      await tx.delete(texts);
+      await tx.delete(media_attachment);
+      await tx.delete(projects);
+      await tx.delete(other);
+      await tx.delete(site_lekhas);
+      console.log(chalk.green('✓ Deleted All Tables Successfully'));
+    } catch (e) {
+      console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
     }
-    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`texts`'));
-  } catch (e) {
-    console.log(chalk.red('✗ Error while inserting text:'), chalk.yellow(e));
-  }
 
-  // resetting translation
-  try {
-    const chunks = chunkArray(data.translations, 5000);
-    for (const chunk of chunks) {
-      await db.insert(translations).values(chunk);
+    // resetting projects
+    try {
+      await tx.insert(projects).values(data.projects);
+      console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`projects`'));
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting projects:'), chalk.yellow(e));
     }
-    console.log(
-      chalk.green('✓ Successfully added values into table'),
-      chalk.blue('`translations`')
-    );
-  } catch (e) {
-    console.log(chalk.red('✗ Error while inserting translation:'), chalk.yellow(e));
-  }
 
-  // resetting other
-  try {
-    await db.insert(other).values(data.other);
-    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`other`'));
-  } catch (e) {
-    console.log(chalk.red('✗ Error while inserting other:'), chalk.yellow(e));
-  }
+    // resetting user_project_join
+    try {
+      await tx.insert(user_project_join).values(data.user_project_join);
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`user_project_join`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting user_project_join:'), chalk.yellow(e));
+    }
 
-  // resetting media_attachment
-  try {
-    await db.insert(media_attachment).values(data.media_attachment);
-    console.log(
-      chalk.green('✓ Successfully added values into table'),
-      chalk.blue('`media_attachment`')
-    );
-  } catch (e) {
-    console.log(chalk.red('✗ Error while inserting media_attachment:'), chalk.yellow(e));
-  }
+    // resetting user_project_language_join
+    try {
+      await tx.insert(user_project_language_join).values(data.user_project_language_join);
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`user_project_language_join`')
+      );
+    } catch (e) {
+      console.log(
+        chalk.red('✗ Error while inserting user_project_language_join:'),
+        chalk.yellow(e)
+      );
+    }
 
-  // resetting site_lekhas
-  try {
-    await db.insert(site_lekhas).values(data.site_lekhas);
-    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`site_lekhas`'));
-  } catch (e) {
-    console.log(chalk.red('✗ Error while inserting site_lekhas:'), chalk.yellow(e));
-  }
+    // resetting texts
+    try {
+      const chunks = chunkArray(data.texts, 5000);
+      for (const chunk of chunks) {
+        await tx.insert(texts).values(chunk);
+      }
+      console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`texts`'));
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting text:'), chalk.yellow(e));
+    }
 
-  // resetting SERIAL
-  try {
-    await db.execute(sql`SELECT setval('"projects_id_seq"', (select MAX(id) from "projects"))`);
-    await db.execute(
-      sql`SELECT setval('"media_attachment_id_seq"', (select MAX(id) from "media_attachment"))`
-    );
-    await db.execute(
-      sql`SELECT setval('"site_lekhas_id_seq"', (select MAX(id) from "site_lekhas"))`
-    );
-    console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
-  } catch (e) {
-    console.log(chalk.red('✗ Error while resetting SERIAL:'), chalk.yellow(e));
-  }
+    // resetting translation
+    try {
+      const chunks = chunkArray(data.translations, 5000);
+      for (const chunk of chunks) {
+        await tx.insert(translations).values(chunk);
+      }
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`translations`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting translation:'), chalk.yellow(e));
+    }
+
+    // resetting other
+    try {
+      await tx.insert(other).values(data.other);
+      console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`other`'));
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting other:'), chalk.yellow(e));
+    }
+
+    // resetting media_attachment
+    try {
+      await tx.insert(media_attachment).values(data.media_attachment);
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`media_attachment`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting media_attachment:'), chalk.yellow(e));
+    }
+
+    // resetting site_lekhas
+    try {
+      await tx.insert(site_lekhas).values(data.site_lekhas);
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`site_lekhas`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting site_lekhas:'), chalk.yellow(e));
+    }
+
+    // resetting SERIAL
+    try {
+      await tx.execute(sql`SELECT setval('"projects_id_seq"', (select MAX(id) from "projects"))`);
+      await tx.execute(
+        sql`SELECT setval('"media_attachment_id_seq"', (select MAX(id) from "media_attachment"))`
+      );
+      await tx.execute(
+        sql`SELECT setval('"site_lekhas_id_seq"', (select MAX(id) from "site_lekhas"))`
+      );
+      console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
+    } catch (e) {
+      console.log(chalk.red('✗ Error while resetting SERIAL:'), chalk.yellow(e));
+    }
+  });
 };
 main().then(() => {
   query_client.end();

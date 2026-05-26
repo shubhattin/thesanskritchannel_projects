@@ -104,10 +104,10 @@
       ).join('\n\n');
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
-      const names = get_last_level_name($selected_text_levels);
-      const sarga_name_normal = await transliterate_custom(names, BASE_SCRIPT, 'Normal');
+      const name_first_line = get_last_level_name($selected_text_levels).split('\n')[0].trim();
+      const sarga_name_normal = await transliterate_custom(name_first_line, BASE_SCRIPT, 'Normal');
       const sarga_name_script = await transliterate_custom(
-        names.split('\n')[0],
+        name_first_line,
         BASE_SCRIPT,
         $viewing_script
       );

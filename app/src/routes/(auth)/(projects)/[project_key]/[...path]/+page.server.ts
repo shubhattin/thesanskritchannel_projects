@@ -28,7 +28,7 @@ export const load: PageServerLoad = async (opts) => {
   const { params } = opts;
   const project_key = params.project_key;
   const project = await get_project_by_key(project_key);
-  if (!project) throw new Error(`Project not found: ${project_key}`);
+  if (!project) error(404, 'Not found');
   const project_map = await get_project_map_by_key(project_key);
   const levels = get_levels_from_map(project_map);
   const level_names = get_level_names_from_map(project_map).slice(0, levels);

@@ -146,11 +146,17 @@ export const get_project_map_by_key = async (key: string): Promise<recursive_lis
   return entry.inFlight;
 };
 
-const project_info_cache = new Map<string, Promise<project_info_type>>();
+type ProjectInfoCacheEntry = {
+  value: Promise<project_info_type>;
+  fetchedAt: number;
+};
+
+const project_info_cache = new Map<string, ProjectInfoCacheEntry>();
 
 export const get_project_info_by_key = async (key: string): Promise<project_info_type> => {
   const cached = project_info_cache.get(key);
-  if (cached) return cached;
+  if (cached && is_cache_fresh(cached.fetchedAt)) return cached.value;
+  if (cached) project_info_cache.delete(key);
 
   const promise = (async () => {
     const registry = await get_internal_registry();
@@ -160,9 +166,9 @@ export const get_project_info_by_key = async (key: string): Promise<project_info
     return build_project_info(project, map);
   })();
 
-  project_info_cache.set(key, promise);
+  project_info_cache.set(key, { value: promise, fetchedAt: Date.now() });
   promise.catch(() => {
-    if (project_info_cache.get(key) === promise) {
+    if (project_info_cache.get(key)?.value === promise) {
       project_info_cache.delete(key);
     }
   });

@@ -86,7 +86,7 @@ export const resolve_text_route = async (
   raw_segments: string[]
 ): Promise<resolved_text_route_type | null> => {
   const project = await get_project_by_key(raw_project_key);
-  if (!project) throw new Error(`Project not found: ${raw_project_key}`);
+  if (!project) return null;
   const project_key = project.key;
   const project_info = await get_project_info_by_key(project_key);
   const map = await get_project_map_by_key(project_key);

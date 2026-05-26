@@ -8,7 +8,7 @@
     selected_text_levels,
     text_data_present
   } from '~/state/main_app/state.svelte';
-  import { get_project_from_key } from '~/state/project_list';
+  import { get_project_from_key, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import { project_list_q, project_map_q } from '~/state/main_app/data.svelte';
   import UserControls from '~/components/pages/main_app/user/UserControls.svelte';
   import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
@@ -31,8 +31,8 @@
 
   const project_key = $derived(data.project_key);
   const levels = $derived(data.levels);
-  const project_list = $derived($project_list_q.data ?? []);
-  const current_project = $derived(get_project_from_key(project_key, project_list));
+  const project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
+  const current_project = $derived(get_project_from_key(project_key, project_registry));
   const project_id = $derived(current_project?.id ?? null);
   const project_queries_ready = $derived(
     $project_list_q.isSuccess && $project_map_q.isSuccess && !!current_project
@@ -71,7 +71,7 @@
   });
 
   let page_title_info = $derived.by(() => {
-    return get_page_title_info(page.url.pathname, project_list);
+    return get_page_title_info(page.url.pathname, project_registry.list);
   });
 
   let project_selected_popover = $state(false);
@@ -127,7 +127,7 @@
                 <Icon src={AiOutlineHome} class="-mt-1 mr-1 size-5" />
                 Home
               </button>
-              {#each project_list as project (project.id)}
+              {#each project_registry.list as project (project.id)}
                 <button
                   class={cl_join(
                     'block w-full gap-0 rounded-md px-1.5 py-1 text-center text-sm font-semibold',

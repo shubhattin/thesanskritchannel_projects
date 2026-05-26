@@ -2,7 +2,7 @@
   import { createQuery } from '@tanstack/svelte-query';
   import { tick } from 'svelte';
   import { client } from '~/api/client';
-  import { get_project_from_id } from '~/state/project_list';
+  import { get_project_from_id, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import { project_list_q } from '~/state/main_app/data.svelte';
   import { queryClient } from '~/state/queryClient';
   import { cl_join } from '~/tools/cl_join';
@@ -41,11 +41,11 @@
     return nums.length ? nums : undefined;
   };
 
-  const project_list = $derived($project_list_q.data ?? []);
+  const project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
 
-  const get_project_key_from_id = (id: number) => get_project_from_id(id, project_list)?.key;
+  const get_project_key_from_id = (id: number) => get_project_from_id(id, project_registry)?.key;
   const get_project_name_from_id = (id: number) =>
-    get_project_from_id(id, project_list)?.name ?? `Project ${id}`;
+    get_project_from_id(id, project_registry)?.name ?? `Project ${id}`;
 
   const search_q = $derived(
     createQuery(
@@ -180,10 +180,10 @@
               }}
             >
               <Select.Trigger id="project-select" class="w-full">
-                {project_list.find((p) => p.id === project_id)?.name ?? 'All'}
+                {get_project_from_id(project_id, project_registry)?.name ?? 'All'}
               </Select.Trigger>
               <Select.Content>
-                {#each project_list as project (project.id)}
+                {#each project_registry.list as project (project.id)}
                   <Select.Item value={project.id.toString()} label={project.name} />
                 {/each}
                 <Select.Item value="0" label="All" />

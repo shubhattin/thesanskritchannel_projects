@@ -35,7 +35,7 @@
   import { delay } from '~/tools/delay';
   import pretty_ms from 'pretty-ms';
   import ms from 'ms';
-  import { get_project_from_id } from '~/state/project_list';
+  import { get_project_from_id, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import { CgClose } from 'svelte-icons-pack/cg';
   import { slide } from 'svelte/transition';
   import { get_result_from_trigger_run_id } from '~/tools/trigger';
@@ -56,7 +56,10 @@
 
   $effect(() => {
     base_prompt_text = format_string_text(base_prompts.main_prompt[0].content, {
-      text_name: get_project_from_id($project_state.project_id!, $project_list_q.data ?? [])!.name
+      text_name: get_project_from_id(
+        $project_state.project_id!,
+        $project_list_q.data ?? EMPTY_PROJECT_REGISTRY
+      )!.name
     });
   });
 
@@ -129,7 +132,10 @@
           })
           .join(', ');
       })(),
-      text_name: get_project_from_id($project_state.project_id!, $project_list_q.data ?? [])!.name
+      text_name: get_project_from_id(
+        $project_state.project_id!,
+        $project_list_q.data ?? EMPTY_PROJECT_REGISTRY
+      )!.name
     })
   );
 

@@ -14,7 +14,7 @@ import { browser } from '$app/environment';
 import { delay } from '~/tools/delay';
 import { derived, get, writable } from 'svelte/store';
 import { lang_list_obj } from '../lang_list';
-import { get_node_at_path, get_project_from_key, type project_type_client } from '../project_list';
+import { get_node_at_path, build_project_registry } from '../project_list';
 import { user_info } from '../user.svelte';
 import type { shloka_list_type } from '~/state/data_types';
 import ms from 'ms';
@@ -38,7 +38,8 @@ const get_dynamic_path_params = (
 export const project_list_q = createQuery(
   {
     queryKey: ['project_list'],
-    queryFn: () => client.project.get_project_list.query(),
+    queryFn: async () =>
+      build_project_registry(await client.project.get_project_list.query(), { sort: false }),
     staleTime: ms('12hours')
   },
   queryClient
@@ -62,39 +63,22 @@ export const user_project_info_q = get_derived_query(
     )
 );
 
-export const project_map_q_options = (
-  project_id: number,
-  project_key: string,
-  project_list: readonly project_type_client[]
-) => {
+export const project_map_q_options = (project_id: number) => {
   return queryOptions({
     queryKey: ['project_map', project_id],
-    queryFn: async () => {
-      const project = get_project_from_key(project_key, project_list);
-      if (!project) throw new Error(`Project not found: ${project_key}`);
-      return await client.project.get_project_map.query({ project_id: project_id });
-    }
+    queryFn: () => client.project.get_project_map.query({ project_id })
   });
 };
 
 /** Derives from the current selected project */
-export const project_map_q = get_derived_query(
-  [project_state, project_list_q],
-  ([prject_state_, project_list_q_]) =>
-    createQuery(
-      {
-        ...project_map_q_options(
-          prject_state_.project_id!,
-          prject_state_.project_key!,
-          project_list_q_.data ?? []
-        ),
-        enabled:
-          !!prject_state_.project_id &&
-          !!prject_state_.project_key &&
-          !!project_list_q_.data?.length
-      },
-      queryClient
-    )
+export const project_map_q = get_derived_query([project_state], ([prject_state_]) =>
+  createQuery(
+    {
+      ...project_map_q_options(prject_state_.project_id!),
+      enabled: !!prject_state_.project_id && !!prject_state_.project_key
+    },
+    queryClient
+  )
 );
 
 // Keep `text_data_present` synced to whether current selection is a leaf shloka node.

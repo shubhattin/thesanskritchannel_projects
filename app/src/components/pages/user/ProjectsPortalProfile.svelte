@@ -4,7 +4,7 @@
   import ConfirmPopover from '~/components/PopoverModals/ConfirmPopover.svelte';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { get_lang_from_id, LANG_LIST, LANG_LIST_IDS } from '~/state/lang_list';
-  import { get_project_from_id } from '~/state/project_list';
+  import { get_project_from_id, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import { project_list_q } from '~/state/main_app/data.svelte';
   import Icon from '~/tools/Icon.svelte';
   import { BsPlusLg } from 'svelte-icons-pack/bs';
@@ -22,7 +22,7 @@
   import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
 
   const query_client = useQueryClient();
-  const project_list = $derived($project_list_q.data ?? []);
+  const project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
 
   let {
     user_info,
@@ -182,7 +182,7 @@
   {:else}
     {@const current_project = projects.find((p) => p.project_id === parseInt(selected_project_id))}
     {@const current_project_info = current_project
-      ? get_project_from_id(current_project.project_id, project_list)
+      ? get_project_from_id(current_project.project_id, project_registry)
       : null}
     <div class="mt-2.5">
       <label class="inline-block">
@@ -192,14 +192,14 @@
             {projects.find((p) => p.project_id.toString() === selected_project_id)
               ? get_project_from_id(
                   projects.find((p) => p.project_id.toString() === selected_project_id)!.project_id,
-                  project_list
+                  project_registry
                 )?.name
               : 'Select Project'}
           </Select.Trigger>
           <Select.Content>
             {#each projects as project}
               <Select.Item value={project.project_id.toString()}
-                >{get_project_from_id(project.project_id, project_list)?.name ??
+                >{get_project_from_id(project.project_id, project_registry)?.name ??
                   `Project ${project.project_id}`}</Select.Item
               >
             {/each}
@@ -292,7 +292,7 @@
 {/if}
 
 {#snippet add_project(new_list = false)}
-  {#if $project_list_q.isSuccess && $projects_info.data!.projects.length !== project_list.length}
+  {#if $project_list_q.isSuccess && $projects_info.data!.projects.length !== project_registry.list.length}
     <Popover.Root bind:open={add_project_popup}>
       <Popover.Trigger class="ml-1">
         <span
@@ -308,7 +308,7 @@
         </span>
       </Popover.Trigger>
       <Popover.Content side={new_list ? 'right' : 'bottom'} class="space-y-1 p-2 sm:space-y-1.5">
-        {#each project_list as project (project.id)}
+        {#each project_registry.list as project (project.id)}
           {#if !$projects_info.data!.projects.find((p) => p.project_id === project.id)}
             <div class="block w-full">
               <ConfirmPopover

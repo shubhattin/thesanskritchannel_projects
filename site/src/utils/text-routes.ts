@@ -1,8 +1,5 @@
 import type { recursive_list_type } from '../../../app/src/state/data_types';
-import {
-  get_list_name_for_path_param_index,
-  get_node_at_path
-} from '$app/state/project_list';
+import { get_list_name_for_path_param_index, get_node_at_path } from '$app/state/project_list';
 import {
   get_project_by_key,
   get_project_info_by_key,

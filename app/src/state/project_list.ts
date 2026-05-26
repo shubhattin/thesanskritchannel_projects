@@ -1,6 +1,6 @@
 import { type recursive_list_type } from './data_types';
 
-export type project_type_client = {
+export type project_type = {
   id: number;
   name: string;
   name_dev: string;
@@ -8,18 +8,52 @@ export type project_type_client = {
   key: string;
 };
 
-export const get_project_from_id = <T extends project_type_client>(
-  id: number,
-  project_list: readonly T[]
-): T | undefined => {
-  return project_list.find((p) => p.id === id);
+export type project_registry_type = {
+  list: readonly project_type[];
+  byId: ReadonlyMap<number, project_type>;
+  byKey: ReadonlyMap<string, project_type>;
 };
 
-export const get_project_from_key = <T extends project_type_client>(
+type build_project_registry_options = {
+  sort?: boolean;
+};
+
+export const build_project_registry = (
+  projects: readonly project_type[],
+  { sort = true }: build_project_registry_options = {}
+): project_registry_type => {
+  const list = sort ? [...projects].sort((a, b) => a.id - b.id) : [...projects];
+  const byId = new Map<number, project_type>();
+  const byKey = new Map<string, project_type>();
+
+  for (const project of list) {
+    if (byId.has(project.id)) {
+      throw new Error(`Duplicate project id: ${project.id}`);
+    }
+    if (byKey.has(project.key)) {
+      throw new Error(`Duplicate project key: ${project.key}`);
+    }
+    byId.set(project.id, project);
+    byKey.set(project.key, project);
+  }
+
+  return { list, byId, byKey };
+};
+
+export const EMPTY_PROJECT_REGISTRY = build_project_registry([]);
+
+export const get_project_from_id = (
+  id: number,
+  registry: project_registry_type
+): project_type | undefined => {
+  return registry.byId.get(id);
+};
+
+export const get_project_from_key = (
   key: string,
-  project_list: readonly T[]
-): T | undefined => {
-  return project_list.find((p) => p.key === key);
+  registry: project_registry_type
+): project_type | undefined => {
+  return registry.byKey.get(key);
 };
 
 export const clamp_levels_for_route = (levels: number) => {
@@ -161,7 +195,7 @@ export const get_path_params = (
   return selected_text_levels.slice(0, project_levels - 1).reverse() as number[];
 };
 
-export type project_info_type = project_type_client & {
+export type project_info_type = project_type & {
   /** The project level here also includes shloka/leaf */
   levels: number;
   /** lower -> higher, index 0 is leaf */
@@ -169,7 +203,7 @@ export type project_info_type = project_type_client & {
 };
 
 export const build_project_info = (
-  project: project_type_client,
+  project: project_type,
   map: recursive_list_type
 ): project_info_type => ({
   ...project,

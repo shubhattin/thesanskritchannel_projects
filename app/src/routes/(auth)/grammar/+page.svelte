@@ -11,7 +11,8 @@
     get_list_name_at_depth_from_selected,
     get_map_list_at_depth,
     get_node_at_path,
-    get_project_from_key
+    get_project_from_key,
+    EMPTY_PROJECT_REGISTRY
   } from '~/state/project_list';
   import { createQuery } from '@tanstack/svelte-query';
   import {
@@ -78,15 +79,15 @@
   let load_text_source = $state(true);
   let selected_project_key = $state<string | null>(null);
 
-  let project_list = $derived($project_list_q.data ?? []);
+  let project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
   let project = $derived(
-    selected_project_key ? get_project_from_key(selected_project_key!, project_list) : null
+    selected_project_key ? get_project_from_key(selected_project_key!, project_registry) : null
   );
 
   type option_type = { text?: string; value?: number };
   let project_map_q = $derived(
     createQuery({
-      ...project_map_q_options(project?.id!, project?.key!, project_list),
+      ...project_map_q_options(project?.id!),
       enabled: !!selected_project_key && !!project && $project_list_q.isSuccess
     })
   );
@@ -222,11 +223,12 @@
         {:else}
           <Select.Root type="single" bind:value={selected_project_key as any}>
             <Select.Trigger class="w-44 px-1.5 py-1 text-sm">
-              {project_list.find((p) => p.key === selected_project_key)?.name ?? 'Select Project'}
+              {get_project_from_key(selected_project_key!, project_registry)?.name ??
+                'Select Project'}
             </Select.Trigger>
             <Select.Content>
               <Select.Item value={null!}>Select Project</Select.Item>
-              {#each project_list as project_item (project_item.id)}
+              {#each project_registry.list as project_item (project_item.id)}
                 <Select.Item value={project_item.key}>{project_item.name}</Select.Item>
               {/each}
             </Select.Content>

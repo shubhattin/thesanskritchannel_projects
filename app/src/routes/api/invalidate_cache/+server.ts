@@ -12,7 +12,7 @@ import { remove_vedic_svara_chihnAni } from '~/utils/normalize_text';
 const CACHE_KEY_DB_NAME = 'cache_verify_key';
 
 export const POST: RequestHandler = async ({ url, request }) => {
-  const key = z.string().uuid().parse(request.headers.get('X-Cache-Verify-Key'));
+  const key = z.uuid().parse(request.headers.get('X-Cache-Verify-Key'));
   const KEY = await db.query.other.findFirst({
     where: (tbl, { eq }) => eq(tbl.key, CACHE_KEY_DB_NAME)
   });

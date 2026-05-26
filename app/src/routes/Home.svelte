@@ -57,7 +57,7 @@
       </div>
     {:else}
       <div class="grid grid-cols-1 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
-        {#each $project_list_q.data! as project (project.id)}
+        {#each $project_list_q.data!.list as project (project.id)}
           <a
             href={'/' + project.key}
             class="btn group block rounded-lg border border-border bg-card p-6 shadow-md transition duration-200 ease-out hover:-translate-y-1 hover:border-secondary hover:bg-muted/20 hover:shadow-lg focus-visible:ring focus-visible:ring-ring/70 focus-visible:outline-none"

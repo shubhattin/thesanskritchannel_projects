@@ -1,102 +1,29 @@
 import ms from 'ms';
-import { recursive_list_schema, type recursive_list_type } from '../state/data_types';
+import { type recursive_list_type } from '../state/data_types';
 import {
-  get_level_names_from_map,
-  get_levels_from_map,
-  type project_info_type
+  build_project_registry,
+  build_project_info,
+  type project_info_type,
+  type project_registry_type,
+  type project_type
 } from '../state/project_list';
+import { _tmp_PROJECT_LIST } from './_project_tmp';
 
-export type project_type_server = {
-  id: number;
-  name: string;
-  name_dev: string;
-  description?: string;
-  key: string;
+export type { project_type };
+
+type internal_project_registry_type = project_registry_type & {
+  getMapById: ReadonlyMap<number, () => Promise<recursive_list_type>>;
 };
-
-type project_type_server_ = project_type_server & {
-  get_map: () => Promise<recursive_list_type>;
-};
-
-const PROJECT_LIST: project_type_server_[] = [
-  {
-    id: 1,
-    name: 'Valmiki Ramayanam',
-    name_dev: 'श्रीमद्रामायणम्',
-    key: 'ramayanam',
-    get_map: async () =>
-      recursive_list_schema.parse((await import('@data/1. ramayanam/ramayanam_map.json')).default)
-  },
-  {
-    id: 2,
-    name: 'Bhagavad Gita',
-    name_dev: 'श्रीमद्भगवद्गीता',
-    key: 'bhagavadgita',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/2. bhagavadgita/bhagavadgita_map.json')).default
-      )
-  },
-  {
-    id: 3,
-    name: 'Narayaneeyam',
-    name_dev: 'नारायणीयम्',
-    key: 'narayaneeyam',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/3. narayaneeyam/narayaneeyam_map.json')).default
-      )
-  },
-  {
-    id: 4,
-    name: 'Shiva Tandava Stotra',
-    name_dev: 'शिवताण्डवस्तोत्रम्',
-    key: 'shiva-tandava-stotram',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/4. shiva-tandava-stotram/shiva-tandava-stotram_map.json')).default
-      )
-  },
-  {
-    id: 5,
-    name: 'Saundarya Lahari',
-    name_dev: 'सौन्दर्यलहरी',
-    key: 'saundarya-lahari',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/5. saundarya-lahari/saundarya-lahari_map.json')).default
-      )
-  },
-  {
-    id: 6,
-    name: 'Veda',
-    name_dev: 'वेद',
-    key: 'veda',
-    get_map: async () =>
-      recursive_list_schema.parse((await import('@data/6. veda/veda_map.json')).default)
-  },
-  {
-    id: 7,
-    name: 'Vijnana Bhairava Tantra',
-    name_dev: 'विज्ञानभैरवतन्त्रम्',
-    key: 'vijnana-bhairava-tantram',
-    get_map: async () =>
-      recursive_list_schema.parse(
-        (await import('@data/7. vijnana-bhairava-tantram/vijnana-bhairava-tantram_map.json'))
-          .default
-      )
-  }
-];
 
 const PROJECT_LIST_CACHE_REFRESH_INTERVAL_MS = ms('12hours');
 
-type ProjectListCache = {
-  value: project_type_server[] | null;
+type RegistryCache = {
+  value: internal_project_registry_type | null;
   fetchedAt: number;
-  inFlight: Promise<project_type_server[]> | null;
+  inFlight: Promise<internal_project_registry_type> | null;
 };
 
-const list_cache: ProjectListCache = {
+const registry_cache: RegistryCache = {
   value: null,
   fetchedAt: 0,
   inFlight: null
@@ -113,65 +40,90 @@ const map_cache = new Map<number, MapCacheEntry>();
 const is_cache_fresh = (fetchedAt: number) =>
   Date.now() - fetchedAt < PROJECT_LIST_CACHE_REFRESH_INTERVAL_MS;
 
-const load_project_list_from_source = async (): Promise<project_type_server[]> => {
-  return PROJECT_LIST.map(({ id, name, name_dev, description, key }) => ({
-    id,
-    name,
-    name_dev,
-    description,
-    key
-  }));
+const build_internal_registry = (): internal_project_registry_type => {
+  const sorted_source = [..._tmp_PROJECT_LIST].sort((a, b) => a.id - b.id);
+  const registry = build_project_registry(
+    sorted_source.map(({ id, name, name_dev, description, key }) => ({
+      id,
+      name,
+      name_dev,
+      description,
+      key
+    })),
+    { sort: false }
+  );
+  const getMapById = new Map(
+    sorted_source.map((project) => [project.id, project.get_map] as const)
+  );
+
+  return {
+    ...registry,
+    getMapById
+  };
 };
 
-/** Cached project metadata list (respects PROJECT_LIST_CACHE_REFRESH_INTERVAL_MS). */
-export const get_project_list = async (): Promise<readonly project_type_server[]> => {
-  if (list_cache.value && is_cache_fresh(list_cache.fetchedAt)) {
-    return list_cache.value;
+const get_internal_registry = async (): Promise<internal_project_registry_type> => {
+  if (registry_cache.value && is_cache_fresh(registry_cache.fetchedAt)) {
+    return registry_cache.value;
   }
-  if (list_cache.inFlight) return list_cache.inFlight;
+  if (registry_cache.inFlight) return registry_cache.inFlight;
 
-  list_cache.inFlight = load_project_list_from_source()
+  registry_cache.inFlight = Promise.resolve(build_internal_registry())
     .then((value) => {
-      list_cache.value = value;
-      list_cache.fetchedAt = Date.now();
-      list_cache.inFlight = null;
+      registry_cache.value = value;
+      registry_cache.fetchedAt = Date.now();
+      registry_cache.inFlight = null;
       return value;
     })
     .catch((err) => {
-      list_cache.inFlight = null;
+      registry_cache.inFlight = null;
       throw err;
     });
 
-  return list_cache.inFlight;
+  return registry_cache.inFlight;
 };
 
-const get_internal_project_by_id = (id: number) => PROJECT_LIST.find((p) => p.id === id);
-const get_internal_project_by_key = (key: string) => PROJECT_LIST.find((p) => p.key === key);
+/** Cached public project metadata list (respects PROJECT_LIST_CACHE_REFRESH_INTERVAL_MS). */
+export const get_project_list = async (): Promise<readonly project_type[]> => {
+  const registry = await get_internal_registry();
+  return registry.list;
+};
+
+/** Cached project registry with O(1) lookups by id and key. */
+export const get_project_registry = async (): Promise<project_registry_type> => {
+  const { list, byId, byKey } = await get_internal_registry();
+  return { list, byId, byKey };
+};
 
 export const get_project_by_id = async (id: number) => {
-  const list = await get_project_list();
-  return list.find((p) => p.id === id);
+  const registry = await get_internal_registry();
+  return registry.byId.get(id);
 };
 
 export const get_project_by_key = async (key: string) => {
-  const list = await get_project_list();
-  return list.find((p) => p.key === key);
+  const registry = await get_internal_registry();
+  return registry.byKey.get(key);
 };
 
 export const get_project_map_by_id = async (id: number): Promise<recursive_list_type> => {
-  const internal = get_internal_project_by_id(id);
-  if (!internal) throw new Error(`Project not found: ${id}`);
-  return get_project_map_by_key(internal.key);
+  const registry = await get_internal_registry();
+  const project = registry.byId.get(id);
+  if (!project) throw new Error(`Project not found: ${id}`);
+  return get_project_map_by_key(project.key);
 };
 
 export const get_project_map_by_key = async (key: string): Promise<recursive_list_type> => {
-  const internal = get_internal_project_by_key(key);
-  if (!internal) throw new Error(`Project not found: ${key}`);
+  const registry = await get_internal_registry();
+  const project = registry.byKey.get(key);
+  if (!project) throw new Error(`Project not found: ${key}`);
 
-  let entry = map_cache.get(internal.id);
+  const get_map = registry.getMapById.get(project.id);
+  if (!get_map) throw new Error(`Project map loader not found: ${key}`);
+
+  let entry = map_cache.get(project.id);
   if (!entry) {
     entry = { value: null, fetchedAt: 0, inFlight: null };
-    map_cache.set(internal.id, entry);
+    map_cache.set(project.id, entry);
   }
 
   if (entry.value && is_cache_fresh(entry.fetchedAt)) {
@@ -179,8 +131,7 @@ export const get_project_map_by_key = async (key: string): Promise<recursive_lis
   }
   if (entry.inFlight) return entry.inFlight;
 
-  entry.inFlight = internal
-    .get_map()
+  entry.inFlight = get_map()
     .then((value) => {
       entry!.value = value;
       entry!.fetchedAt = Date.now();
@@ -202,16 +153,11 @@ export const get_project_info_by_key = async (key: string): Promise<project_info
   if (cached) return cached;
 
   const promise = (async () => {
-    const project = await get_project_by_key(key);
+    const registry = await get_internal_registry();
+    const project = registry.byKey.get(key);
     if (!project) throw new Error(`Project not found: ${key}`);
     const map = await get_project_map_by_key(key);
-    const levels = get_levels_from_map(map);
-    const level_names = get_level_names_from_map(map);
-    return {
-      ...project,
-      levels,
-      level_names
-    } satisfies project_info_type;
+    return build_project_info(project, map);
   })();
 
   project_info_cache.set(key, promise);
@@ -224,7 +170,8 @@ export const get_project_info_by_key = async (key: string): Promise<project_info
 };
 
 export const get_project_info_by_id = async (id: number): Promise<project_info_type> => {
-  const project = await get_project_by_id(id);
+  const registry = await get_internal_registry();
+  const project = registry.byId.get(id);
   if (!project) throw new Error(`Project not found: ${id}`);
   return get_project_info_by_key(project.key);
 };

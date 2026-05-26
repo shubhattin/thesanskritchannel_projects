@@ -8,6 +8,7 @@
   import { page } from '$app/state';
   import { get_page_title_info } from '~/state/page_titles';
   import { project_list_q } from '~/state/main_app/data.svelte';
+  import { EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import type { Snippet } from 'svelte';
   import { ContributeIcon, SiConvertio, YoutubeIcon } from './icons';
   import { cn } from '$lib/utils';
@@ -16,7 +17,9 @@
   let { start, headline, end }: { start?: Snippet; headline?: Snippet; end?: Snippet } = $props();
 
   let pathname = $derived(page.url.pathname);
-  let page_title = $derived(get_page_title_info(pathname, $project_list_q.data ?? []));
+  let page_title = $derived(
+    get_page_title_info(pathname, ($project_list_q.data ?? EMPTY_PROJECT_REGISTRY).list)
+  );
 
   let app_bar_popover_status = $state(false);
   let support_modal_status = $state(false);

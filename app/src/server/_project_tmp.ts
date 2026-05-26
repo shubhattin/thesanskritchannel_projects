@@ -1,4 +1,4 @@
-import { recursive_list_schema, type recursive_list_type } from '~/state/data_types';
+import { recursive_list_schema, type recursive_list_type } from '../state/data_types';
 
 type project_type_server = {
   id: number;

@@ -6,9 +6,11 @@ import {
   texts,
   media_attachment,
   other,
-  site_lekhas
+  site_lekhas,
+  projects
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
+import { recursive_list_schema } from '../state/data_types';
 
 export const UserProjectJoinSchemaZod = createSelectSchema(user_project_join);
 export const UserProjectLanguageJoinSchemaZod = createSelectSchema(user_project_language_join);
@@ -26,3 +28,10 @@ export const SiteLekhaSchemaZod = createSelectSchema(site_lekhas, {
 });
 
 export type SiteLekha = z.infer<typeof SiteLekhaSchemaZod>;
+export type Project = z.infer<typeof ProjectSchemaZod>;
+
+export const ProjectSchemaZod = createSelectSchema(projects, {
+  map: recursive_list_schema,
+  updated_at: z.coerce.date().optional().nullable(),
+  created_at: z.coerce.date()
+});

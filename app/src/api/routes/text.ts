@@ -3,12 +3,11 @@ import { publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { texts } from '~/db/schema';
 import { delay } from '~/tools/delay';
+import { cache_db_options_app } from '~/server/cache_db_options';
 import { get_text_data_func } from '~/server/cached_loader';
 import { get_project_by_key } from '~/server/project_list.server';
-import { waitUntil } from '@vercel/functions';
 // import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
 import { and, eq, like, sql } from 'drizzle-orm';
-import { redis } from '~/db/redis';
 
 const get_text_data_route = publicProcedure
   .input(
@@ -19,11 +18,7 @@ const get_text_data_route = publicProcedure
   )
   .query(async ({ input: { project_key, path_params } }) => {
     await delay(350);
-    const data = await get_text_data_func(project_key, path_params, {
-      defer: waitUntil,
-      db: db,
-      redis: redis
-    });
+    const data = await get_text_data_func(project_key, path_params, cache_db_options_app);
     return data;
   });
 
@@ -41,7 +36,7 @@ export const search_text_in_texts_route = publicProcedure
   .query(async ({ input: { project_key, search_text, path_params, limit, offset } }) => {
     const conditions = [like(texts.text_search, `%${search_text}%`)];
     if (project_key) {
-      const project = await get_project_by_key(project_key);
+      const project = await get_project_by_key(project_key, cache_db_options_app);
       if (!project) throw new Error(`Project not found: ${project_key}`);
       const project_id = project.id;
       conditions.push(eq(texts.project_id, project_id));

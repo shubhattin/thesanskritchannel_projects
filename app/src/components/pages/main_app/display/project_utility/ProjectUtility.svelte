@@ -13,7 +13,7 @@
   import { createMutation } from '@tanstack/svelte-query';
   import { RiDocumentFileExcel2Line, RiSystemSearchLine } from 'svelte-icons-pack/ri';
   import { transliterate_xlxs_file } from '~/tools/excel/transliterate_xlsx_file';
-  import { client, client_q } from '~/api/client';
+  import { client } from '~/api/client';
   import Icon from '~/tools/Icon.svelte';
   import { BiImage } from 'svelte-icons-pack/bi';
   import type { Workbook } from 'exceljs';
@@ -24,14 +24,8 @@
   import { useSession } from '~/lib/auth-client';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Popover from '$lib/components/ui/popover';
-  import { cn } from '$lib/utils';
   import { BsThreeDots } from 'svelte-icons-pack/bs';
-  import { AiOutlineClose } from 'svelte-icons-pack/ai';
-  import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { OiCache16 } from 'svelte-icons-pack/oi';
-  import { get_path_params } from '~/state/project_list';
-  import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
-  import { Button } from '$lib/components/ui/button';
 
   const session = useSession();
   let user_info = $derived($session.data?.user);
@@ -84,7 +78,11 @@
       const blob = new Blob([buffer], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
-      const name = get_last_level_name($selected_text_levels).nor.split('\n')[0];
+      const name = await transliterate_custom(
+        get_last_level_name($selected_text_levels).split('\n')[0],
+        BASE_SCRIPT,
+        'Normal'
+      );
       const lowest_selected = get_lowest_selected($selected_text_levels);
       current_dowbload_link = URL.createObjectURL(blob);
       current_file_name = lowest_selected ? `${lowest_selected}. ${name}.xlsx` : `${name}.xlsx`;
@@ -106,10 +104,10 @@
       ).join('\n\n');
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
-      const names = get_last_level_name($selected_text_levels);
-      const sarga_name_normal = names.nor.split('\n')[0];
+      const name_first_line = get_last_level_name($selected_text_levels).split('\n')[0].trim();
+      const sarga_name_normal = await transliterate_custom(name_first_line, BASE_SCRIPT, 'Normal');
       const sarga_name_script = await transliterate_custom(
-        names.dev.split('\n')[0],
+        name_first_line,
         BASE_SCRIPT,
         $viewing_script
       );

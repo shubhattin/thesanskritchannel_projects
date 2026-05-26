@@ -10,12 +10,28 @@ import {
   timestamp,
   boolean
 } from 'drizzle-orm/pg-core';
-// import { relations } from 'drizzle-orm';
+import type { recursive_list_type } from '~/state/data_types';
+import { relations } from 'drizzle-orm';
+
+export const projects = pgTable('projects', {
+  id: integer().notNull().primaryKey(),
+  key: text().notNull().unique(),
+  name: text().notNull(),
+  /** Sanskrit name */
+  name_dev: text().notNull(),
+  description: text(),
+  /** Project Map */
+  map: jsonb().notNull().$type<recursive_list_type>(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
+});
 
 export const texts = pgTable(
   'texts',
   {
-    project_id: integer().notNull(),
+    project_id: integer()
+      .notNull()
+      .references(() => projects.id, { onDelete: 'restrict' }),
     path: text().notNull(),
     index: integer().notNull(),
     shloka_num: integer(),
@@ -33,7 +49,9 @@ export const texts = pgTable(
 export const translations = pgTable(
   'translations',
   {
-    project_id: integer().notNull(),
+    project_id: integer()
+      .notNull()
+      .references(() => projects.id, { onDelete: 'restrict' }),
     lang_id: integer().notNull(),
     path: text().notNull(),
     index: integer().notNull(),
@@ -60,7 +78,9 @@ export const media_attachment = pgTable(
   'media_attachment',
   {
     id: serial().primaryKey(),
-    project_id: integer().notNull(),
+    project_id: integer()
+      .notNull()
+      .references(() => projects.id, { onDelete: 'restrict' }),
     lang_id: integer().notNull(),
     path: text().notNull(),
     media_type: media_type_enum().notNull(),
@@ -97,7 +117,9 @@ export const user_project_join = pgTable(
   'user_project_join',
   {
     user_id: text().notNull(),
-    project_id: integer().notNull()
+    project_id: integer()
+      .notNull()
+      .references(() => projects.id, { onDelete: 'restrict' })
   },
   (table) => [primaryKey({ columns: [table.user_id, table.project_id] })]
 );
@@ -106,10 +128,40 @@ export const user_project_language_join = pgTable(
   'user_project_language_join',
   {
     user_id: text().notNull(),
-    project_id: integer().notNull(),
+    project_id: integer()
+      .notNull()
+      .references(() => projects.id, { onDelete: 'restrict' }),
     language_id: integer().notNull()
   },
   (table) => [primaryKey({ columns: [table.user_id, table.project_id, table.language_id] })]
 );
 
 // relations
+
+export const projectRelations = relations(projects, ({ many }) => ({
+  texts: many(texts),
+  translations: many(translations),
+  media_attachment: many(media_attachment),
+  users_join: many(user_project_join),
+  user_language_join: many(user_project_language_join)
+}));
+
+export const textRelations = relations(texts, ({ one }) => ({
+  project: one(projects)
+}));
+
+export const translationRelations = relations(translations, ({ one }) => ({
+  project: one(projects)
+}));
+
+export const mediaAttachmentRelations = relations(media_attachment, ({ one }) => ({
+  project: one(projects)
+}));
+
+export const userProjectJoinRelations = relations(user_project_join, ({ one }) => ({
+  project: one(projects)
+}));
+
+export const userProjectLanguageJoinRelations = relations(user_project_language_join, ({ one }) => ({
+  project: one(projects)
+}));

@@ -7,8 +7,9 @@ import {
   type project_registry_type,
   type project_type
 } from '../state/project_list';
-import { _tmp_PROJECT_LIST } from './_project_tmp';
+import { type db_options, get_project_list_func, get_project_map_func } from './cached_loader';
 
+export type defer_promise_type = (promise: Promise<unknown>) => void;
 export type { project_type };
 
 type internal_project_registry_type = project_registry_type & {
@@ -40,8 +41,10 @@ const map_cache = new Map<number, MapCacheEntry>();
 const is_cache_fresh = (fetchedAt: number) =>
   Date.now() - fetchedAt < PROJECT_LIST_CACHE_REFRESH_INTERVAL_MS;
 
-const build_internal_registry = (): internal_project_registry_type => {
-  const sorted_source = [..._tmp_PROJECT_LIST].sort((a, b) => a.id - b.id);
+const build_internal_registry = async (
+  options: db_options
+): Promise<internal_project_registry_type> => {
+  const sorted_source = await get_project_list_func(options);
   const registry = build_project_registry(
     sorted_source.map(({ id, name, name_dev, description, key }) => ({
       id,
@@ -53,7 +56,9 @@ const build_internal_registry = (): internal_project_registry_type => {
     { sort: false }
   );
   const getMapById = new Map(
-    sorted_source.map((project) => [project.id, project.get_map] as const)
+    sorted_source.map(
+      (project) => [project.id, () => get_project_map_func(project.id, options)] as const
+    )
   );
 
   return {
@@ -62,13 +67,15 @@ const build_internal_registry = (): internal_project_registry_type => {
   };
 };
 
-const get_internal_registry = async (): Promise<internal_project_registry_type> => {
+const get_internal_registry = async (
+  options: db_options
+): Promise<internal_project_registry_type> => {
   if (registry_cache.value && is_cache_fresh(registry_cache.fetchedAt)) {
     return registry_cache.value;
   }
   if (registry_cache.inFlight) return registry_cache.inFlight;
 
-  registry_cache.inFlight = Promise.resolve(build_internal_registry())
+  registry_cache.inFlight = Promise.resolve(build_internal_registry(options))
     .then((value) => {
       registry_cache.value = value;
       registry_cache.fetchedAt = Date.now();
@@ -84,36 +91,42 @@ const get_internal_registry = async (): Promise<internal_project_registry_type> 
 };
 
 /** Cached public project metadata list (respects PROJECT_LIST_CACHE_REFRESH_INTERVAL_MS). */
-export const get_project_list = async (): Promise<readonly project_type[]> => {
-  const registry = await get_internal_registry();
+export const get_project_list = async (options: db_options): Promise<readonly project_type[]> => {
+  const registry = await get_internal_registry(options);
   return registry.list;
 };
 
 /** Cached project registry with O(1) lookups by id and key. */
-export const get_project_registry = async (): Promise<project_registry_type> => {
-  const { list, byId, byKey } = await get_internal_registry();
+export const get_project_registry = async (options: db_options): Promise<project_registry_type> => {
+  const { list, byId, byKey } = await get_internal_registry(options);
   return { list, byId, byKey };
 };
 
-export const get_project_by_id = async (id: number) => {
-  const registry = await get_internal_registry();
+export const get_project_by_id = async (id: number, options: db_options) => {
+  const registry = await get_internal_registry(options);
   return registry.byId.get(id);
 };
 
-export const get_project_by_key = async (key: string) => {
-  const registry = await get_internal_registry();
+export const get_project_by_key = async (key: string, options: db_options) => {
+  const registry = await get_internal_registry(options);
   return registry.byKey.get(key);
 };
 
-export const get_project_map_by_id = async (id: number): Promise<recursive_list_type> => {
-  const registry = await get_internal_registry();
+export const get_project_map_by_id = async (
+  id: number,
+  options: db_options
+): Promise<recursive_list_type> => {
+  const registry = await get_internal_registry(options);
   const project = registry.byId.get(id);
   if (!project) throw new Error(`Project not found: ${id}`);
-  return get_project_map_by_key(project.key);
+  return get_project_map_by_key(project.key, options);
 };
 
-export const get_project_map_by_key = async (key: string): Promise<recursive_list_type> => {
-  const registry = await get_internal_registry();
+export const get_project_map_by_key = async (
+  key: string,
+  options: db_options
+): Promise<recursive_list_type> => {
+  const registry = await get_internal_registry(options);
   const project = registry.byKey.get(key);
   if (!project) throw new Error(`Project not found: ${key}`);
 
@@ -153,16 +166,19 @@ type ProjectInfoCacheEntry = {
 
 const project_info_cache = new Map<string, ProjectInfoCacheEntry>();
 
-export const get_project_info_by_key = async (key: string): Promise<project_info_type> => {
+export const get_project_info_by_key = async (
+  key: string,
+  options: db_options
+): Promise<project_info_type> => {
   const cached = project_info_cache.get(key);
   if (cached && is_cache_fresh(cached.fetchedAt)) return cached.value;
   if (cached) project_info_cache.delete(key);
 
   const promise = (async () => {
-    const registry = await get_internal_registry();
+    const registry = await get_internal_registry(options);
     const project = registry.byKey.get(key);
     if (!project) throw new Error(`Project not found: ${key}`);
-    const map = await get_project_map_by_key(key);
+    const map = await get_project_map_by_key(key, options);
     return build_project_info(project, map);
   })();
 
@@ -175,9 +191,12 @@ export const get_project_info_by_key = async (key: string): Promise<project_info
   return promise;
 };
 
-export const get_project_info_by_id = async (id: number): Promise<project_info_type> => {
-  const registry = await get_internal_registry();
+export const get_project_info_by_id = async (
+  id: number,
+  options: db_options
+): Promise<project_info_type> => {
+  const registry = await get_internal_registry(options);
   const project = registry.byId.get(id);
   if (!project) throw new Error(`Project not found: ${id}`);
-  return get_project_info_by_key(project.key);
+  return get_project_info_by_key(project.key, options);
 };

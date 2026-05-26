@@ -5,6 +5,7 @@ import {
   get_project_info_by_key,
   get_project_map_by_key
 } from '$app/server/project_list.server';
+import { cache_db_options_site } from '~/db/cache_db_options';
 
 const NUMERIC_SEGMENT_RE = /^[1-9]\d*$/;
 const PRETTY_SEGMENT_RE = /^(?<levelSlug>.+)-(?<num>[1-9]\d*)$/;
@@ -85,11 +86,11 @@ export const resolve_text_route = async (
   raw_project_key: string,
   raw_segments: string[]
 ): Promise<resolved_text_route_type | null> => {
-  const project = await get_project_by_key(raw_project_key);
+  const project = await get_project_by_key(raw_project_key, cache_db_options_site);
   if (!project) return null;
   const project_key = project.key;
-  const project_info = await get_project_info_by_key(project_key);
-  const map = await get_project_map_by_key(project_key);
+  const project_info = await get_project_info_by_key(project_key, cache_db_options_site);
+  const map = await get_project_map_by_key(project_key, cache_db_options_site);
   const segments = raw_segments.filter((segment) => segment.length > 0);
 
   if (segments.length > project_info.levels - 1) return null;
@@ -189,7 +190,6 @@ export const get_child_route_items = (
       index: index + 1,
       href: href ?? `/${project_key}`,
       name_dev: child.name_dev,
-      name_nor: child.name_nor,
       is_leaf,
       is_disabled: is_child_nav_disabled(child, path_params.length, levels)
     };

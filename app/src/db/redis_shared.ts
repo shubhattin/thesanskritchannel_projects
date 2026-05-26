@@ -18,7 +18,9 @@ export const REDIS_CACHE_KEYS_CLIENT = {
   },
   site_lekha_data: (url_slug: string) => `site_lekha_data:${url_slug}`,
   // TODO : implement caching, paging and sorting, key will change in future, no issues
-  site_lekha_list: () => `site_lekha_list`
+  site_lekha_list: () => `site_lekha_list`,
+  project_list: () => `project_list`,
+  project_map: (project_id: number) => `project_map:${project_id}`
 };
 
 export const REDIS_CACHES_ARGUMENTS_LIST: Record<keyof typeof REDIS_CACHE_KEYS_CLIENT, string[]> = {
@@ -27,5 +29,7 @@ export const REDIS_CACHES_ARGUMENTS_LIST: Record<keyof typeof REDIS_CACHE_KEYS_C
   translation: ['project_id', 'lang_id', 'path_params'],
   media_links: ['project_id', 'path_params'],
   site_lekha_data: ['url_slug'],
-  site_lekha_list: []
+  site_lekha_list: [],
+  project_list: [],
+  project_map: ['project_id']
 };

@@ -1,0 +1,1 @@
+This folder contains data extraction script for some texts.

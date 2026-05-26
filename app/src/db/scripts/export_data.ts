@@ -8,7 +8,8 @@ import {
   media_attachment,
   other,
   texts,
-  site_lekhas
+  site_lekhas,
+  projects
 } from '~/db/schema';
 import {
   UserProjectJoinSchemaZod,
@@ -17,12 +18,12 @@ import {
   TextSchemaZod,
   MediaAttachmentSchemaZod,
   OtherSchemaZod,
-  SiteLekhaSchemaZod
+  SiteLekhaSchemaZod,
+  ProjectSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 import chalk from 'chalk';
-import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
 
 const main = async () => {
   /*
@@ -39,36 +40,19 @@ const main = async () => {
     PREVIEW: 'db_data_preview.json',
     LOCAL: 'db_data.json'
   }[dbMode];
-  const texts_file_name = {
-    PROD: 'texts_prod.json',
-    PREVIEW: 'texts_preview.json',
-    LOCAL: 'texts.json'
-  }[dbMode];
 
-  const intermedia_text_schema = TextSchemaZod.omit({ text_search: true });
   const data = z
     .object({
       user_project_join: UserProjectJoinSchemaZod.array(),
       user_project_language_join: UserProjectLanguageJoinSchemaZod.array(),
+      projects: ProjectSchemaZod.array(),
       translations: TranslationSchemaZod.array(),
-      texts: intermedia_text_schema.array(),
+      texts: TextSchemaZod.array(),
       other: OtherSchemaZod.array(),
       media_attachment: MediaAttachmentSchemaZod.array(),
       site_lekhas: SiteLekhaSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
-
-  const texts_data_intermediate = intermedia_text_schema
-    .array()
-    .parse(JSON.parse((await readFile(`./out/${texts_file_name}`)).toString()));
-  const texts_data = TextSchemaZod.array().parse(
-    texts_data_intermediate.map((text) => ({
-      ...text,
-      text_search: remove_vedic_svara_chihnAni(text.text)
-    }))
-  );
-
-  data.texts = texts_data;
 
   // deleting all the tables initially
   try {
@@ -77,12 +61,21 @@ const main = async () => {
     await db.delete(user_project_language_join);
     await db.delete(translations);
     await db.delete(texts);
-    await db.delete(other);
     await db.delete(media_attachment);
+    await db.delete(projects);
+    await db.delete(other);
     await db.delete(site_lekhas);
     console.log(chalk.green('✓ Deleted All Tables Successfully'));
   } catch (e) {
     console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
+  }
+
+  // resetting projects
+  try {
+    await db.insert(projects).values(data.projects);
+    console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`projects`'));
+  } catch (e) {
+    console.log(chalk.red('✗ Error while inserting projects:'), chalk.yellow(e));
   }
 
   // resetting user_project_join
@@ -161,6 +154,7 @@ const main = async () => {
 
   // resetting SERIAL
   try {
+    await db.execute(sql`SELECT setval('"projects_id_seq"', (select MAX(id) from "projects"))`);
     await db.execute(
       sql`SELECT setval('"media_attachment_id_seq"', (select MAX(id) from "media_attachment"))`
     );

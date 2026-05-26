@@ -16,6 +16,7 @@ import {
 import mime from 'mime-types';
 import {
   MediaAttachmentSchemaZod,
+  ProjectSchemaZod,
   SiteLekhaSchemaZod,
   TextSchemaZod,
   TranslationSchemaZod
@@ -122,6 +123,8 @@ async function backup_data() {
       MediaAttachmentSchemaZod.array().parse(data['media_attachment'])
     );
     fs.writeFileSync(`./backup/media_attachment.csv`, media_attachment_csv);
+    const projects_csv = json2csv(ProjectSchemaZod.array().parse(data['projects']));
+    fs.writeFileSync(`./backup/projects.csv`, projects_csv);
   }
   if (!argv.includes('--no-zip-backup')) {
     console.log('Zipping backup files');

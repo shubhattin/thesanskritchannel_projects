@@ -147,21 +147,27 @@ export const projectRelations = relations(projects, ({ many }) => ({
 }));
 
 export const textRelations = relations(texts, ({ one }) => ({
-  project: one(projects)
+  project: one(projects, { fields: [texts.project_id], references: [projects.id] })
 }));
 
 export const translationRelations = relations(translations, ({ one }) => ({
-  project: one(projects)
+  project: one(projects, { fields: [translations.project_id], references: [projects.id] })
 }));
 
 export const mediaAttachmentRelations = relations(media_attachment, ({ one }) => ({
-  project: one(projects)
+  project: one(projects, { fields: [media_attachment.project_id], references: [projects.id] })
 }));
 
 export const userProjectJoinRelations = relations(user_project_join, ({ one }) => ({
-  project: one(projects)
+  project: one(projects, { fields: [user_project_join.project_id], references: [projects.id] })
 }));
 
-export const userProjectLanguageJoinRelations = relations(user_project_language_join, ({ one }) => ({
-  project: one(projects)
-}));
+export const userProjectLanguageJoinRelations = relations(
+  user_project_language_join,
+  ({ one }) => ({
+    project: one(projects, {
+      fields: [user_project_language_join.project_id],
+      references: [projects.id]
+    })
+  })
+);

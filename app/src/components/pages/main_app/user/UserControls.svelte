@@ -52,18 +52,6 @@
     user_popover_status = false;
   };
 
-  const trigger_translations_update = async () => {
-    client.translation.trigger_translation_commit.mutate().then((success) => {
-      success &&
-        setTimeout(() => {
-          window.open(
-            'https://github.com/shubhattin/thesanskritchannel_projects/actions/workflows/commit_trans.yml',
-            '_blank'
-          );
-        }, 1500);
-    });
-  };
-
   let user_popover_status = $state(false);
 </script>
 
@@ -141,24 +129,6 @@
               by Admin
             </div>
           {/if}
-        {/if}
-        {#if user_info.role === 'admin'}
-          <ConfirmModal
-            popup_state={false}
-            close_on_confirm={true}
-            confirm_func={trigger_translations_update}
-            title="Are you sure to Sync Database Translations to Main Repository ?"
-            body_text={() =>
-              'This will commit the translations stored in the database to the main repository.'}
-          >
-            <button
-              disabled={$editing_status_on}
-              class="block rounded-md bg-primary px-1.5 py-0.5 font-bold text-primary-foreground"
-            >
-              <Icon src={OiSync16} class="my-1 mb-1 text-lg" />
-              <span class="text-xs">Sync Translations from DB</span>
-            </button>
-          </ConfirmModal>
         {/if}
       </div>
     {/if}

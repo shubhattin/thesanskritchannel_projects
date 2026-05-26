@@ -149,27 +149,8 @@ const get_all_langs_translation_route = protectedAppScopeProcedure_ProjectsPorta
     return data_map;
   });
 
-const trigger_translation_commit_route = protectedAdminProcedure.mutation(async () => {
-  const owner = 'shubhattin';
-  const repo = 'thesanskritchannel_projects';
-  const workflow_id = 'commit_trans.yml';
-  const req = await fetch_post(
-    `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflow_id}/dispatches`,
-    {
-      headers: {
-        Authorization: `Bearer ${env.GITHUB_API_KEY}`
-      },
-      json: {
-        ref: 'main'
-      }
-    }
-  );
-  return req.ok;
-});
-
 export const translation_router = t.router({
   get_translation: get_translation_route,
   edit_translation: edit_translation_route,
-  get_all_langs_translation: get_all_langs_translation_route,
-  trigger_translation_commit: trigger_translation_commit_route
+  get_all_langs_translation: get_all_langs_translation_route
 });

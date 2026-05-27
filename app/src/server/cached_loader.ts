@@ -15,7 +15,7 @@ export type defer_promise_type = (promise: Promise<unknown>) => void;
 const defer_promise = (promise: Promise<unknown>, defer?: defer_promise_type) => {
   const defer_func = defer ?? waitUntil;
   defer_func(promise);
-  void promise.catch(() => { });
+  void promise.catch(() => {});
 };
 
 type DBType = typeof db;

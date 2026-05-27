@@ -37,23 +37,6 @@ export const get_text_data_func = async (
   const project = await get_project_by_key(key, options);
   if (!project) throw new Error(`Project not found: ${key}`);
   const project_id = project.id;
-  if (import.meta.env.DEV) {
-    // only for LOCAL DEV
-    const { resolve } = await import('node:path');
-    const { fileURLToPath } = await import('node:url');
-
-    const get_text_data_loc = (project_id: number, key: string, path_params: number[]) =>
-      `data/${project_id}. ${key}/data` +
-      (path_params.length !== 0 ? `/${path_params.join('/')}.json` : `.json`);
-    const repo_root = resolve(fileURLToPath(new URL('.', import.meta.url)), '../../..');
-    const get_text_data_file_path = (project_id: number, key: string, path_params: number[]) =>
-      resolve(repo_root, get_text_data_loc(project_id, key, path_params));
-    const fs = await import('node:fs');
-
-    return JSON.parse(
-      fs.readFileSync(get_text_data_file_path(project_id, key, path_params), 'utf8')
-    ) as shloka_list_type;
-  }
 
   const cache_key = REDIS_CACHE_KEYS_CLIENT.text_data(project_id, path_params);
   const cache = await redis.get<shloka_list_type>(cache_key);
@@ -225,7 +208,8 @@ export const get_project_list_func = async (options: db_options): Promise<projec
       name: true,
       name_dev: true,
       description: true,
-      key: true
+      key: true,
+      listed: true
     },
     orderBy: ({ id }, { asc }) => asc(id)
   });

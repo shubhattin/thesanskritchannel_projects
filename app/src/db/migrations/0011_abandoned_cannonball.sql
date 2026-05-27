@@ -5,6 +5,7 @@ CREATE TABLE "projects" (
 	"name_dev" text NOT NULL,
 	"description" text,
 	"map" jsonb NOT NULL,
+	"listed" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone,
 	CONSTRAINT "projects_key_unique" UNIQUE("key")

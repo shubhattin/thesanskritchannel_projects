@@ -6,6 +6,7 @@ export type project_type = {
   name_dev: string;
   description?: string | null;
   key: string;
+  listed: boolean;
 };
 
 export type project_registry_type = {
@@ -14,19 +15,13 @@ export type project_registry_type = {
   byKey: ReadonlyMap<string, project_type>;
 };
 
-type build_project_registry_options = {
-  sort?: boolean;
-};
-
 export const build_project_registry = (
-  projects: readonly project_type[],
-  { sort = true }: build_project_registry_options = {}
+  projects: readonly project_type[]
 ): project_registry_type => {
-  const list = sort ? [...projects].sort((a, b) => a.id - b.id) : [...projects];
   const byId = new Map<number, project_type>();
   const byKey = new Map<string, project_type>();
 
-  for (const project of list) {
+  for (const project of projects) {
     if (byId.has(project.id)) {
       throw new Error(`Duplicate project id: ${project.id}`);
     }
@@ -37,7 +32,7 @@ export const build_project_registry = (
     byKey.set(project.key, project);
   }
 
-  return { list, byId, byKey };
+  return { list: projects, byId, byKey };
 };
 
 export const EMPTY_PROJECT_REGISTRY = build_project_registry([]);

@@ -13,11 +13,13 @@ export let selected_text_levels = writable<(number | null)[]>([null, null]);
 export let project_state = writable<{
   project_key: string | null;
   project_id: number | null;
+  listed: boolean;
   levels: number;
   level_names: string[];
 }>({
   project_key: null,
   project_id: null,
+  listed: false,
   levels: 0,
   level_names: []
 });

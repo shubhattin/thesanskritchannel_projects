@@ -39,10 +39,12 @@
   );
 
   function set_project_state() {
-    if (!project_id) return;
+    const project = current_project;
+    if (!project) return;
     $project_state = {
       project_key,
-      project_id,
+      project_id: project.id,
+      listed: project.listed,
       levels,
       level_names: data.level_names
     };

@@ -86,7 +86,9 @@ export const resolve_text_route = async (
   raw_project_key: string,
   raw_segments: string[]
 ): Promise<resolved_text_route_type | null> => {
-  const project = await get_project_by_key(raw_project_key, cache_db_options_site);
+  const project = await get_project_by_key(raw_project_key, cache_db_options_site, {
+    listed_only: true
+  });
   if (!project) return null;
   const project_key = project.key;
   const project_info = await get_project_info_by_key(project_key, cache_db_options_site);

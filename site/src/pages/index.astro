@@ -3,7 +3,7 @@ import RootLayout from '$components/RootLayout.astro';
 import { get_project_list } from '$app/server/project_list.server';
 import { cache_db_options_site } from '~/db/cache_db_options';
 
-const projects = await get_project_list(cache_db_options_site);
+const projects = await get_project_list(cache_db_options_site, { listed_only: true });
 import Youtube from '@lucide/svelte/icons/youtube';
 import ArrowRight from '@lucide/svelte/icons/arrow-right';
 import ExternalLink from '@lucide/svelte/icons/external-link';

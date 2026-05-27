@@ -17,7 +17,7 @@ type Props = {
 const index_site = Astro.props.index ?? true;
 
 const { title, description }: Props = Astro.props;
-const projects = await get_project_list(cache_db_options_site);
+const projects = await get_project_list(cache_db_options_site, { listed_only: true });
 
 const shareImageInfo = {
   url: 'https://cdn.jsdelivr.net/gh/shubhattin/thesanskritchannel_projects@latest/others/project_images/share_image.jpg',

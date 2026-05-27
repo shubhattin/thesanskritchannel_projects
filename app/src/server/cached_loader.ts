@@ -15,7 +15,7 @@ export type defer_promise_type = (promise: Promise<unknown>) => void;
 const defer_promise = (promise: Promise<unknown>, defer?: defer_promise_type) => {
   const defer_func = defer ?? waitUntil;
   defer_func(promise);
-  void promise.catch(() => {});
+  void promise.catch(() => { });
 };
 
 type DBType = typeof db;
@@ -225,7 +225,8 @@ export const get_project_list_func = async (options: db_options): Promise<projec
       name: true,
       name_dev: true,
       description: true,
-      key: true
+      key: true,
+      listed: true
     },
     orderBy: ({ id }, { asc }) => asc(id)
   });

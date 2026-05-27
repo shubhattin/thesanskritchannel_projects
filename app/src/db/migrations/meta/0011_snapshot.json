@@ -1,5 +1,5 @@
 {
-  "id": "5fd96694-67ee-417f-b1a5-7f8fdde0e72a",
+  "id": "155fc6c9-2fff-4fd6-ada7-504688f4cd6a",
   "prevId": "4a1b945e-c8ac-4fde-ad7d-4ebf9bdd6b10",
   "version": "7",
   "dialect": "postgresql",
@@ -160,6 +160,13 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
+        },
+        "listed": {
+          "name": "listed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "created_at": {
           "name": "created_at",

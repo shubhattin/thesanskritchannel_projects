@@ -46,12 +46,13 @@ const build_internal_registry = async (
 ): Promise<internal_project_registry_type> => {
   const sorted_source = await get_project_list_func(options);
   const registry = build_project_registry(
-    sorted_source.map(({ id, name, name_dev, description, key }) => ({
+    sorted_source.map(({ id, name, name_dev, description, key, listed }) => ({
       id,
       name,
       name_dev,
       description,
-      key
+      key,
+      listed
     })),
     { sort: false }
   );

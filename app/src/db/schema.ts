@@ -22,6 +22,7 @@ export const projects = pgTable('projects', {
   description: text(),
   /** Project Map */
   map: jsonb().notNull().$type<recursive_list_type>(),
+  listed: boolean().notNull().default(false),
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
 });

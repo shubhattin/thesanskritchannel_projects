@@ -6,6 +6,7 @@ export type project_type = {
   name_dev: string;
   description?: string | null;
   key: string;
+  listed: boolean;
 };
 
 export type project_registry_type = {

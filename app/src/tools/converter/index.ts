@@ -36,11 +36,5 @@ export async function transliterate_custom<T extends string | string[]>(
       'brahmic_to_brahmic:replace_pancham_varga_varna_with_anusvAra': true
     };
   }
-  if (typeof text === 'string') {
-    return (await transliterate_fn(text, from, to, trans_options)) as any;
-  }
-  const results = await Promise.all(
-    (text as string[]).map((v) => transliterate_fn(v, from, to, trans_options))
-  );
-  return results as any;
+  return await transliterate_fn(text, from, to, trans_options);
 }

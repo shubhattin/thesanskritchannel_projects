@@ -96,10 +96,10 @@
     mutationFn: async () => {
       if (!browser) return;
       const text = (
-        await Promise.all(
-          $text_data_q.data!.map((shloka_lines) =>
-            transliterate_custom(shloka_lines.text, BASE_SCRIPT, $viewing_script)
-          )
+        await transliterate_custom(
+          $text_data_q.data!.map((shloka_lines) => shloka_lines.text),
+          BASE_SCRIPT,
+          $viewing_script
         )
       ).join('\n\n');
       const blob = new Blob([text], { type: 'text/plain' });

@@ -97,20 +97,18 @@
   };
 
   const copy_sarga_with_transliteration_and_translation = async () => {
-    const texts_to_copy = await Promise.all(
-      transliterated_data.map(async (shloka_lines, i) => {
-        const normal_shloka = await transliterate_custom(
-          $text_data_q.data![i].text,
-          BASE_SCRIPT,
-          'Normal'
-        );
-        const trans_index = i;
-        let txt = `${shloka_lines}\n${normal_shloka}`;
-        const lang_data = $trans_lang === 0 ? $trans_en_data_q.data : $trans_lang_data_q.data;
-        if (lang_data && lang_data.has(trans_index)) txt += `\n\n${lang_data.get(trans_index)}`;
-        return txt;
-      })
+    const normal_shlokas = await transliterate_custom(
+      $text_data_q.data!.map((d) => d.text),
+      BASE_SCRIPT,
+      'Normal'
     );
+    const texts_to_copy = transliterated_data.map((shloka_lines, i) => {
+      const trans_index = i;
+      let txt = `${shloka_lines}\n${normal_shlokas[i]}`;
+      const lang_data = $trans_lang === 0 ? $trans_en_data_q.data : $trans_lang_data_q.data;
+      if (lang_data && lang_data.has(trans_index)) txt += `\n\n${lang_data.get(trans_index)}`;
+      return txt;
+    });
     copy_text(texts_to_copy.join('\n\n\n'));
   };
 

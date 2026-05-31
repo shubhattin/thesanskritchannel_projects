@@ -571,18 +571,15 @@ export const compute_all_layouts = async (
   const transFontFamily = FONT_FAMILY_NAME[trans_text_font_info.key];
   const robotoFamily = FONT_FAMILY_NAME['ROBOTO'];
 
+  const [main_texts, norm_texts] = await Promise.all([
+    transliterate_custom(shloka_lines, BASE_SCRIPT, image_script as ScriptLangType),
+    transliterate_custom(shloka_lines, BASE_SCRIPT, 'Normal' as ScriptLangType)
+  ]);
+
   // --- Shloka lines ---
   for (let line_i = 0; line_i < shloka_lines.length; line_i++) {
-    const main_text = await transliterate_custom(
-      shloka_lines[line_i],
-      BASE_SCRIPT,
-      image_script as ScriptLangType
-    );
-    const norm_text = await transliterate_custom(
-      shloka_lines[line_i],
-      BASE_SCRIPT,
-      'Normal' as ScriptLangType
-    );
+    const main_text = main_texts[line_i];
+    const norm_text = norm_texts[line_i];
 
     // Main text
     const mainResult = compute_fitted_text({

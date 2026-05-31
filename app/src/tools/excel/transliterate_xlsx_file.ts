@@ -48,15 +48,13 @@ export const transliterate_xlxs_file = async (
         const script_code = getNormalizedScriptName(script_name as ScriptLangType);
         if (script_code && script_code !== base_lang_code) {
           await preloadScriptData(script_code as ScriptLangType);
-          for (let val_pair of texts) {
-            const text = val_pair[1];
-            const i = val_pair[0];
-            const out = await transliterate_custom(
-              text,
-              base_lang_code as ScriptLangType,
-              script_code
-            );
-            worksheet.getCell(i, col_i).value = out;
+          const outs = await transliterate_custom(
+            texts.map(([, text]) => text),
+            base_lang_code as ScriptLangType,
+            script_code
+          );
+          for (let j = 0; j < texts.length; j++) {
+            worksheet.getCell(texts[j][0], col_i).value = outs[j];
           }
         }
         if (

@@ -7,7 +7,6 @@ import { get_script_for_lang_id } from '$app/state/lang_list';
 import type { shloka_list_type } from '$app/state/data_types';
 import {
   get_display_script_from_id,
-  transliterate_for_display,
   transliterate_list_for_display
 } from '~/lib/main_text/script-display';
 import { getFontClass } from '~/components/utils/font_list';
@@ -50,12 +49,14 @@ const display_path_names = await transliterate_list_for_display(
   resolved.path_names,
   selected_script_id
 );
-const display_child_items = await Promise.all(
-  child_items.map(async (item) => ({
-    ...item,
-    name_display: await transliterate_for_display(item.name_dev, selected_script_id)
-  }))
+const child_name_displays = await transliterate_list_for_display(
+  child_items.map((item) => item.name_dev),
+  selected_script_id
 );
+const display_child_items = child_items.map((item, i) => ({
+  ...item,
+  name_display: child_name_displays[i]
+}));
 const display_text =
   text !== null
     ? await transliterate_list_for_display(
@@ -100,14 +101,20 @@ const next_sibling_source =
   current_sibling_position !== null && current_sibling_position < sibling_items.length
     ? (sibling_items[current_sibling_position] ?? null)
     : null;
-const [previous_sibling_name_display, next_sibling_name_display] = await Promise.all([
-  previous_sibling_source
-    ? transliterate_for_display(previous_sibling_source.name_dev, selected_script_id)
-    : Promise.resolve(null),
-  next_sibling_source
-    ? transliterate_for_display(next_sibling_source.name_dev, selected_script_id)
-    : Promise.resolve(null)
-]);
+const sibling_name_devs = [previous_sibling_source?.name_dev, next_sibling_source?.name_dev].filter(
+  (name): name is string => name != null
+);
+const sibling_name_displays =
+  sibling_name_devs.length > 0
+    ? await transliterate_list_for_display(sibling_name_devs, selected_script_id)
+    : [];
+let sibling_display_i = 0;
+const previous_sibling_name_display = previous_sibling_source
+  ? sibling_name_displays[sibling_display_i++]
+  : null;
+const next_sibling_name_display = next_sibling_source
+  ? sibling_name_displays[sibling_display_i++]
+  : null;
 const previous_sibling_item: TextSiblingNavigationItem | null =
   previous_sibling_source && previous_sibling_name_display
     ? {

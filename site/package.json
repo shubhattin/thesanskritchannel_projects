@@ -43,7 +43,7 @@
     "astro": "^6.3.3",
     "drizzle-orm": "^0.45.2",
     "js-cookie": "^3.0.5",
-    "lipilekhika": "^1.0.12",
+    "lipilekhika": "^1.0.13",
     "postgres": "^3.4.9",
     "rehype-stringify": "^10.0.1",
     "remark-gfm": "^4.0.1",

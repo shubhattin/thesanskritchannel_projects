@@ -29,21 +29,23 @@ export async function transliterateLipiSpansInMarkdown(
   lipilekhika_func: typeof transliterate | undefined = undefined
 ) {
   LIPI_TAG_RE.lastIndex = 0;
-  const chunks: string[] = [];
+  const segments: { before: string; inner: string }[] = [];
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = LIPI_TAG_RE.exec(markdown)) !== null) {
-    chunks.push(markdown.slice(last, m.index));
-    const text = await transliterate_custom(
-      m[1],
-      'Devanagari',
-      script,
-      undefined,
-      lipilekhika_func ?? transliterate
-    );
-    chunks.push(wrapLipiHtml(text));
+    segments.push({ before: markdown.slice(last, m.index), inner: m[1] });
     last = m.index + m[0].length;
   }
-  chunks.push(markdown.slice(last));
-  return chunks.join('');
+  const tail = markdown.slice(last);
+  if (segments.length === 0) return markdown;
+
+  const transliterated = await transliterate_custom(
+    segments.map((s) => s.inner),
+    'Devanagari',
+    script,
+    undefined,
+    lipilekhika_func ?? transliterate
+  );
+
+  return segments.map((s, i) => s.before + wrapLipiHtml(transliterated[i])).join('') + tail;
 }

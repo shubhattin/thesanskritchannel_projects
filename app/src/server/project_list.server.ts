@@ -45,32 +45,6 @@ const map_cache = new Map<number, MapCacheEntry>();
 const is_cache_fresh = (fetchedAt: number) =>
   Date.now() - fetchedAt < PROJECT_LIST_CACHE_REFRESH_INTERVAL_MS;
 
-const build_internal_registry = async (
-  options: db_options
-): Promise<internal_project_registry_type> => {
-  const sorted_source = await get_project_list_func(options);
-  const registry = build_project_registry(
-    sorted_source.map(({ id, name, name_dev, description, key, listed }) => ({
-      id,
-      name,
-      name_dev,
-      description,
-      key,
-      listed
-    }))
-  );
-  const getMapById = new Map(
-    sorted_source.map(
-      (project) => [project.id, () => get_project_map_func(project.id, options)] as const
-    )
-  );
-
-  return {
-    ...registry,
-    getMapById
-  };
-};
-
 const get_internal_registry = async (
   options: db_options
 ): Promise<internal_project_registry_type> => {
@@ -79,7 +53,27 @@ const get_internal_registry = async (
   }
   if (registry_cache.inFlight) return registry_cache.inFlight;
 
-  registry_cache.inFlight = Promise.resolve(build_internal_registry(options))
+  registry_cache.inFlight = Promise.resolve(
+    (async (): Promise<internal_project_registry_type> => {
+      const sorted_source = await get_project_list_func(options);
+      const registry = build_project_registry(
+        sorted_source.map(({ id, name, name_dev, description, key, listed }) => ({
+          id,
+          name,
+          name_dev,
+          description,
+          key,
+          listed
+        }))
+      );
+      const getMapById = new Map(
+        sorted_source.map(
+          (project) => [project.id, () => get_project_map_func(project.id, options)] as const
+        )
+      );
+      return { ...registry, getMapById };
+    })()
+  )
     .then((value) => {
       registry_cache.value = value;
       registry_cache.fetchedAt = Date.now();
@@ -123,21 +117,15 @@ export const get_project_registry = async (
   return get_filtered_registry(registry, lookup_options);
 };
 
-const apply_lookup_options = <T extends project_type | undefined>(
-  project: T,
-  { listed_only = false }: project_lookup_options = {}
-): T | undefined => {
-  if (listed_only && project && !project.listed) return undefined;
-  return project;
-};
-
 export const get_project_by_id = async (
   id: number,
   options: db_options,
   lookup_options?: project_lookup_options
 ) => {
   const registry = await get_internal_registry(options);
-  return apply_lookup_options(registry.byId.get(id), lookup_options);
+  const project = registry.byId.get(id);
+  if (lookup_options?.listed_only && project && !project.listed) return undefined;
+  return project;
 };
 
 export const get_project_by_key = async (
@@ -146,7 +134,9 @@ export const get_project_by_key = async (
   lookup_options?: project_lookup_options
 ) => {
   const registry = await get_internal_registry(options);
-  return apply_lookup_options(registry.byKey.get(key), lookup_options);
+  const project = registry.byKey.get(key);
+  if (lookup_options?.listed_only && project && !project.listed) return undefined;
+  return project;
 };
 
 export const get_project_map_by_id = async (

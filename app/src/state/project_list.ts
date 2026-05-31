@@ -67,32 +67,32 @@ export const get_levels_from_map = (map: recursive_list_type): number => {
   return 1 + max_child_depth;
 };
 
-const get_list_names_high_to_low = (map: recursive_list_type): string[] => {
-  if (map.info.type !== 'list') return [];
-  const current = map.info.list_name;
-  const children = map.list ?? [];
-  if (children.length === 0) return [current];
-
-  // pick a canonical deepest path so names match max depth
-  let best_child: recursive_list_type | null = null;
-  let best_depth = -1;
-  for (const child of children) {
-    const d = get_levels_from_map(child);
-    if (d > best_depth) {
-      best_depth = d;
-      best_child = child;
-    }
-  }
-  if (!best_child) return [current];
-  return [current, ...get_list_names_high_to_low(best_child)];
-};
-
 export const get_level_names_from_map = (
   map: recursive_list_type,
   leaf_level_name = 'Shloka'
 ): string[] => {
   // returns lower -> higher (index 0 is the leaf/shloka level)
-  const list_names_high_to_low = get_list_names_high_to_low(map);
+  const collect_list_names_high_to_low = (node: recursive_list_type): string[] => {
+    if (node.info.type !== 'list') return [];
+    const current = node.info.list_name;
+    const children = node.list ?? [];
+    if (children.length === 0) return [current];
+
+    // pick a canonical deepest path so names match max depth
+    let best_child: recursive_list_type | null = null;
+    let best_depth = -1;
+    for (const child of children) {
+      const d = get_levels_from_map(child);
+      if (d > best_depth) {
+        best_depth = d;
+        best_child = child;
+      }
+    }
+    if (!best_child) return [current];
+    return [current, ...collect_list_names_high_to_low(best_child)];
+  };
+
+  const list_names_high_to_low = collect_list_names_high_to_low(map);
   return [leaf_level_name, ...list_names_high_to_low.reverse()];
 };
 

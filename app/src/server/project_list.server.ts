@@ -42,6 +42,28 @@ type MapCacheEntry = {
 
 const map_cache = new Map<number, MapCacheEntry>();
 
+/** Clears in-memory project map cache for one project or all projects. */
+export const clear_project_map_cache = (project_id?: number) => {
+  if (project_id === undefined) {
+    map_cache.clear();
+    return;
+  }
+  map_cache.delete(project_id);
+};
+
+/** Clears in-memory project registry cache (call after project metadata mutations). */
+export const clear_project_registry_cache = () => {
+  registry_cache.value = null;
+  registry_cache.fetchedAt = 0;
+  registry_cache.inFlight = null;
+};
+
+/** Clears registry and project map in-memory caches. */
+export const clear_project_server_cache = () => {
+  clear_project_registry_cache();
+  clear_project_map_cache();
+};
+
 const is_cache_fresh = (fetchedAt: number) =>
   Date.now() - fetchedAt < PROJECT_LIST_CACHE_REFRESH_INTERVAL_MS;
 

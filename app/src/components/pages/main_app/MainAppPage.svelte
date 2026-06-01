@@ -62,7 +62,7 @@
   import { preloadScriptData, type ScriptLangType } from 'lipilekhika';
   import { Button } from '$lib/components/ui/button';
   import * as Select from '$lib/components/ui/select';
-  import { cl_join } from '~/tools/cl_join';
+  import ProjectSettingsBar from './settings/ProjectSettingsBar.svelte';
 
   const query_client = useQueryClient();
 
@@ -310,21 +310,7 @@
   });
 </script>
 
-<div class="flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">
-  <span
-    class={cl_join([
-      'rounded-full border px-2 py-0.5 font-medium',
-      $project_state.listed
-        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-        : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-    ])}
-  >
-    {$project_state.listed ? 'Listed' : 'Unlisted'}
-  </span>
-  <span class="hidden sm:inline">
-    {$project_state.listed ? 'Visible on the public site' : 'Hidden from the public site'}
-  </span>
-</div>
+<ProjectSettingsBar />
 
 <label class="block space-x-2 text-sm sm:space-x-2 sm:text-base">
   Script

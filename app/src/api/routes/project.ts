@@ -10,6 +10,7 @@ import ms from 'ms';
 import { waitUntil } from '@vercel/functions';
 import { cache_db_options_app } from '~/server/cache_db_options';
 import { get_project_list, get_project_map_by_id } from '~/server/project_list.server';
+import { project_edit_router } from './project_edit';
 
 export const get_languages_for_project_user = async (
   user_id: string,
@@ -231,5 +232,6 @@ export const project_router = t.router({
   update_project_languages: update_project_languages_route,
   user_project_info: user_project_info_route,
   get_project_list: get_project_list_route,
-  get_project_map: get_project_map_route
+  get_project_map: get_project_map_route,
+  edit: project_edit_router
 });

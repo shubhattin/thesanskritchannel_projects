@@ -45,6 +45,9 @@ export const project_list_q = createQuery(
   queryClient
 );
 
+export const invalidate_project_list_queries = () =>
+  queryClient.invalidateQueries({ queryKey: ['project_list'] });
+
 export const user_project_info_q = get_derived_query(
   [project_state, user_info],
   ([_prject_state, _user_info]) =>

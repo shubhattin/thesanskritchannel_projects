@@ -1,5 +1,10 @@
 import type { recursive_list_type } from '../../../app/src/state/data_types';
-import { get_list_name_for_path_param_index, get_node_at_path } from '$app/state/project_list';
+import {
+  get_list_name_for_path_param_index,
+  get_node_at_path,
+  is_child_nav_disabled,
+  list_item_path_value
+} from '$app/state/project_list';
 import {
   get_project_by_key,
   get_project_info_by_key,
@@ -164,17 +169,6 @@ export const resolve_text_route = async (
   };
 };
 
-/** Mirrors MainAppPage `empty_child` (list with no children; only when `i < levels - 2`). */
-function is_child_nav_disabled(
-  child: recursive_list_type,
-  path_params_length: number,
-  levels: number
-): boolean {
-  if (path_params_length >= levels - 2) return false;
-  if (child.info.type !== 'list') return false;
-  return !Array.isArray(child.list) || child.list.length === 0;
-}
-
 export const get_child_route_items = (
   project_key: string,
   map: recursive_list_type,
@@ -185,11 +179,12 @@ export const get_child_route_items = (
   if (!node || node.info.type !== 'list') return [];
 
   return (node.list ?? []).map((child, index) => {
-    const next_path_params = [...path_params, index + 1];
+    const path_value = list_item_path_value(index);
+    const next_path_params = [...path_params, path_value];
     const href = build_project_path(project_key, map, next_path_params);
     const is_leaf = child.info.type === 'shloka';
     return {
-      index: index + 1,
+      index: path_value,
       href: href ?? `/${project_key}`,
       name_dev: child.name_dev,
       is_leaf,

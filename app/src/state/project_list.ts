@@ -139,6 +139,36 @@ export const get_map_list_at_depth = (
   return Array.isArray(node.list) ? node.list : null;
 };
 
+/** 1-based path segment for a child at `index` (replaces stored `pos` on map nodes). */
+export const list_item_path_value = (index: number) => index + 1;
+
+/** List node with no children (used to block drill-down in nav; not for shloka leaves). */
+export const is_empty_list_branch = (node: recursive_list_type) =>
+  node.info.type === 'list' && (!Array.isArray(node.list) || node.list.length === 0);
+
+/** Whether a child should be shown as blocked in selectors / site nav (mirrors MainApp depth rules). */
+export const is_child_nav_disabled = (
+  child: recursive_list_type,
+  path_params_length: number,
+  levels: number
+) => path_params_length < levels - 2 && is_empty_list_branch(child);
+
+export type map_selector_option_type = {
+  text: string;
+  value: number;
+  empty_child?: boolean;
+};
+
+export const map_list_nodes_to_selector_options = (
+  items: readonly recursive_list_type[],
+  { mark_empty_child = false }: { mark_empty_child?: boolean } = {}
+): map_selector_option_type[] =>
+  items.map((node, index) => ({
+    text: node.name_dev,
+    value: list_item_path_value(index),
+    ...(mark_empty_child && { empty_child: is_empty_list_branch(node) })
+  }));
+
 export const get_list_name_at_depth_from_selected = (
   map: recursive_list_type,
   levels: number,

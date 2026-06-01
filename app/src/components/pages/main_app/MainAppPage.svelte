@@ -33,7 +33,9 @@
     get_list_length_for_last_param,
     get_list_name_at_depth_from_selected,
     get_map_list_at_depth,
-    get_node_at_path
+    get_node_at_path,
+    is_empty_list_branch,
+    map_list_nodes_to_selector_options
   } from '~/state/project_list';
   import type { recursive_list_type } from '~/state/data_types';
   import { transliterate_custom } from '~/tools/converter';
@@ -371,9 +373,7 @@
           ...initial_option_base,
           // Show the blocked icon only for list nodes that truly have no children.
           // Leaf nodes (e.g. info.type === 'shloka') are valid endpoints and should not be blocked.
-          empty_child:
-            initial_option_node?.info?.type === 'list' &&
-            (!Array.isArray(initial_option_node?.list) || initial_option_node.list.length === 0)
+          empty_child: initial_option_node ? is_empty_list_branch(initial_option_node) : false
         }
       : initial_option_base}
   {@const list_at_depth =
@@ -384,15 +384,9 @@
       text_level_state_index,
       initial_option,
       options: list_at_depth
-        ? list_at_depth.map((text_level: any) => ({
-            text: text_level.name_dev,
-            value: text_level.pos,
-            empty_child:
-              i < levels - 2
-                ? text_level?.info?.type === 'list' &&
-                  (!Array.isArray(text_level?.list) || text_level.list.length === 0)
-                : false
-          }))
+        ? map_list_nodes_to_selector_options(list_at_depth, {
+            mark_empty_child: i < levels - 2
+          })
         : false
     })}
   {/if}

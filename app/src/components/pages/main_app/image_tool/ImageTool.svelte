@@ -49,7 +49,8 @@
   import { Button } from '$lib/components/ui/button';
   import {
     get_list_name_at_depth_from_selected,
-    get_map_list_at_depth
+    get_map_list_at_depth,
+    map_list_nodes_to_selector_options
   } from '~/state/project_list';
 
   type Props = {
@@ -308,12 +309,7 @@
               {@render selecter({
                 name: level_name,
                 text_level_state_index,
-                options: list_at_depth
-                  ? list_at_depth.map((text_level: any) => ({
-                      text: text_level.name_dev,
-                      value: text_level.pos
-                    }))
-                  : false
+                options: list_at_depth ? map_list_nodes_to_selector_options(list_at_depth) : false
               })}
             {/if}
           {/each}

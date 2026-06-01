@@ -1,6 +1,6 @@
 <script lang="ts">
   import { client_q } from '~/api/client';
-  import { invalidate_project_list_queries } from '~/state/main_app/data.svelte';
+  import { invalidate_project_registry_queries } from '~/state/main_app/data.svelte';
   import type { project_type } from '~/state/project_list';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
@@ -22,7 +22,7 @@
 
   const save_mut = client_q.project.edit.update_name_description.mutation({
     onSuccess: async () => {
-      await invalidate_project_list_queries();
+      await invalidate_project_registry_queries(project.id);
       toast.success('Project details saved');
     },
     onError: (err) => {

@@ -39,10 +39,10 @@
       type="button"
       variant="outline"
       size="sm"
-      class="ml-auto h-10 gap-1.5 px-2.5 text-lg sm:ml-0"
+      class="ml-auto h-9 gap-1.5 px-2.5 text-xs sm:ml-0 sm:text-sm"
       onclick={() => (settings_open = true)}
     >
-      <Settings class="size-5" aria-hidden="true" />
+      <Settings class="size-4" aria-hidden="true" />
       Settings
     </Button>
     <ProjectSettingsDialog bind:open={settings_open} {project} />

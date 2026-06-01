@@ -1,6 +1,6 @@
 <script lang="ts">
   import { client_q } from '~/api/client';
-  import { invalidate_project_list_queries } from '~/state/main_app/data.svelte';
+  import { invalidate_project_registry_queries } from '~/state/main_app/data.svelte';
   import type { project_type } from '~/state/project_list';
   import { Button } from '$lib/components/ui/button';
   import { Skeleton } from '$lib/components/ui/skeleton';
@@ -26,7 +26,7 @@
 
   const delete_mut = client_q.project.edit.delete_project.mutation({
     onSuccess: async () => {
-      await invalidate_project_list_queries();
+      await invalidate_project_registry_queries(project.id);
       delete_dialog_open = false;
       toast.success('Project deleted');
       onDeleted?.();

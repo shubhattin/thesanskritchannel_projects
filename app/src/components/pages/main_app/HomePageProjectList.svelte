@@ -5,8 +5,13 @@
   import * as InputGroup from '$lib/components/ui/input-group';
   import * as Select from '$lib/components/ui/select';
   import SearchIcon from '@lucide/svelte/icons/search';
+  import Plus from '@lucide/svelte/icons/plus';
+  import { user_info } from '~/state/user.svelte';
+  import ProjectAddNewDialog from './settings/ProjectAddNewDialog.svelte';
 
   const DEFAULT_PAGE_SIZE = 15;
+  const is_admin = $derived($user_info?.role === 'admin');
+  let add_project_open = $state(false);
 
   let page = $state(1);
   let size = $state(DEFAULT_PAGE_SIZE);
@@ -53,6 +58,18 @@
     >
 
     <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
+      {#if is_admin}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          class="h-9 gap-1.5 px-2.5 text-xs"
+          onclick={() => (add_project_open = true)}
+        >
+          <Plus class="size-4" aria-hidden="true" />
+          Add new project
+        </Button>
+      {/if}
       <span class="text-xs text-muted-foreground">Listed</span>
       <Select.Root
         type="single"
@@ -75,6 +92,10 @@
       </Select.Root>
     </div>
   </div>
+
+  {#if is_admin}
+    <ProjectAddNewDialog bind:open={add_project_open} />
+  {/if}
 
   {#if $project_list_q.isPending}
     <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4">

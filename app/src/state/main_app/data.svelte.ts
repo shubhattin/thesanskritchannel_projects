@@ -48,6 +48,19 @@ export const project_list_q = createQuery(
 export const invalidate_project_list_queries = () =>
   queryClient.invalidateQueries({ queryKey: ['project_list'] });
 
+export const invalidate_project_map_queries = (project_id?: number) =>
+  queryClient.invalidateQueries({
+    queryKey: ['project_map', project_id]
+  });
+
+/** Refreshes project list and, when given, that project’s map query. */
+export const invalidate_project_registry_queries = async (project_id?: number) => {
+  await Promise.all([
+    invalidate_project_list_queries(),
+    project_id !== undefined ? invalidate_project_map_queries(project_id) : Promise.resolve()
+  ]);
+};
+
 export const user_project_info_q = get_derived_query(
   [project_state, user_info],
   ([_prject_state, _user_info]) =>

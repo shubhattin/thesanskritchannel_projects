@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { protectedAdminProcedure, protectedProcedure } from '../trpc_init';
+import { protectedAdminProcedure, protectedProcedure } from '../../trpc_init';
 import { db, type transactionType } from '~/db/db';
 import { delay } from '~/tools/delay';
 import { projects, user_project_join, user_project_language_join } from '~/db/schema';
 import { and, asc, count, eq, ilike, or } from 'drizzle-orm';
-import { t } from '../trpc_init';
+import { t } from '../../trpc_init';
 import { redis, REDIS_CACHE_KEYS, deleteKeysWithPattern } from '~/db/redis';
 import ms from 'ms';
 import { waitUntil } from '@vercel/functions';

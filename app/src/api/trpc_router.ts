@@ -1,6 +1,6 @@
 import { t } from './trpc_init';
 import { user_router } from './routes/user';
-import { project_router } from './routes/project';
+import { project_router } from './routes/project/project';
 import { translation_router } from './routes/translation';
 import { ai_router } from './routes/ai';
 import { media_router } from './routes/media';

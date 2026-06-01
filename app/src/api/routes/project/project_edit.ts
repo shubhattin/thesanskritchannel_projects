@@ -214,6 +214,12 @@ const add_new_project_route = protectedAdminProcedure
   .mutation(async ({ input: { name, name_dev, description, slug } }) => {
     await delay(400);
     const key = lekhaUrlSlugify(slug);
+    if (!key) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Slug must contain at least one alphanumeric character'
+      });
+    }
 
     const project = await db.transaction(async (tx) => {
       const conflict = await tx.query.projects.findFirst({

@@ -26,12 +26,15 @@ type RegistryCache = {
   value: internal_project_registry_type | null;
   fetchedAt: number;
   inFlight: Promise<internal_project_registry_type> | null;
+  /** Bumped on clear so in-flight fetches cannot write stale registry data. */
+  generation: number;
 };
 
 const registry_cache: RegistryCache = {
   value: null,
   fetchedAt: 0,
-  inFlight: null
+  inFlight: null,
+  generation: 0
 };
 
 type MapCacheEntry = {
@@ -53,15 +56,33 @@ export const clear_project_map_cache = (project_id?: number) => {
 
 /** Clears in-memory project registry cache (call after project metadata mutations). */
 export const clear_project_registry_cache = () => {
+  registry_cache.generation += 1;
   registry_cache.value = null;
   registry_cache.fetchedAt = 0;
   registry_cache.inFlight = null;
+};
+
+type ProjectInfoCacheEntry = {
+  value: Promise<project_info_type>;
+  fetchedAt: number;
+};
+
+const project_info_cache = new Map<string, ProjectInfoCacheEntry>();
+
+/** Clears in-memory project info cache for one key or all keys. */
+export const clear_project_info_cache = (project_key?: string) => {
+  if (project_key === undefined) {
+    project_info_cache.clear();
+    return;
+  }
+  project_info_cache.delete(project_key);
 };
 
 /** Clears registry and project map in-memory caches. */
 export const clear_project_server_cache = () => {
   clear_project_registry_cache();
   clear_project_map_cache();
+  clear_project_info_cache();
 };
 
 const is_cache_fresh = (fetchedAt: number) =>
@@ -74,6 +95,8 @@ const get_internal_registry = async (
     return registry_cache.value;
   }
   if (registry_cache.inFlight) return registry_cache.inFlight;
+
+  const fetch_generation = registry_cache.generation;
 
   registry_cache.inFlight = Promise.resolve(
     (async (): Promise<internal_project_registry_type> => {
@@ -97,13 +120,17 @@ const get_internal_registry = async (
     })()
   )
     .then((value) => {
-      registry_cache.value = value;
-      registry_cache.fetchedAt = Date.now();
-      registry_cache.inFlight = null;
+      if (fetch_generation === registry_cache.generation) {
+        registry_cache.value = value;
+        registry_cache.fetchedAt = Date.now();
+        registry_cache.inFlight = null;
+      }
       return value;
     })
     .catch((err) => {
-      registry_cache.inFlight = null;
+      if (fetch_generation === registry_cache.generation) {
+        registry_cache.inFlight = null;
+      }
       throw err;
     });
 
@@ -207,13 +234,6 @@ export const get_project_map_by_key = async (
 
   return entry.inFlight;
 };
-
-type ProjectInfoCacheEntry = {
-  value: Promise<project_info_type>;
-  fetchedAt: number;
-};
-
-const project_info_cache = new Map<string, ProjectInfoCacheEntry>();
 
 export const get_project_info_by_key = async (
   key: string,

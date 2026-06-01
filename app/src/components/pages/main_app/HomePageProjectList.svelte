@@ -19,14 +19,16 @@
   let submitted_search = $state('');
   let listed_filter = $state<'all' | 'listed' | 'unlisted'>('all');
 
-  const listed_param = $derived(listed_filter === 'all' ? undefined : listed_filter === 'listed');
+  const listed_param = $derived(
+    is_admin ? (listed_filter === 'all' ? undefined : listed_filter === 'listed') : true
+  );
 
   let project_list_q = $derived(
     client_q.project.get_project_list.query({
       page,
       size,
       search: submitted_search || undefined,
-      listed: listed_param
+      ...(is_admin ? { listed: listed_param } : {})
     })
   );
 
@@ -69,27 +71,27 @@
           <Plus class="size-4" aria-hidden="true" />
           Add new project
         </Button>
+        <span class="text-xs text-muted-foreground">Listed</span>
+        <Select.Root
+          type="single"
+          value={listed_filter}
+          onValueChange={(v) => {
+            if (v === 'all' || v === 'listed' || v === 'unlisted') {
+              listed_filter = v;
+              page = 1;
+            }
+          }}
+        >
+          <Select.Trigger class="h-9 w-36 text-xs" aria-label="Filter by listed status">
+            {listed_filter === 'all' ? 'All' : listed_filter === 'listed' ? 'Listed' : 'Unlisted'}
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Item value="all">All</Select.Item>
+            <Select.Item value="listed">Listed</Select.Item>
+            <Select.Item value="unlisted">Unlisted</Select.Item>
+          </Select.Content>
+        </Select.Root>
       {/if}
-      <span class="text-xs text-muted-foreground">Listed</span>
-      <Select.Root
-        type="single"
-        value={listed_filter}
-        onValueChange={(v) => {
-          if (v === 'all' || v === 'listed' || v === 'unlisted') {
-            listed_filter = v;
-            page = 1;
-          }
-        }}
-      >
-        <Select.Trigger class="h-9 w-36 text-xs" aria-label="Filter by listed status">
-          {listed_filter === 'all' ? 'All' : listed_filter === 'listed' ? 'Listed' : 'Unlisted'}
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Item value="all">All</Select.Item>
-          <Select.Item value="listed">Listed</Select.Item>
-          <Select.Item value="unlisted">Unlisted</Select.Item>
-        </Select.Content>
-      </Select.Root>
     </div>
   </div>
 

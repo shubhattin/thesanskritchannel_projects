@@ -170,9 +170,14 @@ const get_project_list_input = z.object({
 
 const get_project_list_route = protectedProcedure
   .input(get_project_list_input)
-  .query(async ({ input }) => {
+  .query(async ({ input, ctx: { user } }) => {
+    const is_admin = user.role === 'admin';
+
     if (input.all) {
-      const list = await get_project_list(cache_db_options_app);
+      const list = await get_project_list(
+        cache_db_options_app,
+        is_admin ? undefined : { listed_only: true }
+      );
       return { list, total: list.length, page: 1, pageCount: 1, hasPrev: false, hasNext: false };
     }
 
@@ -184,8 +189,11 @@ const get_project_list_route = protectedProcedure
           ilike(projects.description, `%${trimmedSearch}%`)
         )
       : undefined;
-    const listedCondition =
-      input.listed === undefined ? undefined : eq(projects.listed, input.listed);
+    const listedCondition = is_admin
+      ? input.listed === undefined
+        ? undefined
+        : eq(projects.listed, input.listed)
+      : eq(projects.listed, true);
     const whereClause = and(searchCondition, listedCondition);
     const offset = (input.page - 1) * input.size;
 

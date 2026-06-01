@@ -50,7 +50,7 @@ export const invalidate_project_list_queries = () =>
 
 export const invalidate_project_map_queries = (project_id?: number) =>
   queryClient.invalidateQueries({
-    queryKey: ['project_map', project_id]
+    queryKey: project_id === undefined ? ['project_map'] : ['project_map', project_id]
   });
 
 /** Refreshes project list and, when given, that project’s map query. */

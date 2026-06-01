@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const recursive_list_schema = z.object({
   name_dev: z.string().describe('Name in Devanagari'),
-  // Every text map starts with a top level where `name_dev` is actually the name of the 
+  // Every text map starts with a top level where `name_dev` is actually the name of the
   get list() {
     return recursive_list_schema.array();
   },

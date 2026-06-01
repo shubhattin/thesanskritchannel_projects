@@ -38,7 +38,8 @@ const get_dynamic_path_params = (
 export const project_list_q = createQuery(
   {
     queryKey: ['project_list'],
-    queryFn: async () => build_project_registry(await client.project.get_project_list.query()),
+    queryFn: async () =>
+      build_project_registry((await client.project.get_project_list.query({ all: true })).list),
     staleTime: ms('12hours')
   },
   queryClient

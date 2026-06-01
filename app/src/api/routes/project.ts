@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { protectedAdminProcedure, protectedProcedure } from '../trpc_init';
 import { db, type transactionType } from '~/db/db';
 import { delay } from '~/tools/delay';
-import { user_project_join, user_project_language_join } from '~/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { projects, user_project_join, user_project_language_join } from '~/db/schema';
+import { and, asc, count, eq, ilike, or } from 'drizzle-orm';
 import { t } from '../trpc_init';
 import { redis, REDIS_CACHE_KEYS, deleteKeysWithPattern } from '~/db/redis';
 import ms from 'ms';
@@ -157,9 +157,67 @@ export const user_project_info_route = protectedProcedure
     return { languages };
   });
 
-const get_project_list_route = protectedProcedure.query(async () => {
-  return get_project_list(cache_db_options_app);
+const get_project_list_input = z.object({
+  /** When true, returns the full project list (for app-wide registry lookups). */
+  all: z.boolean().default(false),
+  page: z.int().min(1).default(1),
+  size: z.int().min(1).max(100).default(15),
+  search: z.string().max(500).optional(),
+  /** When set, only projects with this listed value are returned. */
+  listed: z.boolean().optional()
 });
+
+const get_project_list_route = protectedProcedure
+  .input(get_project_list_input)
+  .query(async ({ input }) => {
+    if (input.all) {
+      const list = await get_project_list(cache_db_options_app);
+      return { list, total: list.length, page: 1, pageCount: 1, hasPrev: false, hasNext: false };
+    }
+
+    const trimmedSearch = input.search?.trim();
+    const searchCondition = trimmedSearch
+      ? or(
+          ilike(projects.name, `%${trimmedSearch}%`),
+          ilike(projects.name_dev, `%${trimmedSearch}%`),
+          ilike(projects.description, `%${trimmedSearch}%`)
+        )
+      : undefined;
+    const listedCondition =
+      input.listed === undefined ? undefined : eq(projects.listed, input.listed);
+    const whereClause = and(searchCondition, listedCondition);
+    const offset = (input.page - 1) * input.size;
+
+    const [countResult, list] = await Promise.all([
+      db.select({ count: count() }).from(projects).where(whereClause),
+      db
+        .select({
+          id: projects.id,
+          name: projects.name,
+          name_dev: projects.name_dev,
+          description: projects.description,
+          key: projects.key,
+          listed: projects.listed
+        })
+        .from(projects)
+        .where(whereClause)
+        .orderBy(asc(projects.id))
+        .limit(input.size)
+        .offset(offset)
+    ]);
+
+    const total = Number(countResult[0]?.count ?? 0);
+    const pageCount = Math.max(1, Math.ceil(total / input.size));
+
+    return {
+      list,
+      total,
+      page: input.page,
+      pageCount,
+      hasPrev: input.page > 1,
+      hasNext: input.page < pageCount
+    };
+  });
 
 const get_project_map_route = protectedProcedure
   .input(z.object({ project_id: z.int() }))

@@ -14,7 +14,7 @@ import type { recursive_list_type } from '~/state/data_types';
 import { relations } from 'drizzle-orm';
 
 export const projects = pgTable('projects', {
-  id: integer().notNull().primaryKey(),
+  id: serial().primaryKey(),
   key: text().notNull().unique(),
   name: text().notNull(),
   /** Sanskrit name */

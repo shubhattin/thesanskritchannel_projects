@@ -2,9 +2,7 @@ import { z } from 'zod';
 
 export const recursive_list_schema = z.object({
   name_dev: z.string().describe('Name in Devanagari'),
-  // Every text map starts with a top level where `name_dev` is actually the name of the text
-  pos: z.int().describe('Position starting from 1'),
-  // ^ this level name is "Text" specific, like Shloka/Mantra, Sarga, Kanda, Chapter, Mandala, Sukta, etc.
+  // Every text map starts with a top level where `name_dev` is actually the name of the 
   get list() {
     return recursive_list_schema.array();
   },
@@ -14,13 +12,14 @@ export const recursive_list_schema = z.object({
       // shloka, mantra and others are used as the same thing to mean
       shloka_count: z.int(),
       total: z.int().describe('Total Number of text lines/padas/units'),
+      // `shoka_count` and `total` have to be updated when `texts` for a path changes
       shloka_count_expected: z.int().optional().nullable().describe('Expected Shloka Count')
     }),
     z.object({
       type: z.literal('list'),
       /** Name of the list type, like Kanda, Sarga, Shloka, etc. (English) */
       list_name: z.string().describe('Level/ListType Name'),
-      list_count: z.int(),
+      // ^ this level name is "Text" specific, like Shloka/Mantra, Sarga, Kanda, Chapter, Mandala, Sukta, etc.
       list_count_expected: z.int().optional().nullable().describe('Expected List Count')
     })
   ])

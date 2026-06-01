@@ -5,7 +5,7 @@ import { delay } from '~/tools/delay';
 import { user_project_join, user_project_language_join } from '~/db/schema';
 import { eq } from 'drizzle-orm';
 import { t } from '../trpc_init';
-import { get_languages_for_project_user } from './project';
+import { get_languages_for_project_user } from './project/project';
 import { fetch_get, fetch_post } from '~/tools/fetch';
 import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
 import {

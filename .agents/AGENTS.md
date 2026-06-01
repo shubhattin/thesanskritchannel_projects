@@ -17,3 +17,7 @@
 
 - This is the kind of admin portal, which was made first and has a lot of core code and functionality for handling logic.
 - This is why in `site/` (Astro) it has been aliased to `$app/*` (resolves `app/src/*`) to make it easy to import and share the from the app in the site.
+
+# AI
+
+- Before making any new chnages always read te current contens of file as soemtimes there might be manually done changes which might overwrite.

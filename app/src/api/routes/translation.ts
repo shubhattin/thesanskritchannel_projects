@@ -1,20 +1,13 @@
-import { and, eq, exists, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import {
-  protectedAdminProcedure,
-  protectedAppScopeProcedure_ProjectsPortal,
-  publicProcedure,
-  t
-} from '~/api/trpc_init';
+import { protectedAppScopeProcedure_ProjectsPortal, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { translations } from '~/db/schema';
 import { delay } from '~/tools/delay';
-import { env } from '$env/dynamic/private';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { cache_db_options_app } from '~/server/cache_db_options';
 import { get_project_info_by_id } from '~/server/project_list.server';
-import { fetch_post } from '~/tools/fetch';
-import { get_languages_for_project_user } from './project';
+import { get_languages_for_project_user } from './project/project';
 import { get_path_params } from '~/state/project_list';
 import { get_translation_data_func } from '~/server/cached_loader';
 

@@ -13,6 +13,6 @@ export const load: PageServerLoad = async ({ parent, params }) => {
 
   return {
     project_key,
-    project_name_dev: project.name_dev,
+    project_name_dev: project.name_dev
   };
 };

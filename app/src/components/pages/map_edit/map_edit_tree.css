@@ -1,0 +1,106 @@
+@import '@keenmate/svelte-treeview/styles.css';
+
+/* Bridge keenmate ltree tokens to shadcn theme (light + .dark) */
+.map-edit-tree {
+  /* Default library value is 0.5rem — wider steps between hierarchy levels */
+  --tree-node-indent-per-level: 1.25rem;
+
+  --ltree-primary: var(--primary);
+  --ltree-primary-rgb: 197 134 42;
+  --ltree-success: var(--chart-2);
+  --ltree-success-rgb: 120 113 108;
+  --ltree-danger: var(--destructive);
+  --ltree-danger-rgb: 220 53 69;
+  --ltree-light: var(--muted);
+  --ltree-border: var(--border);
+  --ltree-body-color: var(--foreground);
+
+  color: var(--foreground);
+}
+
+.dark .map-edit-tree {
+  --ltree-primary-rgb: 197 134 42;
+  --ltree-success-rgb: 140 130 120;
+}
+
+.map-edit-tree .ltree-tree,
+.map-edit-tree .ltree-node {
+  color: var(--foreground);
+}
+
+.map-edit-tree .ltree-node .ltree-node-content {
+  color: var(--foreground);
+  border-radius: calc(var(--radius) - 2px);
+  padding: 6px 10px;
+}
+
+.map-edit-tree .ltree-node .ltree-children {
+  margin-top: 0.35rem;
+}
+
+/* Flat rendering: library adds 2px margin-top when depth increases */
+.map-edit-tree .ltree-node[style*='margin-top'] {
+  margin-top: 0.4rem !important;
+}
+
+.map-edit-tree .ltree-node .ltree-toggle-icon {
+  margin-right: 0.625rem;
+}
+
+/* Subtree root (path ''): flush left; library treats level 0 as 1× indent */
+.map-edit-tree .ltree-node[data-tree-path=''] {
+  margin-left: 0 !important;
+  margin-top: 0 !important;
+}
+
+.map-edit-tree .ltree-node .ltree-node-content:hover {
+  background-color: color-mix(in oklch, var(--muted) 72%, transparent);
+}
+
+.map-edit-tree .ltree-node .ltree-node-content.map-edit-tree-selected {
+  background-color: color-mix(in oklch, var(--accent) 28%, var(--muted)) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ring) 55%, transparent);
+}
+
+.map-edit-tree .ltree-node .ltree-node-content.map-edit-tree-selected:hover {
+  background-color: color-mix(in oklch, var(--accent) 36%, var(--muted)) !important;
+}
+
+.dark .map-edit-tree .ltree-node .ltree-node-content:hover {
+  background-color: color-mix(in oklch, var(--muted) 88%, var(--background));
+}
+
+.dark .map-edit-tree .ltree-node .ltree-node-content.map-edit-tree-selected {
+  background-color: color-mix(in oklch, var(--accent) 42%, var(--muted)) !important;
+  color: var(--accent-foreground);
+}
+
+.dark .map-edit-tree .ltree-node .ltree-node-content.map-edit-tree-selected:hover {
+  background-color: color-mix(in oklch, var(--accent) 50%, var(--muted)) !important;
+}
+
+.map-edit-tree .ltree-node .ltree-toggle-icon,
+.map-edit-tree .ltree-node .ltree-node-path {
+  color: var(--muted-foreground);
+}
+
+.map-edit-tree .ltree-node .ltree-node-label {
+  color: inherit;
+  font-weight: 500;
+}
+
+.map-edit-tree .ltree-tree .ltree-empty-state {
+  color: var(--muted-foreground);
+}
+
+.map-edit-tree .ltree-node .ltree-node-content.ltree-glow-child {
+  background-color: color-mix(in oklch, var(--primary) 14%, transparent);
+}
+
+.map-edit-tree .map-edit-tree-row {
+  color: var(--foreground);
+}
+
+.map-edit-tree .map-edit-tree-row--change-root {
+  opacity: 0.65;
+}

@@ -64,6 +64,20 @@ export const update_project_map_route = protectedAdminProcedure
     return { success: true as const };
   });
 
+const update_project_map_indexes = protectedAdminProcedure
+  .input(project_id_input.extend({
+    edits: z.object({
+      swap_paths: z.tuple([z.string(), z.string()])
+      // paths of the swapped nodes (these are always on the same nested level)
+    }).array().min(1)
+  }))
+  .mutation(async ({ input: { project_id, edits } }) => {
+    await db.transaction(async (tx) => {
+      await require_project(tx, project_id);
+    });
+  });
+
 export const project_map_edit_router = t.router({
-  update: update_project_map_route
+  update: update_project_map_route,
+  update_indexes: update_project_map_indexes
 });

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PenLine } from '@lucide/svelte';
+  import { PenLine, TriangleAlert } from '@lucide/svelte';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import { Switch } from '$lib/components/ui/switch';
@@ -11,7 +11,6 @@
     createTypingContext,
     handleTypingBeforeInputEvent
   } from 'lipilekhika/typing';
-  import { onMount } from 'svelte';
 
   let {
     order_edit_mode,
@@ -160,6 +159,16 @@
             value={selectedNode.info.list_name}
             oninput={(e) => onListNameChange(e.currentTarget.value)}
           />
+          <div
+            class="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-950 dark:text-amber-100"
+            role="alert"
+          >
+            <TriangleAlert class="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <p>
+              Changing this label affects public URLs on the main site. Bookmarks and shared links
+              that use the current level name in the path may stop working.
+            </p>
+          </div>
           {#if selected_is_root}
             <p class="text-xs text-muted-foreground">
               Top-level list type label (e.g. Veda, Kanda). Editable at the project root only.
@@ -183,6 +192,21 @@
           {#if count_input_invalid}
             <p class="text-xs text-destructive">Enter a whole number ≥ 0, or leave empty.</p>
           {/if}
+        </div>
+        <div class="rounded-lg border border-border/50 bg-muted/20 p-3 text-sm">
+          <p class="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            List metadata
+          </p>
+          <dl class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
+            <dt class="text-muted-foreground">List item count</dt>
+            <dd class="font-medium tabular-nums">{selectedNode.list?.length ?? 0}</dd>
+            {#if selectedNode.info.list_count_expected != null}
+              <dt class="text-muted-foreground">Expected</dt>
+              <dd class="font-medium tabular-nums">
+                {selectedNode.info.list_count_expected}
+              </dd>
+            {/if}
+          </dl>
         </div>
       {:else}
         <Separator />

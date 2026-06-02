@@ -11,7 +11,8 @@ const post_to_main_site = async (path: string, cookie: string) => {
   try {
     const res = await fetch(`${origin}${path}`, {
       method: 'POST',
-      headers: { Cookie: cookie }
+      headers: { Cookie: cookie },
+      signal: AbortSignal.timeout(3000)
     });
     if (!res.ok && import.meta.env.PROD) {
       console.error(`Main site cache invalidation failed (${res.status}): ${path}`);

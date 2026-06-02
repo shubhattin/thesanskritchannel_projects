@@ -29,3 +29,5 @@ data/*/raw_data
 data/*/out
 data/*/zipped
 data/*/test_output.md
+
+.antigravitycli

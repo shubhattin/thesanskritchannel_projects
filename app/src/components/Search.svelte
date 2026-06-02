@@ -5,7 +5,6 @@
   import { get_project_from_id, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import { project_list_q } from '~/state/main_app/data.svelte';
   import { queryClient } from '~/state/queryClient';
-  import { cl_join } from '~/tools/cl_join';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';

@@ -14,7 +14,10 @@ import {
 import { redis } from '~/db/redis';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import { lekhaUrlSlugify } from '~/lib/carta_markdown/markdown';
-import { clear_project_map_cache, clear_project_server_cache } from '~/server/project_list.server';
+import {
+  clear_server_project_map_cache,
+  clear_project_server_cache
+} from '~/server/project_list.server';
 import { delay } from '~/tools/delay';
 import { type recursive_list_type, recursive_list_schema } from '~/state/data_types';
 
@@ -182,7 +185,7 @@ export const delete_project_route = protectedAdminProcedure
       await tx.delete(projects).where(eq(projects.id, input.project_id));
     });
 
-    clear_project_map_cache(input.project_id);
+    clear_server_project_map_cache(input.project_id);
     await invalidate_project_list_caches();
     return { success: true as const };
   });

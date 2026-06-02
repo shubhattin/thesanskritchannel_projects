@@ -13,7 +13,10 @@ export default defineConfig({
   integrations: [svelte()],
   security: {
     checkOrigin: process.env.NODE_ENV === 'production',
-    allowedDomains: [{ hostname: 'thesanskritchannel.org', protocol: 'https' }]
+    allowedDomains: [
+      { hostname: 'thesanskritchannel.org', protocol: 'https' },
+      { hostname: 'www.thesanskritchannel.org', protocol: 'https' }
+    ]
   },
 
   vite: {

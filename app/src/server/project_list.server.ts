@@ -46,7 +46,7 @@ type MapCacheEntry = {
 const map_cache = new Map<number, MapCacheEntry>();
 
 /** Clears in-memory project map cache for one project or all projects. */
-export const clear_project_map_cache = (project_id?: number) => {
+export const clear_server_project_map_cache = (project_id?: number) => {
   if (project_id === undefined) {
     map_cache.clear();
     return;
@@ -70,7 +70,7 @@ type ProjectInfoCacheEntry = {
 const project_info_cache = new Map<string, ProjectInfoCacheEntry>();
 
 /** Clears in-memory project info cache for one key or all keys. */
-export const clear_project_info_cache = (project_key?: string) => {
+export const clear_server_project_info_cache = (project_key?: string) => {
   if (project_key === undefined) {
     project_info_cache.clear();
     return;
@@ -81,8 +81,8 @@ export const clear_project_info_cache = (project_key?: string) => {
 /** Clears registry and project map in-memory caches. */
 export const clear_project_server_cache = () => {
   clear_project_registry_cache();
-  clear_project_map_cache();
-  clear_project_info_cache();
+  clear_server_project_map_cache();
+  clear_server_project_info_cache();
 };
 
 const is_cache_fresh = (fetchedAt: number) =>

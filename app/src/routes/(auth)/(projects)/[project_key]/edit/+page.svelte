@@ -5,4 +5,4 @@
   let { data }: { data: PageData } = $props();
 </script>
 
-<MetaTags title={`${data.project_name} | Edit Map`} />
+<MetaTags title={`${data.project_name_dev} | Edit Map`} />

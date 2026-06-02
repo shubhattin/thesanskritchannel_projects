@@ -23,7 +23,11 @@ const get_to_main_site = async (path: string, cookie: string) => {
   try {
     const res = await fetch(`${origin}${path}?jwt_token=${jwt_token}`, {
       method: 'GET',
-      signal: AbortSignal.timeout(3000)
+      headers: {
+        Cookie: cookie,
+        Origin: origin
+      },
+      signal: AbortSignal.timeout(3500)
     });
     if (!res.ok && import.meta.env.PROD) {
       console.error(`Main site cache invalidation failed (${res.status}): ${path}`);

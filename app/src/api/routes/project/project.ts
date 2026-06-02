@@ -185,10 +185,10 @@ const get_project_list_route = protectedProcedure
     const trimmedSearch = input.search?.trim();
     const searchCondition = trimmedSearch
       ? or(
-        ilike(projects.name, `%${trimmedSearch}%`),
-        ilike(projects.name_dev, `%${trimmedSearch}%`),
-        ilike(projects.description, `%${trimmedSearch}%`)
-      )
+          ilike(projects.name, `%${trimmedSearch}%`),
+          ilike(projects.name_dev, `%${trimmedSearch}%`),
+          ilike(projects.description, `%${trimmedSearch}%`)
+        )
       : undefined;
     const listedCondition = is_admin
       ? input.listed === undefined

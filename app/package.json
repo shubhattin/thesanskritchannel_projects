@@ -26,6 +26,7 @@
     "@cartamd/plugin-code": "^4.2.0",
     "@floating-ui/dom": "^1.7.6",
     "@fontsource/roboto": "^5.2.10",
+    "@keenmate/svelte-treeview": "^4.8.0",
     "@neondatabase/serverless": "^1.1.0",
     "@openrouter/ai-sdk-provider": "^1.5.4",
     "@openrouter/sdk": "^0.3.16",
@@ -85,7 +86,7 @@
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1047.0",
     "@internationalized/date": "^3.12.1",
-    "@lucide/svelte": "^1.16.0",
+    "@lucide/svelte": "^1.17.0",
     "@modyfi/vite-plugin-yaml": "^1.1.1",
     "@sveltejs/adapter-netlify": "^4.4.2",
     "@sveltejs/adapter-vercel": "^5.10.3",

@@ -111,7 +111,7 @@
           <p class="flex items-start gap-1.5 text-xs text-muted-foreground">
             <PenLine class="mt-0.5 size-3 shrink-0 opacity-70" />
             <span>
-              Lipi-Lekhika — toggle with
+              Toggle with
               <kbd
                 class="rounded border border-border bg-background px-1 font-mono text-[10px] shadow-sm"
                 >Alt+X</kbd

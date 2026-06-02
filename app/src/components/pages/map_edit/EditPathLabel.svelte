@@ -27,7 +27,7 @@
   <Tooltip.Root>
     <Tooltip.Trigger
       type="button"
-      class="inline max-w-full cursor-default truncate rounded bg-background/80 px-1 font-mono text-[10px] text-muted-foreground ring-1 ring-border/60"
+      class="inline max-w-full min-w-0 cursor-default truncate rounded-md bg-muted/80 px-1.5 py-0.5 font-mono text-[11px] font-medium text-foreground/80 ring-1 ring-border/50"
     >
       {short}
     </Tooltip.Trigger>

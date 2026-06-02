@@ -52,6 +52,7 @@
   import TreeEditPanel from './TreeEditPanel.svelte';
   import NodeEditor from './NodeEditor.svelte';
   import ChangesPanel from './ChangesPanel.svelte';
+  import SaveReviewDialog from './SaveReviewDialog.svelte';
 
   let {
     project_id,
@@ -66,9 +67,9 @@
   let baselineSnapshots = $state<Map<string, BaselineNodeSnapshot>>(new Map());
   let selectedNodePath = $state<MapPath>([]);
   let basePath = $state<MapPath>([]);
-  let save_dialog_open = $state(false);
+  let save_review_open = $state(false);
+  let save_review_mode = $state<'metadata' | 'order'>('metadata');
   let discard_dialog_open = $state(false);
-  let save_order_dialog_open = $state(false);
   let discard_order_dialog_open = $state(false);
   let order_edit_mode = $state(false);
   let order_entry_map = $state<MapNodeWithClientId | null>(null);
@@ -185,8 +186,7 @@
 
   const save_mut = client_q.project.map_edit.update.mutation({
     onSuccess: async (_data, variables) => {
-      save_dialog_open = false;
-      save_order_dialog_open = false;
+      save_review_open = false;
       order_edit_mode = false;
       order_entry_map = null;
       pending_swaps = [];
@@ -409,12 +409,12 @@
 
   function request_save_order() {
     if (!order_dirty) return;
-    save_order_dialog_open = true;
+    save_review_mode = 'order';
+    save_review_open = true;
   }
 
   async function confirm_save_order() {
     if (!workingMap || $save_mut.isPending || $save_order_indexes_mut.isPending) return;
-    save_order_dialog_open = false;
     saving_order = true;
     try {
       if (pending_swaps.length > 0) {
@@ -439,7 +439,8 @@
 
   function request_save() {
     if (order_edit_mode || !diffState.dirty || count_input_invalid) return;
-    save_dialog_open = true;
+    save_review_mode = 'metadata';
+    save_review_open = true;
   }
 
   function confirm_save() {
@@ -529,9 +530,9 @@
               {pending_swaps.length} swap{pending_swaps.length === 1 ? '' : 's'}
             </Badge>
           {:else if metadata_dirty}
-            <Badge variant="secondary" class="tabular-nums"
-              >{diffState.changedNodeCount} changed</Badge
-            >
+            <Badge variant="secondary" class="tabular-nums">
+              {diffState.rows.length} update{diffState.rows.length === 1 ? '' : 's'}
+            </Badge>
           {/if}
           {#if order_edit_mode}
             <Button variant="outline" size="sm" onclick={cancel_order_edit}
@@ -641,38 +642,58 @@
     />
   </div>
 
-  <ChangesPanel
-    {order_edit_mode}
-    {order_dirty}
-    {metadata_dirty}
-    {active_diff_state}
-    {pending_swaps}
-    {diffState}
-    {workingMap}
-  />
+  <Card.Root class="overflow-hidden">
+    <div
+      class="flex items-center justify-between border-b border-border/60 bg-muted/20 px-4 py-2.5"
+    >
+      <div class="min-w-0">
+        <span class="text-sm font-semibold">
+          {order_edit_mode ? 'Order changes' : 'Changes'}
+        </span>
+        <span class="ml-2 text-xs text-muted-foreground">
+          {#if order_edit_mode}
+            {#if order_dirty}
+              {pending_swaps.length} swap{pending_swaps.length === 1 ? '' : 's'} pending
+            {:else}
+              no changes yet
+            {/if}
+          {:else if metadata_dirty}
+            {diffState.rows.length} update{diffState.rows.length === 1 ? '' : 's'}
+          {:else}
+            no unsaved changes
+          {/if}
+        </span>
+      </div>
+      {#if order_edit_mode ? order_dirty : metadata_dirty}
+        <div class="size-2 shrink-0 animate-pulse rounded-full bg-primary"></div>
+      {/if}
+    </div>
+    <Card.Content class="px-4 py-3">
+      <ChangesPanel
+        {order_edit_mode}
+        {order_dirty}
+        {metadata_dirty}
+        {active_diff_state}
+        {pending_swaps}
+        {diffState}
+        {workingMap}
+      />
+    </Card.Content>
+  </Card.Root>
 </div>
 
-<AlertDialog.Root bind:open={save_dialog_open}>
-  <AlertDialog.Content>
-    <AlertDialog.Header>
-      <AlertDialog.Title>Save map changes?</AlertDialog.Title>
-      <AlertDialog.Description>
-        <ul class="mt-2 list-inside list-disc space-y-1 text-sm">
-          <li>{diffState.changedNodeCount} node(s) changed</li>
-          <li>{diffState.renameCount} rename(s)</li>
-          <li>{diffState.reorderedParentCount} parent list(s) reordered</li>
-        </ul>
-        <p class="mt-3 text-sm">
-          The root name also updates the project display name in the project list.
-        </p>
-      </AlertDialog.Description>
-    </AlertDialog.Header>
-    <AlertDialog.Footer>
-      <AlertDialog.Cancel>Keep editing</AlertDialog.Cancel>
-      <Button onclick={confirm_save} disabled={$save_mut.isPending}>Save</Button>
-    </AlertDialog.Footer>
-  </AlertDialog.Content>
-</AlertDialog.Root>
+<SaveReviewDialog
+  bind:open={save_review_open}
+  mode={save_review_mode}
+  {order_dirty}
+  {metadata_dirty}
+  {active_diff_state}
+  {pending_swaps}
+  {diffState}
+  {workingMap}
+  saving={$save_mut.isPending || $save_order_indexes_mut.isPending}
+  onConfirm={() => (save_review_mode === 'order' ? confirm_save_order() : confirm_save())}
+/>
 
 <AlertDialog.Root bind:open={discard_dialog_open}>
   <AlertDialog.Content>
@@ -685,32 +706,6 @@
     <AlertDialog.Footer>
       <AlertDialog.Cancel>Keep editing</AlertDialog.Cancel>
       <Button variant="destructive" onclick={confirm_discard}>Discard</Button>
-    </AlertDialog.Footer>
-  </AlertDialog.Content>
-</AlertDialog.Root>
-
-<AlertDialog.Root bind:open={save_order_dialog_open}>
-  <AlertDialog.Content>
-    <AlertDialog.Header>
-      <AlertDialog.Title>Save list order?</AlertDialog.Title>
-      <AlertDialog.Description>
-        <ul class="mt-2 list-inside list-disc space-y-1 text-sm">
-          <li>{pending_swaps.length} path swap(s) will update texts, translations, and media</li>
-          <li>The project map structure will be saved with the new order</li>
-        </ul>
-        <p class="mt-3 text-sm">
-          This cannot be undone from the editor. Review the order changes below.
-        </p>
-      </AlertDialog.Description>
-    </AlertDialog.Header>
-    <AlertDialog.Footer>
-      <AlertDialog.Cancel>Keep editing</AlertDialog.Cancel>
-      <Button
-        onclick={confirm_save_order}
-        disabled={$save_mut.isPending || $save_order_indexes_mut.isPending}
-      >
-        Save current order
-      </Button>
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>

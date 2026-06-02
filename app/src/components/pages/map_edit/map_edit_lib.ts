@@ -15,7 +15,7 @@ export type MapChangeRow = {
   kind: MapChangeKind;
   clientId: string;
   path: MapPath;
-  /** Short numeric path (`//1/2`); kept for backwards-compatible summaries. */
+  /** Short numeric path (`/1/2`); `/` at project root. */
   pathLabel: string;
   summary: string;
 };
@@ -60,9 +60,8 @@ export const format_path_query = (path: MapPath): string => path.join('/');
 export const path_label = (path: MapPath): string =>
   path.length === 0 ? '/' : `/${path.join('/')}`;
 
-/** Compact numeric path for lists (`//1/2/3`); `/` at project root. */
-export const format_path_short_label = (path: MapPath): string =>
-  path.length === 0 ? '/' : `//${path.join('/')}`;
+/** Compact numeric path (`/1/2/3`); `/` at project root. */
+export const format_path_short_label = path_label;
 
 /** `name_dev` from root through each path segment (length = path.length + 1). */
 export const resolve_path_name_segments = (map: MapNodeWithClientId, path: MapPath): string[] => {
@@ -346,7 +345,7 @@ export const compute_map_edit_diff = (
         clientId,
         path,
         pathLabel: label,
-        summary: `Renamed "${snap.name_dev}" to "${node.name_dev}"`
+        summary: `${snap.name_dev} → ${node.name_dev}`
       });
     }
 
@@ -360,7 +359,7 @@ export const compute_map_edit_diff = (
           clientId,
           path,
           pathLabel: label,
-          summary: `Changed list label from "${bInfo.list_name}" to "${wInfo.list_name}"`
+          summary: `${bInfo.list_name} → ${wInfo.list_name}`
         });
       }
       if (wInfo.list_count_expected !== bInfo.list_count_expected) {
@@ -370,7 +369,7 @@ export const compute_map_edit_diff = (
           clientId,
           path,
           pathLabel: label,
-          summary: `Updated expected count from ${count_label(bInfo.list_count_expected)} to ${count_label(wInfo.list_count_expected)}`
+          summary: `${count_label(bInfo.list_count_expected)} → ${count_label(wInfo.list_count_expected)}`
         });
       }
     } else if (wInfo.type === 'list' && bInfo.type === 'list' && path.length === 0) {
@@ -381,7 +380,7 @@ export const compute_map_edit_diff = (
           clientId,
           path,
           pathLabel: label,
-          summary: `Changed list label from "${bInfo.list_name}" to "${wInfo.list_name}"`
+          summary: `${bInfo.list_name} → ${wInfo.list_name}`
         });
       }
       if (wInfo.list_count_expected !== bInfo.list_count_expected) {
@@ -391,7 +390,7 @@ export const compute_map_edit_diff = (
           clientId,
           path,
           pathLabel: label,
-          summary: `Updated expected count from ${count_label(bInfo.list_count_expected)} to ${count_label(wInfo.list_count_expected)}`
+          summary: `${count_label(bInfo.list_count_expected)} → ${count_label(wInfo.list_count_expected)}`
         });
       }
     }

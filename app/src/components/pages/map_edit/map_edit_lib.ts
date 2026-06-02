@@ -65,10 +65,7 @@ export const format_path_short_label = (path: MapPath): string =>
   path.length === 0 ? '/' : `//${path.join('/')}`;
 
 /** `name_dev` from root through each path segment (length = path.length + 1). */
-export const resolve_path_name_segments = (
-  map: MapNodeWithClientId,
-  path: MapPath
-): string[] => {
+export const resolve_path_name_segments = (map: MapNodeWithClientId, path: MapPath): string[] => {
   const names: string[] = [map.name_dev];
   let acc: MapPath = [];
   for (const sel of path) {
@@ -80,10 +77,8 @@ export const resolve_path_name_segments = (
 };
 
 /** Human-readable path using Devanagari names (breadcrumb style). */
-export const format_path_resolved_label = (
-  map: MapNodeWithClientId,
-  path: MapPath
-): string => resolve_path_name_segments(map, path).join(' / ');
+export const format_path_resolved_label = (map: MapNodeWithClientId, path: MapPath): string =>
+  resolve_path_name_segments(map, path).join(' / ');
 
 /** DB path key (`texts.path`, etc.): colon-separated 1-based segments. */
 export const map_path_to_db_path = (path: MapPath): string => path.join(':');
@@ -216,6 +211,9 @@ export type MapTreeRow = {
   isExpanded: boolean;
   allowedDropPositions: ('above' | 'below')[];
 };
+
+/** Keenmate tree row shape (alias used by tree panel). */
+export type MapTreeItem = MapTreeRow;
 
 /** Subtree-relative paths that are expanded in the tree UI (always includes `''` when root is open). */
 export const default_tree_expanded_paths = (): Set<string> => new Set(['']);

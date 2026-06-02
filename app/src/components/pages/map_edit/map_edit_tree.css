@@ -108,7 +108,9 @@
 
 .map-edit-tree
   .ltree-node
-  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='leaf']):hover {
+  .ltree-node-content:has(.map-edit-row-selected):has(
+    .map-edit-tree-row[data-node-kind='leaf']
+  ):hover {
   background-color: oklch(0.85 0.1 145 / 0.9) !important;
 }
 
@@ -133,7 +135,9 @@
 .dark
   .map-edit-tree
   .ltree-node
-  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='leaf']):hover {
+  .ltree-node-content:has(.map-edit-row-selected):has(
+    .map-edit-tree-row[data-node-kind='leaf']
+  ):hover {
   background-color: oklch(0.36 0.1 145 / 1) !important;
 }
 
@@ -156,7 +160,9 @@
 
 .map-edit-tree
   .ltree-node
-  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='list']):hover {
+  .ltree-node-content:has(.map-edit-row-selected):has(
+    .map-edit-tree-row[data-node-kind='list']
+  ):hover {
   background-color: oklch(0.84 0.12 55 / 0.9) !important;
 }
 
@@ -181,7 +187,9 @@
 .dark
   .map-edit-tree
   .ltree-node
-  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='list']):hover {
+  .ltree-node-content:has(.map-edit-row-selected):has(
+    .map-edit-tree-row[data-node-kind='list']
+  ):hover {
   background-color: oklch(0.38 0.11 52 / 1) !important;
 }
 
@@ -194,7 +202,9 @@
 
 .map-edit-tree
   .ltree-node
-  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='empty-list']) {
+  .ltree-node-content:has(.map-edit-row-selected):has(
+    .map-edit-tree-row[data-node-kind='empty-list']
+  ) {
   background-color: oklch(0.88 0.08 15 / 0.85) !important;
   box-shadow:
     inset 2px 0 0 0 oklch(0.55 0.22 25),
@@ -220,7 +230,9 @@
 .dark
   .map-edit-tree
   .ltree-node
-  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='empty-list']) {
+  .ltree-node-content:has(.map-edit-row-selected):has(
+    .map-edit-tree-row[data-node-kind='empty-list']
+  ) {
   background-color: oklch(0.3 0.09 20 / 0.95) !important;
   box-shadow:
     inset 2px 0 0 0 oklch(0.6 0.22 25),

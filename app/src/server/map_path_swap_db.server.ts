@@ -3,7 +3,12 @@ import { and, eq, or, sql, type AnyColumn } from 'drizzle-orm';
 import type { transactionType } from '~/db/db';
 import { media_attachment, texts, translations } from '~/db/schema';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
-import { buildPathSwapSteps, dbPathToPathParams, toTempDbPath, type PathSwapEdit } from './map_path_swap';
+import {
+  buildPathSwapSteps,
+  dbPathToPathParams,
+  toTempDbPath,
+  type PathSwapEdit
+} from './map_path_swap';
 
 const pathMatchesPrefix = (pathColumn: AnyColumn, prefix: string) =>
   or(eq(pathColumn, prefix), sql`${pathColumn} LIKE ${`${prefix}:%`}`);
@@ -73,7 +78,9 @@ export const applyOrderedDbPathSwaps = async (
   project_id: number,
   edits: PathSwapEdit[]
 ) => {
-  for (const { swap_paths: [pathA, pathB] } of edits) {
+  for (const {
+    swap_paths: [pathA, pathB]
+  } of edits) {
     const stagedPath = toTempDbPath(pathB);
     await assertNoRowsAtPrefix(
       tx,
@@ -125,7 +132,10 @@ export const collectPathSwapInvalidation = async (
     .select({ lang_id: translations.lang_id, path: translations.path })
     .from(translations)
     .where(
-      and(eq(translations.project_id, project_id), pathMatchesAnyPrefix(translations.path, prefixes))
+      and(
+        eq(translations.project_id, project_id),
+        pathMatchesAnyPrefix(translations.path, prefixes)
+      )
     );
 
   const pathSet = new Set<string>();

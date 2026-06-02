@@ -28,34 +28,58 @@
     diffState: MapEditDiffState;
     workingMap: MapNodeWithClientId | null;
     saving?: boolean;
-    onConfirm: () => void;
+    onConfirm: () => void | Promise<void>;
   } = $props();
 
   const order_edit_mode = $derived(mode === 'order');
   let reviewed = $state<'yes' | 'no'>('no');
+  let localSaving = $state(false);
 
-  const can_save = $derived(reviewed === 'yes' && !saving);
+  const inFlight = $derived(saving || localSaving);
+  const can_save = $derived(reviewed === 'yes' && !inFlight);
 
   $effect(() => {
-    if (open) reviewed = 'no';
+    if (open) {
+      reviewed = 'no';
+      localSaving = false;
+    }
+  });
+
+  $effect(() => {
+    if (!saving && localSaving) {
+      localSaving = false;
+    }
   });
 
   const title = $derived(mode === 'order' ? 'Save list order' : 'Save map changes');
 
   const save_label = $derived(
-    saving ? 'Saving…' : mode === 'order' ? 'Save current order' : 'Save'
+    inFlight ? 'Saving…' : mode === 'order' ? 'Save current order' : 'Save'
   );
+
+  async function handleConfirm() {
+    if (localSaving || saving) return;
+    localSaving = true;
+    try {
+      await onConfirm();
+      if (!saving) {
+        localSaving = false;
+      }
+    } catch {
+      localSaving = false;
+    }
+  }
 </script>
 
 <Dialog.Root
   bind:open
   onOpenChange={(v) => {
-    if (!saving) open = v;
+    if (!inFlight) open = v;
   }}
 >
   <Dialog.Content
     class="flex max-h-[min(88vh,48rem)] w-full max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
-    showCloseButton={!saving}
+    showCloseButton={!inFlight}
   >
     <Dialog.Header class="shrink-0 space-y-0.5 border-b border-border/60 px-4 pt-4 pb-3">
       <Dialog.Title class="text-base">{title}</Dialog.Title>
@@ -93,7 +117,7 @@
         <RadioGroup.Root
           bind:value={reviewed}
           class="flex flex-wrap gap-x-4 gap-y-1"
-          disabled={saving}
+          disabled={inFlight}
         >
           <div class="flex items-center gap-1.5">
             <RadioGroup.Item value="no" id="map-save-review-no" />
@@ -115,10 +139,10 @@
       </p>
 
       <div class="flex justify-center gap-2 pt-0.5">
-        <Button variant="outline" size="sm" disabled={saving} onclick={() => (open = false)}>
+        <Button variant="outline" size="sm" disabled={inFlight} onclick={() => (open = false)}>
           Keep editing
         </Button>
-        <Button size="sm" onclick={onConfirm} disabled={!can_save}>
+        <Button size="sm" onclick={handleConfirm} disabled={!can_save}>
           {save_label}
         </Button>
       </div>

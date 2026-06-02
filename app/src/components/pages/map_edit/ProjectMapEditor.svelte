@@ -185,22 +185,25 @@
     count_input_invalid = false;
   });
 
+  const finish_save = async (map: recursive_list_type, wasSavingOrder: boolean) => {
+    save_review_open = false;
+    order_edit_mode = false;
+    order_entry_map = null;
+    pending_swaps = [];
+    await invalidate_project_registry_queries(project_id);
+    await invalidate_project_map_queries(project_id);
+    if (wasSavingOrder) {
+      await invalidate_project_content_queries(project_id);
+    }
+    last_synced_map_key = JSON.stringify(map);
+    reset_from_server(map);
+    toast.success(wasSavingOrder ? 'List order saved' : 'Project map saved');
+    saving_order = false;
+  };
+
   const save_mut = client_q.project.map_edit.update.mutation({
     onSuccess: async (_data, variables) => {
-      const wasSavingOrder = saving_order;
-      save_review_open = false;
-      order_edit_mode = false;
-      order_entry_map = null;
-      pending_swaps = [];
-      await invalidate_project_registry_queries(project_id);
-      await invalidate_project_map_queries(project_id);
-      if (wasSavingOrder) {
-        await invalidate_project_content_queries(project_id);
-      }
-      last_synced_map_key = JSON.stringify(variables.map);
-      reset_from_server(variables.map);
-      toast.success(wasSavingOrder ? 'List order saved' : 'Project map saved');
-      saving_order = false;
+      await finish_save(variables.map, false);
     },
     onError: (err) => {
       saving_order = false;
@@ -208,9 +211,13 @@
     }
   });
 
-  const save_order_indexes_mut = client_q.project.map_edit.update_indexes.mutation({
+  const save_order_mut = client_q.project.map_edit.save_order.mutation({
+    onSuccess: async (_data, variables) => {
+      await finish_save(variables.map, true);
+    },
     onError: (err) => {
-      toast.error(err.message || 'Failed to update path indexes');
+      saving_order = false;
+      toast.error(err.message || 'Failed to save list order');
     }
   });
 
@@ -419,18 +426,12 @@
   }
 
   async function confirm_save_order() {
-    if (!workingMap || saving_order || $save_mut.isPending || $save_order_indexes_mut.isPending)
-      return;
+    if (!workingMap || saving_order || $save_mut.isPending || $save_order_mut.isPending) return;
     saving_order = true;
     try {
-      if (pending_swaps.length > 0) {
-        await $save_order_indexes_mut.mutateAsync({
-          project_id,
-          edits: pending_swaps
-        });
-      }
-      await $save_mut.mutateAsync({
+      await $save_order_mut.mutateAsync({
         project_id,
+        edits: pending_swaps,
         map: strip_client_ids(workingMap)
       });
     } catch {
@@ -547,11 +548,9 @@
             <Button
               size="sm"
               onclick={request_save_order}
-              disabled={!order_dirty || $save_mut.isPending || $save_order_indexes_mut.isPending}
+              disabled={!order_dirty || $save_mut.isPending || $save_order_mut.isPending}
             >
-              {$save_mut.isPending || $save_order_indexes_mut.isPending
-                ? 'Saving…'
-                : 'Save current order'}
+              {$save_mut.isPending || $save_order_mut.isPending ? 'Saving…' : 'Save current order'}
             </Button>
           {:else}
             <Button variant="outline" size="sm" onclick={request_cancel}>Cancel</Button>
@@ -697,7 +696,7 @@
   {pending_swaps}
   {diffState}
   {workingMap}
-  saving={$save_mut.isPending || $save_order_indexes_mut.isPending}
+  saving={$save_mut.isPending || $save_order_mut.isPending}
   onConfirm={() => (save_review_mode === 'order' ? confirm_save_order() : confirm_save())}
 />
 

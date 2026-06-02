@@ -42,6 +42,10 @@ export function buildPathSwapSteps(pathA: string, pathB: string): PathSwapStep[]
 
 /** Converts a DB path string to numeric segments for cache keys (`1:2` → `[1, 2]`). */
 export function dbPathToPathParams(path: string): number[] {
+  const error = validateDbPath(path);
+  if (error) {
+    throw new TypeError(`Invalid DB path "${path}": ${error}`);
+  }
   return path.split(':').map((s) => Number(s));
 }
 
@@ -87,7 +91,18 @@ export function validateSwapEdits(edits: PathSwapEdit[]): string | null {
   if (edits.length === 0) return 'At least one swap is required';
 
   for (let i = 0; i < edits.length; i++) {
-    const [pathA, pathB] = edits[i]!.swap_paths;
+    const edit = edits[i];
+    if (
+      !edit ||
+      typeof edit !== 'object' ||
+      !('swap_paths' in edit) ||
+      !Array.isArray(edit.swap_paths) ||
+      edit.swap_paths.length !== 2
+    ) {
+      return `Swap ${i + 1}: swap_paths must be a tuple of two paths`;
+    }
+
+    const [pathA, pathB] = edit.swap_paths;
     const err = validateSwapPair(pathA, pathB);
     if (err) return `Swap ${i + 1}: ${err}`;
   }

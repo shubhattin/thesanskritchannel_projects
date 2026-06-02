@@ -47,7 +47,10 @@ const get_normalized_selected_text_levels = (
   return normalized;
 };
 
-const has_translation_query_path = (selected_text_levels: (number | null)[], project_levels: number) =>
+const has_translation_query_path = (
+  selected_text_levels: (number | null)[],
+  project_levels: number
+) =>
   project_levels === 1 || get_dynamic_path_params(selected_text_levels, project_levels).length > 0;
 
 export const project_list_q = createQuery(
@@ -208,7 +211,13 @@ export const prefetch_text_data = (
 // Translations
 
 export const trans_en_data_q = get_derived_query(
-  [project_state, selected_text_levels, view_translation_status, editing_status_on, text_data_present],
+  [
+    project_state,
+    selected_text_levels,
+    view_translation_status,
+    editing_status_on,
+    text_data_present
+  ],
   ([
     project_state_,
     selected_text_levels_,
@@ -250,7 +259,13 @@ export const trans_lang_data_query_key = derived(
 );
 export const trans_lang_data_q = get_derived_query(
   [project_state, trans_lang, selected_text_levels, editing_status_on, text_data_present],
-  ([project_state_, trans_lang_, selected_text_levels_, editing_status_on_, text_data_present_]) => {
+  ([
+    project_state_,
+    trans_lang_,
+    selected_text_levels_,
+    editing_status_on_,
+    text_data_present_
+  ]) => {
     const query_has_path = has_translation_query_path(selected_text_levels_, project_state_.levels);
     return createQuery(
       {

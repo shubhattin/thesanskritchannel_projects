@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildPathSwapSteps,
+  dbPathToPathParams,
   toTempDbPath,
   validateDbPath,
   validateSwapEdits,
@@ -28,6 +29,12 @@ describe('map_path_swap', () => {
     ).toBeNull();
   });
 
+  it('rejects malformed swap entries', () => {
+    expect(validateSwapEdits([{ swap_paths: ['2:1', '2:3', '2:4'] as any }] as any)).toBe(
+      'Swap 1: swap_paths must be a tuple of two paths'
+    );
+  });
+
   it('builds temp paths', () => {
     expect(toTempDbPath('1:2')).toBe('1:2_temp');
   });
@@ -38,5 +45,9 @@ describe('map_path_swap', () => {
       { from_path: '2', to_path: '1' },
       { from_path: '2_temp', to_path: '2' }
     ]);
+  });
+
+  it('rejects invalid db paths when building cache params', () => {
+    expect(() => dbPathToPathParams('1:bad')).toThrow('Invalid DB path "1:bad"');
   });
 });

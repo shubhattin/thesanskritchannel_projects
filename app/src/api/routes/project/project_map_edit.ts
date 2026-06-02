@@ -99,6 +99,11 @@ const path_swap_edit_schema = z.object({
   swap_paths: z.tuple([db_path_schema, db_path_schema])
 });
 
+const apply_order_changes_input = project_id_input.extend({
+  edits: z.array(path_swap_edit_schema),
+  map: recursive_list_schema
+});
+
 const update_project_map_indexes = protectedAdminProcedure
   .input(
     project_id_input.extend({
@@ -133,7 +138,49 @@ const update_project_map_indexes = protectedAdminProcedure
     return { success: true as const, swap_count: edits.length };
   });
 
+const save_project_map_order = protectedAdminProcedure
+  .input(apply_order_changes_input)
+  .mutation(async ({ input: { project_id, edits, map } }) => {
+    const parsedEdits = edits as PathSwapEdit[];
+    if (parsedEdits.length > 0) {
+      const validationError = validateSwapEdits(parsedEdits);
+      if (validationError) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: validationError });
+      }
+    }
+
+    await delay(400);
+
+    const { project, redisKeys } = await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(${PROJECT_MAP_ORDER_LOCK_NAMESPACE}, ${project_id})`
+      );
+      const project = await require_project(tx, project_id);
+      if (parsedEdits.length > 0) {
+        await applyOrderedDbPathSwaps(tx, project_id, parsedEdits);
+      }
+      const invalidation = await collectPathSwapInvalidation(tx, project_id, parsedEdits);
+      await tx
+        .update(projects)
+        .set({
+          map,
+          name_dev: map.name_dev
+        })
+        .where(eq(projects.id, project_id));
+
+      return {
+        project,
+        redisKeys: buildRedisKeysForPathSwapInvalidation(project_id, invalidation)
+      };
+    });
+
+    await invalidate_project_order_caches(project_id, project.key, redisKeys);
+
+    return { success: true as const, swap_count: parsedEdits.length };
+  });
+
 export const project_map_edit_router = t.router({
   update: update_project_map_route,
-  update_indexes: update_project_map_indexes
+  update_indexes: update_project_map_indexes,
+  save_order: save_project_map_order
 });

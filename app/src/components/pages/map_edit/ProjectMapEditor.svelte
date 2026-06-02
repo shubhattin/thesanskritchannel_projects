@@ -2,8 +2,7 @@
   import { Map as MapIcon, ArrowUpDown, FolderRoot } from '@lucide/svelte';
   import type { Tree as TreeComponent, LTreeNode, DropPosition } from '@keenmate/svelte-treeview';
   import { browser } from '$app/environment';
-  import { beforeNavigate, goto } from '$app/navigation';
-  import { page } from '$app/state';
+  import { beforeNavigate } from '$app/navigation';
   import { onDestroy, onMount, untrack } from 'svelte';
   import { get } from 'svelte/store';
   import { client_q } from '~/api/client';
@@ -28,8 +27,6 @@
     type MapTreeItem,
     clone_map_with_client_ids,
     strip_client_ids,
-    parse_path_query,
-    format_path_query,
     is_path_valid,
     build_tree_rows,
     compute_map_edit_diff,
@@ -227,14 +224,8 @@
     baselineMap = plain;
     workingMap = clone_map_with_client_ids(plain, null, 0, snapshots);
     baselineSnapshots = snapshots;
-    const fromUrl = parse_path_query(page.url.searchParams.get('path'));
-    basePath = is_path_valid(workingMap, fromUrl) ? fromUrl : [];
-    if (!is_path_valid(workingMap, fromUrl) && fromUrl.length > 0) {
-      sync_path_query([]);
-    } else {
-      sync_path_query(basePath);
-    }
-    selectedNodePath = basePath.length ? [...basePath] : [];
+    basePath = [];
+    selectedNodePath = [];
     expandedTreePaths = default_tree_expanded_paths();
   }
 
@@ -247,21 +238,6 @@
     workingMap = clone_working_map(workingMap);
   }
 
-  function sync_path_query(path: MapPath) {
-    const url = new URL(page.url);
-    const next = format_path_query(path);
-    const current = url.searchParams.get('path') ?? '';
-    if (current === next || (!current && !next)) return;
-    if (next) url.searchParams.set('path', next);
-    else url.searchParams.delete('path');
-    const search = url.searchParams.toString();
-    goto(`${url.pathname}${search ? `?${search}` : ''}`, {
-      replaceState: true,
-      keepFocus: true,
-      noScroll: true
-    });
-  }
-
   function select_node_by_subtree_path(subtreePath: string) {
     if (!workingMap) return;
     const full = full_path_from_subtree_path(basePath, subtreePath);
@@ -272,7 +248,6 @@
   function set_base_path(path: MapPath) {
     if (!workingMap || !is_path_valid(workingMap, path)) return;
     basePath = path;
-    sync_path_query(path);
     if (!is_path_valid(workingMap, selectedNodePath)) {
       selectedNodePath = path.length === 0 ? [] : path;
     }
@@ -284,7 +259,6 @@
     const full = full_path_from_subtree_path(basePath, subtreePath);
     if (!get_node_at_map_path(workingMap, full)) return;
     basePath = full;
-    sync_path_query(full);
     selectedNodePath = full;
     reset_tree_expansion();
   }

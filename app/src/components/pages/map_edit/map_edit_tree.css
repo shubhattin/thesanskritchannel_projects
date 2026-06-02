@@ -32,6 +32,10 @@
   color: var(--foreground);
   border-radius: calc(var(--radius) - 2px);
   padding: 6px 10px;
+  transition:
+    background-color 0.12s ease,
+    box-shadow 0.12s ease,
+    color 0.12s ease;
 }
 
 .map-edit-tree .ltree-node .ltree-children {
@@ -53,32 +57,187 @@
   margin-top: 0 !important;
 }
 
+/* ── Default (neutral / order-edit mode) hover + selected ────────────────── */
 .map-edit-tree .ltree-node .ltree-node-content:hover {
-  background-color: color-mix(in oklch, var(--muted) 72%, transparent);
+  background-color: oklch(from var(--muted) l c h / 0.9);
 }
 
-.map-edit-tree .ltree-node .ltree-node-content.map-edit-tree-selected {
-  background-color: color-mix(in oklch, var(--accent) 28%, var(--muted)) !important;
-  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ring) 55%, transparent);
+.map-edit-tree .ltree-node .ltree-node-content:has(.map-edit-row-selected) {
+  background-color: color-mix(in oklch, var(--accent) 35%, var(--muted)) !important;
+  box-shadow:
+    inset 2px 0 0 0 var(--primary),
+    inset 0 0 0 1px color-mix(in oklch, var(--ring) 45%, transparent);
 }
 
-.map-edit-tree .ltree-node .ltree-node-content.map-edit-tree-selected:hover {
-  background-color: color-mix(in oklch, var(--accent) 36%, var(--muted)) !important;
-}
-
-.dark .map-edit-tree .ltree-node .ltree-node-content:hover {
-  background-color: color-mix(in oklch, var(--muted) 88%, var(--background));
-}
-
-.dark .map-edit-tree .ltree-node .ltree-node-content.map-edit-tree-selected {
-  background-color: color-mix(in oklch, var(--accent) 42%, var(--muted)) !important;
-  color: var(--accent-foreground);
-}
-
-.dark .map-edit-tree .ltree-node .ltree-node-content.map-edit-tree-selected:hover {
+.map-edit-tree .ltree-node .ltree-node-content:has(.map-edit-row-selected):hover {
   background-color: color-mix(in oklch, var(--accent) 50%, var(--muted)) !important;
 }
 
+.dark .map-edit-tree .ltree-node .ltree-node-content:hover {
+  background-color: color-mix(in oklch, var(--muted) 92%, var(--background));
+}
+
+.dark .map-edit-tree .ltree-node .ltree-node-content:has(.map-edit-row-selected) {
+  background-color: color-mix(in oklch, var(--accent) 55%, var(--muted)) !important;
+  color: var(--accent-foreground);
+  box-shadow:
+    inset 2px 0 0 0 var(--primary),
+    inset 0 0 0 1px color-mix(in oklch, var(--ring) 35%, transparent);
+}
+
+.dark .map-edit-tree .ltree-node .ltree-node-content:has(.map-edit-row-selected):hover {
+  background-color: color-mix(in oklch, var(--accent) 65%, var(--muted)) !important;
+}
+
+/* ── Leaf nodes (shloka) — green tint ─────────────────────────────────────── */
+.map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-tree-row[data-node-kind='leaf']):hover {
+  background-color: oklch(0.92 0.06 145 / 0.75);
+}
+
+.map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='leaf']) {
+  background-color: oklch(0.88 0.09 145 / 0.85) !important;
+  box-shadow:
+    inset 2px 0 0 0 oklch(0.55 0.16 145),
+    inset 0 0 0 1px oklch(0.65 0.14 145 / 0.4);
+  color: oklch(0.25 0.08 145);
+}
+
+.map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='leaf']):hover {
+  background-color: oklch(0.85 0.1 145 / 0.9) !important;
+}
+
+.dark
+  .map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-tree-row[data-node-kind='leaf']):hover {
+  background-color: oklch(0.28 0.06 145 / 0.9);
+}
+
+.dark
+  .map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='leaf']) {
+  background-color: oklch(0.32 0.08 145 / 0.95) !important;
+  box-shadow:
+    inset 2px 0 0 0 oklch(0.6 0.18 145),
+    inset 0 0 0 1px oklch(0.5 0.14 145 / 0.5);
+  color: oklch(0.85 0.12 145);
+}
+
+.dark
+  .map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='leaf']):hover {
+  background-color: oklch(0.36 0.1 145 / 1) !important;
+}
+
+/* ── List nodes with children — warm orange-amber tint ───────────────────── */
+.map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-tree-row[data-node-kind='list']):hover {
+  background-color: oklch(0.93 0.07 55 / 0.75);
+}
+
+.map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='list']) {
+  background-color: oklch(0.88 0.1 55 / 0.85) !important;
+  box-shadow:
+    inset 2px 0 0 0 oklch(0.62 0.2 45),
+    inset 0 0 0 1px oklch(0.7 0.18 50 / 0.4);
+  color: oklch(0.3 0.1 45);
+}
+
+.map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='list']):hover {
+  background-color: oklch(0.84 0.12 55 / 0.9) !important;
+}
+
+.dark
+  .map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-tree-row[data-node-kind='list']):hover {
+  background-color: oklch(0.3 0.06 55 / 0.85);
+}
+
+.dark
+  .map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='list']) {
+  background-color: oklch(0.34 0.09 52 / 0.95) !important;
+  box-shadow:
+    inset 2px 0 0 0 oklch(0.72 0.18 60),
+    inset 0 0 0 1px oklch(0.65 0.16 55 / 0.45);
+  color: oklch(0.9 0.12 75);
+}
+
+.dark
+  .map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='list']):hover {
+  background-color: oklch(0.38 0.11 52 / 1) !important;
+}
+
+/* ── Empty list nodes (disabled, 0 children) — red tint ──────────────────── */
+.map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-tree-row[data-node-kind='empty-list']):hover {
+  background-color: oklch(0.93 0.05 15 / 0.75);
+}
+
+.map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='empty-list']) {
+  background-color: oklch(0.88 0.08 15 / 0.85) !important;
+  box-shadow:
+    inset 2px 0 0 0 oklch(0.55 0.22 25),
+    inset 0 0 0 1px oklch(0.6 0.18 20 / 0.4);
+  color: oklch(0.28 0.1 20);
+}
+
+.map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-row-selected):has(
+    .map-edit-tree-row[data-node-kind='empty-list']
+  ):hover {
+  background-color: oklch(0.84 0.1 15 / 0.9) !important;
+}
+
+.dark
+  .map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-tree-row[data-node-kind='empty-list']):hover {
+  background-color: oklch(0.28 0.06 20 / 0.85);
+}
+
+.dark
+  .map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-row-selected):has(.map-edit-tree-row[data-node-kind='empty-list']) {
+  background-color: oklch(0.3 0.09 20 / 0.95) !important;
+  box-shadow:
+    inset 2px 0 0 0 oklch(0.6 0.22 25),
+    inset 0 0 0 1px oklch(0.55 0.18 22 / 0.5);
+  color: oklch(0.88 0.1 20);
+}
+
+.dark
+  .map-edit-tree
+  .ltree-node
+  .ltree-node-content:has(.map-edit-row-selected):has(
+    .map-edit-tree-row[data-node-kind='empty-list']
+  ):hover {
+  background-color: oklch(0.34 0.11 20 / 1) !important;
+}
+
+/* ── Misc ─────────────────────────────────────────────────────────────────── */
 .map-edit-tree .ltree-node .ltree-toggle-icon,
 .map-edit-tree .ltree-node .ltree-node-path {
   color: var(--muted-foreground);
@@ -99,4 +258,9 @@
 
 .map-edit-tree .map-edit-tree-row {
   color: var(--foreground);
+}
+
+.map-edit-tree .ltree-node-content:hover .map-edit-set-root-btn,
+.map-edit-tree .map-edit-tree-row:hover .map-edit-set-root-btn {
+  visibility: visible;
 }

@@ -14,6 +14,8 @@ export type MapChangeKind = 'rename' | 'list_name_change' | 'expected_count_chan
 export type MapChangeRow = {
   kind: MapChangeKind;
   clientId: string;
+  path: MapPath;
+  /** Short numeric path (`//1/2`); kept for backwards-compatible summaries. */
   pathLabel: string;
   summary: string;
 };
@@ -57,6 +59,31 @@ export const format_path_query = (path: MapPath): string => path.join('/');
 
 export const path_label = (path: MapPath): string =>
   path.length === 0 ? '/' : `/${path.join('/')}`;
+
+/** Compact numeric path for lists (`//1/2/3`); `/` at project root. */
+export const format_path_short_label = (path: MapPath): string =>
+  path.length === 0 ? '/' : `//${path.join('/')}`;
+
+/** `name_dev` from root through each path segment (length = path.length + 1). */
+export const resolve_path_name_segments = (
+  map: MapNodeWithClientId,
+  path: MapPath
+): string[] => {
+  const names: string[] = [map.name_dev];
+  let acc: MapPath = [];
+  for (const sel of path) {
+    acc = [...acc, sel];
+    const node = get_node_at_map_path(map, acc);
+    names.push(node?.name_dev ?? String(sel));
+  }
+  return names;
+};
+
+/** Human-readable path using Devanagari names (breadcrumb style). */
+export const format_path_resolved_label = (
+  map: MapNodeWithClientId,
+  path: MapPath
+): string => resolve_path_name_segments(map, path).join(' / ');
 
 /** DB path key (`texts.path`, etc.): colon-separated 1-based segments. */
 export const map_path_to_db_path = (path: MapPath): string => path.join(':');
@@ -181,11 +208,45 @@ export type MapTreeRow = {
   isRoot: boolean;
   isLeaf: boolean;
   nodeType: 'list' | 'shloka';
+  childCount: number;
   edited: boolean;
   moved: boolean;
   draggable: boolean;
   isSelected: boolean;
+  isExpanded: boolean;
   allowedDropPositions: ('above' | 'below')[];
+};
+
+/** Subtree-relative paths that are expanded in the tree UI (always includes `''` when root is open). */
+export const default_tree_expanded_paths = (): Set<string> => new Set(['']);
+
+export const expand_tree_expanded_paths = (
+  expanded: ReadonlySet<string>,
+  relPath: string
+): Set<string> => {
+  const next = new Set(expanded);
+  next.add(relPath);
+  if (relPath === '') return next;
+  next.add('');
+  const parts = relPath.split('.');
+  for (let i = 1; i < parts.length; i++) {
+    next.add(parts.slice(0, i).join('.'));
+  }
+  return next;
+};
+
+/** Collapse `relPath` and its descendants only; other branches stay as they were. */
+export const collapse_tree_expanded_paths = (
+  expanded: ReadonlySet<string>,
+  relPath: string
+): Set<string> => {
+  const next = new Set<string>();
+  for (const p of expanded) {
+    if (relPath === '') continue;
+    if (p === relPath || p.startsWith(`${relPath}.`)) continue;
+    next.add(p);
+  }
+  return next;
 };
 
 const paths_equal = (a: MapPath, b: MapPath) =>
@@ -201,7 +262,8 @@ export const build_tree_rows = (
   basePath: MapPath,
   flagsByClientId: Map<string, MapNodeDiffFlags>,
   selectedNodePath: MapPath = [],
-  reorder_enabled = false
+  reorder_enabled = false,
+  expandedPaths: ReadonlySet<string> = default_tree_expanded_paths()
 ): MapTreeRow[] => {
   const rows: MapTreeRow[] = [];
   const subtreeRoot =
@@ -229,10 +291,12 @@ export const build_tree_rows = (
       isRoot,
       isLeaf,
       nodeType: node.info.type,
+      childCount: list.length,
       edited: flags.edited,
       moved: flags.moved,
       draggable: reorder_enabled && !isRoot,
       isSelected: paths_equal(full_path_for_subtree_rel(basePath, relPath), selectedNodePath),
+      isExpanded: !isLeaf && list.length > 0 && expandedPaths.has(relPath),
       allowedDropPositions: ['above', 'below']
     });
 
@@ -274,7 +338,7 @@ export const compute_map_edit_diff = (
       });
     }
 
-    const label = path_label(path);
+    const label = format_path_short_label(path);
     let edited = false;
 
     if (node.name_dev !== snap.name_dev) {
@@ -282,8 +346,9 @@ export const compute_map_edit_diff = (
       rows.push({
         kind: 'rename',
         clientId,
+        path,
         pathLabel: label,
-        summary: `Renamed ${label} from "${snap.name_dev}" to "${node.name_dev}"`
+        summary: `Renamed "${snap.name_dev}" to "${node.name_dev}"`
       });
     }
 
@@ -295,8 +360,9 @@ export const compute_map_edit_diff = (
         rows.push({
           kind: 'list_name_change',
           clientId,
+          path,
           pathLabel: label,
-          summary: `Changed list label at ${label} from "${bInfo.list_name}" to "${wInfo.list_name}"`
+          summary: `Changed list label from "${bInfo.list_name}" to "${wInfo.list_name}"`
         });
       }
       if (wInfo.list_count_expected !== bInfo.list_count_expected) {
@@ -304,18 +370,30 @@ export const compute_map_edit_diff = (
         rows.push({
           kind: 'expected_count_change',
           clientId,
+          path,
           pathLabel: label,
-          summary: `Updated expected count at ${label} from ${count_label(bInfo.list_count_expected)} to ${count_label(wInfo.list_count_expected)}`
+          summary: `Updated expected count from ${count_label(bInfo.list_count_expected)} to ${count_label(wInfo.list_count_expected)}`
         });
       }
     } else if (wInfo.type === 'list' && bInfo.type === 'list' && path.length === 0) {
+      if (wInfo.list_name !== bInfo.list_name) {
+        edited = true;
+        rows.push({
+          kind: 'list_name_change',
+          clientId,
+          path,
+          pathLabel: label,
+          summary: `Changed list label from "${bInfo.list_name}" to "${wInfo.list_name}"`
+        });
+      }
       if (wInfo.list_count_expected !== bInfo.list_count_expected) {
         edited = true;
         rows.push({
           kind: 'expected_count_change',
           clientId,
+          path,
           pathLabel: label,
-          summary: `Updated expected count at ${label} from ${count_label(bInfo.list_count_expected)} to ${count_label(wInfo.list_count_expected)}`
+          summary: `Updated expected count from ${count_label(bInfo.list_count_expected)} to ${count_label(wInfo.list_count_expected)}`
         });
       }
     }
@@ -359,10 +437,12 @@ export const compute_map_edit_diff = (
         edited: flagsByClientId.get(clientId)?.edited ?? false,
         moved: true
       });
+      const nodePath = find_path_by_client_id(workingMap, clientId) ?? [];
       rows.push({
         kind: 'reorder',
         clientId,
-        pathLabel: path_label(find_path_by_client_id(workingMap, clientId) ?? []),
+        path: nodePath,
+        pathLabel: format_path_short_label(nodePath),
         summary: `Moved ${oldPos}. ${node.name_dev} to position ${newPos} under ${parentName}`
       });
     }
@@ -452,12 +532,14 @@ export const get_breadcrumb_segments = (
   map: MapNodeWithClientId,
   basePath: MapPath
 ): { path: MapPath; label: string }[] => {
-  const segments: { path: MapPath; label: string }[] = [{ path: [], label: map.name_dev }];
+  const segments: { path: MapPath; label: string }[] = [
+    { path: [], label: resolve_path_name_segments(map, [])[0] ?? map.name_dev }
+  ];
   let acc: MapPath = [];
   for (const sel of basePath) {
     acc = [...acc, sel];
-    const node = get_node_at_map_path(map, acc);
-    segments.push({ path: [...acc], label: node?.name_dev ?? `/${sel}` });
+    const names = resolve_path_name_segments(map, acc);
+    segments.push({ path: [...acc], label: names[names.length - 1] ?? `/${sel}` });
   }
   return segments;
 };

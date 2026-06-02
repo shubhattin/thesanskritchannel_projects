@@ -1,11 +1,20 @@
 <script lang="ts">
   import './map_edit_tree.css';
+  import {
+    Map as MapIcon,
+    TreePine,
+    PenLine,
+    ArrowUpDown,
+    Ban,
+    GripVertical,
+    FolderRoot
+  } from '@lucide/svelte';
   import { Tree } from '@keenmate/svelte-treeview';
   import type { Tree as TreeComponent, LTreeNode, DropPosition } from '@keenmate/svelte-treeview';
   import { browser } from '$app/environment';
   import { beforeNavigate, goto } from '$app/navigation';
   import { page } from '$app/state';
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, untrack } from 'svelte';
   import { get } from 'svelte/store';
   import { client_q } from '~/api/client';
   import {
@@ -26,7 +35,6 @@
   import { Separator } from '$lib/components/ui/separator';
   import { Switch } from '$lib/components/ui/switch';
   import { toast } from 'svelte-sonner';
-  import { GripVertical } from '@lucide/svelte';
   import {
     clearTypingContextOnKeyDown,
     createTypingContext,
@@ -49,13 +57,18 @@
     reorder_siblings,
     get_breadcrumb_segments,
     parse_optional_count,
-    path_label,
     map_path_to_db_path,
     clone_baseline_snapshots,
     clone_working_map,
     clone_recursive_list,
-    MAP_EDIT_CLIENT_ID
+    MAP_EDIT_CLIENT_ID,
+    format_path_resolved_label,
+    default_tree_expanded_paths,
+    expand_tree_expanded_paths,
+    collapse_tree_expanded_paths
   } from './map_edit_lib';
+  import MapEditPathLabel from './MapEditPathLabel.svelte';
+  import * as Tooltip from '$lib/components/ui/tooltip';
   import type { PathSwapEdit } from '~/server/map_path_swap';
 
   let {
@@ -84,6 +97,7 @@
   let saving_order = $state(false);
   let typing_enabled = $state(true);
   let last_tree_click = $state<{ path: string; at: number } | null>(null);
+  let expandedTreePaths = $state<Set<string>>(default_tree_expanded_paths());
 
   const TREE_DBLCLICK_MS = 400;
 
@@ -108,10 +122,12 @@
     isRoot: boolean;
     isLeaf: boolean;
     nodeType: 'list' | 'shloka';
+    childCount: number;
     edited: boolean;
     moved: boolean;
     draggable: boolean;
     isSelected: boolean;
+    isExpanded: boolean;
     allowedDropPositions: ('above' | 'below')[];
   };
 
@@ -161,8 +177,9 @@
       workingMap,
       basePath,
       active_diff_state.flagsByClientId,
-      selectedNodePath,
-      order_edit_mode
+      untrack(() => selectedNodePath),
+      order_edit_mode,
+      expandedTreePaths
     );
   });
 
@@ -178,6 +195,12 @@
 
   const selected_is_root = $derived(selectedNodePath.length === 0);
   const base_path_active = $derived(basePath.length > 0);
+  const selected_path_resolved = $derived(
+    workingMap ? format_path_resolved_label(workingMap, selectedNodePath) : ''
+  );
+  const base_path_resolved = $derived(
+    workingMap ? format_path_resolved_label(workingMap, basePath) : '/'
+  );
 
   let list_count_draft = $state('');
 
@@ -249,6 +272,11 @@
       sync_path_query(basePath);
     }
     selectedNodePath = basePath.length ? [...basePath] : [];
+    expandedTreePaths = default_tree_expanded_paths();
+  }
+
+  function reset_tree_expansion() {
+    expandedTreePaths = default_tree_expanded_paths();
   }
 
   function bump_working() {
@@ -285,6 +313,7 @@
     if (!is_path_valid(workingMap, selectedNodePath)) {
       selectedNodePath = path.length === 0 ? [] : path;
     }
+    reset_tree_expansion();
   }
 
   function promote_change_root(subtreePath: string) {
@@ -294,6 +323,13 @@
     basePath = full;
     sync_path_query(full);
     selectedNodePath = full;
+    reset_tree_expansion();
+  }
+
+  function toggle_tree_path_expanded(relPath: string) {
+    expandedTreePaths = expandedTreePaths.has(relPath)
+      ? collapse_tree_expanded_paths(expandedTreePaths, relPath)
+      : expand_tree_expanded_paths(expandedTreePaths, relPath);
   }
 
   function on_tree_node_clicked(node: LTreeNode<MapTreeItem>) {
@@ -308,13 +344,20 @@
 
     if (is_double) {
       last_tree_click = null;
-      if (row.isLeaf || !workingMap) return;
-      promote_change_root(subtreePath);
+      if (row.nodeType === 'list' && row.childCount > 0) {
+        toggle_tree_path_expanded(subtreePath);
+      }
       return;
     }
 
     last_tree_click = { path: subtreePath, at: now };
     select_node_by_subtree_path(subtreePath);
+  }
+
+  function on_set_tree_root_click(e: MouseEvent, subtreePath: string) {
+    e.stopPropagation();
+    e.preventDefault();
+    promote_change_root(subtreePath);
   }
 
   function toggle_typing_from_keyboard(e: KeyboardEvent) {
@@ -327,13 +370,13 @@
   }
 
   function update_name_dev(value: string) {
-    if (!selectedNode) return;
+    if (!selectedNode || selected_is_root) return;
     selectedNode.name_dev = value;
     bump_working();
   }
 
   function update_list_name(value: string) {
-    if (!selectedNode || selectedNode.info.type !== 'list' || selected_is_root) return;
+    if (!selectedNode || selectedNode.info.type !== 'list') return;
     selectedNode.info = { ...selectedNode.info, list_name: value };
     bump_working();
   }
@@ -518,24 +561,42 @@
 </script>
 
 <div class="flex flex-col gap-4">
-  <Card.Root>
+  <Card.Root class="overflow-hidden border-t-2 border-t-primary/60">
     <Card.Header class="gap-3 pb-3">
       <div class="flex flex-wrap items-start justify-between gap-3">
-        <div class="space-y-1">
-          <Card.Title>Edit project map</Card.Title>
-          <Card.Description>{project_name_dev}</Card.Description>
+        <div class="flex items-center gap-3">
+          <div
+            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+          >
+            {#if order_edit_mode}
+              <ArrowUpDown class="size-4" />
+            {:else}
+              <MapIcon class="size-4" />
+            {/if}
+          </div>
+          <div class="space-y-0.5">
+            <Card.Title class="text-base">
+              {order_edit_mode ? 'Edit list order' : 'Edit project map'}
+            </Card.Title>
+            <Card.Description class="text-sm">{project_name_dev}</Card.Description>
+          </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           {#if order_edit_mode && order_dirty}
-            <Badge variant="secondary">
+            <Badge variant="secondary" class="tabular-nums">
               {pending_swaps.length} swap{pending_swaps.length === 1 ? '' : 's'}
             </Badge>
           {:else if metadata_dirty}
-            <Badge variant="secondary">{diffState.changedNodeCount} changed</Badge>
+            <Badge variant="secondary" class="tabular-nums"
+              >{diffState.changedNodeCount} changed</Badge
+            >
           {/if}
           {#if order_edit_mode}
-            <Button variant="outline" onclick={cancel_order_edit}>Cancel order edit</Button>
+            <Button variant="outline" size="sm" onclick={cancel_order_edit}
+              >Cancel order edit</Button
+            >
             <Button
+              size="sm"
               onclick={request_save_order}
               disabled={!order_dirty || $save_mut.isPending || $save_order_indexes_mut.isPending}
             >
@@ -544,8 +605,9 @@
                 : 'Save current order'}
             </Button>
           {:else}
-            <Button variant="outline" onclick={request_cancel}>Cancel</Button>
+            <Button variant="outline" size="sm" onclick={request_cancel}>Cancel</Button>
             <Button
+              size="sm"
               onclick={request_save}
               disabled={!metadata_dirty || $save_mut.isPending || count_input_invalid}
             >
@@ -554,10 +616,12 @@
             <Button
               type="button"
               variant="outline"
+              size="sm"
               class="border-amber-800/35 bg-amber-950/8 text-amber-950 hover:bg-amber-950/12 dark:border-amber-300/45 dark:bg-amber-400/12 dark:text-amber-100 dark:hover:bg-amber-400/18"
               disabled={metadata_field_dirty}
               onclick={enter_order_edit_mode}
             >
+              <ArrowUpDown class="mr-1 size-3.5" />
               Edit order
             </Button>
           {/if}
@@ -587,40 +651,44 @@
         </Breadcrumb.List>
       </Breadcrumb.Root>
 
-      {#if !order_edit_mode}
-        <div class="flex flex-wrap items-center gap-3">
-          <p class="text-sm text-muted-foreground">
-            Double-click a <span class="font-medium text-foreground">branch</span> node in the tree to
-            change the root.
+      {#if order_edit_mode}
+        <div class="rounded-md bg-amber-500/8 px-3 py-1.5 dark:bg-amber-400/8">
+          <p class="text-xs text-amber-800 dark:text-amber-300">
+            Order edit mode — drag siblings to reorder. Field edits are locked.
           </p>
-          {#if base_path_active}
-            <Button variant="ghost" size="sm" onclick={() => set_base_path([])}>
-              Back to full tree
-            </Button>
-          {/if}
         </div>
-      {:else}
-        <p class="text-sm text-muted-foreground">
-          Order edit mode — drag siblings to reorder. Field edits are locked until you save or
-          cancel.
-        </p>
       {/if}
     </Card.Header>
   </Card.Root>
 
   {#if !order_edit_mode}
     <div
-      class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/25 px-3 py-2"
+      class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-4 py-2.5"
     >
-      <p class="text-xs text-muted-foreground">
-        Lipi-Lekhika typing for <span class="text-foreground">Name (Devanagari)</span> — toggle with
-        <kbd class="rounded border bg-background px-1 font-mono text-[10px]">Alt+X</kbd> or
-        <kbd class="rounded border bg-background px-1 font-mono text-[10px]">Alt+C</kbd>
-      </p>
+      <div class="flex items-center gap-2">
+        <div
+          class="flex size-5 shrink-0 items-center justify-center rounded text-primary opacity-70"
+        >
+          <PenLine class="size-3.5" />
+        </div>
+        <p class="text-xs text-muted-foreground">
+          Lipi-Lekhika typing for <span class="font-medium text-foreground">Name (Devanagari)</span>
+          — toggle with
+          <kbd
+            class="rounded border border-border bg-background px-1.5 font-mono text-[10px] shadow-sm"
+            >Alt+X</kbd
+          >
+          or
+          <kbd
+            class="rounded border border-border bg-background px-1.5 font-mono text-[10px] shadow-sm"
+            >Alt+C</kbd
+          >
+        </p>
+      </div>
       <div class="flex items-center gap-2">
         <Label
           for="map-edit-typing"
-          class="cursor-pointer text-xs font-normal text-muted-foreground"
+          class="cursor-pointer text-xs font-medium text-muted-foreground select-none"
         >
           Typing
         </Label>
@@ -635,18 +703,21 @@
   {/if}
 
   <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-    <Card.Root class="flex min-h-[420px] flex-col lg:min-h-[min(72vh,640px)]">
-      <Card.Header class="pb-2">
-        <Card.Title class="text-base">Tree</Card.Title>
-        <Card.Description>
+    <Card.Root class="flex min-h-[420px] flex-col overflow-hidden lg:min-h-[min(72vh,640px)]">
+      <div class="border-b border-border/60 bg-muted/20 px-5 py-3">
+        <div class="flex items-center gap-2">
+          <TreePine class="size-4 shrink-0 text-muted-foreground" />
+          <span class="text-sm font-semibold">Tree</span>
+        </div>
+        <p class="mt-0.5 text-xs text-muted-foreground">
           {#if order_edit_mode}
-            Drag rows to reorder siblings — subtree under {path_label(basePath) || '/'}
+            Drag rows to reorder siblings — subtree under {base_path_resolved}
           {:else}
-            Subtree under {path_label(basePath) || '/'}
+            Subtree under {base_path_resolved}
           {/if}
-        </Card.Description>
-      </Card.Header>
-      <Card.Content class="min-h-0 flex-1 pb-4">
+        </p>
+      </div>
+      <Card.Content class="min-h-0 flex-1 px-3 pt-3 pb-4">
         <ScrollArea.Root class="h-[min(52vh,420px)] lg:h-[min(60vh,560px)]">
           {#if workingMap && treeData.length > 0}
             <div class="map-edit-tree px-1">
@@ -660,37 +731,91 @@
                 displayValueMember="name_dev"
                 orderMember="sortOrder"
                 isSelectedMember="isSelected"
+                isExpandedMember="isExpanded"
+                shouldToggleOnNodeClick={false}
                 dragDropMode={order_edit_mode ? 'self' : 'none'}
                 allowedDropPositionsMember="allowedDropPositions"
                 getAllowedDropPositionsCallback={order_edit_mode
                   ? get_allowed_drop_positions
                   : undefined}
                 beforeDropCallback={order_edit_mode ? before_drop : undefined}
-                selectedNodeClass="map-edit-tree-selected"
                 onNodeClicked={on_tree_node_clicked}
               >
                 {#snippet nodeTemplate(node: LTreeNode<MapTreeItem>)}
                   {@const row = node.data!}
-                  <div class="map-edit-tree-row flex w-full items-center gap-2 py-1 pr-2">
+                  {@const nodeKind = order_edit_mode
+                    ? 'neutral'
+                    : row.nodeType === 'shloka'
+                      ? 'leaf'
+                      : row.childCount === 0
+                        ? 'empty-list'
+                        : 'list'}
+                  <div
+                    class="map-edit-tree-row group flex w-full items-center gap-2 py-1 pr-2"
+                    class:map-edit-row-selected={row.isSelected}
+                    data-node-kind={nodeKind}
+                  >
                     {#if order_edit_mode}
                       {#if row.draggable}
-                        <span class="text-muted-foreground" title="Drag to reorder">
+                        <span
+                          class="text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+                          title="Drag to reorder"
+                        >
                           <GripVertical class="size-3.5" />
                         </span>
-                        <span class="w-5 shrink-0 text-xs text-muted-foreground tabular-nums">
+                        <span class="w-5 shrink-0 text-[11px] text-muted-foreground tabular-nums">
                           {row.visibleIndex}.
                         </span>
                       {:else if !row.isRoot}
                         <span class="w-8 shrink-0" aria-hidden="true"></span>
                       {/if}
+                    {:else if !row.isRoot}
+                      {#if row.nodeType === 'list' && row.childCount === 0}
+                        <span
+                          class="shrink-0 text-red-400 dark:text-red-500"
+                          title="Empty list — no children"
+                        >
+                          <Ban class="size-3" />
+                        </span>
+                      {/if}
+                      <span class="w-5 shrink-0 text-[11px] text-muted-foreground/60 tabular-nums">
+                        {row.visibleIndex}.
+                      </span>
                     {/if}
-                    <span class="min-w-0 flex-1 truncate text-sm">{row.name_dev}</span>
-                    <div class="flex shrink-0 gap-1">
+                    <span
+                      class="min-w-0 flex-1 truncate text-sm {row.nodeType === 'list' &&
+                      row.childCount === 0 &&
+                      !row.isRoot &&
+                      !order_edit_mode
+                        ? 'opacity-60'
+                        : ''}">{row.name_dev}</span
+                    >
+                    <div class="flex shrink-0 items-center gap-1">
+                      {#if !order_edit_mode &&
+                        row.nodeType === 'list' &&
+                        row.childCount > 0 &&
+                        !row.isRoot}
+                        <button
+                          type="button"
+                          class="map-edit-set-root-btn invisible shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+                          title="Set as tree root"
+                          aria-label="Set as tree root"
+                          onclick={(e) => on_set_tree_root_click(e, row.path)}
+                        >
+                          <FolderRoot class="size-3.5" />
+                        </button>
+                      {/if}
                       {#if row.isRoot}
-                        <Badge variant="outline" class="text-[10px]">root</Badge>
+                        <Badge variant="outline" class="border-primary/30 text-[10px] text-primary"
+                          >root</Badge
+                        >
                       {/if}
                       {#if !order_edit_mode && row.edited}
-                        <Badge variant="secondary" class="text-[10px]">edited</Badge>
+                        <Badge
+                          variant="secondary"
+                          class="bg-amber-100 text-[10px] text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                          >edited</Badge
+                        >
                       {/if}
                       {#if row.moved}
                         <Badge class="text-[10px]">moved</Badge>
@@ -707,34 +832,43 @@
       </Card.Content>
     </Card.Root>
 
-    <Card.Root class="flex min-h-[420px] flex-col lg:min-h-[min(72vh,640px)]">
-      <Card.Header class="pb-2">
-        <Card.Title class="text-base">Node editor</Card.Title>
-        <Card.Description>
+    <Card.Root class="flex min-h-[420px] flex-col overflow-hidden lg:min-h-[min(72vh,640px)]">
+      <div class="border-b border-border/60 bg-muted/20 px-5 py-3">
+        <div class="flex items-center gap-2">
+          <PenLine class="size-4 shrink-0 text-muted-foreground" />
+          <span class="text-sm font-semibold">Node editor</span>
+        </div>
+        <p class="mt-0.5 text-xs text-muted-foreground">
           {#if selectedNode}
-            {path_label(selectedNodePath)}
+            <span class="text-foreground">{selected_path_resolved}</span>
           {:else}
             Select a node in the tree
           {/if}
-        </Card.Description>
-      </Card.Header>
-      <Card.Content class="space-y-4">
+        </p>
+      </div>
+      <Card.Content class="space-y-4 pt-4">
         {#if order_edit_mode}
-          <p class="text-sm text-muted-foreground">
-            {#if selectedNode}
-              Viewing <span class="font-mono text-foreground">{path_label(selectedNodePath)}</span>
-              ({selectedNode.name_dev}). Reorder in the tree; names and list labels cannot be edited
-              in this mode.
-            {:else}
-              Select a node to inspect it. Reorder siblings using drag handles in the tree.
-            {/if}
-          </p>
+          <div class="rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
+            <p class="text-sm text-muted-foreground">
+              {#if selectedNode}
+                Viewing <span class="font-medium text-foreground">{selected_path_resolved}</span>.
+                Reorder in the tree; names and list labels cannot be edited in this mode.
+              {:else}
+                Select a node to inspect it. Reorder siblings using drag handles in the tree.
+              {/if}
+            </p>
+          </div>
         {:else if selectedNode}
-          <div class="space-y-2">
-            <Label for="name_dev">Name (Devanagari)</Label>
+          <div class="space-y-1.5">
+            <Label
+              for="name_dev"
+              class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+              >Name (Devanagari)</Label
+            >
             <Input
               id="name_dev"
               value={selectedNode.name_dev}
+              disabled={selected_is_root}
               onbeforeinput={(e) =>
                 handleTypingBeforeInputEvent(
                   typing_ctx,
@@ -750,30 +884,36 @@
             />
             {#if selected_is_root}
               <p class="text-xs text-muted-foreground">
-                Saving also updates the project display name in the registry.
+                Root display name (Devanagari) is not edited here.
               </p>
             {/if}
           </div>
 
           {#if selectedNode.info.type === 'list'}
             <Separator />
-            <div class="space-y-2">
-              <Label for="list_name">List type label</Label>
+            <div class="space-y-1.5">
+              <Label
+                for="list_name"
+                class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                >List type label</Label
+              >
+              <Input
+                id="list_name"
+                value={selectedNode.info.list_name}
+                oninput={(e) => update_list_name(e.currentTarget.value)}
+              />
               {#if selected_is_root}
-                <Input id="list_name" value={selectedNode.info.list_name} disabled />
                 <p class="text-xs text-muted-foreground">
-                  Root list label is fixed at the project level and cannot be edited here.
+                  Top-level list type label (e.g. Veda, Kanda). Editable at the project root only.
                 </p>
-              {:else}
-                <Input
-                  id="list_name"
-                  value={selectedNode.info.list_name}
-                  oninput={(e) => update_list_name(e.currentTarget.value)}
-                />
               {/if}
             </div>
-            <div class="space-y-2">
-              <Label for="list_count_expected">Expected list count (optional)</Label>
+            <div class="space-y-1.5">
+              <Label
+                for="list_count_expected"
+                class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                >Expected list count <span class="font-normal normal-case">(optional)</span></Label
+              >
               <Input
                 id="list_count_expected"
                 inputmode="numeric"
@@ -787,75 +927,98 @@
             </div>
           {:else}
             <Separator />
-            <div class="space-y-2 text-sm">
-              <p class="font-medium">Shloka metadata (read-only)</p>
-              <ul class="space-y-1 text-muted-foreground">
-                <li>Shloka count: {selectedNode.info.shloka_count}</li>
-                <li>Total lines: {selectedNode.info.total}</li>
+            <div class="rounded-lg border border-border/50 bg-muted/20 p-3 text-sm">
+              <p class="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                Shloka metadata
+              </p>
+              <dl class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
+                <dt class="text-muted-foreground">Shloka count</dt>
+                <dd class="font-medium tabular-nums">{selectedNode.info.shloka_count}</dd>
+                <dt class="text-muted-foreground">Total lines</dt>
+                <dd class="font-medium tabular-nums">{selectedNode.info.total}</dd>
                 {#if selectedNode.info.shloka_count_expected != null}
-                  <li>Expected shloka count: {selectedNode.info.shloka_count_expected}</li>
+                  <dt class="text-muted-foreground">Expected</dt>
+                  <dd class="font-medium tabular-nums">
+                    {selectedNode.info.shloka_count_expected}
+                  </dd>
                 {/if}
-              </ul>
-              <p class="text-xs">
-                Derived fields update when texts change; they are not editable in this editor.
+              </dl>
+              <p class="mt-2 text-xs text-muted-foreground">
+                Derived fields update when texts change; not editable here.
               </p>
             </div>
           {/if}
         {:else}
-          <p class="text-sm text-muted-foreground">
-            Choose a node from the tree to edit its fields.
-          </p>
+          <div class="flex h-full flex-col items-center justify-center py-8 text-center">
+            <div class="mb-3 flex size-10 items-center justify-center rounded-full bg-muted/60">
+              <PenLine class="size-4 text-muted-foreground" />
+            </div>
+            <p class="text-sm text-muted-foreground">
+              Choose a node from the tree to edit its fields.
+            </p>
+          </div>
         {/if}
       </Card.Content>
     </Card.Root>
   </div>
 
-  <Card.Root>
-    <Card.Header class="pb-2">
-      <Card.Title class="text-base">
-        {order_edit_mode ? 'Order changes' : 'Changes'}
-      </Card.Title>
-      <Card.Description>
-        {#if order_edit_mode}
-          {#if order_dirty}
-            {pending_swaps.length} path swap{pending_swaps.length === 1 ? '' : 's'} pending
+  <Card.Root class="overflow-hidden">
+    <div class="flex items-center justify-between border-b border-border/60 bg-muted/20 px-5 py-3">
+      <div>
+        <span class="text-sm font-semibold">
+          {order_edit_mode ? 'Order changes' : 'Changes'}
+        </span>
+        <span class="ml-2 text-xs text-muted-foreground">
+          {#if order_edit_mode}
+            {#if order_dirty}
+              {pending_swaps.length} swap{pending_swaps.length === 1 ? '' : 's'} pending
+            {:else}
+              no changes yet
+            {/if}
+          {:else if metadata_dirty}
+            {diffState.rows.length} update{diffState.rows.length === 1 ? '' : 's'}
           {:else}
-            No order changes yet
+            no unsaved changes
           {/if}
-        {:else if metadata_dirty}
-          {diffState.rows.length} update{diffState.rows.length === 1 ? '' : 's'}
-        {:else}
-          No unsaved changes
-        {/if}
-      </Card.Description>
-    </Card.Header>
-    <Card.Content class="pb-4">
+        </span>
+      </div>
+      {#if order_edit_mode ? order_dirty : metadata_dirty}
+        <div class="size-2 animate-pulse rounded-full bg-primary"></div>
+      {/if}
+    </div>
+    <Card.Content class="pt-4 pb-4">
       {#if order_edit_mode}
         {#if active_diff_state.rows.length === 0 && pending_swaps.length === 0}
           <p class="text-sm text-muted-foreground">Drag siblings in the tree to reorder lists.</p>
-        {:else}
-          <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {#each active_diff_state.rows as row (row.kind + row.clientId + row.summary)}
-              <li
-                class="rounded-md border border-border bg-muted/30 px-2.5 py-2 text-xs leading-snug"
-              >
-                {row.summary}
-              </li>
-            {/each}
-          </ul>
+        {:else if workingMap}
+          <Tooltip.Provider>
+            <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {#each active_diff_state.rows as row (row.kind + row.clientId + row.summary)}
+                <li
+                  class="space-y-1 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2 text-xs leading-snug text-foreground"
+                >
+                  <MapEditPathLabel map={workingMap} path={row.path} variant="short" />
+                  <p>{row.summary}</p>
+                </li>
+              {/each}
+            </ul>
+          </Tooltip.Provider>
         {/if}
       {:else if active_diff_state.rows.length === 0}
         <p class="text-sm text-muted-foreground">Edits will appear here.</p>
-      {:else}
-        <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {#each active_diff_state.rows as row (row.kind + row.clientId + row.summary)}
-            <li
-              class="rounded-md border border-border bg-muted/30 px-2.5 py-2 text-xs leading-snug"
-            >
-              {row.summary}
-            </li>
-          {/each}
-        </ul>
+      {:else if workingMap}
+        <Tooltip.Provider>
+          <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {#each active_diff_state.rows as row (row.kind + row.clientId + row.summary)}
+              <li
+                class="space-y-1 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2 text-xs leading-snug text-foreground"
+              >
+                <MapEditPathLabel map={workingMap} path={row.path} variant="short" />
+                <p>{row.summary}</p>
+              </li>
+            {/each}
+          </ul>
+        </Tooltip.Provider>
       {/if}
     </Card.Content>
   </Card.Root>

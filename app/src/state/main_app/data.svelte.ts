@@ -35,6 +35,21 @@ const get_dynamic_path_params = (
   return params as number[];
 };
 
+const get_normalized_selected_text_levels = (
+  selected_text_levels: (number | null)[],
+  project_levels: number
+) => {
+  if (project_levels <= 1) return [] as (number | null)[];
+  const path_params = get_dynamic_path_params(selected_text_levels, project_levels);
+  const normalized = Array.from({ length: project_levels - 1 }, () => null as number | null);
+  const reversed = [...path_params].reverse();
+  for (let i = 0; i < reversed.length; i++) normalized[i] = reversed[i]!;
+  return normalized;
+};
+
+const has_translation_query_path = (selected_text_levels: (number | null)[], project_levels: number) =>
+  project_levels === 1 || get_dynamic_path_params(selected_text_levels, project_levels).length > 0;
+
 export const project_list_q = createQuery(
   {
     queryKey: ['project_list'],
@@ -127,11 +142,15 @@ derived([project_state, selected_text_levels, project_map_q], ([$ps, $stl, $pmq]
 }).subscribe((v) => text_data_present.set(!!v));
 
 export const QUERY_KEYS = {
-  trans_lang_data: (lang_id: number, selected_text_levels: (number | null)[]) => [
+  trans_lang_data: (
+    lang_id: number,
+    selected_text_levels: (number | null)[],
+    project_levels = get(project_state).levels
+  ) => [
     'trans',
     get(project_state).project_id,
     lang_id,
-    ...selected_text_levels.slice(0, get(project_state).levels - 1).reverse()
+    ...get_dynamic_path_params(selected_text_levels, project_levels)
   ],
   text_data: (path_params: number[]) => ['text_data', get(project_state).project_id, ...path_params]
 };
@@ -187,25 +206,27 @@ export const prefetch_text_data = (
 };
 
 // Translations
-export const trans_lang_data_q_options = (
-  lang_id: number,
-  selected_text_levels: (number | null)[]
-) => {
-  return queryOptions({
-    queryKey: QUERY_KEYS.trans_lang_data(lang_id, selected_text_levels),
-    queryFn: () => get_translations(selected_text_levels, lang_id)
-  });
-};
 
 export const trans_en_data_q = get_derived_query(
-  [selected_text_levels, view_translation_status, editing_status_on, text_data_present],
-  ([selected_text_levels_, view_translation_status_, editing_status_on_, text_data_present_]) => {
+  [project_state, selected_text_levels, view_translation_status, editing_status_on, text_data_present],
+  ([
+    project_state_,
+    selected_text_levels_,
+    view_translation_status_,
+    editing_status_on_,
+    text_data_present_
+  ]) => {
+    const query_has_path = has_translation_query_path(selected_text_levels_, project_state_.levels);
     return createQuery(
       {
-        ...trans_lang_data_q_options(lang_list_obj.English, selected_text_levels_),
+        ...trans_lang_data_q_options(
+          lang_list_obj.English,
+          selected_text_levels_,
+          project_state_.levels
+        ),
         // by also adding the kanda and chapter they are auto invalidated
         // so we dont have to manually invalidate it if were only chapter,trans,English
-        enabled: browser && view_translation_status_ && text_data_present_,
+        enabled: browser && view_translation_status_ && text_data_present_ && query_has_path,
         ...(editing_status_on_
           ? {
               staleTime: Infinity
@@ -219,21 +240,22 @@ export const trans_en_data_q = get_derived_query(
 );
 
 export const trans_lang_data_query_key = derived(
-  [trans_lang, selected_text_levels],
+  [trans_lang, selected_text_levels, project_state],
   (
-    [_trans_lang, _selected_text_levels],
+    [_trans_lang, _selected_text_levels, _project_state],
     set: (value: (string | number | (number | null)[] | null)[]) => void
   ) => {
-    set(QUERY_KEYS.trans_lang_data(_trans_lang, _selected_text_levels));
+    set(QUERY_KEYS.trans_lang_data(_trans_lang, _selected_text_levels, _project_state.levels));
   }
 );
 export const trans_lang_data_q = get_derived_query(
-  [trans_lang, selected_text_levels, editing_status_on, text_data_present],
-  ([trans_lang_, selected_text_levels_, editing_status_on_, text_data_present_]) =>
-    createQuery(
+  [project_state, trans_lang, selected_text_levels, editing_status_on, text_data_present],
+  ([project_state_, trans_lang_, selected_text_levels_, editing_status_on_, text_data_present_]) => {
+    const query_has_path = has_translation_query_path(selected_text_levels_, project_state_.levels);
+    return createQuery(
       {
-        ...trans_lang_data_q_options(trans_lang_, selected_text_levels_),
-        enabled: browser && trans_lang_ !== 0 && text_data_present_,
+        ...trans_lang_data_q_options(trans_lang_, selected_text_levels_, project_state_.levels),
+        enabled: browser && trans_lang_ !== 0 && text_data_present_ && query_has_path,
         ...(editing_status_on_
           ? {
               staleTime: Infinity
@@ -242,8 +264,25 @@ export const trans_lang_data_q = get_derived_query(
           : {})
       },
       queryClient
-    )
+    );
+  }
 );
+
+export const trans_lang_data_q_options = (
+  lang_id: number,
+  selected_text_levels: (number | null)[],
+  project_levels = get(project_state).levels
+) => {
+  const normalized_selected_text_levels = get_normalized_selected_text_levels(
+    selected_text_levels,
+    project_levels
+  );
+  return queryOptions({
+    queryKey: QUERY_KEYS.trans_lang_data(lang_id, normalized_selected_text_levels, project_levels),
+    queryFn: () => get_translations(normalized_selected_text_levels, lang_id)
+  });
+};
+
 export async function get_translations(selected_text_levels: (number | null)[], lang_id: number) {
   await delay(400);
   const data_map = await client.translation.get_translation.query({
@@ -259,14 +298,18 @@ export const prefetch_translation_data = (
   current_trans_lang: number
 ) => {
   if (!browser) return;
+  const project_levels = get(project_state).levels;
+  if (!has_translation_query_path(selected_text_levels, project_levels)) return;
   const prefetches = [
     queryClient.prefetchQuery(
-      trans_lang_data_q_options(lang_list_obj.English, selected_text_levels)
+      trans_lang_data_q_options(lang_list_obj.English, selected_text_levels, project_levels)
     )
   ];
   if (current_trans_lang !== 0 && current_trans_lang !== lang_list_obj.English) {
     prefetches.push(
-      queryClient.prefetchQuery(trans_lang_data_q_options(current_trans_lang, selected_text_levels))
+      queryClient.prefetchQuery(
+        trans_lang_data_q_options(current_trans_lang, selected_text_levels, project_levels)
+      )
     );
   }
   return Promise.all(prefetches);

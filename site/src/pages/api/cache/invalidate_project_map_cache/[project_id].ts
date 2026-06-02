@@ -6,11 +6,17 @@ import {
   clear_server_project_map_cache
 } from '$app/server/project_list.server';
 import { db } from '~/db/site_db';
-import { require_admin_session } from '~/lib/require_admin_session';
+import { verify_jwt_token } from '~/lib/get_auth_from_cookie';
 
-export const POST: APIRoute = async ({ request, params }) => {
-  const denied = await require_admin_session(request);
-  if (denied) return denied;
+export const GET: APIRoute = async ({ request, params }) => {
+  const jwt_token = request.url.split('?')[1].split('=')[1];
+  if (!jwt_token) {
+    return new Response(null, { status: 400 });
+  }
+  const valid = await verify_jwt_token(jwt_token);
+  if (!valid || valid.payload.role !== 'admin') {
+    return new Response(null, { status: 401 });
+  }
 
   const project_id = Number(params.project_id);
   if (!Number.isInteger(project_id) || project_id < 1) {

@@ -1,4 +1,5 @@
 import type { authClient } from '$app/lib/auth-client';
+import { z } from 'zod';
 
 export const get_session_from_cookie = async (cookie: string) => {
   try {
@@ -16,4 +17,27 @@ export const get_session_from_cookie = async (cookie: string) => {
   } catch (e) {
     return null;
   }
+};
+
+const jwt_response_schema = z.object({
+  valid: z.boolean(),
+  payload: z.object({
+    email: z.string(),
+    sub: z.string(),
+    role: z.string()
+  })
+});
+export const verify_jwt_token = async (token: string) => {
+  const res = await fetch(`${import.meta.env.VITE_BETTER_AUTH_URL}/api/jwt/verify?token=${token}`, {
+    method: 'GET'
+  });
+  if (!res.ok) {
+    return null;
+  }
+  const data = await res.json();
+  const data_parse = jwt_response_schema.safeParse(data);
+  if (!data_parse.success) {
+    return null;
+  }
+  return data_parse.data;
 };

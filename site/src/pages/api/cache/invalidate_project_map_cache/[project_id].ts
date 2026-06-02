@@ -9,7 +9,7 @@ import { db } from '~/db/site_db';
 import { verify_jwt_token } from '~/lib/get_auth_from_cookie';
 
 export const GET: APIRoute = async ({ request, params }) => {
-  const jwt_token = request.url.split('?')[1].split('=')[1];
+  const jwt_token = new URL(request.url).searchParams.get('jwt_token');
   if (!jwt_token) {
     return new Response(null, { status: 400 });
   }

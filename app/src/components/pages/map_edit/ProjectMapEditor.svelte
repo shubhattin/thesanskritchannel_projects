@@ -24,8 +24,14 @@
   import * as Breadcrumb from '$lib/components/ui/breadcrumb';
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import { Separator } from '$lib/components/ui/separator';
+  import { Switch } from '$lib/components/ui/switch';
   import { toast } from 'svelte-sonner';
   import { GripVertical } from '@lucide/svelte';
+  import {
+    clearTypingContextOnKeyDown,
+    createTypingContext,
+    handleTypingBeforeInputEvent
+  } from 'lipilekhika/typing';
   import {
     type MapNodeWithClientId,
     type MapPath,
@@ -44,8 +50,13 @@
     get_breadcrumb_segments,
     parse_optional_count,
     path_label,
+    map_path_to_db_path,
+    clone_baseline_snapshots,
+    clone_working_map,
+    clone_recursive_list,
     MAP_EDIT_CLIENT_ID
   } from './map_edit_lib';
+  import type { PathSwapEdit } from '~/server/map_path_swap';
 
   let {
     project_id,
@@ -60,11 +71,31 @@
   let baselineSnapshots = $state<Map<string, BaselineNodeSnapshot>>(new Map());
   let selectedNodePath = $state<MapPath>([]);
   let basePath = $state<MapPath>([]);
-  let changeRootMode = $state(false);
   let save_dialog_open = $state(false);
   let discard_dialog_open = $state(false);
+  let save_order_dialog_open = $state(false);
+  let discard_order_dialog_open = $state(false);
+  let order_edit_mode = $state(false);
+  let order_entry_map = $state<MapNodeWithClientId | null>(null);
+  let order_entry_snapshots = $state<Map<string, BaselineNodeSnapshot>>(new Map());
+  let pending_swaps = $state<PathSwapEdit[]>([]);
   let count_input_invalid = $state(false);
   let treeRef = $state<TreeComponent<MapTreeItem> | undefined>(undefined);
+  let saving_order = $state(false);
+  let typing_enabled = $state(true);
+  let last_tree_click = $state<{ path: string; at: number } | null>(null);
+
+  const TREE_DBLCLICK_MS = 400;
+
+  const typing_ctx = $derived(
+    createTypingContext('Devanagari', {
+      includeInherentVowel: true
+    })
+  );
+
+  $effect(() => {
+    typing_ctx.ready;
+  });
 
   type MapTreeItem = {
     path: string;
@@ -98,9 +129,41 @@
     return compute_map_edit_diff(workingMap, baselineSnapshots);
   });
 
+  const order_diff_state = $derived.by(() => {
+    if (!workingMap || !order_edit_mode) {
+      return {
+        dirty: false,
+        changedNodeCount: 0,
+        renameCount: 0,
+        reorderedParentCount: 0,
+        rows: [],
+        flagsByClientId: new Map()
+      };
+    }
+    return compute_map_edit_diff(workingMap, order_entry_snapshots, { kinds: ['reorder'] });
+  });
+
+  const active_diff_state = $derived(order_edit_mode ? order_diff_state : diffState);
+  const order_dirty = $derived(
+    order_edit_mode && (pending_swaps.length > 0 || order_diff_state.dirty)
+  );
+  const metadata_dirty = $derived(!order_edit_mode && diffState.dirty);
+  const metadata_field_dirty = $derived.by(() => {
+    if (!workingMap || order_edit_mode) return false;
+    return compute_map_edit_diff(workingMap, baselineSnapshots, {
+      kinds: ['rename', 'list_name_change', 'expected_count_change']
+    }).dirty;
+  });
+
   const treeData = $derived.by((): MapTreeItem[] => {
     if (!workingMap) return [];
-    return build_tree_rows(workingMap, basePath, diffState.flagsByClientId, selectedNodePath);
+    return build_tree_rows(
+      workingMap,
+      basePath,
+      active_diff_state.flagsByClientId,
+      selectedNodePath,
+      order_edit_mode
+    );
   });
 
   const selectedNode = $derived.by(() => {
@@ -119,7 +182,7 @@
   let list_count_draft = $state('');
 
   $effect(() => {
-    const dirty = diffState.dirty;
+    const dirty = metadata_dirty || order_dirty;
     if (get(map_edit_dirty) !== dirty) map_edit_dirty.set(dirty);
   });
 
@@ -127,7 +190,7 @@
 
   $effect(() => {
     const map = $project_map_q.data;
-    if (!map || diffState.dirty) return;
+    if (!map || metadata_dirty || order_dirty) return;
     const map_key = JSON.stringify(map);
     if (last_synced_map_key === map_key) return;
     last_synced_map_key = map_key;
@@ -149,21 +212,34 @@
   const save_mut = client_q.project.map_edit.update.mutation({
     onSuccess: async (_data, variables) => {
       save_dialog_open = false;
+      save_order_dialog_open = false;
+      order_edit_mode = false;
+      order_entry_map = null;
+      pending_swaps = [];
       await invalidate_project_registry_queries(project_id);
       await invalidate_project_map_queries(project_id);
       last_synced_map_key = JSON.stringify(variables.map);
       reset_from_server(variables.map);
-      toast.success('Project map saved');
+      toast.success(saving_order ? 'List order saved' : 'Project map saved');
+      saving_order = false;
     },
     onError: (err) => {
+      saving_order = false;
       toast.error(err.message || 'Failed to save project map');
+    }
+  });
+
+  const save_order_indexes_mut = client_q.project.map_edit.update_indexes.mutation({
+    onError: (err) => {
+      toast.error(err.message || 'Failed to update path indexes');
     }
   });
 
   function reset_from_server(map: recursive_list_type) {
     const snapshots = new Map<string, BaselineNodeSnapshot>();
-    baselineMap = structuredClone(map);
-    workingMap = clone_map_with_client_ids(map, null, 0, snapshots);
+    const plain = clone_recursive_list(map);
+    baselineMap = plain;
+    workingMap = clone_map_with_client_ids(plain, null, 0, snapshots);
     baselineSnapshots = snapshots;
     const fromUrl = parse_path_query(page.url.searchParams.get('path'));
     basePath = is_path_valid(workingMap, fromUrl) ? fromUrl : [];
@@ -177,7 +253,7 @@
 
   function bump_working() {
     if (!workingMap) return;
-    workingMap = structuredClone(workingMap);
+    workingMap = clone_working_map(workingMap);
   }
 
   function sync_path_query(path: MapPath) {
@@ -209,7 +285,6 @@
     if (!is_path_valid(workingMap, selectedNodePath)) {
       selectedNodePath = path.length === 0 ? [] : path;
     }
-    changeRootMode = false;
   }
 
   function promote_change_root(subtreePath: string) {
@@ -219,7 +294,36 @@
     basePath = full;
     sync_path_query(full);
     selectedNodePath = full;
-    changeRootMode = false;
+  }
+
+  function on_tree_node_clicked(node: LTreeNode<MapTreeItem>) {
+    if (order_edit_mode) return;
+    const row = node.data;
+    if (!row) return;
+
+    const subtreePath = node.path ?? row.path;
+    const now = Date.now();
+    const is_double =
+      last_tree_click?.path === subtreePath && now - last_tree_click.at < TREE_DBLCLICK_MS;
+
+    if (is_double) {
+      last_tree_click = null;
+      if (row.isLeaf || !workingMap) return;
+      promote_change_root(subtreePath);
+      return;
+    }
+
+    last_tree_click = { path: subtreePath, at: now };
+    select_node_by_subtree_path(subtreePath);
+  }
+
+  function toggle_typing_from_keyboard(e: KeyboardEvent) {
+    if (!e.altKey) return false;
+    const key = e.key.toLowerCase();
+    if (key !== 'x' && key !== 'c') return false;
+    e.preventDefault();
+    typing_enabled = !typing_enabled;
+    return true;
   }
 
   function update_name_dev(value: string) {
@@ -268,9 +372,79 @@
     if (position === 'below') toIndex += 1;
     if (draggedCtx.index < toIndex) toIndex -= 1;
 
+    if (draggedCtx.index !== toIndex) {
+      record_pending_swap(draggedCtx.parentPath, draggedCtx.index, toIndex);
+    }
+
     const ok = reorder_siblings(workingMap, draggedCtx.parentPath, draggedCtx.index, toIndex);
     if (ok) bump_working();
     return false;
+  }
+
+  function record_pending_swap(parentPath: MapPath, from_index: number, to_index: number) {
+    const path_a = map_path_to_db_path([...parentPath, from_index + 1]);
+    const path_b = map_path_to_db_path([...parentPath, to_index + 1]);
+    pending_swaps = [...pending_swaps, { swap_paths: [path_a, path_b] }];
+  }
+
+  function enter_order_edit_mode() {
+    if (!workingMap || order_edit_mode) return;
+    if (metadata_field_dirty) {
+      toast.error('Save or discard field edits before changing order');
+      return;
+    }
+    order_entry_map = clone_working_map(workingMap);
+    order_entry_snapshots = clone_baseline_snapshots(baselineSnapshots);
+    pending_swaps = [];
+    order_edit_mode = true;
+  }
+
+  function cancel_order_edit() {
+    if (!order_edit_mode) return;
+    if (!order_dirty) {
+      order_edit_mode = false;
+      order_entry_map = null;
+      pending_swaps = [];
+      return;
+    }
+    discard_order_dialog_open = true;
+  }
+
+  function confirm_cancel_order_edit() {
+    if (order_entry_map) {
+      workingMap = clone_working_map(order_entry_map);
+      baselineSnapshots = clone_baseline_snapshots(order_entry_snapshots);
+    }
+    pending_swaps = [];
+    order_edit_mode = false;
+    order_entry_map = null;
+    discard_order_dialog_open = false;
+    map_edit_dirty.set(false);
+  }
+
+  function request_save_order() {
+    if (!order_dirty) return;
+    save_order_dialog_open = true;
+  }
+
+  async function confirm_save_order() {
+    if (!workingMap || $save_mut.isPending || $save_order_indexes_mut.isPending) return;
+    save_order_dialog_open = false;
+    saving_order = true;
+    try {
+      if (pending_swaps.length > 0) {
+        await $save_order_indexes_mut.mutateAsync({
+          project_id,
+          edits: pending_swaps
+        });
+      }
+      await $save_mut.mutateAsync({
+        project_id,
+        map: strip_client_ids(workingMap)
+      });
+    } catch {
+      saving_order = false;
+    }
   }
 
   function get_allowed_drop_positions(node: LTreeNode<MapTreeItem>) {
@@ -279,7 +453,7 @@
   }
 
   function request_save() {
-    if (!diffState.dirty || count_input_invalid) return;
+    if (order_edit_mode || !diffState.dirty || count_input_invalid) return;
     save_dialog_open = true;
   }
 
@@ -292,6 +466,10 @@
   }
 
   function request_cancel() {
+    if (order_edit_mode) {
+      cancel_order_edit();
+      return;
+    }
     if (!diffState.dirty) {
       selectedNodePath = basePath.length ? [...basePath] : [];
       return;
@@ -301,8 +479,7 @@
 
   function restore_from_baseline() {
     if (!baselineMap) return;
-    const saved = structuredClone(baselineMap);
-    reset_from_server(saved);
+    reset_from_server(baselineMap);
     count_input_invalid = false;
     map_edit_dirty.set(false);
   }
@@ -330,8 +507,11 @@
   });
 
   beforeNavigate(({ cancel }) => {
-    if (!diffState.dirty || leave_confirmed) return;
-    const ok = confirm('You have unsaved map edits. Leave this page and discard them?');
+    if ((!metadata_dirty && !order_dirty) || leave_confirmed) return;
+    const message = order_dirty
+      ? 'You have unsaved order changes. Leave this page and discard them?'
+      : 'You have unsaved map edits. Leave this page and discard them?';
+    const ok = confirm(message);
     if (!ok) cancel();
     else leave_confirmed = true;
   });
@@ -346,16 +526,41 @@
           <Card.Description>{project_name_dev}</Card.Description>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          {#if diffState.dirty}
+          {#if order_edit_mode && order_dirty}
+            <Badge variant="secondary">
+              {pending_swaps.length} swap{pending_swaps.length === 1 ? '' : 's'}
+            </Badge>
+          {:else if metadata_dirty}
             <Badge variant="secondary">{diffState.changedNodeCount} changed</Badge>
           {/if}
-          <Button variant="outline" onclick={request_cancel}>Cancel</Button>
-          <Button
-            onclick={request_save}
-            disabled={!diffState.dirty || $save_mut.isPending || count_input_invalid}
-          >
-            {$save_mut.isPending ? 'Saving…' : 'Save'}
-          </Button>
+          {#if order_edit_mode}
+            <Button variant="outline" onclick={cancel_order_edit}>Cancel order edit</Button>
+            <Button
+              onclick={request_save_order}
+              disabled={!order_dirty || $save_mut.isPending || $save_order_indexes_mut.isPending}
+            >
+              {$save_mut.isPending || $save_order_indexes_mut.isPending
+                ? 'Saving…'
+                : 'Save current order'}
+            </Button>
+          {:else}
+            <Button variant="outline" onclick={request_cancel}>Cancel</Button>
+            <Button
+              onclick={request_save}
+              disabled={!metadata_dirty || $save_mut.isPending || count_input_invalid}
+            >
+              {$save_mut.isPending ? 'Saving…' : 'Save'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              class="border-amber-800/35 bg-amber-950/8 text-amber-950 hover:bg-amber-950/12 dark:border-amber-300/45 dark:bg-amber-400/12 dark:text-amber-100 dark:hover:bg-amber-400/18"
+              disabled={metadata_field_dirty}
+              onclick={enter_order_edit_mode}
+            >
+              Edit order
+            </Button>
+          {/if}
         </div>
       </div>
 
@@ -382,28 +587,64 @@
         </Breadcrumb.List>
       </Breadcrumb.Root>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <Button
-          variant={changeRootMode ? 'default' : 'outline'}
-          size="sm"
-          onclick={() => (changeRootMode = !changeRootMode)}
-        >
-          {changeRootMode ? 'Pick subtree root…' : 'Change root'}
-        </Button>
-        {#if base_path_active}
-          <Button variant="ghost" size="sm" onclick={() => set_base_path([])}>
-            Back to full tree
-          </Button>
-        {/if}
-      </div>
+      {#if !order_edit_mode}
+        <div class="flex flex-wrap items-center gap-3">
+          <p class="text-sm text-muted-foreground">
+            Double-click a <span class="font-medium text-foreground">branch</span> node in the tree to
+            change the root.
+          </p>
+          {#if base_path_active}
+            <Button variant="ghost" size="sm" onclick={() => set_base_path([])}>
+              Back to full tree
+            </Button>
+          {/if}
+        </div>
+      {:else}
+        <p class="text-sm text-muted-foreground">
+          Order edit mode — drag siblings to reorder. Field edits are locked until you save or
+          cancel.
+        </p>
+      {/if}
     </Card.Header>
   </Card.Root>
+
+  {#if !order_edit_mode}
+    <div
+      class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/25 px-3 py-2"
+    >
+      <p class="text-xs text-muted-foreground">
+        Lipi-Lekhika typing for <span class="text-foreground">Name (Devanagari)</span> — toggle with
+        <kbd class="rounded border bg-background px-1 font-mono text-[10px]">Alt+X</kbd> or
+        <kbd class="rounded border bg-background px-1 font-mono text-[10px]">Alt+C</kbd>
+      </p>
+      <div class="flex items-center gap-2">
+        <Label
+          for="map-edit-typing"
+          class="cursor-pointer text-xs font-normal text-muted-foreground"
+        >
+          Typing
+        </Label>
+        <Switch
+          id="map-edit-typing"
+          checked={typing_enabled}
+          onCheckedChange={(v) => (typing_enabled = v)}
+          title="Devanagari transliteration typing (Alt+X / Alt+C)"
+        />
+      </div>
+    </div>
+  {/if}
 
   <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
     <Card.Root class="flex min-h-[420px] flex-col lg:min-h-[min(72vh,640px)]">
       <Card.Header class="pb-2">
         <Card.Title class="text-base">Tree</Card.Title>
-        <Card.Description>Subtree under {path_label(basePath) || '/'}</Card.Description>
+        <Card.Description>
+          {#if order_edit_mode}
+            Drag rows to reorder siblings — subtree under {path_label(basePath) || '/'}
+          {:else}
+            Subtree under {path_label(basePath) || '/'}
+          {/if}
+        </Card.Description>
       </Card.Header>
       <Card.Content class="min-h-0 flex-1 pb-4">
         <ScrollArea.Root class="h-[min(52vh,420px)] lg:h-[min(60vh,560px)]">
@@ -419,41 +660,36 @@
                 displayValueMember="name_dev"
                 orderMember="sortOrder"
                 isSelectedMember="isSelected"
-                dragDropMode="self"
+                dragDropMode={order_edit_mode ? 'self' : 'none'}
                 allowedDropPositionsMember="allowedDropPositions"
-                getAllowedDropPositionsCallback={get_allowed_drop_positions}
-                beforeDropCallback={before_drop}
+                getAllowedDropPositionsCallback={order_edit_mode
+                  ? get_allowed_drop_positions
+                  : undefined}
+                beforeDropCallback={order_edit_mode ? before_drop : undefined}
                 selectedNodeClass="map-edit-tree-selected"
-                onNodeClicked={(node) => {
-                  if (changeRootMode) {
-                    promote_change_root(node.path);
-                    return;
-                  }
-                  select_node_by_subtree_path(node.path);
-                }}
+                onNodeClicked={on_tree_node_clicked}
               >
                 {#snippet nodeTemplate(node: LTreeNode<MapTreeItem>)}
                   {@const row = node.data!}
-                  <div
-                    class="map-edit-tree-row flex w-full items-center gap-2 py-1 pr-2"
-                    class:map-edit-tree-row--change-root={changeRootMode}
-                  >
-                    {#if row.draggable}
-                      <span class="text-muted-foreground" title="Drag to reorder">
-                        <GripVertical class="size-3.5" />
-                      </span>
-                      <span class="w-5 shrink-0 text-xs text-muted-foreground tabular-nums">
-                        {row.visibleIndex}.
-                      </span>
-                    {:else if !row.isRoot}
-                      <span class="w-8 shrink-0"></span>
+                  <div class="map-edit-tree-row flex w-full items-center gap-2 py-1 pr-2">
+                    {#if order_edit_mode}
+                      {#if row.draggable}
+                        <span class="text-muted-foreground" title="Drag to reorder">
+                          <GripVertical class="size-3.5" />
+                        </span>
+                        <span class="w-5 shrink-0 text-xs text-muted-foreground tabular-nums">
+                          {row.visibleIndex}.
+                        </span>
+                      {:else if !row.isRoot}
+                        <span class="w-8 shrink-0" aria-hidden="true"></span>
+                      {/if}
                     {/if}
                     <span class="min-w-0 flex-1 truncate text-sm">{row.name_dev}</span>
                     <div class="flex shrink-0 gap-1">
                       {#if row.isRoot}
                         <Badge variant="outline" class="text-[10px]">root</Badge>
                       {/if}
-                      {#if row.edited}
+                      {#if !order_edit_mode && row.edited}
                         <Badge variant="secondary" class="text-[10px]">edited</Badge>
                       {/if}
                       {#if row.moved}
@@ -483,13 +719,34 @@
         </Card.Description>
       </Card.Header>
       <Card.Content class="space-y-4">
-        {#if selectedNode}
+        {#if order_edit_mode}
+          <p class="text-sm text-muted-foreground">
+            {#if selectedNode}
+              Viewing <span class="font-mono text-foreground">{path_label(selectedNodePath)}</span>
+              ({selectedNode.name_dev}). Reorder in the tree; names and list labels cannot be edited
+              in this mode.
+            {:else}
+              Select a node to inspect it. Reorder siblings using drag handles in the tree.
+            {/if}
+          </p>
+        {:else if selectedNode}
           <div class="space-y-2">
             <Label for="name_dev">Name (Devanagari)</Label>
             <Input
               id="name_dev"
               value={selectedNode.name_dev}
-              oninput={(e) => update_name_dev(e.currentTarget.value)}
+              onbeforeinput={(e) =>
+                handleTypingBeforeInputEvent(
+                  typing_ctx,
+                  e,
+                  (newValue) => update_name_dev(newValue),
+                  typing_enabled
+                )}
+              onblur={() => typing_ctx.clearContext()}
+              onkeydown={(e) => {
+                if (toggle_typing_from_keyboard(e)) return;
+                clearTypingContextOnKeyDown(e, typing_ctx);
+              }}
             />
             {#if selected_is_root}
               <p class="text-xs text-muted-foreground">
@@ -555,9 +812,17 @@
 
   <Card.Root>
     <Card.Header class="pb-2">
-      <Card.Title class="text-base">Changes</Card.Title>
+      <Card.Title class="text-base">
+        {order_edit_mode ? 'Order changes' : 'Changes'}
+      </Card.Title>
       <Card.Description>
-        {#if diffState.dirty}
+        {#if order_edit_mode}
+          {#if order_dirty}
+            {pending_swaps.length} path swap{pending_swaps.length === 1 ? '' : 's'} pending
+          {:else}
+            No order changes yet
+          {/if}
+        {:else if metadata_dirty}
           {diffState.rows.length} update{diffState.rows.length === 1 ? '' : 's'}
         {:else}
           No unsaved changes
@@ -565,11 +830,25 @@
       </Card.Description>
     </Card.Header>
     <Card.Content class="pb-4">
-      {#if diffState.rows.length === 0}
-        <p class="text-sm text-muted-foreground">Edits and reorders will appear here.</p>
+      {#if order_edit_mode}
+        {#if active_diff_state.rows.length === 0 && pending_swaps.length === 0}
+          <p class="text-sm text-muted-foreground">Drag siblings in the tree to reorder lists.</p>
+        {:else}
+          <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {#each active_diff_state.rows as row (row.kind + row.clientId + row.summary)}
+              <li
+                class="rounded-md border border-border bg-muted/30 px-2.5 py-2 text-xs leading-snug"
+              >
+                {row.summary}
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      {:else if active_diff_state.rows.length === 0}
+        <p class="text-sm text-muted-foreground">Edits will appear here.</p>
       {:else}
         <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {#each diffState.rows as row (row.kind + row.clientId + row.summary)}
+          {#each active_diff_state.rows as row (row.kind + row.clientId + row.summary)}
             <li
               class="rounded-md border border-border bg-muted/30 px-2.5 py-2 text-xs leading-snug"
             >
@@ -615,6 +894,48 @@
     <AlertDialog.Footer>
       <AlertDialog.Cancel>Keep editing</AlertDialog.Cancel>
       <Button variant="destructive" onclick={confirm_discard}>Discard</Button>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={save_order_dialog_open}>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Save list order?</AlertDialog.Title>
+      <AlertDialog.Description>
+        <ul class="mt-2 list-inside list-disc space-y-1 text-sm">
+          <li>{pending_swaps.length} path swap(s) will update texts, translations, and media</li>
+          <li>The project map structure will be saved with the new order</li>
+        </ul>
+        <p class="mt-3 text-sm">
+          This cannot be undone from the editor. Review the order changes below.
+        </p>
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel>Keep editing</AlertDialog.Cancel>
+      <Button
+        onclick={confirm_save_order}
+        disabled={$save_mut.isPending || $save_order_indexes_mut.isPending}
+      >
+        Save current order
+      </Button>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={discard_order_dialog_open}>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Cancel order edit?</AlertDialog.Title>
+      <AlertDialog.Description>
+        {pending_swaps.length} pending swap(s) and tree order changes will be discarded. Field edits from
+        before this session are unchanged.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel>Keep editing order</AlertDialog.Cancel>
+      <Button variant="destructive" onclick={confirm_cancel_order_edit}>Cancel order edit</Button>
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>

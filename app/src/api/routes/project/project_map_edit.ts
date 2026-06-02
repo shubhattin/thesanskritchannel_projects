@@ -12,6 +12,12 @@ import {
 } from '~/server/project_list.server';
 import { delay } from '~/tools/delay';
 import { recursive_list_schema } from '~/state/data_types';
+import {
+  applyDbPathSwapsInOrder,
+  invalidateCachesForPathSwaps,
+  validateSwapEdits,
+  type PathSwapEdit
+} from '~/server/project_map_path_swap.server';
 
 const project_id_input = z.object({
   project_id: z.int()
@@ -64,17 +70,33 @@ export const update_project_map_route = protectedAdminProcedure
     return { success: true as const };
   });
 
+const path_swap_edit_schema = z.object({
+  swap_paths: z.tuple([z.string().min(1), z.string().min(1)])
+});
+
 const update_project_map_indexes = protectedAdminProcedure
-  .input(project_id_input.extend({
-    edits: z.object({
-      swap_paths: z.tuple([z.string(), z.string()])
-      // paths of the swapped nodes (these are always on the same nested level)
-    }).array().min(1)
-  }))
+  .input(
+    project_id_input.extend({
+      /** Swaps applied in the same order as on the client (sibling paths only). */
+      edits: z.array(path_swap_edit_schema).min(1)
+    })
+  )
   .mutation(async ({ input: { project_id, edits } }) => {
+    const validationError = validateSwapEdits(edits as PathSwapEdit[]);
+    if (validationError) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: validationError });
+    }
+
+    await delay(400);
+
     await db.transaction(async (tx) => {
-      await require_project(tx, project_id);
+      const existing = await require_project(tx, project_id);
+      await applyDbPathSwapsInOrder(tx, project_id, edits as PathSwapEdit[]);
+      await invalidateCachesForPathSwaps(tx, project_id, edits as PathSwapEdit[]);
+      return existing;
     });
+
+    return { success: true as const, swap_count: edits.length };
   });
 
 export const project_map_edit_router = t.router({

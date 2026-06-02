@@ -100,7 +100,3 @@
 .map-edit-tree .map-edit-tree-row {
   color: var(--foreground);
 }
-
-.map-edit-tree .map-edit-tree-row--change-root {
-  opacity: 0.65;
-}

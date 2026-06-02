@@ -58,6 +58,23 @@ export const format_path_query = (path: MapPath): string => path.join('/');
 export const path_label = (path: MapPath): string =>
   path.length === 0 ? '/' : `/${path.join('/')}`;
 
+/** DB path key (`texts.path`, etc.): colon-separated 1-based segments. */
+export const map_path_to_db_path = (path: MapPath): string => path.join(':');
+
+export const clone_recursive_list = (node: recursive_list_type): recursive_list_type =>
+  JSON.parse(JSON.stringify(node)) as recursive_list_type;
+
+export const clone_baseline_snapshots = (snapshots: Map<string, BaselineNodeSnapshot>) =>
+  new Map(
+    [...snapshots.entries()].map(([id, snap]) => [
+      id,
+      {
+        ...snap,
+        info: JSON.parse(JSON.stringify(snap.info)) as BaselineNodeSnapshot['info']
+      }
+    ])
+  );
+
 export const is_path_valid = (map: recursive_list_type, path: MapPath): boolean =>
   path.length === 0 || get_node_at_path(map, path) !== null;
 
@@ -70,13 +87,14 @@ export const clone_map_with_client_ids = (
   const clientId = new_client_id();
   snapshots.set(clientId, {
     name_dev: node.name_dev,
-    info: structuredClone(node.info),
+    info: JSON.parse(JSON.stringify(node.info)) as recursive_list_type['info'],
     indexInParent,
     parentClientId
   });
   const list = node.list ?? [];
   return {
-    ...structuredClone(node),
+    name_dev: node.name_dev,
+    info: JSON.parse(JSON.stringify(node.info)) as recursive_list_type['info'],
     [MAP_EDIT_CLIENT_ID]: clientId,
     list: list.map((child, i) => clone_map_with_client_ids(child, clientId, i, snapshots))
   };
@@ -88,6 +106,22 @@ export const strip_client_ids = (node: MapNodeWithClientId): recursive_list_type
     ...rest,
     list: (list ?? []).map((child) => strip_client_ids(child as MapNodeWithClientId))
   };
+};
+
+/** Deep-clone while preserving client ids; safe for Svelte $state proxies (structuredClone cannot). */
+export const clone_working_map = (node: MapNodeWithClientId): MapNodeWithClientId => {
+  const clientId = node[MAP_EDIT_CLIENT_ID];
+  const children = node.list ?? [];
+  const cloned: MapNodeWithClientId = {
+    name_dev: node.name_dev,
+    info: JSON.parse(JSON.stringify(node.info)) as recursive_list_type['info'],
+    list:
+      node.info.type === 'list'
+        ? children.map((child) => clone_working_map(child as MapNodeWithClientId))
+        : []
+  };
+  if (clientId) cloned[MAP_EDIT_CLIENT_ID] = clientId;
+  return cloned;
 };
 
 export const get_node_at_map_path = (
@@ -166,7 +200,8 @@ export const build_tree_rows = (
   workingMap: MapNodeWithClientId,
   basePath: MapPath,
   flagsByClientId: Map<string, MapNodeDiffFlags>,
-  selectedNodePath: MapPath = []
+  selectedNodePath: MapPath = [],
+  reorder_enabled = false
 ): MapTreeRow[] => {
   const rows: MapTreeRow[] = [];
   const subtreeRoot =
@@ -196,7 +231,7 @@ export const build_tree_rows = (
       nodeType: node.info.type,
       edited: flags.edited,
       moved: flags.moved,
-      draggable: !isRoot,
+      draggable: reorder_enabled && !isRoot,
       isSelected: paths_equal(full_path_for_subtree_rel(basePath, relPath), selectedNodePath),
       allowedDropPositions: ['above', 'below']
     });
@@ -218,7 +253,8 @@ const count_label = (n: number | null | undefined) =>
 
 export const compute_map_edit_diff = (
   workingMap: MapNodeWithClientId,
-  snapshots: Map<string, BaselineNodeSnapshot>
+  snapshots: Map<string, BaselineNodeSnapshot>,
+  options?: { kinds?: MapChangeKind[] }
 ): MapEditDiffState => {
   const rows: MapChangeRow[] = [];
   const flagsByClientId = new Map<string, MapNodeDiffFlags>();
@@ -332,14 +368,33 @@ export const compute_map_edit_diff = (
     }
   }
 
-  const changedClientIds = new Set(rows.map((r) => r.clientId));
+  const filtered_rows = options?.kinds ? rows.filter((r) => options.kinds!.includes(r.kind)) : rows;
+  const filtered_flags = new Map<string, MapNodeDiffFlags>();
+  for (const row of filtered_rows) {
+    const prev = flagsByClientId.get(row.clientId) ?? { edited: false, moved: false };
+    filtered_flags.set(row.clientId, {
+      edited: row.kind !== 'reorder' || prev.edited,
+      moved: row.kind === 'reorder' || prev.moved
+    });
+  }
+  if (!options?.kinds) {
+    for (const [id, flags] of flagsByClientId) {
+      if (!filtered_flags.has(id)) filtered_flags.set(id, flags);
+    }
+  }
+
+  const changedClientIds = new Set(filtered_rows.map((r) => r.clientId));
   return {
-    dirty: rows.length > 0,
+    dirty: filtered_rows.length > 0,
     changedNodeCount: changedClientIds.size,
-    renameCount: rows.filter((r) => r.kind === 'rename').length,
-    reorderedParentCount,
-    rows,
-    flagsByClientId
+    renameCount: filtered_rows.filter((r) => r.kind === 'rename').length,
+    reorderedParentCount: options?.kinds
+      ? filtered_rows.some((r) => r.kind === 'reorder')
+        ? 1
+        : 0
+      : reorderedParentCount,
+    rows: filtered_rows,
+    flagsByClientId: options?.kinds ? filtered_flags : flagsByClientId
   };
 };
 

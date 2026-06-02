@@ -61,6 +61,25 @@ export const invalidate_project_registry_queries = async (project_id?: number) =
   ]);
 };
 
+export const invalidate_project_content_queries = async (project_id?: number) => {
+  if (project_id === undefined) {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['text_data'] }),
+      queryClient.invalidateQueries({ queryKey: ['trans'] })
+    ]);
+    return;
+  }
+
+  await Promise.all([
+    queryClient.invalidateQueries({
+      predicate: (query) => query.queryKey[0] === 'text_data' && query.queryKey[1] === project_id
+    }),
+    queryClient.invalidateQueries({
+      predicate: (query) => query.queryKey[0] === 'trans' && query.queryKey[1] === project_id
+    })
+  ]);
+};
+
 export const user_project_info_q = get_derived_query(
   [project_state, user_info],
   ([_prject_state, _user_info]) =>

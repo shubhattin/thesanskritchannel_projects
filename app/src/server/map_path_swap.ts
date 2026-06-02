@@ -1,6 +1,6 @@
 /**
  * Path swap helpers for the map index editor.
- * No DB imports — safe for unit tests. DB work lives in `project_map_path_swap.server.ts`.
+ * No DB imports — safe for unit tests.
  *
  * DB paths use colon-separated 1-based segments (e.g. `2:5`), matching `texts.path`,
  * `translations.path`, and `media_attachment.path`.
@@ -9,16 +9,35 @@
 /** Staging suffix for two-phase swaps (`1:2` → `1:2_temp` → `1:5`). */
 export const PATH_TEMP_SUFFIX = '_temp';
 
-const DB_PATH_SEGMENT_RE = /^[1-9]\d*$/;
+export const DB_PATH_RE = /^[1-9]\d*(?::[1-9]\d*)*$/;
 
 /** One sibling swap from the client, applied in array order. */
 export type PathSwapEdit = {
   swap_paths: [string, string];
 };
 
+export type PathSwapStep = {
+  from_path: string;
+  to_path: string;
+};
+
 /** Builds the intermediate path used before the final swap (avoids PK collisions). */
 export function toTempDbPath(path: string): string {
   return `${path}${PATH_TEMP_SUFFIX}`;
+}
+
+/**
+ * Builds the ordered remap steps for one client edit.
+ * The first path is staged under the target path's `_temp` name, then the target moves into
+ * the now-vacant source slot, and finally the staged rows move into the target slot.
+ */
+export function buildPathSwapSteps(pathA: string, pathB: string): PathSwapStep[] {
+  const stagedPath = toTempDbPath(pathB);
+  return [
+    { from_path: pathA, to_path: stagedPath },
+    { from_path: pathB, to_path: pathA },
+    { from_path: stagedPath, to_path: pathB }
+  ];
 }
 
 /** Converts a DB path string to numeric segments for cache keys (`1:2` → `[1, 2]`). */
@@ -28,12 +47,8 @@ export function dbPathToPathParams(path: string): number[] {
 
 /** Returns an error message if `path` is not a valid DB path, or `null` if OK. */
 export function validateDbPath(path: string): string | null {
-  if (!path || path.includes(PATH_TEMP_SUFFIX)) {
+  if (!path || path.includes(PATH_TEMP_SUFFIX) || !DB_PATH_RE.test(path)) {
     return 'Path must be a colon-separated list of positive integers (no _temp suffix)';
-  }
-  const segments = path.split(':');
-  if (segments.some((seg) => !DB_PATH_SEGMENT_RE.test(seg))) {
-    return 'Each path segment must be a positive integer';
   }
   return null;
 }

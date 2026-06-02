@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { toTempDbPath, validateDbPath, validateSwapEdits, validateSwapPair } from './map_path_swap';
+import {
+  buildPathSwapSteps,
+  toTempDbPath,
+  validateDbPath,
+  validateSwapEdits,
+  validateSwapPair
+} from './map_path_swap';
 
 describe('map_path_swap', () => {
   it('validates db path segments', () => {
@@ -24,5 +30,13 @@ describe('map_path_swap', () => {
 
   it('builds temp paths', () => {
     expect(toTempDbPath('1:2')).toBe('1:2_temp');
+  });
+
+  it('builds ordered single-stage swap steps', () => {
+    expect(buildPathSwapSteps('1', '2')).toEqual([
+      { from_path: '1', to_path: '2_temp' },
+      { from_path: '2', to_path: '1' },
+      { from_path: '2_temp', to_path: '2' }
+    ]);
   });
 });

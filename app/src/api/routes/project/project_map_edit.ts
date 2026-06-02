@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db, type transactionType } from '~/db/db';
@@ -8,20 +8,23 @@ import { redis } from '~/db/redis';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import {
   clear_server_project_info_cache,
+  clear_project_registry_cache,
   clear_server_project_map_cache
 } from '~/server/project_list.server';
+import {
+  applyOrderedDbPathSwaps,
+  buildRedisKeysForPathSwapInvalidation,
+  collectPathSwapInvalidation
+} from '~/server/map_path_swap_db.server';
+import { DB_PATH_RE, validateSwapEdits, type PathSwapEdit } from '~/server/map_path_swap';
 import { delay } from '~/tools/delay';
 import { recursive_list_schema } from '~/state/data_types';
-import {
-  applyDbPathSwapsInOrder,
-  invalidateCachesForPathSwaps,
-  validateSwapEdits,
-  type PathSwapEdit
-} from '~/server/project_map_path_swap.server';
 
 const project_id_input = z.object({
   project_id: z.int()
 });
+
+const PROJECT_MAP_ORDER_LOCK_NAMESPACE = 41021;
 
 /** Ensures `project_id` exists; throws NOT_FOUND otherwise. */
 const require_project = async (tx: transactionType, project_id: number) => {
@@ -38,8 +41,25 @@ const require_project = async (tx: transactionType, project_id: number) => {
 const invalidate_project_map_caches = async (project_id: number, project_key: string) => {
   clear_server_project_map_cache(project_id);
   clear_server_project_info_cache(project_key);
-  if (import.meta.env.PROD) {
-    await redis.del(REDIS_CACHE_KEYS_CLIENT.project_map(project_id));
+  await redis.del(REDIS_CACHE_KEYS_CLIENT.project_map(project_id));
+};
+
+const invalidate_project_order_caches = async (
+  project_id: number,
+  project_key: string,
+  redisKeys: string[]
+) => {
+  clear_server_project_map_cache(project_id);
+  clear_server_project_info_cache(project_key);
+  clear_project_registry_cache();
+
+  const keys = [
+    REDIS_CACHE_KEYS_CLIENT.project_map(project_id),
+    REDIS_CACHE_KEYS_CLIENT.project_list(),
+    ...redisKeys
+  ];
+  if (keys.length > 0) {
+    await redis.del(...keys);
   }
 };
 
@@ -70,8 +90,13 @@ export const update_project_map_route = protectedAdminProcedure
     return { success: true as const };
   });
 
+const db_path_schema = z
+  .string()
+  .regex(DB_PATH_RE, 'Path must be a colon-separated list of positive integers');
+
 const path_swap_edit_schema = z.object({
-  swap_paths: z.tuple([z.string().min(1), z.string().min(1)])
+  /** Ordered as `[from_path, to_path]`; server stages `to_path + "_temp"` to avoid clashes. */
+  swap_paths: z.tuple([db_path_schema, db_path_schema])
 });
 
 const update_project_map_indexes = protectedAdminProcedure
@@ -82,19 +107,28 @@ const update_project_map_indexes = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { project_id, edits } }) => {
-    const validationError = validateSwapEdits(edits as PathSwapEdit[]);
+    const parsedEdits = edits as PathSwapEdit[];
+    const validationError = validateSwapEdits(parsedEdits);
     if (validationError) {
       throw new TRPCError({ code: 'BAD_REQUEST', message: validationError });
     }
 
     await delay(400);
 
-    await db.transaction(async (tx) => {
-      const existing = await require_project(tx, project_id);
-      await applyDbPathSwapsInOrder(tx, project_id, edits as PathSwapEdit[]);
-      await invalidateCachesForPathSwaps(tx, project_id, edits as PathSwapEdit[]);
-      return existing;
+    const { project, redisKeys } = await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(${PROJECT_MAP_ORDER_LOCK_NAMESPACE}, ${project_id})`
+      );
+      const project = await require_project(tx, project_id);
+      await applyOrderedDbPathSwaps(tx, project_id, parsedEdits);
+      const invalidation = await collectPathSwapInvalidation(tx, project_id, parsedEdits);
+      return {
+        project,
+        redisKeys: buildRedisKeysForPathSwapInvalidation(project_id, invalidation)
+      };
     });
+
+    await invalidate_project_order_caches(project_id, project.key, redisKeys);
 
     return { success: true as const, swap_count: edits.length };
   });

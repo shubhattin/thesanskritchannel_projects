@@ -8,6 +8,7 @@
   import { get } from 'svelte/store';
   import { client_q } from '~/api/client';
   import {
+    invalidate_project_content_queries,
     invalidate_project_map_queries,
     invalidate_project_registry_queries,
     project_map_q
@@ -186,15 +187,19 @@
 
   const save_mut = client_q.project.map_edit.update.mutation({
     onSuccess: async (_data, variables) => {
+      const wasSavingOrder = saving_order;
       save_review_open = false;
       order_edit_mode = false;
       order_entry_map = null;
       pending_swaps = [];
       await invalidate_project_registry_queries(project_id);
       await invalidate_project_map_queries(project_id);
+      if (wasSavingOrder) {
+        await invalidate_project_content_queries(project_id);
+      }
       last_synced_map_key = JSON.stringify(variables.map);
       reset_from_server(variables.map);
-      toast.success(saving_order ? 'List order saved' : 'Project map saved');
+      toast.success(wasSavingOrder ? 'List order saved' : 'Project map saved');
       saving_order = false;
     },
     onError: (err) => {
@@ -414,7 +419,8 @@
   }
 
   async function confirm_save_order() {
-    if (!workingMap || $save_mut.isPending || $save_order_indexes_mut.isPending) return;
+    if (!workingMap || saving_order || $save_mut.isPending || $save_order_indexes_mut.isPending)
+      return;
     saving_order = true;
     try {
       if (pending_swaps.length > 0) {

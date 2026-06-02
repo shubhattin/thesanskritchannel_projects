@@ -12,11 +12,11 @@ export const publicProcedure = t.procedure;
 
 export const protectedProcedure = publicProcedure.use(async function isAuthed({
   next,
-  ctx: { user }
+  ctx: { user, cookie }
 }) {
   if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' });
   return next({
-    ctx: { user }
+    ctx: { user, cookie }
   });
 });
 
@@ -59,11 +59,11 @@ export const protectedAppScopeProcedure_Lekha = protectedProcedure.use(async fun
 
 export const protectedAdminProcedure = protectedProcedure.use(async function isAuthed({
   next,
-  ctx: { user }
+  ctx: { user, cookie }
 }) {
   if (user.role !== 'admin')
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Not a Admin User' });
   return next({
-    ctx: { user }
+    ctx: { user, cookie }
   });
 });

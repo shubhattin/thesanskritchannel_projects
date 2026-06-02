@@ -79,11 +79,11 @@ export const clear_server_project_info_cache = (project_key?: string) => {
 };
 
 /** Clears registry and project map in-memory caches. */
-export const clear_project_server_cache = () => {
-  clear_project_registry_cache();
-  clear_server_project_map_cache();
-  clear_server_project_info_cache();
-};
+// export const clear_project_server_cache = () => {
+//   clear_project_registry_cache();
+//   clear_server_project_map_cache();
+//   clear_server_project_info_cache();
+// };
 
 const is_cache_fresh = (fetchedAt: number) =>
   Date.now() - fetchedAt < PROJECT_LIST_CACHE_REFRESH_INTERVAL_MS;

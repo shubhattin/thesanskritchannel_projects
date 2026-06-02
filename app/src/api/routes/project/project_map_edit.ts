@@ -12,6 +12,10 @@ import {
   clear_server_project_map_cache
 } from '~/server/project_list.server';
 import {
+  notify_site_invalidate_project_list_caches,
+  notify_site_invalidate_project_map_cache
+} from '~/server/invalidate_site_project_cache.server';
+import {
   applyOrderedDbPathSwaps,
   buildRedisKeysForPathSwapInvalidation,
   collectPathSwapInvalidation
@@ -38,13 +42,25 @@ const require_project = async (tx: transactionType, project_id: number) => {
   return project;
 };
 
-const invalidate_project_map_caches = async (project_id: number, project_key: string) => {
+const invalidate_project_map_caches = async (
+  cookie: string,
+  project_id: number,
+  project_key: string
+) => {
+  clear_project_registry_cache();
+
   clear_server_project_map_cache(project_id);
   clear_server_project_info_cache(project_key);
-  await redis.del(REDIS_CACHE_KEYS_CLIENT.project_map(project_id));
+  await Promise.all([
+    redis.del(REDIS_CACHE_KEYS_CLIENT.project_list()),
+    redis.del(REDIS_CACHE_KEYS_CLIENT.project_map(project_id)),
+    notify_site_invalidate_project_map_cache(cookie, project_id),
+    notify_site_invalidate_project_list_caches(cookie)
+  ]);
 };
 
 const invalidate_project_order_caches = async (
+  cookie: string,
   project_id: number,
   project_key: string,
   redisKeys: string[]
@@ -61,6 +77,7 @@ const invalidate_project_order_caches = async (
   if (keys.length > 0) {
     await redis.del(...keys);
   }
+  void notify_site_invalidate_project_list_caches(cookie);
 };
 
 export const update_project_map_route = protectedAdminProcedure
@@ -69,7 +86,7 @@ export const update_project_map_route = protectedAdminProcedure
       map: recursive_list_schema
     })
   )
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx: { cookie } }) => {
     await delay(400);
     const project = await db.transaction(async (tx) => {
       const existing = await require_project(tx, input.project_id);
@@ -86,7 +103,7 @@ export const update_project_map_route = protectedAdminProcedure
       return existing;
     });
 
-    await invalidate_project_map_caches(input.project_id, project.key);
+    await invalidate_project_map_caches(cookie, input.project_id, project.key);
     return { success: true as const };
   });
 
@@ -111,7 +128,7 @@ const update_project_map_indexes = protectedAdminProcedure
       edits: z.array(path_swap_edit_schema).min(1)
     })
   )
-  .mutation(async ({ input: { project_id, edits } }) => {
+  .mutation(async ({ input: { project_id, edits }, ctx: { cookie } }) => {
     const parsedEdits = edits as PathSwapEdit[];
     const validationError = validateSwapEdits(parsedEdits);
     if (validationError) {
@@ -133,14 +150,14 @@ const update_project_map_indexes = protectedAdminProcedure
       };
     });
 
-    await invalidate_project_order_caches(project_id, project.key, redisKeys);
+    await invalidate_project_order_caches(cookie, project_id, project.key, redisKeys);
 
     return { success: true as const, swap_count: edits.length };
   });
 
 const save_project_map_order = protectedAdminProcedure
   .input(apply_order_changes_input)
-  .mutation(async ({ input: { project_id, edits, map } }) => {
+  .mutation(async ({ input: { project_id, edits, map }, ctx: { cookie } }) => {
     const parsedEdits = edits as PathSwapEdit[];
     if (parsedEdits.length > 0) {
       const validationError = validateSwapEdits(parsedEdits);
@@ -174,7 +191,7 @@ const save_project_map_order = protectedAdminProcedure
       };
     });
 
-    await invalidate_project_order_caches(project_id, project.key, redisKeys);
+    await invalidate_project_order_caches(cookie, project_id, project.key, redisKeys);
 
     return { success: true as const, swap_count: parsedEdits.length };
   });

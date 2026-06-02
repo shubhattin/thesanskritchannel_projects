@@ -16,8 +16,9 @@ import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import { lekhaUrlSlugify } from '~/lib/carta_markdown/markdown';
 import {
   clear_server_project_map_cache,
-  clear_project_server_cache
+  clear_project_registry_cache
 } from '~/server/project_list.server';
+import { notify_site_invalidate_project_list_caches } from '~/server/invalidate_site_project_cache.server';
 import { delay } from '~/tools/delay';
 import { type recursive_list_type, recursive_list_schema } from '~/state/data_types';
 
@@ -25,11 +26,12 @@ const project_id_input = z.object({
   project_id: z.int()
 });
 
-const invalidate_project_list_caches = async () => {
-  clear_project_server_cache();
-  if (import.meta.env.PROD) {
-    await redis.del(REDIS_CACHE_KEYS_CLIENT.project_list());
-  }
+const invalidate_project_list_caches = async (cookie: string) => {
+  clear_project_registry_cache();
+  await Promise.all([
+    redis.del(REDIS_CACHE_KEYS_CLIENT.project_list()),
+    notify_site_invalidate_project_list_caches(cookie)
+  ]);
 };
 
 /** Ensures `project_id` exists; throws NOT_FOUND otherwise. */
@@ -52,7 +54,7 @@ export const update_project_name_description_route = protectedAdminProcedure
       description: z.string().max(5000).optional().nullable()
     })
   )
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx: { cookie } }) => {
     await delay(400);
     await db.transaction(async (tx) => {
       await require_project(tx, input.project_id);
@@ -73,7 +75,7 @@ export const update_project_name_description_route = protectedAdminProcedure
         .where(eq(projects.id, input.project_id));
     });
 
-    await invalidate_project_list_caches();
+    await invalidate_project_list_caches(cookie);
     return { success: true };
   });
 
@@ -83,7 +85,7 @@ export const edit_project_slug_route = protectedAdminProcedure
       key: z.string().trim().min(1).max(100)
     })
   )
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx: { cookie } }) => {
     await delay(400);
     await db.transaction(async (tx) => {
       await require_project(tx, input.project_id);
@@ -100,7 +102,7 @@ export const edit_project_slug_route = protectedAdminProcedure
       await tx.update(projects).set({ key }).where(eq(projects.id, input.project_id));
     });
 
-    await invalidate_project_list_caches();
+    await invalidate_project_list_caches(cookie);
     return { success: true };
   });
 
@@ -110,7 +112,7 @@ export const update_project_listed_route = protectedAdminProcedure
       listed: z.boolean()
     })
   )
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx: { cookie } }) => {
     await delay(400);
     await db.transaction(async (tx) => {
       await require_project(tx, input.project_id);
@@ -120,7 +122,7 @@ export const update_project_listed_route = protectedAdminProcedure
         .where(eq(projects.id, input.project_id));
     });
 
-    await invalidate_project_list_caches();
+    await invalidate_project_list_caches(cookie);
     return { success: true };
   });
 
@@ -170,7 +172,7 @@ export const get_delete_resource_counts_route = protectedAdminProcedure
 
 export const delete_project_route = protectedAdminProcedure
   .input(project_id_input)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx: { cookie } }) => {
     await delay(400);
     await db.transaction(async (tx) => {
       await require_project(tx, input.project_id);
@@ -186,7 +188,7 @@ export const delete_project_route = protectedAdminProcedure
     });
 
     clear_server_project_map_cache(input.project_id);
-    await invalidate_project_list_caches();
+    await invalidate_project_list_caches(cookie);
     return { success: true as const };
   });
 
@@ -214,7 +216,7 @@ const add_new_project_route = protectedAdminProcedure
       slug: z.string().trim().min(1).max(100)
     })
   )
-  .mutation(async ({ input: { name, name_dev, description, slug } }) => {
+  .mutation(async ({ input: { name, name_dev, description, slug }, ctx: { cookie } }) => {
     await delay(400);
     const key = lekhaUrlSlugify(slug);
     if (!key) {
@@ -254,7 +256,7 @@ const add_new_project_route = protectedAdminProcedure
       return inserted;
     });
 
-    await invalidate_project_list_caches();
+    await invalidate_project_list_caches(cookie);
     return { success: true as const, project };
   });
 

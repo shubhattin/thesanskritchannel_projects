@@ -44,7 +44,7 @@ const assertNoRowsAtPrefix = async (
   }
 };
 
-const remapPathPrefixOnTable = async (
+export const remapPathPrefixOnTable = async (
   tx: transactionType,
   table: typeof texts | typeof translations | typeof media_attachment,
   pathColumn: AnyColumn,

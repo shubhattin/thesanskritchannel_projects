@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Map as MapIcon, ArrowUpDown, FolderRoot } from '@lucide/svelte';
+  import { Map as MapIcon, ArrowUpDown, FolderRoot, Trash2 } from '@lucide/svelte';
   import type { Tree as TreeComponent, LTreeNode, DropPosition } from '@keenmate/svelte-treeview';
   import { browser } from '$app/environment';
   import { beforeNavigate } from '$app/navigation';
@@ -47,7 +47,11 @@
     paths_equal,
     default_tree_expanded_paths,
     expand_tree_expanded_paths,
-    collapse_tree_expanded_paths
+    collapse_tree_expanded_paths,
+    build_delete_review_state,
+    remove_node_at_path,
+    is_ancestor_path,
+    map_path_to_db_path
   } from './map_edit_lib';
   import { buildAdjacentSwapEdits, type PathSwapEdit } from '~/server/map_path_swap';
   import TreeEditPanel from './TreeEditPanel.svelte';
@@ -69,14 +73,16 @@
   let selectedNodePath = $state<MapPath>([]);
   let basePath = $state<MapPath>([]);
   let save_review_open = $state(false);
-  let save_review_mode = $state<'metadata' | 'order'>('metadata');
+  let save_review_mode = $state<'metadata' | 'order' | 'delete'>('metadata');
   let discard_dialog_open = $state(false);
   let discard_order_dialog_open = $state(false);
-  let order_edit_mode = $state(false);
+  let discard_delete_dialog_open = $state(false);
+  let editor_mode = $state<'metadata' | 'order' | 'delete'>('metadata');
   /** List node whose direct children may be reordered; `null` until the user picks one. */
   let order_root_path = $state<MapPath | null>(null);
   let order_entry_map = $state<MapNodeWithClientId | null>(null);
   let order_entry_snapshots = $state<Map<string, BaselineNodeSnapshot>>(new Map());
+  let delete_entry_map = $state<MapNodeWithClientId | null>(null);
   let pending_swaps = $state<PathSwapEdit[]>([]);
   let count_input_invalid = $state(false);
   let treeRef = $state<TreeComponent<MapTreeItem> | undefined>(undefined);
@@ -100,6 +106,9 @@
     return compute_map_edit_diff(workingMap, baselineSnapshots);
   });
 
+  const order_edit_mode = $derived(editor_mode === 'order');
+  const delete_edit_mode = $derived(editor_mode === 'delete');
+
   const order_diff_state = $derived.by(() => {
     if (!workingMap || !order_edit_mode) {
       return {
@@ -114,13 +123,21 @@
     return compute_map_edit_diff(workingMap, order_entry_snapshots, { kinds: ['reorder'] });
   });
 
+  const delete_review_state = $derived.by(() => {
+    if (!workingMap || !delete_edit_mode || !delete_entry_map) {
+      return { deletedRoots: [], terminalPaths: [], rows: [] };
+    }
+    return build_delete_review_state(delete_entry_map, workingMap);
+  });
+
   const active_diff_state = $derived(order_edit_mode ? order_diff_state : diffState);
   const order_dirty = $derived(
     order_edit_mode && (pending_swaps.length > 0 || order_diff_state.dirty)
   );
-  const metadata_dirty = $derived(!order_edit_mode && diffState.dirty);
+  const delete_dirty = $derived(delete_edit_mode && delete_review_state.deletedRoots.length > 0);
+  const metadata_dirty = $derived(editor_mode === 'metadata' && diffState.dirty);
   const metadata_field_dirty = $derived.by(() => {
-    if (!workingMap || order_edit_mode) return false;
+    if (!workingMap || editor_mode !== 'metadata') return false;
     return compute_map_edit_diff(workingMap, baselineSnapshots, {
       kinds: ['rename', 'list_name_change', 'expected_count_change', 'add_child', 'type_change']
     }).dirty;
@@ -170,7 +187,7 @@
   let leave_confirmed = false;
 
   $effect(() => {
-    const dirty = metadata_dirty || order_dirty;
+    const dirty = metadata_dirty || order_dirty || delete_dirty;
     if (get(map_edit_dirty) !== dirty) map_edit_dirty.set(dirty);
   });
 
@@ -178,7 +195,7 @@
 
   $effect(() => {
     const map = $project_map_q.data;
-    if (!map || metadata_dirty || order_dirty) return;
+    if (!map || metadata_dirty || order_dirty || delete_dirty) return;
     const map_key = JSON.stringify(map);
     if (last_synced_map_key === map_key) return;
     last_synced_map_key = map_key;
@@ -197,26 +214,33 @@
     count_input_invalid = false;
   });
 
-  const finish_save = async (map: recursive_list_type, wasSavingOrder: boolean) => {
+  const finish_save = async (
+    map: recursive_list_type,
+    options: { invalidateContent: boolean; successMessage: string }
+  ) => {
     save_review_open = false;
-    order_edit_mode = false;
+    editor_mode = 'metadata';
     order_root_path = null;
     order_entry_map = null;
+    delete_entry_map = null;
     pending_swaps = [];
     await invalidate_project_registry_queries(project_id);
     await invalidate_project_map_queries(project_id);
-    if (wasSavingOrder) {
+    if (options.invalidateContent) {
       await invalidate_project_content_queries(project_id);
     }
     last_synced_map_key = JSON.stringify(map);
     reset_from_server(map);
-    toast.success(wasSavingOrder ? 'List order saved' : 'Project map saved');
+    toast.success(options.successMessage);
     saving_order = false;
   };
 
   const save_mut = client_q.project.map_edit.update.mutation({
     onSuccess: async (data) => {
-      await finish_save(data.map, false);
+      await finish_save(data.map, {
+        invalidateContent: false,
+        successMessage: 'Project map saved'
+      });
     },
     onError: (err) => {
       saving_order = false;
@@ -226,7 +250,10 @@
 
   const save_order_mut = client_q.project.map_edit.save_order.mutation({
     onSuccess: async (data) => {
-      await finish_save(data.map, true);
+      await finish_save(data.map, {
+        invalidateContent: true,
+        successMessage: 'List order saved'
+      });
     },
     onError: (err) => {
       saving_order = false;
@@ -234,7 +261,22 @@
     }
   });
 
-  const save_in_flight = $derived($save_mut.isPending || $save_order_mut.isPending || saving_order);
+  const save_delete_mut = client_q.project.map_edit.delete_nodes.mutation({
+    onSuccess: async (data) => {
+      await finish_save(data.map, {
+        invalidateContent: true,
+        successMessage: 'Deleted nodes saved'
+      });
+    },
+    onError: (err) => {
+      saving_order = false;
+      toast.error(err.message || 'Failed to delete map nodes');
+    }
+  });
+
+  const save_in_flight = $derived(
+    $save_mut.isPending || $save_order_mut.isPending || $save_delete_mut.isPending || saving_order
+  );
 
   function reset_from_server(map: recursive_list_type) {
     const snapshots = new Map<string, BaselineNodeSnapshot>();
@@ -268,7 +310,12 @@
   }
 
   function set_base_path(path: MapPath) {
-    if (!workingMap || save_in_flight || !is_path_valid(workingMap, path) || order_edit_mode)
+    if (
+      !workingMap ||
+      save_in_flight ||
+      !is_path_valid(workingMap, path) ||
+      editor_mode !== 'metadata'
+    )
       return;
     basePath = path;
     if (!is_path_valid(workingMap, selectedNodePath)) {
@@ -372,8 +419,50 @@
     bump_working();
   }
 
+  function on_delete_node_click(e: MouseEvent, subtreePath: string) {
+    e.stopPropagation();
+    e.preventDefault();
+    delete_node_at_subtree_path(subtreePath);
+  }
+
+  function delete_node_at_subtree_path(subtreePath: string) {
+    if (!workingMap || !delete_edit_mode || save_in_flight) return;
+    const full = full_path_from_subtree_path(basePath, subtreePath);
+    if (full.length === 0) return;
+    if (!remove_node_at_path(workingMap, full)) return;
+    const parentPath = full.slice(0, -1);
+    const removedIndex = full[full.length - 1]!;
+    if (paths_equal(selectedNodePath, full) || is_ancestor_path(full, selectedNodePath)) {
+      selectedNodePath =
+        is_path_valid(workingMap, parentPath) && parentPath.length > 0
+          ? parentPath
+          : basePath.length
+            ? [...basePath]
+            : [];
+    } else if (
+      paths_equal(selectedNodePath.slice(0, -1), parentPath) &&
+      selectedNodePath[selectedNodePath.length - 1]! > removedIndex
+    ) {
+      const shiftedPath = [...selectedNodePath];
+      shiftedPath[shiftedPath.length - 1] = shiftedPath[shiftedPath.length - 1]! - 1;
+      selectedNodePath = is_path_valid(workingMap, shiftedPath)
+        ? shiftedPath
+        : is_path_valid(workingMap, parentPath) && parentPath.length > 0
+          ? parentPath
+          : basePath.length
+            ? [...basePath]
+            : [];
+    }
+    bump_working();
+  }
+
   function append_child(kind: 'shloka' | 'list') {
-    if (!selectedNode || selectedNode.info.type !== 'list' || order_edit_mode || save_in_flight) {
+    if (
+      !selectedNode ||
+      selectedNode.info.type !== 'list' ||
+      editor_mode !== 'metadata' ||
+      save_in_flight
+    ) {
       return;
     }
     mark_local_change();
@@ -386,7 +475,7 @@
       !selectedNode ||
       selectedNode.info.type !== 'shloka' ||
       (selectedNode.list ?? []).length > 0 ||
-      order_edit_mode ||
+      editor_mode !== 'metadata' ||
       save_in_flight
     ) {
       return;
@@ -402,7 +491,7 @@
       selectedNode.info.type !== 'list' ||
       (selectedNode.list ?? []).length > 0 ||
       selected_is_root ||
-      order_edit_mode ||
+      editor_mode !== 'metadata' ||
       save_in_flight
     ) {
       return;
@@ -463,7 +552,7 @@
   }
 
   function enter_order_edit_mode() {
-    if (!workingMap || order_edit_mode || save_in_flight) return;
+    if (!workingMap || editor_mode !== 'metadata' || save_in_flight) return;
     if (metadata_field_dirty) {
       toast.error('Save or discard map edits before changing order');
       return;
@@ -475,13 +564,26 @@
     basePath = [];
     selectedNodePath = [];
     reset_tree_expansion();
-    order_edit_mode = true;
+    editor_mode = 'order';
+  }
+
+  function enter_delete_edit_mode() {
+    if (!workingMap || editor_mode !== 'metadata' || save_in_flight) return;
+    if (metadata_field_dirty) {
+      toast.error('Save or discard map edits before deleting nodes');
+      return;
+    }
+    delete_entry_map = clone_working_map(workingMap);
+    basePath = [];
+    selectedNodePath = [];
+    reset_tree_expansion();
+    editor_mode = 'delete';
   }
 
   function cancel_order_edit() {
     if (!order_edit_mode || save_in_flight) return;
     if (!order_dirty) {
-      order_edit_mode = false;
+      editor_mode = 'metadata';
       order_root_path = null;
       order_entry_map = null;
       pending_swaps = [];
@@ -493,19 +595,45 @@
     discard_order_dialog_open = true;
   }
 
+  function cancel_delete_edit() {
+    if (!delete_edit_mode || save_in_flight) return;
+    if (!delete_dirty) {
+      editor_mode = 'metadata';
+      delete_entry_map = null;
+      basePath = [];
+      selectedNodePath = [];
+      reset_tree_expansion();
+      return;
+    }
+    discard_delete_dialog_open = true;
+  }
+
   function confirm_cancel_order_edit() {
     if (order_entry_map) {
       workingMap = clone_working_map(order_entry_map);
       baselineSnapshots = clone_baseline_snapshots(order_entry_snapshots);
     }
     pending_swaps = [];
-    order_edit_mode = false;
+    editor_mode = 'metadata';
     order_root_path = null;
     order_entry_map = null;
     basePath = [];
     selectedNodePath = [];
     reset_tree_expansion();
     discard_order_dialog_open = false;
+    map_edit_dirty.set(false);
+  }
+
+  function confirm_cancel_delete_edit() {
+    if (delete_entry_map) {
+      workingMap = clone_working_map(delete_entry_map);
+    }
+    editor_mode = 'metadata';
+    delete_entry_map = null;
+    basePath = [];
+    selectedNodePath = [];
+    reset_tree_expansion();
+    discard_delete_dialog_open = false;
     map_edit_dirty.set(false);
   }
 
@@ -518,6 +646,28 @@
     if (!order_dirty || !order_root_selected || pending_swaps.length === 0) return;
     save_review_mode = 'order';
     save_review_open = true;
+  }
+
+  function request_save_delete() {
+    if (save_in_flight || !delete_dirty) return;
+    save_review_mode = 'delete';
+    save_review_open = true;
+  }
+
+  async function confirm_save_delete() {
+    if (!workingMap || save_in_flight || !delete_dirty || !delete_entry_map) return;
+    const deletedDbPaths = delete_review_state.deletedRoots.map((path) =>
+      map_path_to_db_path(path)
+    );
+    saving_order = true;
+    try {
+      await $save_delete_mut.mutateAsync({
+        project_id,
+        deleted_paths: deletedDbPaths
+      });
+    } catch {
+      saving_order = false;
+    }
   }
 
   async function confirm_save_order() {
@@ -543,7 +693,8 @@
   }
 
   function request_save() {
-    if (save_in_flight || order_edit_mode || !diffState.dirty || count_input_invalid) return;
+    if (save_in_flight || editor_mode !== 'metadata' || !diffState.dirty || count_input_invalid)
+      return;
     save_review_mode = 'metadata';
     save_review_open = true;
   }
@@ -558,6 +709,10 @@
 
   function request_cancel() {
     if (save_in_flight) return;
+    if (delete_edit_mode) {
+      cancel_delete_edit();
+      return;
+    }
     if (order_edit_mode) {
       cancel_order_edit();
       return;
@@ -598,10 +753,12 @@
   });
 
   beforeNavigate(({ cancel }) => {
-    if ((!metadata_dirty && !order_dirty) || leave_confirmed) return;
-    const message = order_dirty
-      ? 'You have unsaved order changes. Leave this page and discard them?'
-      : 'You have unsaved map edits. Leave this page and discard them?';
+    if ((!metadata_dirty && !order_dirty && !delete_dirty) || leave_confirmed) return;
+    const message = delete_dirty
+      ? 'You have unsaved node deletions. Leave this page and discard them?'
+      : order_dirty
+        ? 'You have unsaved order changes. Leave this page and discard them?'
+        : 'You have unsaved map edits. Leave this page and discard them?';
     const ok = confirm(message);
     if (!ok) cancel();
     else {
@@ -621,7 +778,9 @@
           <div
             class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
           >
-            {#if order_edit_mode}
+            {#if delete_edit_mode}
+              <Trash2 class="size-4" />
+            {:else if order_edit_mode}
               <ArrowUpDown class="size-4" />
             {:else}
               <MapIcon class="size-4" />
@@ -629,13 +788,24 @@
           </div>
           <div class="space-y-0.5">
             <Card.Title class="text-base">
-              {order_edit_mode ? 'Edit list order' : 'Edit project map'}
+              {delete_edit_mode
+                ? 'Delete map nodes'
+                : order_edit_mode
+                  ? 'Edit list order'
+                  : 'Edit project map'}
             </Card.Title>
             <Card.Description class="text-sm">{project_name_dev}</Card.Description>
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          {#if order_edit_mode && order_dirty}
+          {#if delete_edit_mode && delete_dirty}
+            <Badge variant="destructive" class="tabular-nums">
+              {delete_review_state.terminalPaths.length} path{delete_review_state.terminalPaths
+                .length === 1
+                ? ''
+                : 's'}
+            </Badge>
+          {:else if order_edit_mode && order_dirty}
             <Badge variant="secondary" class="tabular-nums">
               {pending_swaps.length} swap{pending_swaps.length === 1 ? '' : 's'}
             </Badge>
@@ -644,7 +814,19 @@
               {diffState.rows.length} update{diffState.rows.length === 1 ? '' : 's'}
             </Badge>
           {/if}
-          {#if order_edit_mode}
+          {#if delete_edit_mode}
+            <Button variant="outline" size="sm" onclick={cancel_delete_edit}
+              >Cancel delete mode</Button
+            >
+            <Button
+              variant="destructive"
+              size="sm"
+              onclick={request_save_delete}
+              disabled={!delete_dirty || save_in_flight}
+            >
+              {save_in_flight ? 'Saving…' : 'Save deletions'}
+            </Button>
+          {:else if order_edit_mode}
             <Button variant="outline" size="sm" onclick={cancel_order_edit}
               >Cancel order edit</Button
             >
@@ -654,10 +836,9 @@
               disabled={!order_dirty ||
                 !order_root_selected ||
                 pending_swaps.length === 0 ||
-                $save_mut.isPending ||
-                $save_order_mut.isPending}
+                save_in_flight}
             >
-              {$save_mut.isPending || $save_order_mut.isPending ? 'Saving…' : 'Save current order'}
+              {save_in_flight ? 'Saving…' : 'Save current order'}
             </Button>
           {:else}
             <Button variant="outline" size="sm" onclick={request_cancel}>Cancel</Button>
@@ -678,6 +859,17 @@
             >
               <ArrowUpDown class="mr-1 size-3.5" />
               Edit order
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              class="border-destructive/35 bg-destructive/8 text-destructive hover:bg-destructive/12 dark:border-red-400/45 dark:bg-red-400/12 dark:text-red-200 dark:hover:bg-red-400/18"
+              disabled={metadata_field_dirty}
+              onclick={enter_delete_edit_mode}
+            >
+              <Trash2 class="mr-1 size-3.5" />
+              Delete nodes
             </Button>
           {/if}
         </div>
@@ -706,7 +898,18 @@
         </Breadcrumb.List>
       </Breadcrumb.Root>
 
-      {#if !order_edit_mode}
+      {#if delete_edit_mode}
+        <div class="rounded-md bg-destructive/8 px-3 py-1.5 dark:bg-destructive/12">
+          <p class="text-xs text-destructive dark:text-red-300">
+            Click the trash icon on any node except the project root. Review connected texts,
+            translations, and media in the changes panel before saving.
+          </p>
+          <p class="mt-1 text-[11px] text-destructive/90 dark:text-red-300/90">
+            Deleting a non-last sibling shifts later paths too. Example: deleting `1/2` makes old
+            `1/3` become `1/2`.
+          </p>
+        </div>
+      {:else if !order_edit_mode}
         <div class="flex flex-wrap items-center gap-3 rounded-md bg-muted/40 px-3 py-1.5">
           <p class="text-xs text-muted-foreground">
             Hover a branch with children and use
@@ -733,6 +936,10 @@
               class="font-medium text-amber-950 dark:text-amber-100">{order_root_resolved}</span
             >. Drag rows with the grip handle only.
           </p>
+          <p class="mt-1 text-[11px] text-amber-800/90 dark:text-amber-300/90">
+            Saving order changes child paths and path-based endpoints. Example: moving `1/3` above
+            `1/2` swaps those paths.
+          </p>
         </div>
       {/if}
     </Card.Header>
@@ -743,7 +950,7 @@
       {workingMap}
       {treeData}
       editor_locked={save_in_flight}
-      {order_edit_mode}
+      {editor_mode}
       {order_root_awaiting}
       {order_root_selected}
       {order_root_resolved}
@@ -753,10 +960,11 @@
       beforeDrop={before_drop}
       getAllowedDropPositions={get_allowed_drop_positions}
       onSetTreeRoot={on_set_tree_root_click}
+      onDeleteNode={on_delete_node_click}
     />
     <NodeEditor
       editor_locked={save_in_flight}
-      {order_edit_mode}
+      {editor_mode}
       {selectedNode}
       {selected_path_resolved}
       {selected_is_root}
@@ -772,16 +980,25 @@
     />
   </div>
 
-  <Card.Root class="overflow-hidden">
+  <Card.Root class="flex flex-col overflow-hidden">
     <div
       class="flex items-center justify-between border-b border-border/60 bg-muted/20 px-4 py-2.5"
     >
       <div class="min-w-0">
         <span class="text-sm font-semibold">
-          {order_edit_mode ? 'Order changes' : 'Changes'}
+          {delete_edit_mode ? 'Deletion impact' : order_edit_mode ? 'Order changes' : 'Changes'}
         </span>
         <span class="ml-2 text-xs text-muted-foreground">
-          {#if order_edit_mode}
+          {#if delete_edit_mode}
+            {#if delete_dirty}
+              {delete_review_state.terminalPaths.length} terminal path{delete_review_state
+                .terminalPaths.length === 1
+                ? ''
+                : 's'}
+            {:else}
+              no nodes marked for deletion
+            {/if}
+          {:else if order_edit_mode}
             {#if order_dirty}
               {pending_swaps.length} swap{pending_swaps.length === 1 ? '' : 's'} pending
             {:else}
@@ -794,19 +1011,26 @@
           {/if}
         </span>
       </div>
-      {#if order_edit_mode ? order_dirty : metadata_dirty}
-        <div class="size-2 shrink-0 animate-pulse rounded-full bg-primary"></div>
+      {#if delete_edit_mode ? delete_dirty : order_edit_mode ? order_dirty : metadata_dirty}
+        <div
+          class="size-2 shrink-0 animate-pulse rounded-full {delete_edit_mode
+            ? 'bg-destructive'
+            : 'bg-primary'}"
+        ></div>
       {/if}
     </div>
-    <Card.Content class="px-4 py-3">
+    <Card.Content class="min-h-0 px-4 py-3">
       <ChangesPanel
-        {order_edit_mode}
+        {editor_mode}
         {order_dirty}
         {metadata_dirty}
+        {delete_dirty}
         {active_diff_state}
         {pending_swaps}
         {diffState}
         {workingMap}
+        {project_id}
+        delete_review_rows={delete_review_state.rows}
       />
     </Card.Content>
   </Card.Root>
@@ -817,12 +1041,21 @@
   mode={save_review_mode}
   {order_dirty}
   {metadata_dirty}
+  {delete_dirty}
   {active_diff_state}
   {pending_swaps}
   {diffState}
   {workingMap}
-  saving={$save_mut.isPending || $save_order_mut.isPending}
-  onConfirm={() => (save_review_mode === 'order' ? confirm_save_order() : confirm_save())}
+  {project_id}
+  delete_review_rows={delete_review_state.rows}
+  terminal_deleted_count={delete_review_state.terminalPaths.length}
+  saving={save_in_flight}
+  onConfirm={() =>
+    save_review_mode === 'delete'
+      ? confirm_save_delete()
+      : save_review_mode === 'order'
+        ? confirm_save_order()
+        : confirm_save()}
 />
 
 <AlertDialog.Root bind:open={discard_dialog_open}>
@@ -852,6 +1085,23 @@
     <AlertDialog.Footer>
       <AlertDialog.Cancel>Keep editing order</AlertDialog.Cancel>
       <Button variant="destructive" onclick={confirm_cancel_order_edit}>Cancel order edit</Button>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={discard_delete_dialog_open}>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Cancel delete mode?</AlertDialog.Title>
+      <AlertDialog.Description>
+        {delete_review_state.deletedRoots.length} deleted branch(es) and {delete_review_state
+          .terminalPaths.length} terminal path(s) will be restored in the editor. Nothing is removed from
+        the server until you save.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel>Keep deleting</AlertDialog.Cancel>
+      <Button variant="destructive" onclick={confirm_cancel_delete_edit}>Discard deletions</Button>
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>

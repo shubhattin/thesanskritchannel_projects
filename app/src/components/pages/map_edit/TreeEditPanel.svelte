@@ -1,6 +1,7 @@
 <script lang="ts">
   import './map_edit_tree.css';
-  import { TreePine, Ban, GripVertical, FolderRoot } from '@lucide/svelte';
+  import { TreePine, Ban, GripVertical, FolderRoot, Trash2 } from '@lucide/svelte';
+  import { Button } from '$lib/components/ui/button';
   import { Tree } from '@keenmate/svelte-treeview';
   import type { Tree as TreeComponent, LTreeNode, DropPosition } from '@keenmate/svelte-treeview';
   import { Badge } from '$lib/components/ui/badge';
@@ -12,7 +13,7 @@
     workingMap,
     treeData,
     editor_locked,
-    order_edit_mode,
+    editor_mode,
     order_root_awaiting,
     order_root_selected,
     order_root_resolved,
@@ -21,12 +22,13 @@
     onNodeClicked,
     beforeDrop,
     getAllowedDropPositions,
-    onSetTreeRoot
+    onSetTreeRoot,
+    onDeleteNode
   }: {
     workingMap: MapNodeWithClientId | null;
     treeData: MapTreeItem[];
     editor_locked: boolean;
-    order_edit_mode: boolean;
+    editor_mode: 'metadata' | 'order' | 'delete';
     order_root_awaiting: boolean;
     order_root_selected: boolean;
     order_root_resolved: string;
@@ -40,7 +42,11 @@
     ) => boolean | Promise<boolean>;
     getAllowedDropPositions?: (node: LTreeNode<MapTreeItem>) => DropPosition[];
     onSetTreeRoot: (e: MouseEvent, subtreePath: string) => void;
+    onDeleteNode: (e: MouseEvent, subtreePath: string) => void;
   } = $props();
+
+  const order_edit_mode = $derived(editor_mode === 'order');
+  const delete_edit_mode = $derived(editor_mode === 'delete');
 </script>
 
 <Card.Root class="flex min-h-[420px] flex-col overflow-hidden lg:min-h-[min(72vh,640px)]">
@@ -50,7 +56,9 @@
       <span class="text-sm font-semibold">Tree</span>
     </div>
     <p class="mt-0.5 text-xs text-muted-foreground">
-      {#if order_root_awaiting}
+      {#if delete_edit_mode}
+        Click the trash icon to remove a node and its subtree. Project root cannot be deleted.
+      {:else if order_root_awaiting}
         Click a list with at least two children to choose the reorder root.
       {:else if order_root_selected}
         Reorder direct children under {order_root_resolved}
@@ -96,6 +104,7 @@
                 class="map-edit-tree-row group flex w-full items-center gap-2 py-1 pr-2"
                 class:map-edit-row-selected={row.isSelected}
                 class:cursor-pointer={!editor_locked &&
+                  !delete_edit_mode &&
                   order_root_awaiting &&
                   row.nodeType === 'list' &&
                   row.childCount >= 2}
@@ -150,7 +159,20 @@
                       >select</Badge
                     >
                   {/if}
-                  {#if !order_edit_mode && row.nodeType === 'list' && row.childCount > 0 && !row.isRoot}
+                  {#if delete_edit_mode && !row.isRoot}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      class="size-7 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      title="Delete node and subtree"
+                      aria-label="Delete node and subtree"
+                      disabled={editor_locked}
+                      onclick={(e) => onDeleteNode(e, row.path)}
+                    >
+                      <Trash2 class="size-3.5" />
+                    </Button>
+                  {:else if !order_edit_mode && row.nodeType === 'list' && row.childCount > 0 && !row.isRoot}
                     <button
                       type="button"
                       class="map-edit-set-root-btn invisible shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"

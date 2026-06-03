@@ -197,7 +197,10 @@ export function validateSwapEdits(edits: PathSwapEdit[]): string | null {
   return null;
 }
 
-export function validateSwapEditsRootScope(edits: PathSwapEdit[], rootPath: number[]): string | null {
+export function validateSwapEditsRootScope(
+  edits: PathSwapEdit[],
+  rootPath: number[]
+): string | null {
   const rootLabel = formatMapPath(rootPath);
   for (let i = 0; i < edits.length; i++) {
     const [pathA, pathB] = edits[i]!.swap_paths;
@@ -255,7 +258,9 @@ export function applyMetadataEditsToMap(
     // Without stable child ids, ambiguous siblings must keep their local metadata identity in place
     // or we cannot tell whether the client renamed a node or swapped same-shaped siblings.
     const duplicateFingerprints = new Set(
-      currentFingerprints.filter((fingerprint, index) => currentFingerprints.indexOf(fingerprint) !== index)
+      currentFingerprints.filter(
+        (fingerprint, index) => currentFingerprints.indexOf(fingerprint) !== index
+      )
     );
     for (const fingerprint of duplicateFingerprints) {
       const currentLocalIds = currentChildren
@@ -334,15 +339,12 @@ export function applySwapEditsToMap(
     const indexB = dbPathToMapPath(pathB).at(-1)! - 1;
     const parent = parentPath.length === 0 ? next : get_node_at_path(next, parentPath);
     if (!parent || parent.info.type !== 'list') {
-      throw new TypeError(`Cannot apply swap under missing parent "${mapPathToDbPath(parentPath)}"`);
+      throw new TypeError(
+        `Cannot apply swap under missing parent "${mapPathToDbPath(parentPath)}"`
+      );
     }
     const list = [...(parent.list ?? [])];
-    if (
-      indexA < 0 ||
-      indexB < 0 ||
-      indexA >= list.length ||
-      indexB >= list.length
-    ) {
+    if (indexA < 0 || indexB < 0 || indexA >= list.length || indexB >= list.length) {
       throw new RangeError(`Cannot apply swap "${pathA}" <-> "${pathB}" outside list bounds`);
     }
     [list[indexA], list[indexB]] = [list[indexB]!, list[indexA]!];

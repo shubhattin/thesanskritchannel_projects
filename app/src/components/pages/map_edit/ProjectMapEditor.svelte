@@ -265,7 +265,8 @@
   }
 
   function set_base_path(path: MapPath) {
-    if (!workingMap || save_in_flight || !is_path_valid(workingMap, path) || order_edit_mode) return;
+    if (!workingMap || save_in_flight || !is_path_valid(workingMap, path) || order_edit_mode)
+      return;
     basePath = path;
     if (!is_path_valid(workingMap, selectedNodePath)) {
       selectedNodePath = path.length === 0 ? [] : path;
@@ -477,12 +478,7 @@
   }
 
   async function confirm_save_order() {
-    if (
-      !workingMap ||
-      save_in_flight ||
-      !order_root_selected ||
-      pending_swaps.length === 0
-    ) {
+    if (!workingMap || save_in_flight || !order_root_selected || pending_swaps.length === 0) {
       return;
     }
     saving_order = true;
@@ -683,14 +679,15 @@
       {:else if order_root_awaiting}
         <div class="rounded-md bg-amber-500/8 px-3 py-1.5 dark:bg-amber-400/8">
           <p class="text-xs text-amber-800 dark:text-amber-300">
-            Click a list node in the tree that has at least two children to choose what you want to reorder.
+            Click a list node in the tree that has at least two children to choose what you want to
+            reorder.
           </p>
         </div>
       {:else}
         <div class="rounded-md bg-amber-500/8 px-3 py-1.5 dark:bg-amber-400/8">
           <p class="text-xs text-amber-800 dark:text-amber-300">
-            You can reorder direct children in <span class="font-medium text-amber-950 dark:text-amber-100"
-              >{order_root_resolved}</span
+            You can reorder direct children in <span
+              class="font-medium text-amber-950 dark:text-amber-100">{order_root_resolved}</span
             >. Drag rows with the grip handle only.
           </p>
         </div>

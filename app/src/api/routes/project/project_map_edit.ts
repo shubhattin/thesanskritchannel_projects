@@ -36,27 +36,6 @@ const project_id_input = z.object({
   project_id: z.int()
 });
 
-const PROJECT_MAP_ORDER_LOCK_NAMESPACE = 41021;
-
-const db_path_schema = z
-  .string()
-  .regex(DB_PATH_RE, 'Path must be a colon-separated list of positive integers');
-
-const path_swap_edit_schema = z.object({
-  /** Ordered as `[from_path, to_path]`; server stages `to_path + "_temp"` to avoid clashes. */
-  swap_paths: z.tuple([db_path_schema, db_path_schema])
-});
-
-const update_project_map_input = project_id_input.extend({
-  map: recursive_list_schema
-});
-
-const save_project_map_order_input = project_id_input.extend({
-  root_path: z.array(z.int().positive()),
-  edits: z.array(path_swap_edit_schema),
-  map: recursive_list_schema
-});
-
 const invalidate_project_caches = async (
   cookie: string,
   project_id: number,
@@ -79,7 +58,11 @@ const invalidate_project_caches = async (
 };
 
 export const update_project_map_route = protectedAdminProcedure
-  .input(update_project_map_input)
+  .input(
+    project_id_input.extend({
+      map: recursive_list_schema
+    })
+  )
   .mutation(async ({ input, ctx: { cookie } }) => {
     await delay(400);
     const project = await db.transaction(async (tx) => {
@@ -118,8 +101,25 @@ export const update_project_map_route = protectedAdminProcedure
     return { success: true as const, map: project.map };
   });
 
+const PROJECT_MAP_ORDER_LOCK_NAMESPACE = 41021;
+
+const db_path_schema = z
+  .string()
+  .regex(DB_PATH_RE, 'Path must be a colon-separated list of positive integers');
+
 const save_project_map_order = protectedAdminProcedure
-  .input(save_project_map_order_input)
+  .input(
+    project_id_input.extend({
+      root_path: z.array(z.int().positive()),
+      edits: z.array(
+        z.object({
+          /** Ordered as `[from_path, to_path]`; server stages `to_path + "_temp"` to avoid clashes. */
+          swap_paths: z.tuple([db_path_schema, db_path_schema])
+        })
+      ),
+      map: recursive_list_schema
+    })
+  )
   .mutation(async ({ input: { project_id, root_path, edits, map }, ctx: { cookie } }) => {
     const parsedEdits = edits;
     if (parsedEdits.length > 0) {

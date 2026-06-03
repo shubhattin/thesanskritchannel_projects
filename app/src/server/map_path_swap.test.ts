@@ -107,12 +107,10 @@ describe('map_path_swap', () => {
   });
 
   it('rejects swap edits outside the chosen root scope', () => {
-    expect(
-      validateSwapEditsRootScope([{ swap_paths: ['1:1:2', '1:1:3'] }], [1, 1])
-    ).toBeNull();
-    expect(
-      validateSwapEditsRootScope([{ swap_paths: ['1:1', '1:1:2'] }], [1, 1])
-    ).toBe('Swap 1: Path A must stay under root /1/1');
+    expect(validateSwapEditsRootScope([{ swap_paths: ['1:1:2', '1:1:3'] }], [1, 1])).toBeNull();
+    expect(validateSwapEditsRootScope([{ swap_paths: ['1:1', '1:1:2'] }], [1, 1])).toBe(
+      'Swap 1: Path A must stay under root /1/1'
+    );
   });
 
   it('expands one drag move into adjacent swaps', () => {

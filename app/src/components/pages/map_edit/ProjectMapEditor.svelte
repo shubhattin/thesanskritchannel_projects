@@ -890,6 +890,10 @@
             Click the trash icon on any node except the project root. Review connected texts,
             translations, and media in the changes panel before saving.
           </p>
+          <p class="mt-1 text-[11px] text-destructive/90 dark:text-red-300/90">
+            Deleting a non-last sibling shifts later paths too. Example: deleting `1/2` makes old
+            `1/3` become `1/2`.
+          </p>
         </div>
       {:else if !order_edit_mode}
         <div class="flex flex-wrap items-center gap-3 rounded-md bg-muted/40 px-3 py-1.5">
@@ -917,6 +921,10 @@
             You can reorder direct children in <span
               class="font-medium text-amber-950 dark:text-amber-100">{order_root_resolved}</span
             >. Drag rows with the grip handle only.
+          </p>
+          <p class="mt-1 text-[11px] text-amber-800/90 dark:text-amber-300/90">
+            Saving order changes child paths and path-based endpoints. Example: moving `1/3` above
+            `1/2` swaps those paths.
           </p>
         </div>
       {/if}

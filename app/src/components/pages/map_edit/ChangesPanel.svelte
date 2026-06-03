@@ -66,7 +66,6 @@
         ? rows.length === 0 && pending_swaps.length === 0
         : rows.length === 0
   );
-
 </script>
 
 <div
@@ -74,49 +73,49 @@
     ? ''
     : 'max-h-[min(48vh,28rem)] overflow-x-hidden overflow-y-auto overscroll-y-contain'}"
 >
-{#if delete_edit_mode}
-  <DeleteImpactTable {project_id} rows={delete_review_rows} {compact} />
-{:else if is_empty}
-  <p class="text-sm text-muted-foreground {compact ? 'py-1 text-xs' : ''}">
-    {#if order_edit_mode}
-      Drag siblings in the tree to reorder lists.
-    {:else}
-      Edits will appear here.
-    {/if}
-  </p>
-{:else if workingMap}
-  <Tooltip.Provider>
-    <ul
-      class={compact
-        ? 'divide-y divide-border/50 rounded-md border border-border/60'
-        : 'grid gap-2 sm:grid-cols-2 xl:grid-cols-3'}
-    >
-      {#each rows as row (row.kind + row.clientId + row.summary)}
-        <li
-          class={compact
-            ? 'flex min-w-0 flex-col gap-0.5 px-2.5 py-2 sm:flex-row sm:items-start sm:gap-2'
-            : 'flex min-w-0 flex-col gap-1.5 rounded-md border border-border/60 bg-muted/20 px-2.5 py-2'}
-        >
-          <div class="flex min-w-0 shrink-0 flex-wrap items-center gap-1">
-            <span
-              class="shrink-0 rounded font-semibold tracking-wide uppercase {kind_styles[
-                row.kind
-              ]} {compact ? 'px-1 py-px text-[9px]' : 'px-1.5 py-0.5 text-[10px]'}"
-            >
-              {kind_labels[row.kind]}
-            </span>
-            <MapEditPathLabel map={workingMap} path={row.path} variant="short" />
-          </div>
-          <p
-            class="min-w-0 text-foreground/90 {compact
-              ? 'text-xs leading-snug sm:flex-1'
-              : 'text-[13px] leading-snug'}"
+  {#if delete_edit_mode}
+    <DeleteImpactTable {project_id} rows={delete_review_rows} {compact} />
+  {:else if is_empty}
+    <p class="text-sm text-muted-foreground {compact ? 'py-1 text-xs' : ''}">
+      {#if order_edit_mode}
+        Drag siblings in the tree to reorder lists.
+      {:else}
+        Edits will appear here.
+      {/if}
+    </p>
+  {:else if workingMap}
+    <Tooltip.Provider>
+      <ul
+        class={compact
+          ? 'divide-y divide-border/50 rounded-md border border-border/60'
+          : 'grid gap-2 sm:grid-cols-2 xl:grid-cols-3'}
+      >
+        {#each rows as row (row.kind + row.clientId + row.summary)}
+          <li
+            class={compact
+              ? 'flex min-w-0 flex-col gap-0.5 px-2.5 py-2 sm:flex-row sm:items-start sm:gap-2'
+              : 'flex min-w-0 flex-col gap-1.5 rounded-md border border-border/60 bg-muted/20 px-2.5 py-2'}
           >
-            {row.summary}
-          </p>
-        </li>
-      {/each}
-    </ul>
-  </Tooltip.Provider>
-{/if}
+            <div class="flex min-w-0 shrink-0 flex-wrap items-center gap-1">
+              <span
+                class="shrink-0 rounded font-semibold tracking-wide uppercase {kind_styles[
+                  row.kind
+                ]} {compact ? 'px-1 py-px text-[9px]' : 'px-1.5 py-0.5 text-[10px]'}"
+              >
+                {kind_labels[row.kind]}
+              </span>
+              <MapEditPathLabel map={workingMap} path={row.path} variant="short" />
+            </div>
+            <p
+              class="min-w-0 text-foreground/90 {compact
+                ? 'text-xs leading-snug sm:flex-1'
+                : 'text-[13px] leading-snug'}"
+            >
+              {row.summary}
+            </p>
+          </li>
+        {/each}
+      </ul>
+    </Tooltip.Provider>
+  {/if}
 </div>

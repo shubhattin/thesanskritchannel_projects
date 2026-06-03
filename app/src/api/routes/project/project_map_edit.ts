@@ -2,6 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import {
+  applyDeletePathCompactions,
   buildRedisKeysForDeleteInvalidation,
   collectDeleteInvalidation,
   countExactPathResources,
@@ -9,6 +10,8 @@ import {
 } from '~/server/map_path_delete_db.server';
 import {
   applyDeletedSubtreesToMap,
+  buildDeletePathCompactions,
+  listDeleteCompactionPrefixes,
   minimizeDbPathPrefixes,
   validateDeletedPathsInMap
 } from '~/server/map_path_delete.server';
@@ -231,8 +234,10 @@ const delete_project_map_nodes = protectedAdminProcedure
       }
 
       let derivedMap: typeof project.map;
+      let deleteCompactions: ReturnType<typeof buildDeletePathCompactions>;
       try {
         derivedMap = applyDeletedSubtreesToMap(project.map, minimized);
+        deleteCompactions = buildDeletePathCompactions(project.map, minimized);
       } catch (error) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
@@ -240,8 +245,11 @@ const delete_project_map_nodes = protectedAdminProcedure
         });
       }
 
-      const invalidation = await collectDeleteInvalidation(tx, project_id, minimized);
+      const touchedPrefixes = listDeleteCompactionPrefixes(deleteCompactions);
+      const invalidationBefore = await collectDeleteInvalidation(tx, project_id, touchedPrefixes);
       await deleteResourcesAtPathPrefixes(tx, project_id, minimized);
+      await applyDeletePathCompactions(tx, project_id, deleteCompactions);
+      const invalidationAfter = await collectDeleteInvalidation(tx, project_id, touchedPrefixes);
 
       await tx
         .update(projects)
@@ -254,7 +262,10 @@ const delete_project_map_nodes = protectedAdminProcedure
       return {
         project,
         map: derivedMap,
-        redisKeys: buildRedisKeysForDeleteInvalidation(project_id, invalidation)
+        redisKeys: buildRedisKeysForDeleteInvalidation(
+          project_id,
+          mergePathSwapInvalidation(invalidationBefore, invalidationAfter)
+        )
       };
     });
 

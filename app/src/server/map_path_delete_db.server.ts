@@ -1,9 +1,11 @@
 import { and, count, eq, or, sql, type AnyColumn } from 'drizzle-orm';
 import type { transactionType } from '~/db/db';
 import { media_attachment, texts, translations } from '~/db/schema';
+import type { DeletePathCompaction } from './map_path_delete.server';
 import { dbPathMatchesPrefix } from './map_path_swap';
 import {
   buildRedisKeysForPathSwapInvalidation,
+  remapPathPrefixOnTable,
   type PathSwapInvalidation
 } from './map_path_swap_db.server';
 
@@ -76,6 +78,22 @@ export const deleteResourcesAtPathPrefixes = async (
     await tx
       .delete(table)
       .where(and(eq(table.project_id, project_id), pathMatchesAnyPrefix(pathColumn, prefixes)));
+  }
+};
+
+export const applyDeletePathCompactions = async (
+  tx: transactionType,
+  project_id: number,
+  compactions: DeletePathCompaction[]
+) => {
+  if (compactions.length === 0) return;
+  for (const { remap_steps } of compactions) {
+    if (remap_steps.length === 0) continue;
+    for (const { table, pathColumn } of resourceTables) {
+      for (const { from_path, to_path } of remap_steps) {
+        await remapPathPrefixOnTable(tx, table, pathColumn, project_id, from_path, to_path);
+      }
+    }
   }
 };
 

@@ -105,7 +105,7 @@
   >
     <Dialog.Header class="shrink-0 space-y-0.5 border-b border-border/60 px-4 pt-4 pb-3">
       <Dialog.Title class="text-base">{title}</Dialog.Title>
-      <Dialog.Description class="text-xs">
+      <Dialog.Description class="text-base font-semibold">
         {#if mode === 'delete'}
           This permanently removes the selected nodes and all connected content. Review the impact
           below, confirm, then delete.
@@ -113,6 +113,11 @@
           Review the changes, confirm below, then save.
         {/if}
       </Dialog.Description>
+      <p
+        class="mt-2 inline-flex w-fit rounded-md border border-destructive/35 bg-destructive/8 px-2 py-1 text-xs font-medium text-destructive dark:text-red-300"
+      >
+        This action is not reversible.
+      </p>
     </Dialog.Header>
 
     <div class="shrink-0 space-y-2.5 border-b border-border/60 px-4 py-3">
@@ -172,7 +177,11 @@
         {#if mode === 'metadata'}
           Root name also updates the project display name in the project list.
         {:else if mode === 'delete'}
-          Deleting a parent removes its entire subtree and all descendant content.
+          Deleting a non-last sibling shifts later paths too. Example: delete `1/2`, old `1/3`
+          becomes `1/2`.
+        {:else if mode === 'order'}
+          Saving order changes child paths and path-based endpoints. Example: moving `1/3` above
+          `1/2` swaps those paths.
         {:else}
           Cannot be undone from the editor.
         {/if}
@@ -194,7 +203,7 @@
     </div>
 
     <div
-      class="min-h-0 max-h-[45vh] flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 py-2"
+      class="max-h-[45vh] min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 py-2"
     >
       <p class="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
         Details

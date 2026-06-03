@@ -113,11 +113,13 @@
           Review the changes, confirm below, then save.
         {/if}
       </Dialog.Description>
-      <p
-        class="mt-2 inline-flex w-fit rounded-md border border-destructive/35 bg-destructive/8 px-2 py-1 text-xs font-medium text-destructive dark:text-red-300"
-      >
-        This action is not reversible.
-      </p>
+      {#if mode === 'delete'}
+        <p
+          class="mt-2 inline-flex w-fit rounded-md border border-destructive/35 bg-destructive/8 px-2 py-1 text-xs font-medium text-destructive dark:text-red-300"
+        >
+          This action is not reversible.
+        </p>
+      {/if}
     </Dialog.Header>
 
     <div class="shrink-0 space-y-2.5 border-b border-border/60 px-4 py-3">

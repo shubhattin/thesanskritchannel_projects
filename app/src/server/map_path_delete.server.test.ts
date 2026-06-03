@@ -10,7 +10,8 @@ import {
   mapsStructurallyEqual,
   minimizeDbPathPrefixes,
   validateDeleteMapProposal,
-  validateDeletedPathsInMap
+  validateDeletedPathsInMap,
+  remove_node_at_saved_map_path
 } from './map_path_delete.server';
 import type { recursive_list_type } from '~/state/data_types';
 import { get_node_at_path } from '~/state/project_list';
@@ -165,6 +166,13 @@ describe('map_path_delete.server', () => {
     expect(get_node_at_path(derived, [1, 2])).toBeNull();
     expect(get_node_at_path(derived, [1])?.info.type).toBe('list');
     expect((get_node_at_path(derived, [1]) as recursive_list_type).list).toEqual([]);
+  });
+
+  it('rejects malformed numeric map path segments before splicing', () => {
+    const saved = sample_map();
+    expect(remove_node_at_saved_map_path(saved, [Number.NaN])).toBeNull();
+    expect(remove_node_at_saved_map_path(saved, [1, 0])).toBeNull();
+    expect(remove_node_at_saved_map_path(saved, [1, 1.5])).toBeNull();
   });
 
   it('rejects piggybacked metadata edits in a client map proposal', () => {

@@ -277,10 +277,10 @@ const delete_project_map_nodes = protectedAdminProcedure
 const get_delete_node_resource_counts = protectedAdminProcedure
   .input(
     project_id_input.extend({
-      path: db_path_schema
+      paths: z.array(db_path_schema)
     })
   )
-  .query(async ({ input: { project_id, path } }) => {
+  .query(async ({ input: { project_id, paths } }) => {
     const project = await db.query.projects.findFirst({
       where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
       columns: { id: true }
@@ -289,7 +289,13 @@ const get_delete_node_resource_counts = protectedAdminProcedure
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
     }
 
-    return db.transaction((tx) => countExactPathResources(tx, project_id, path));
+    return db.transaction(async (tx) => {
+      const countsByPath: Record<string, Awaited<ReturnType<typeof countExactPathResources>>> = {};
+      for (const path of [...new Set(paths)]) {
+        countsByPath[path] = await countExactPathResources(tx, project_id, path);
+      }
+      return countsByPath;
+    });
   });
 
 export const project_map_edit_router = t.router({

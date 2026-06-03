@@ -68,14 +68,18 @@ export function remove_node_at_saved_map_path(
   let parent: recursive_list_type = root;
 
   for (let i = 0; i < path.length - 1; i++) {
-    const seg = path[i]! - 1;
+    const segment = path[i]!;
+    if (!Number.isSafeInteger(segment) || segment <= 0) return null;
+    const seg = segment - 1;
     if (parent.info.type !== 'list') return null;
     const list = parent.list ?? [];
     if (seg < 0 || seg >= list.length) return null;
     parent = list[seg]!;
   }
 
-  const index = path[path.length - 1]! - 1;
+  const finalSegment = path[path.length - 1]!;
+  if (!Number.isSafeInteger(finalSegment) || finalSegment <= 0) return null;
+  const index = finalSegment - 1;
   if (parent.info.type !== 'list') return null;
   const list = [...(parent.list ?? [])];
   if (index < 0 || index >= list.length) return null;

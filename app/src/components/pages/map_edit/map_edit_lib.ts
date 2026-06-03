@@ -668,16 +668,30 @@ export const remove_node_at_path = (root: MapNodeWithClientId, path: MapPath): b
 };
 
 /** Paths in `entryMap` whose client ids no longer exist in `workingMap`. */
+const collect_client_ids = (root: MapNodeWithClientId): Set<string> => {
+  const ids = new Set<string>();
+  const walk = (node: MapNodeWithClientId) => {
+    const clientId = node[MAP_EDIT_CLIENT_ID];
+    if (clientId) ids.add(clientId);
+    if (node.info.type === 'list') {
+      (node.list ?? []).forEach((child) => walk(child as MapNodeWithClientId));
+    }
+  };
+  walk(root);
+  return ids;
+};
+
 export const collect_deleted_paths_from_entry = (
   entryMap: MapNodeWithClientId,
   workingMap: MapNodeWithClientId,
   path: MapPath = []
 ): MapPath[] => {
+  const workingClientIds = collect_client_ids(workingMap);
   const deleted: MapPath[] = [];
   const walk = (entryNode: MapNodeWithClientId, p: MapPath) => {
     const clientId = entryNode[MAP_EDIT_CLIENT_ID];
     if (!clientId) return;
-    if (!find_node_by_client_id(workingMap, clientId)) {
+    if (!workingClientIds.has(clientId)) {
       deleted.push(p);
       return;
     }

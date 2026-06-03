@@ -430,10 +430,24 @@
     const full = full_path_from_subtree_path(basePath, subtreePath);
     if (full.length === 0) return;
     if (!remove_node_at_path(workingMap, full)) return;
+    const parentPath = full.slice(0, -1);
+    const removedIndex = full[full.length - 1]!;
     if (paths_equal(selectedNodePath, full) || is_ancestor_path(full, selectedNodePath)) {
-      const parentPath = full.slice(0, -1);
       selectedNodePath =
         is_path_valid(workingMap, parentPath) && parentPath.length > 0
+          ? parentPath
+          : basePath.length
+            ? [...basePath]
+            : [];
+    } else if (
+      paths_equal(selectedNodePath.slice(0, -1), parentPath) &&
+      selectedNodePath[selectedNodePath.length - 1]! > removedIndex
+    ) {
+      const shiftedPath = [...selectedNodePath];
+      shiftedPath[shiftedPath.length - 1] = shiftedPath[shiftedPath.length - 1]! - 1;
+      selectedNodePath = is_path_valid(workingMap, shiftedPath)
+        ? shiftedPath
+        : is_path_valid(workingMap, parentPath) && parentPath.length > 0
           ? parentPath
           : basePath.length
             ? [...basePath]

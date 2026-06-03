@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { client_q } from '~/api/client';
   import * as Table from '$lib/components/ui/table';
-  import type { DeleteReviewRow } from './map_edit_lib';
+  import { map_path_to_db_path, type DeleteReviewRow } from './map_edit_lib';
   import DeleteImpactRow from './DeleteImpactRow.svelte';
 
   let {
@@ -12,6 +13,15 @@
     rows: DeleteReviewRow[];
     compact?: boolean;
   } = $props();
+
+  const db_paths = $derived([...new Set(rows.map((row) => map_path_to_db_path(row.path)))]);
+  const counts_q = $derived(
+    client_q.project.map_edit.get_delete_node_resource_counts.query({
+      project_id,
+      paths: db_paths
+    })
+  );
+  const counts_state = $derived($counts_q);
 </script>
 
 {#if rows.length === 0}
@@ -61,7 +71,16 @@
       </Table.Header>
       <Table.Body>
         {#each rows as row (row.path.join(':'))}
-          <DeleteImpactRow {project_id} {row} {compact} />
+          {@const db_path = map_path_to_db_path(row.path)}
+          <DeleteImpactRow
+            {row}
+            {compact}
+            counts={counts_state.data?.[db_path]}
+            counts_pending={counts_state.isPending}
+            counts_error={counts_state.isError
+              ? counts_state.error.message || 'Failed to load counts'
+              : ''}
+          />
         {/each}
       </Table.Body>
     </Table.Root>

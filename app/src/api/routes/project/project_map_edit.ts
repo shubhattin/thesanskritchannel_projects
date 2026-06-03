@@ -36,6 +36,8 @@ const project_id_input = z.object({
   project_id: z.int()
 });
 
+const PROJECT_MAP_ORDER_LOCK_NAMESPACE = 41021;
+
 const invalidate_project_caches = async (
   cookie: string,
   project_id: number,
@@ -100,8 +102,6 @@ export const update_project_map_route = protectedAdminProcedure
     await invalidate_project_caches(cookie, input.project_id, project.key);
     return { success: true as const, map: project.map };
   });
-
-const PROJECT_MAP_ORDER_LOCK_NAMESPACE = 41021;
 
 const db_path_schema = z
   .string()

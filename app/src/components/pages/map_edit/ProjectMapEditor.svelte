@@ -122,7 +122,7 @@
   const metadata_field_dirty = $derived.by(() => {
     if (!workingMap || order_edit_mode) return false;
     return compute_map_edit_diff(workingMap, baselineSnapshots, {
-      kinds: ['rename', 'list_name_change', 'expected_count_change']
+      kinds: ['rename', 'list_name_change', 'expected_count_change', 'add_child', 'type_change']
     }).dirty;
   });
 
@@ -465,7 +465,7 @@
   function enter_order_edit_mode() {
     if (!workingMap || order_edit_mode || save_in_flight) return;
     if (metadata_field_dirty) {
-      toast.error('Save or discard field edits before changing order');
+      toast.error('Save or discard map edits before changing order');
       return;
     }
     order_entry_map = clone_working_map(workingMap);

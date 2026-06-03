@@ -58,6 +58,7 @@ describe('map_edit_lib normal-mode structure edits', () => {
       list_name: 'Level Name',
       list_count_expected: null
     });
+    expect(list.list).toEqual([]);
   });
 
   it('detects appended children as add_child changes', () => {

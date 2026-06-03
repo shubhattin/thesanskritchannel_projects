@@ -252,7 +252,11 @@ function mergeMetadataNode(
   if (current.info.type === 'shloka' && proposed.info.type === 'shloka') {
     return {
       name_dev: proposed.name_dev,
-      info: current.info,
+      info: {
+        ...current.info,
+        shloka_count_expected:
+          proposed.info.shloka_count_expected ?? current.info.shloka_count_expected
+      },
       list: []
     };
   }

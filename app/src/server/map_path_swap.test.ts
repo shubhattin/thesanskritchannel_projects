@@ -163,7 +163,10 @@ describe('map_path_swap', () => {
     };
     const merged = applyMetadataEditsToMap(current, proposed);
     expect(merged.list?.[0]?.list?.[0]?.name_dev).toBe('A1 renamed');
-    expect(merged.list?.[0]?.list?.[0]?.info).toEqual(current.list?.[0]?.list?.[0]?.info);
+    expect(merged.list?.[0]?.list?.[0]?.info).toEqual({
+      ...current.list?.[0]?.list?.[0]?.info,
+      shloka_count_expected: 999
+    });
   });
 
   it('rejects metadata saves that reshape the tree', () => {
@@ -187,6 +190,11 @@ describe('map_path_swap', () => {
 
   it('accepts childless shloka to list conversion', () => {
     const current = sampleMap();
+    current.list![1] = {
+      name_dev: 'B',
+      info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+      list: []
+    };
     const proposed = sampleMap();
     proposed.list![1] = {
       name_dev: 'B',

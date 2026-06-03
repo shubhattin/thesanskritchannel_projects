@@ -40,6 +40,44 @@ export function buildPathSwapSteps(pathA: string, pathB: string): PathSwapStep[]
   ];
 }
 
+/** Matches the exact path or any deeper descendant under the same segment boundary. */
+export function dbPathMatchesPrefix(path: string, prefix: string): boolean {
+  return path === prefix || path.startsWith(`${prefix}:`);
+}
+
+/** Rewrites one matching prefix and leaves the remaining suffix untouched. */
+export function remapDbPathPrefix(path: string, fromPrefix: string, toPrefix: string): string {
+  if (!dbPathMatchesPrefix(path, fromPrefix)) {
+    return path;
+  }
+  return `${toPrefix}${path.slice(fromPrefix.length)}`;
+}
+
+/** Applies the three-step temp swap to a single DB path. */
+export function applyPathSwapStepsToPath(path: string, steps: PathSwapStep[]): string {
+  let nextPath = path;
+  for (const { from_path, to_path } of steps) {
+    nextPath = remapDbPathPrefix(nextPath, from_path, to_path);
+  }
+  return nextPath;
+}
+
+/** Applies the ordered client edits the same way the DB transaction does. */
+export function applyPathSwapEditsToPath(path: string, edits: PathSwapEdit[]): string {
+  let nextPath = path;
+  for (const {
+    swap_paths: [pathA, pathB]
+  } of edits) {
+    nextPath = applyPathSwapStepsToPath(nextPath, buildPathSwapSteps(pathA, pathB));
+  }
+  return nextPath;
+}
+
+/** Distinct prefixes touched by the ordered swaps. */
+export function listSwapPrefixes(edits: PathSwapEdit[]): string[] {
+  return [...new Set(edits.flatMap(({ swap_paths: [pathA, pathB] }) => [pathA, pathB]))];
+}
+
 /** Converts a DB path string to numeric segments for cache keys (`1:2` → `[1, 2]`). */
 export function dbPathToPathParams(path: string): number[] {
   const error = validateDbPath(path);

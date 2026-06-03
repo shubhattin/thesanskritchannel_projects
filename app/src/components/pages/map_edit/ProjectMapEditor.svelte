@@ -212,8 +212,8 @@
   };
 
   const save_mut = client_q.project.map_edit.update.mutation({
-    onSuccess: async (_data, variables) => {
-      await finish_save(variables.map, false);
+    onSuccess: async (data) => {
+      await finish_save(data.map, false);
     },
     onError: (err) => {
       saving_order = false;
@@ -222,8 +222,8 @@
   });
 
   const save_order_mut = client_q.project.map_edit.save_order.mutation({
-    onSuccess: async (_data, variables) => {
-      await finish_save(variables.map, true);
+    onSuccess: async (data) => {
+      await finish_save(data.map, true);
     },
     onError: (err) => {
       saving_order = false;

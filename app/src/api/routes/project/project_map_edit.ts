@@ -111,11 +111,11 @@ export const update_project_map_route = protectedAdminProcedure
         })
         .where(eq(projects.id, input.project_id));
 
-      return existing;
+      return { key: existing.key, map };
     });
 
     await invalidate_project_caches(cookie, input.project_id, project.key);
-    return { success: true as const };
+    return { success: true as const, map: project.map };
   });
 
 const save_project_map_order = protectedAdminProcedure
@@ -165,12 +165,6 @@ const save_project_map_order = protectedAdminProcedure
           message: error instanceof Error ? error.message : 'Invalid order swap payload'
         });
       }
-      if (JSON.stringify(map) !== JSON.stringify(derivedMap)) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Order save payload did not match the server-derived map for these swaps'
-        });
-      }
       await tx
         .update(projects)
         .set({
@@ -181,6 +175,7 @@ const save_project_map_order = protectedAdminProcedure
 
       return {
         project,
+        map: derivedMap,
         redisKeys: buildRedisKeysForPathSwapInvalidation(
           project_id,
           mergePathSwapInvalidation(invalidationBefore, invalidationAfter)
@@ -190,7 +185,7 @@ const save_project_map_order = protectedAdminProcedure
 
     await invalidate_project_caches(cookie, project_id, project.key, redisKeys);
 
-    return { success: true as const, swap_count: parsedEdits.length };
+    return { success: true as const, swap_count: parsedEdits.length, map };
   });
 
 export const project_map_edit_router = t.router({

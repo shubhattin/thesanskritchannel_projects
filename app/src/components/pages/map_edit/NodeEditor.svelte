@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PenLine, TriangleAlert, Plus, ArrowLeftRight } from '@lucide/svelte';
+  import { PenLine, TriangleAlert, Plus, ArrowLeftRight, Trash2 } from '@lucide/svelte';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import { Switch } from '$lib/components/ui/switch';
@@ -16,7 +16,7 @@
 
   let {
     editor_locked,
-    order_edit_mode,
+    editor_mode,
     selectedNode,
     selected_path_resolved,
     selected_is_root,
@@ -31,7 +31,7 @@
     onConvertToShloka
   }: {
     editor_locked: boolean;
-    order_edit_mode: boolean;
+    editor_mode: 'metadata' | 'order' | 'delete';
     selectedNode: MapNodeWithClientId | null;
     selected_path_resolved: string;
     selected_is_root: boolean;
@@ -48,15 +48,21 @@
 
   let add_child_popover_open = $state(false);
 
+  const order_edit_mode = $derived(editor_mode === 'order');
+  const delete_edit_mode = $derived(editor_mode === 'delete');
+
   const selected_childless = $derived((selectedNode?.list?.length ?? 0) === 0);
   const show_add_child = $derived(
-    !order_edit_mode && selectedNode?.info.type === 'list' && !editor_locked
+    editor_mode === 'metadata' && selectedNode?.info.type === 'list' && !editor_locked
   );
   const show_convert_to_list = $derived(
-    !order_edit_mode && selectedNode?.info.type === 'shloka' && selected_childless && !editor_locked
+    editor_mode === 'metadata' &&
+      selectedNode?.info.type === 'shloka' &&
+      selected_childless &&
+      !editor_locked
   );
   const show_convert_to_shloka = $derived(
-    !order_edit_mode &&
+    editor_mode === 'metadata' &&
       !selected_is_root &&
       selectedNode?.info.type === 'list' &&
       selected_childless &&
@@ -98,7 +104,29 @@
     </p>
   </div>
   <Card.Content class="space-y-4 pt-4">
-    {#if order_edit_mode}
+    {#if delete_edit_mode}
+      <div
+        class="rounded-lg border border-destructive/35 bg-destructive/8 px-4 py-3 dark:bg-destructive/12"
+      >
+        <div class="flex gap-2">
+          <Trash2 class="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
+          <div class="space-y-1.5 text-sm text-muted-foreground">
+            <p class="font-medium text-foreground">Delete nodes mode</p>
+            <p>
+              Use the trash icon on tree rows to remove nodes. Deleting a parent removes its entire
+              subtree. Names and structure cannot be edited here; review impact in the changes panel
+              before saving.
+            </p>
+            {#if selectedNode}
+              <p>
+                Inspecting <span class="font-medium text-foreground">{selected_path_resolved}</span
+                >.
+              </p>
+            {/if}
+          </div>
+        </div>
+      </div>
+    {:else if order_edit_mode}
       <div class="rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
         <p class="text-sm text-muted-foreground">
           {#if selectedNode}

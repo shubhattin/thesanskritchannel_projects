@@ -1,29 +1,44 @@
 <script lang="ts">
   import * as Tooltip from '$lib/components/ui/tooltip';
   import type { PathSwapEdit } from '~/server/map_path_swap';
-  import type { MapChangeKind, MapEditDiffState, MapNodeWithClientId } from './map_edit_lib';
+  import type {
+    DeleteReviewRow,
+    MapChangeKind,
+    MapEditDiffState,
+    MapNodeWithClientId
+  } from './map_edit_lib';
   import MapEditPathLabel from './EditPathLabel.svelte';
+  import DeleteImpactTable from './DeleteImpactTable.svelte';
 
   let {
     compact = false,
-    order_edit_mode,
+    editor_mode,
     order_dirty,
     metadata_dirty,
+    delete_dirty,
     active_diff_state,
     pending_swaps,
     diffState,
-    workingMap
+    workingMap,
+    project_id = 0,
+    delete_review_rows = []
   }: {
     /** Denser rows for save dialog and tight layouts */
     compact?: boolean;
-    order_edit_mode: boolean;
+    editor_mode: 'metadata' | 'order' | 'delete';
     order_dirty: boolean;
     metadata_dirty: boolean;
+    delete_dirty: boolean;
     active_diff_state: MapEditDiffState;
     pending_swaps: PathSwapEdit[];
     diffState: MapEditDiffState;
     workingMap: MapNodeWithClientId | null;
+    project_id?: number;
+    delete_review_rows?: DeleteReviewRow[];
   } = $props();
+
+  const order_edit_mode = $derived(editor_mode === 'order');
+  const delete_edit_mode = $derived(editor_mode === 'delete');
 
   const kind_labels: Record<MapChangeKind, string> = {
     rename: 'Rename',
@@ -45,11 +60,17 @@
 
   const rows = $derived(active_diff_state.rows);
   const is_empty = $derived(
-    order_edit_mode ? rows.length === 0 && pending_swaps.length === 0 : rows.length === 0
+    delete_edit_mode
+      ? delete_review_rows.length === 0
+      : order_edit_mode
+        ? rows.length === 0 && pending_swaps.length === 0
+        : rows.length === 0
   );
 </script>
 
-{#if is_empty}
+{#if delete_edit_mode}
+  <DeleteImpactTable {project_id} rows={delete_review_rows} {compact} />
+{:else if is_empty}
   <p class="text-sm text-muted-foreground {compact ? 'py-1 text-xs' : ''}">
     {#if order_edit_mode}
       Drag siblings in the tree to reorder lists.

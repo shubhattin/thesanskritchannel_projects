@@ -1,6 +1,17 @@
 import { TRPCError } from '@trpc/server';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import {
+  buildRedisKeysForDeleteInvalidation,
+  collectDeleteInvalidation,
+  countExactPathResources,
+  deleteResourcesAtPathPrefixes
+} from '~/server/map_path_delete_db.server';
+import {
+  applyDeletedSubtreesToMap,
+  minimizeDbPathPrefixes,
+  validateDeletedPathsInMap
+} from '~/server/map_path_delete.server';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { projects } from '~/db/schema';
@@ -188,7 +199,91 @@ const save_project_map_order = protectedAdminProcedure
     return { success: true as const, swap_count: parsedEdits.length, map };
   });
 
+const delete_project_map_nodes = protectedAdminProcedure
+  .input(
+    project_id_input.extend({
+      deleted_paths: z.array(db_path_schema)
+    })
+  )
+  .mutation(async ({ input: { project_id, deleted_paths }, ctx: { cookie } }) => {
+    const minimized = minimizeDbPathPrefixes(deleted_paths);
+    if (minimized.length === 0) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'No nodes selected for deletion' });
+    }
+
+    await delay(400);
+
+    const { project, map, redisKeys } = await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(${PROJECT_MAP_ORDER_LOCK_NAMESPACE}, ${project_id})`
+      );
+      const project = await tx.query.projects.findFirst({
+        where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
+        columns: { id: true, key: true, map: true }
+      });
+      if (!project) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
+      }
+
+      const validationError = validateDeletedPathsInMap(project.map, minimized);
+      if (validationError) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: validationError });
+      }
+
+      let derivedMap: typeof project.map;
+      try {
+        derivedMap = applyDeletedSubtreesToMap(project.map, minimized);
+      } catch (error) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: error instanceof Error ? error.message : 'Invalid delete paths for map'
+        });
+      }
+
+      const invalidation = await collectDeleteInvalidation(tx, project_id, minimized);
+      await deleteResourcesAtPathPrefixes(tx, project_id, minimized);
+
+      await tx
+        .update(projects)
+        .set({
+          map: derivedMap,
+          name_dev: derivedMap.name_dev
+        })
+        .where(eq(projects.id, project_id));
+
+      return {
+        project,
+        map: derivedMap,
+        redisKeys: buildRedisKeysForDeleteInvalidation(project_id, invalidation)
+      };
+    });
+
+    await invalidate_project_caches(cookie, project_id, project.key, redisKeys);
+
+    return { success: true as const, deleted_count: minimized.length, map };
+  });
+
+const get_delete_node_resource_counts = protectedAdminProcedure
+  .input(
+    project_id_input.extend({
+      path: db_path_schema
+    })
+  )
+  .query(async ({ input: { project_id, path } }) => {
+    const project = await db.query.projects.findFirst({
+      where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
+      columns: { id: true }
+    });
+    if (!project) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
+    }
+
+    return db.transaction((tx) => countExactPathResources(tx, project_id, path));
+  });
+
 export const project_map_edit_router = t.router({
   update: update_project_map_route,
-  save_order: save_project_map_order
+  save_order: save_project_map_order,
+  delete_nodes: delete_project_map_nodes,
+  get_delete_node_resource_counts
 });

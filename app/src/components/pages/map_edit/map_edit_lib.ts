@@ -650,3 +650,123 @@ export const parse_optional_count = (raw: string): number | null | 'invalid' => 
   if (!Number.isInteger(n) || n < 0) return 'invalid';
   return n;
 };
+
+export const is_ancestor_path = (ancestor: MapPath, descendant: MapPath): boolean => {
+  if (descendant.length <= ancestor.length) return false;
+  return ancestor.every((v, i) => v === descendant[i]);
+};
+
+/** Removes a node at `path`; returns false for project root or invalid paths. */
+export const remove_node_at_path = (root: MapNodeWithClientId, path: MapPath): boolean => {
+  if (path.length === 0) return false;
+  const ctx = get_parent_context(root, path);
+  if (!ctx) return false;
+  const list = [...(ctx.parent.list ?? [])];
+  list.splice(ctx.index, 1);
+  ctx.parent.list = list;
+  return true;
+};
+
+/** Paths in `entryMap` whose client ids no longer exist in `workingMap`. */
+export const collect_deleted_paths_from_entry = (
+  entryMap: MapNodeWithClientId,
+  workingMap: MapNodeWithClientId,
+  path: MapPath = []
+): MapPath[] => {
+  const deleted: MapPath[] = [];
+  const walk = (entryNode: MapNodeWithClientId, p: MapPath) => {
+    const clientId = entryNode[MAP_EDIT_CLIENT_ID];
+    if (!clientId) return;
+    if (!find_node_by_client_id(workingMap, clientId)) {
+      deleted.push(p);
+      return;
+    }
+    if (entryNode.info.type === 'list') {
+      (entryNode.list ?? []).forEach((child, i) => {
+        walk(child as MapNodeWithClientId, [...p, i + 1]);
+      });
+    }
+  };
+  walk(entryMap, path);
+  return deleted;
+};
+
+export const minimize_deleted_paths = (paths: MapPath[]): MapPath[] => {
+  const sorted = [...paths].sort((a, b) => a.length - b.length);
+  const result: MapPath[] = [];
+  for (const path of sorted) {
+    if (result.some((prefix) => is_ancestor_path(prefix, path))) continue;
+    result.push(path);
+  }
+  return result;
+};
+
+/** Leaf shloka nodes and childless list nodes under each deleted root. */
+export const expand_terminal_deleted_paths = (
+  entryMap: MapNodeWithClientId,
+  deletedRoots: MapPath[]
+): MapPath[] => {
+  const roots = minimize_deleted_paths(deletedRoots);
+  const seen = new Set<string>();
+  const terminals: MapPath[] = [];
+
+  const walk = (node: MapNodeWithClientId, path: MapPath) => {
+    if (node.info.type === 'shloka') {
+      const key = path.join(':');
+      if (!seen.has(key)) {
+        seen.add(key);
+        terminals.push(path);
+      }
+      return;
+    }
+    const children = node.list ?? [];
+    if (children.length === 0) {
+      const key = path.join(':');
+      if (!seen.has(key)) {
+        seen.add(key);
+        terminals.push(path);
+      }
+      return;
+    }
+    children.forEach((child, i) => {
+      walk(child as MapNodeWithClientId, [...path, i + 1]);
+    });
+  };
+
+  for (const root of roots) {
+    const node = get_node_at_map_path(entryMap, root);
+    if (node) walk(node, root);
+  }
+  return terminals;
+};
+
+export type DeleteReviewRow = {
+  path: MapPath;
+  pathLabel: string;
+  resolvedLabel: string;
+  nodeType: 'list' | 'shloka';
+};
+
+export type DeleteReviewState = {
+  deletedRoots: MapPath[];
+  terminalPaths: MapPath[];
+  rows: DeleteReviewRow[];
+};
+
+export const build_delete_review_state = (
+  entryMap: MapNodeWithClientId,
+  workingMap: MapNodeWithClientId
+): DeleteReviewState => {
+  const deletedRoots = collect_deleted_paths_from_entry(entryMap, workingMap);
+  const terminalPaths = expand_terminal_deleted_paths(entryMap, deletedRoots);
+  const rows = terminalPaths.map((path) => {
+    const node = get_node_at_map_path(entryMap, path)!;
+    return {
+      path,
+      pathLabel: format_path_short_label(path),
+      resolvedLabel: format_path_resolved_label(entryMap, path),
+      nodeType: node.info.type
+    };
+  });
+  return { deletedRoots, terminalPaths, rows };
+};

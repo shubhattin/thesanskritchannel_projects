@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   apply_map_edit_list_defaults,
+  build_delete_review_state,
   clone_map_with_client_ids,
+  clone_working_map,
+  collect_deleted_paths_from_entry,
   compute_map_edit_diff,
   create_map_edit_child,
+  expand_terminal_deleted_paths,
   get_node_at_map_path,
+  remove_node_at_path,
   type BaselineNodeSnapshot,
   type MapNodeWithClientId
 } from './map_edit_lib';
@@ -112,5 +117,49 @@ describe('map_edit_lib normal-mode structure edits', () => {
 
     const diff = compute_map_edit_diff(working, snapshots);
     expect(diff.rows.some((r) => r.summary === 'Converted List → Shloka')).toBe(true);
+  });
+});
+
+describe('map_edit_lib delete mode', () => {
+  it('cannot delete project root', () => {
+    const { working } = setup_working();
+    expect(remove_node_at_path(working, [])).toBe(false);
+  });
+
+  it('deleting a leaf removes only that path', () => {
+    const { working } = setup_working();
+    const entry = clone_working_map(working);
+    expect(remove_node_at_path(working, [2])).toBe(true);
+    expect(collect_deleted_paths_from_entry(entry, working)).toEqual([[2]]);
+    expect(expand_terminal_deleted_paths(entry, [[2]])).toEqual([[2]]);
+  });
+
+  it('deleting a parent removes descendants from review roots but expands terminal paths', () => {
+    const { working } = setup_working();
+    const entry = clone_working_map(working);
+    expect(remove_node_at_path(working, [1])).toBe(true);
+    expect(collect_deleted_paths_from_entry(entry, working)).toEqual([[1]]);
+    expect(expand_terminal_deleted_paths(entry, [[1]])).toEqual([[1, 1]]);
+  });
+
+  it('overlapping deletes do not double-count terminal paths', () => {
+    const { working } = setup_working();
+    const entry = clone_working_map(working);
+    remove_node_at_path(working, [1]);
+    const review = build_delete_review_state(entry, working);
+    expect(review.terminalPaths).toEqual([[1, 1]]);
+    expect(review.rows).toHaveLength(1);
+  });
+
+  it('nested terminal expansion includes childless list nodes', () => {
+    const { working } = setup_working();
+    const entry = clone_working_map(working);
+    const parent = get_node_at_map_path(entry, [1])!;
+    parent.list = [...(parent.list ?? []), create_map_edit_child('list')];
+    const workingAfter = clone_working_map(entry);
+    remove_node_at_path(workingAfter, [1]);
+    const terminals = expand_terminal_deleted_paths(entry, [[1]]);
+    expect(terminals).toContainEqual([1, 1]);
+    expect(terminals).toContainEqual([1, 2]);
   });
 });

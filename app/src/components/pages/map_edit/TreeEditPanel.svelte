@@ -77,9 +77,9 @@
             shouldToggleOnNodeClick={false}
             dragDropMode={order_root_selected && !editor_locked ? 'self' : 'none'}
             allowedDropPositionsMember="allowedDropPositions"
-            getAllowedDropPositionsCallback={
-              order_root_selected && !editor_locked ? getAllowedDropPositions : undefined
-            }
+            getAllowedDropPositionsCallback={order_root_selected && !editor_locked
+              ? getAllowedDropPositions
+              : undefined}
             beforeDropCallback={beforeDrop}
             {onNodeClicked}
           >

@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  applyPathSwapEditsToPath,
-  dbPathMatchesPrefix,
-  remapDbPathPrefix
-} from './map_path_swap';
+import { applyPathSwapEditsToPath, dbPathMatchesPrefix, remapDbPathPrefix } from './map_path_swap';
 import {
   buildRedisKeysForPathSwapInvalidation,
   mergePathSwapInvalidation

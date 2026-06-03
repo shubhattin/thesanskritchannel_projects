@@ -29,14 +29,18 @@
     rename: 'Rename',
     list_name_change: 'Label',
     expected_count_change: 'Count',
-    reorder: 'Reorder'
+    reorder: 'Reorder',
+    add_child: 'Add child',
+    type_change: 'Convert type'
   };
 
   const kind_styles: Record<MapChangeKind, string> = {
     rename: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
     list_name_change: 'bg-violet-500/15 text-violet-700 dark:text-violet-300',
     expected_count_change: 'bg-amber-500/15 text-amber-800 dark:text-amber-200',
-    reorder: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+    reorder: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+    add_child: 'bg-teal-500/15 text-teal-800 dark:text-teal-200',
+    type_change: 'bg-rose-500/15 text-rose-800 dark:text-rose-200'
   };
 
   const rows = $derived(active_diff_state.rows);

@@ -107,12 +107,10 @@ describe('map_path_swap', () => {
   });
 
   it('rejects swap edits outside the chosen root scope', () => {
-    expect(
-      validateSwapEditsRootScope([{ swap_paths: ['1:1:2', '1:1:3'] }], [1, 1])
-    ).toBeNull();
-    expect(
-      validateSwapEditsRootScope([{ swap_paths: ['1:1', '1:1:2'] }], [1, 1])
-    ).toBe('Swap 1: Path A must stay under root /1/1');
+    expect(validateSwapEditsRootScope([{ swap_paths: ['1:1:2', '1:1:3'] }], [1, 1])).toBeNull();
+    expect(validateSwapEditsRootScope([{ swap_paths: ['1:1', '1:1:2'] }], [1, 1])).toBe(
+      'Swap 1: Path A must stay under root /1/1'
+    );
   });
 
   it('expands one drag move into adjacent swaps', () => {
@@ -165,13 +163,118 @@ describe('map_path_swap', () => {
     };
     const merged = applyMetadataEditsToMap(current, proposed);
     expect(merged.list?.[0]?.list?.[0]?.name_dev).toBe('A1 renamed');
-    expect(merged.list?.[0]?.list?.[0]?.info).toEqual(current.list?.[0]?.list?.[0]?.info);
+    expect(merged.list?.[0]?.list?.[0]?.info).toEqual({
+      ...current.list?.[0]?.list?.[0]?.info,
+      shloka_count_expected: 999
+    });
   });
 
   it('rejects metadata saves that reshape the tree', () => {
     const current = sampleMap();
     const proposed = sampleMap();
     proposed.list = [...(proposed.list ?? [])].reverse();
+    expect(() => applyMetadataEditsToMap(current, proposed)).toThrow('Map structure changed');
+  });
+
+  it('accepts an appended child at the end of a list', () => {
+    const current = sampleMap();
+    const proposed = sampleMap();
+    proposed.list![0]!.list!.push({
+      name_dev: 'A3',
+      info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+      list: []
+    });
+    const merged = applyMetadataEditsToMap(current, proposed);
+    expect(merged.list?.[0]?.list?.map((node) => node.name_dev)).toEqual(['A1', 'A2', 'A3']);
+  });
+
+  it('accepts childless shloka to list conversion', () => {
+    const current = sampleMap();
+    current.list![1] = {
+      name_dev: 'B',
+      info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+      list: []
+    };
+    const proposed = sampleMap();
+    proposed.list![1] = {
+      name_dev: 'B',
+      info: { type: 'list', list_name: 'Adhyaya', list_count_expected: 5 },
+      list: []
+    };
+    const merged = applyMetadataEditsToMap(current, proposed);
+    expect(merged.list?.[1]?.info).toEqual({
+      type: 'list',
+      list_name: 'Adhyaya',
+      list_count_expected: 5
+    });
+  });
+
+  it('accepts childless type conversion with appended children in the same save', () => {
+    const current: recursive_list_type = {
+      name_dev: 'Project',
+      info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+      list: []
+    };
+    const proposed: recursive_list_type = {
+      name_dev: 'Project',
+      info: { type: 'list', list_name: 'Kanda', list_count_expected: null },
+      list: [
+        {
+          name_dev: 'A',
+          info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+          list: []
+        }
+      ]
+    };
+    const merged = applyMetadataEditsToMap(current, proposed);
+    expect(merged.info.type).toBe('list');
+    expect(merged.list?.map((n) => n.name_dev)).toEqual(['A']);
+  });
+
+  it('rejects saving a shloka node as the project map root', () => {
+    const current = sampleMap();
+    const proposed: recursive_list_type = {
+      name_dev: 'Project',
+      info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+      list: []
+    };
+    expect(() => applyMetadataEditsToMap(current, proposed)).toThrow(
+      'Project map root must be a list node'
+    );
+  });
+
+  it('accepts childless list to shloka conversion', () => {
+    const current = sampleMap();
+    const proposed = sampleMap();
+    proposed.list![1] = {
+      name_dev: 'B',
+      info: { type: 'shloka', shloka_count: 99, total: 99, shloka_count_expected: 99 },
+      list: []
+    };
+    const merged = applyMetadataEditsToMap(current, proposed);
+    expect(merged.list?.[1]?.info).toEqual({
+      type: 'shloka',
+      shloka_count: 0,
+      total: 0,
+      shloka_count_expected: 99
+    });
+  });
+
+  it('rejects type conversion when the node has children', () => {
+    const current = sampleMap();
+    const proposed = sampleMap();
+    proposed.list![0] = {
+      name_dev: 'A',
+      info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+      list: []
+    };
+    expect(() => applyMetadataEditsToMap(current, proposed)).toThrow('Map structure changed');
+  });
+
+  it('rejects metadata saves that delete children', () => {
+    const current = sampleMap();
+    const proposed = sampleMap();
+    proposed.list![0]!.list = [proposed.list![0]!.list![0]!];
     expect(() => applyMetadataEditsToMap(current, proposed)).toThrow('Map structure changed');
   });
 

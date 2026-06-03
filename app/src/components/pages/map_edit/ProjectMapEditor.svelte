@@ -39,6 +39,9 @@
     clone_baseline_snapshots,
     clone_working_map,
     clone_recursive_list,
+    create_map_edit_child,
+    apply_map_edit_list_defaults,
+    apply_map_edit_shloka_defaults,
     MAP_EDIT_CLIENT_ID,
     format_path_resolved_label,
     paths_equal,
@@ -119,7 +122,7 @@
   const metadata_field_dirty = $derived.by(() => {
     if (!workingMap || order_edit_mode) return false;
     return compute_map_edit_diff(workingMap, baselineSnapshots, {
-      kinds: ['rename', 'list_name_change', 'expected_count_change']
+      kinds: ['rename', 'list_name_change', 'expected_count_change', 'add_child', 'type_change']
     }).dirty;
   });
 
@@ -265,7 +268,8 @@
   }
 
   function set_base_path(path: MapPath) {
-    if (!workingMap || save_in_flight || !is_path_valid(workingMap, path) || order_edit_mode) return;
+    if (!workingMap || save_in_flight || !is_path_valid(workingMap, path) || order_edit_mode)
+      return;
     basePath = path;
     if (!is_path_valid(workingMap, selectedNodePath)) {
       selectedNodePath = path.length === 0 ? [] : path;
@@ -368,6 +372,46 @@
     bump_working();
   }
 
+  function append_child(kind: 'shloka' | 'list') {
+    if (!selectedNode || selectedNode.info.type !== 'list' || order_edit_mode || save_in_flight) {
+      return;
+    }
+    mark_local_change();
+    selectedNode.list = [...(selectedNode.list ?? []), create_map_edit_child(kind)];
+    bump_working();
+  }
+
+  function convert_selected_to_list() {
+    if (
+      !selectedNode ||
+      selectedNode.info.type !== 'shloka' ||
+      (selectedNode.list ?? []).length > 0 ||
+      order_edit_mode ||
+      save_in_flight
+    ) {
+      return;
+    }
+    mark_local_change();
+    apply_map_edit_list_defaults(selectedNode, { preserve_name_dev: selected_is_root });
+    bump_working();
+  }
+
+  function convert_selected_to_shloka() {
+    if (
+      !selectedNode ||
+      selectedNode.info.type !== 'list' ||
+      (selectedNode.list ?? []).length > 0 ||
+      selected_is_root ||
+      order_edit_mode ||
+      save_in_flight
+    ) {
+      return;
+    }
+    mark_local_change();
+    apply_map_edit_shloka_defaults(selectedNode, { preserve_name_dev: selected_is_root });
+    bump_working();
+  }
+
   async function before_drop(
     dropNode: LTreeNode<MapTreeItem> | null,
     draggedNode: LTreeNode<MapTreeItem>,
@@ -421,7 +465,7 @@
   function enter_order_edit_mode() {
     if (!workingMap || order_edit_mode || save_in_flight) return;
     if (metadata_field_dirty) {
-      toast.error('Save or discard field edits before changing order');
+      toast.error('Save or discard map edits before changing order');
       return;
     }
     order_entry_map = clone_working_map(workingMap);
@@ -477,12 +521,7 @@
   }
 
   async function confirm_save_order() {
-    if (
-      !workingMap ||
-      save_in_flight ||
-      !order_root_selected ||
-      pending_swaps.length === 0
-    ) {
+    if (!workingMap || save_in_flight || !order_root_selected || pending_swaps.length === 0) {
       return;
     }
     saving_order = true;
@@ -683,14 +722,15 @@
       {:else if order_root_awaiting}
         <div class="rounded-md bg-amber-500/8 px-3 py-1.5 dark:bg-amber-400/8">
           <p class="text-xs text-amber-800 dark:text-amber-300">
-            Click a list node in the tree that has at least two children to choose what you want to reorder.
+            Click a list node in the tree that has at least two children to choose what you want to
+            reorder.
           </p>
         </div>
       {:else}
         <div class="rounded-md bg-amber-500/8 px-3 py-1.5 dark:bg-amber-400/8">
           <p class="text-xs text-amber-800 dark:text-amber-300">
-            You can reorder direct children in <span class="font-medium text-amber-950 dark:text-amber-100"
-              >{order_root_resolved}</span
+            You can reorder direct children in <span
+              class="font-medium text-amber-950 dark:text-amber-100">{order_root_resolved}</span
             >. Drag rows with the grip handle only.
           </p>
         </div>
@@ -725,6 +765,10 @@
       onNameDevChange={update_name_dev}
       onListNameChange={update_list_name}
       onListCountChange={update_list_count_expected}
+      onAddShlokaChild={() => append_child('shloka')}
+      onAddListChild={() => append_child('list')}
+      onConvertToList={convert_selected_to_list}
+      onConvertToShloka={convert_selected_to_shloka}
     />
   </div>
 

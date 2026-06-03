@@ -9,7 +9,13 @@
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
+  import { Switch } from '$lib/components/ui/switch';
   import { Textarea } from '$lib/components/ui/textarea';
+  import {
+    clearTypingContextOnKeyDown,
+    createTypingContext,
+    handleTypingBeforeInputEvent
+  } from 'lipilekhika/typing';
   import { toast } from 'svelte-sonner';
   import Loader2 from '@lucide/svelte/icons/loader-2';
   import CircleAlert from '@lucide/svelte/icons/circle-alert';
@@ -21,6 +27,24 @@
   let name_dev = $state('');
   let description = $state('');
   let slug = $state('');
+
+  const name_dev_input_id = 'new-project-name-dev';
+  const name_dev_typing_switch_id = 'new-project-name-dev-typing';
+  let typing_ctx = $derived(createTypingContext('Devanagari'));
+  let typing_enabled = $state(true);
+
+  $effect(() => {
+    typing_ctx.ready;
+  });
+
+  function toggle_typing_from_keyboard(e: KeyboardEvent) {
+    if (!e.altKey) return false;
+    const key = e.key.toLowerCase();
+    if (key !== 'x' && key !== 'c') return false;
+    e.preventDefault();
+    typing_enabled = !typing_enabled;
+    return true;
+  }
 
   const slug_effective = $derived(lekhaUrlSlugify(slug));
 
@@ -65,6 +89,7 @@
     name_dev = '';
     description = '';
     slug = '';
+    typing_enabled = false;
   };
 
   $effect(() => {
@@ -122,13 +147,36 @@
       </div>
 
       <div class="space-y-2">
-        <Label for="new-project-name-dev">Name (देवनागरी)</Label>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <Label for={name_dev_input_id}>Name (देवनागरी)</Label>
+          <div class="flex items-center gap-2">
+            <Label
+              for={name_dev_typing_switch_id}
+              class="cursor-pointer text-xs font-medium text-muted-foreground select-none"
+            >
+              Typing
+            </Label>
+            <Switch
+              id={name_dev_typing_switch_id}
+              bind:checked={typing_enabled}
+              title="Devanagari transliteration typing (Alt+X / Alt+C)"
+            />
+          </div>
+        </div>
         <Input
-          id="new-project-name-dev"
+          id={name_dev_input_id}
           bind:value={name_dev}
           placeholder="Name in देवनागरी, e.g. श्रीमद्भगवद्गीता"
           autocomplete="off"
           required
+          class="font-sans"
+          onbeforeinput={(e) =>
+            handleTypingBeforeInputEvent(typing_ctx, e, (v) => (name_dev = v), typing_enabled)}
+          onblur={() => typing_ctx.clearContext()}
+          onkeydown={(e) => {
+            if (toggle_typing_from_keyboard(e)) return;
+            clearTypingContextOnKeyDown(e, typing_ctx);
+          }}
         />
       </div>
 

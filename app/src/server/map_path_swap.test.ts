@@ -175,6 +175,32 @@ describe('map_path_swap', () => {
     expect(() => applyMetadataEditsToMap(current, proposed)).toThrow('Map structure changed');
   });
 
+  it('rejects swapped same-shaped siblings during metadata-only saves', () => {
+    const current: recursive_list_type = {
+      name_dev: 'Project',
+      info: { type: 'list', list_name: 'Root', list_count_expected: null },
+      list: [
+        {
+          name_dev: 'Alpha',
+          info: { type: 'list', list_name: 'Section', list_count_expected: null },
+          list: []
+        },
+        {
+          name_dev: 'Beta',
+          info: { type: 'list', list_name: 'Section', list_count_expected: null },
+          list: []
+        }
+      ]
+    };
+    const proposed: recursive_list_type = {
+      ...current,
+      list: [...(current.list ?? [])].reverse()
+    };
+    expect(() => applyMetadataEditsToMap(current, proposed)).toThrow(
+      'Ambiguous sibling identity changed during metadata save'
+    );
+  });
+
   it('validates that the chosen reorder root exists and can be reordered', () => {
     expect(validateOrderRootPath(sampleMap(), [])).toBeNull();
     expect(validateOrderRootPath(sampleMap(), [1])).toBeNull();

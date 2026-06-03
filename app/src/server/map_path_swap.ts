@@ -245,6 +245,36 @@ export function applyMetadataEditsToMap(
     if (currentChildren.length !== proposedChildren.length) {
       throw new TypeError('Map structure changed during metadata save');
     }
+    const currentFingerprints = currentChildren.map(metadataStructureFingerprint);
+    const proposedFingerprints = proposedChildren.map(metadataStructureFingerprint);
+    for (let i = 0; i < currentFingerprints.length; i++) {
+      if (currentFingerprints[i] !== proposedFingerprints[i]) {
+        throw new TypeError('Map structure changed during metadata save');
+      }
+    }
+    // Without stable child ids, ambiguous siblings must keep their local metadata identity in place
+    // or we cannot tell whether the client renamed a node or swapped same-shaped siblings.
+    const duplicateFingerprints = new Set(
+      currentFingerprints.filter((fingerprint, index) => currentFingerprints.indexOf(fingerprint) !== index)
+    );
+    for (const fingerprint of duplicateFingerprints) {
+      const currentLocalIds = currentChildren
+        .map((child, index) =>
+          currentFingerprints[index] === fingerprint ? metadataLocalIdentity(child) : null
+        )
+        .filter((value): value is string => value !== null);
+      const proposedLocalIds = proposedChildren
+        .map((child, index) =>
+          proposedFingerprints[index] === fingerprint ? metadataLocalIdentity(child) : null
+        )
+        .filter((value): value is string => value !== null);
+      if (
+        currentLocalIds.join('|') !== proposedLocalIds.join('|') &&
+        [...currentLocalIds].sort().join('|') === [...proposedLocalIds].sort().join('|')
+      ) {
+        throw new TypeError('Ambiguous sibling identity changed during metadata save');
+      }
+    }
     return {
       name_dev: proposedMap.name_dev,
       info: {
@@ -262,6 +292,32 @@ export function applyMetadataEditsToMap(
     info: currentMap.info,
     list: []
   };
+}
+
+function metadataStructureFingerprint(node: recursive_list_type): string {
+  if (node.info.type === 'shloka') {
+    return JSON.stringify({ type: 'shloka' });
+  }
+  return JSON.stringify({
+    type: 'list',
+    child_count: (node.list ?? []).length,
+    children: (node.list ?? []).map(metadataStructureFingerprint)
+  });
+}
+
+function metadataLocalIdentity(node: recursive_list_type): string {
+  if (node.info.type === 'shloka') {
+    return JSON.stringify({
+      type: 'shloka',
+      name_dev: node.name_dev
+    });
+  }
+  return JSON.stringify({
+    type: 'list',
+    name_dev: node.name_dev,
+    list_name: node.info.list_name,
+    list_count_expected: node.info.list_count_expected
+  });
 }
 
 /** Applies the exact swap sequence to the map JSON so the saved structure matches DB path swaps. */

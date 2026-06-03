@@ -784,3 +784,63 @@ export const build_delete_review_state = (
   });
   return { deletedRoots, terminalPaths, rows };
 };
+
+// ---------------------------------------------------------------------------
+// Undo stack
+// ---------------------------------------------------------------------------
+
+export const UNDO_MAX_DEPTH = 50;
+
+export type MetadataUndoSnapshot = {
+  workingMap: MapNodeWithClientId;
+  selectedNodePath: MapPath;
+};
+
+export type OrderUndoSnapshot = {
+  workingMap: MapNodeWithClientId;
+  pendingSwaps: import('~/server/map_path_swap').PathSwapEdit[];
+  selectedNodePath: MapPath;
+};
+
+export type DeleteUndoSnapshot = {
+  workingMap: MapNodeWithClientId;
+  selectedNodePath: MapPath;
+};
+
+/**
+ * Generic undo stack with a configurable max depth.
+ * Framework-agnostic — the Svelte component wraps this in reactive state.
+ */
+export class UndoStack<T> {
+  private _stack: T[] = [];
+  private _maxDepth: number;
+
+  constructor(maxDepth: number = UNDO_MAX_DEPTH) {
+    this._maxDepth = maxDepth;
+  }
+
+  /** Push a snapshot (captured *before* the mutation). */
+  push(snapshot: T): void {
+    this._stack.push(snapshot);
+    if (this._stack.length > this._maxDepth) {
+      this._stack.splice(0, this._stack.length - this._maxDepth);
+    }
+  }
+
+  /** Pop and return the most recent snapshot, or `null` if empty. */
+  undo(): T | null {
+    return this._stack.pop() ?? null;
+  }
+
+  clear(): void {
+    this._stack = [];
+  }
+
+  get canUndo(): boolean {
+    return this._stack.length > 0;
+  }
+
+  get size(): number {
+    return this._stack.length;
+  }
+}

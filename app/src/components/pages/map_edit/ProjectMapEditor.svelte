@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Map as MapIcon, ArrowUpDown, FolderRoot, Trash2 } from '@lucide/svelte';
+  import { Map as MapIcon, ArrowUpDown, FolderRoot, Trash2, Undo2 } from '@lucide/svelte';
   import type { Tree as TreeComponent, LTreeNode, DropPosition } from '@keenmate/svelte-treeview';
   import { browser } from '$app/environment';
   import { beforeNavigate } from '$app/navigation';
@@ -25,6 +25,10 @@
     type MapPath,
     type BaselineNodeSnapshot,
     type MapTreeItem,
+    type MetadataUndoSnapshot,
+    type OrderUndoSnapshot,
+    type DeleteUndoSnapshot,
+    UndoStack,
     clone_map_with_client_ids,
     strip_client_ids,
     is_path_valid,
@@ -89,6 +93,25 @@
   let saving_order = $state(false);
   let last_tree_click = $state<{ path: string; at: number } | null>(null);
   let expandedTreePaths = $state<Set<string>>(default_tree_expanded_paths());
+
+  // ── Undo stacks (one per mode) ──
+  let metadata_undo = $state(new UndoStack<MetadataUndoSnapshot>());
+  let order_undo = $state(new UndoStack<OrderUndoSnapshot>());
+  let delete_undo = $state(new UndoStack<DeleteUndoSnapshot>());
+  /** Bumped after every push/undo/clear so Svelte re-derives `can_undo`. */
+  let undo_version = $state(0);
+  const can_undo = $derived.by(() => {
+    undo_version; // reactive dependency
+    if (editor_mode === 'order') return order_undo.canUndo;
+    if (editor_mode === 'delete') return delete_undo.canUndo;
+    return metadata_undo.canUndo;
+  });
+  const undo_stack_size = $derived.by(() => {
+    undo_version;
+    if (editor_mode === 'order') return order_undo.size;
+    if (editor_mode === 'delete') return delete_undo.size;
+    return metadata_undo.size;
+  });
 
   const TREE_DBLCLICK_MS = 400;
 
@@ -224,6 +247,7 @@
     order_entry_map = null;
     delete_entry_map = null;
     pending_swaps = [];
+    clear_all_undo_stacks();
     await invalidate_project_registry_queries(project_id);
     await invalidate_project_map_queries(project_id);
     if (options.invalidateContent) {
@@ -300,6 +324,65 @@
 
   function mark_local_change() {
     leave_confirmed = false;
+  }
+
+  // ── Undo helpers ──
+
+  function push_metadata_undo() {
+    if (!workingMap) return;
+    metadata_undo.push({
+      workingMap: clone_working_map(workingMap),
+      selectedNodePath: [...selectedNodePath]
+    });
+    undo_version++;
+  }
+
+  function push_order_undo() {
+    if (!workingMap) return;
+    order_undo.push({
+      workingMap: clone_working_map(workingMap),
+      pendingSwaps: [...pending_swaps],
+      selectedNodePath: [...selectedNodePath]
+    });
+    undo_version++;
+  }
+
+  function push_delete_undo() {
+    if (!workingMap) return;
+    delete_undo.push({
+      workingMap: clone_working_map(workingMap),
+      selectedNodePath: [...selectedNodePath]
+    });
+    undo_version++;
+  }
+
+  function clear_all_undo_stacks() {
+    metadata_undo.clear();
+    order_undo.clear();
+    delete_undo.clear();
+    undo_version++;
+  }
+
+  function undo_action() {
+    if (save_in_flight) return;
+    if (editor_mode === 'order') {
+      const snap = order_undo.undo();
+      if (!snap) return;
+      workingMap = snap.workingMap;
+      pending_swaps = snap.pendingSwaps;
+      selectedNodePath = snap.selectedNodePath;
+    } else if (editor_mode === 'delete') {
+      const snap = delete_undo.undo();
+      if (!snap) return;
+      workingMap = snap.workingMap;
+      selectedNodePath = snap.selectedNodePath;
+    } else {
+      const snap = metadata_undo.undo();
+      if (!snap) return;
+      workingMap = snap.workingMap;
+      selectedNodePath = snap.selectedNodePath;
+    }
+    undo_version++;
   }
 
   function select_node_by_subtree_path(subtreePath: string) {
@@ -419,6 +502,16 @@
     bump_working();
   }
 
+  /**
+   * Called when any input field gains focus.
+   * Captures exactly one undo snapshot per focus session so that
+   * the entire editing session in the field is a single undo step.
+   */
+  function on_input_field_focus() {
+    if (!workingMap || save_in_flight || editor_mode !== 'metadata') return;
+    push_metadata_undo();
+  }
+
   function on_delete_node_click(e: MouseEvent, subtreePath: string) {
     e.stopPropagation();
     e.preventDefault();
@@ -429,6 +522,7 @@
     if (!workingMap || !delete_edit_mode || save_in_flight) return;
     const full = full_path_from_subtree_path(basePath, subtreePath);
     if (full.length === 0) return;
+    push_delete_undo();
     if (!remove_node_at_path(workingMap, full)) return;
     const parentPath = full.slice(0, -1);
     const removedIndex = full[full.length - 1]!;
@@ -465,6 +559,7 @@
     ) {
       return;
     }
+    push_metadata_undo();
     mark_local_change();
     selectedNode.list = [...(selectedNode.list ?? []), create_map_edit_child(kind)];
     bump_working();
@@ -480,6 +575,7 @@
     ) {
       return;
     }
+    push_metadata_undo();
     mark_local_change();
     apply_map_edit_list_defaults(selectedNode, { preserve_name_dev: selected_is_root });
     bump_working();
@@ -496,6 +592,7 @@
     ) {
       return;
     }
+    push_metadata_undo();
     mark_local_change();
     apply_map_edit_shloka_defaults(selectedNode, { preserve_name_dev: selected_is_root });
     bump_working();
@@ -535,6 +632,7 @@
     if (position === 'below') toIndex += 1;
     if (draggedCtx.index < toIndex) toIndex -= 1;
 
+    push_order_undo();
     const ok = reorder_siblings(workingMap, draggedCtx.parentPath, draggedCtx.index, toIndex);
     if (ok) {
       mark_local_change();
@@ -542,6 +640,10 @@
         record_pending_swap(draggedCtx.parentPath, draggedCtx.index, toIndex);
       }
       bump_working();
+    } else {
+      // Reorder didn't happen (e.g. same index), pop the snapshot we just pushed
+      order_undo.undo();
+      undo_version++;
     }
     return false;
   }
@@ -557,6 +659,7 @@
       toast.error('Save or discard map edits before changing order');
       return;
     }
+    clear_all_undo_stacks();
     order_entry_map = clone_working_map(workingMap);
     order_entry_snapshots = clone_baseline_snapshots(baselineSnapshots);
     pending_swaps = [];
@@ -573,6 +676,7 @@
       toast.error('Save or discard map edits before deleting nodes');
       return;
     }
+    clear_all_undo_stacks();
     delete_entry_map = clone_working_map(workingMap);
     basePath = [];
     selectedNodePath = [];
@@ -583,6 +687,7 @@
   function cancel_order_edit() {
     if (!order_edit_mode || save_in_flight) return;
     if (!order_dirty) {
+      clear_all_undo_stacks();
       editor_mode = 'metadata';
       order_root_path = null;
       order_entry_map = null;
@@ -598,6 +703,7 @@
   function cancel_delete_edit() {
     if (!delete_edit_mode || save_in_flight) return;
     if (!delete_dirty) {
+      clear_all_undo_stacks();
       editor_mode = 'metadata';
       delete_entry_map = null;
       basePath = [];
@@ -614,6 +720,7 @@
       baselineSnapshots = clone_baseline_snapshots(order_entry_snapshots);
     }
     pending_swaps = [];
+    clear_all_undo_stacks();
     editor_mode = 'metadata';
     order_root_path = null;
     order_entry_map = null;
@@ -628,6 +735,7 @@
     if (delete_entry_map) {
       workingMap = clone_working_map(delete_entry_map);
     }
+    clear_all_undo_stacks();
     editor_mode = 'metadata';
     delete_entry_map = null;
     basePath = [];
@@ -727,6 +835,7 @@
   function restore_from_baseline() {
     if (!baselineMap) return;
     reset_from_server(baselineMap);
+    clear_all_undo_stacks();
     count_input_invalid = false;
     map_edit_dirty.set(false);
   }
@@ -744,8 +853,18 @@
         e.returnValue = '';
       }
     };
+    const on_keydown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo_action();
+      }
+    };
     window.addEventListener('beforeunload', on_beforeunload);
-    return () => window.removeEventListener('beforeunload', on_beforeunload);
+    window.addEventListener('keydown', on_keydown);
+    return () => {
+      window.removeEventListener('beforeunload', on_beforeunload);
+      window.removeEventListener('keydown', on_keydown);
+    };
   });
 
   onDestroy(() => {
@@ -815,6 +934,16 @@
             </Badge>
           {/if}
           {#if delete_edit_mode}
+            <Button
+              variant="outline"
+              size="sm"
+              onclick={undo_action}
+              disabled={!can_undo || save_in_flight}
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo2 class="mr-1 size-3.5" />
+              Undo{undo_stack_size > 0 ? ` (${undo_stack_size})` : ''}
+            </Button>
             <Button variant="outline" size="sm" onclick={cancel_delete_edit}
               >Cancel delete mode</Button
             >
@@ -827,6 +956,16 @@
               {save_in_flight ? 'Saving…' : 'Save deletions'}
             </Button>
           {:else if order_edit_mode}
+            <Button
+              variant="outline"
+              size="sm"
+              onclick={undo_action}
+              disabled={!can_undo || save_in_flight}
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo2 class="mr-1 size-3.5" />
+              Undo{undo_stack_size > 0 ? ` (${undo_stack_size})` : ''}
+            </Button>
             <Button variant="outline" size="sm" onclick={cancel_order_edit}
               >Cancel order edit</Button
             >
@@ -841,6 +980,16 @@
               {save_in_flight ? 'Saving…' : 'Save current order'}
             </Button>
           {:else}
+            <Button
+              variant="outline"
+              size="sm"
+              onclick={undo_action}
+              disabled={!can_undo || save_in_flight}
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo2 class="mr-1 size-3.5" />
+              Undo{undo_stack_size > 0 ? ` (${undo_stack_size})` : ''}
+            </Button>
             <Button variant="outline" size="sm" onclick={request_cancel}>Cancel</Button>
             <Button
               size="sm"
@@ -973,6 +1122,7 @@
       onNameDevChange={update_name_dev}
       onListNameChange={update_list_name}
       onListCountChange={update_list_count_expected}
+      onInputFieldFocus={on_input_field_focus}
       onAddShlokaChild={() => append_child('shloka')}
       onAddListChild={() => append_child('list')}
       onConvertToList={convert_selected_to_list}

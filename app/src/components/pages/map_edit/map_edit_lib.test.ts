@@ -10,6 +10,8 @@ import {
   expand_terminal_deleted_paths,
   get_node_at_map_path,
   remove_node_at_path,
+  UndoStack,
+  UNDO_MAX_DEPTH,
   type BaselineNodeSnapshot,
   type MapNodeWithClientId
 } from './map_edit_lib';
@@ -161,5 +163,94 @@ describe('map_edit_lib delete mode', () => {
     const terminals = expand_terminal_deleted_paths(entry, [[1]]);
     expect(terminals).toContainEqual([1, 1]);
     expect(terminals).toContainEqual([1, 2]);
+  });
+});
+
+describe('UndoStack', () => {
+  it('starts empty with canUndo=false', () => {
+    const stack = new UndoStack<number>();
+    expect(stack.canUndo).toBe(false);
+    expect(stack.size).toBe(0);
+    expect(stack.undo()).toBeNull();
+  });
+
+  it('push and undo return items in LIFO order', () => {
+    const stack = new UndoStack<string>();
+    stack.push('a');
+    stack.push('b');
+    stack.push('c');
+    expect(stack.size).toBe(3);
+    expect(stack.canUndo).toBe(true);
+    expect(stack.undo()).toBe('c');
+    expect(stack.undo()).toBe('b');
+    expect(stack.undo()).toBe('a');
+    expect(stack.undo()).toBeNull();
+    expect(stack.canUndo).toBe(false);
+  });
+
+  it('clear empties the stack', () => {
+    const stack = new UndoStack<number>();
+    stack.push(1);
+    stack.push(2);
+    expect(stack.size).toBe(2);
+    stack.clear();
+    expect(stack.size).toBe(0);
+    expect(stack.canUndo).toBe(false);
+    expect(stack.undo()).toBeNull();
+  });
+
+  it('respects max depth and evicts oldest entries', () => {
+    const stack = new UndoStack<number>(3);
+    stack.push(1);
+    stack.push(2);
+    stack.push(3);
+    stack.push(4); // evicts 1
+    expect(stack.size).toBe(3);
+    expect(stack.undo()).toBe(4);
+    expect(stack.undo()).toBe(3);
+    expect(stack.undo()).toBe(2);
+    expect(stack.undo()).toBeNull();
+  });
+
+  it('works with snapshot-like objects', () => {
+    type Snap = { workingMap: MapNodeWithClientId; selectedNodePath: number[] };
+    const stack = new UndoStack<Snap>();
+    const { working } = setup_working();
+    const snap: Snap = {
+      workingMap: clone_working_map(working),
+      selectedNodePath: [1]
+    };
+    stack.push(snap);
+    const restored = stack.undo();
+    expect(restored).not.toBeNull();
+    expect(restored!.selectedNodePath).toEqual([1]);
+    expect(restored!.workingMap.name_dev).toBe('Project');
+  });
+
+  it('interleaved push and undo work correctly', () => {
+    const stack = new UndoStack<number>();
+    stack.push(10);
+    stack.push(20);
+    expect(stack.undo()).toBe(20);
+    stack.push(30);
+    expect(stack.size).toBe(2);
+    expect(stack.undo()).toBe(30);
+    expect(stack.undo()).toBe(10);
+    expect(stack.undo()).toBeNull();
+  });
+
+  it('uses default max depth of UNDO_MAX_DEPTH', () => {
+    const stack = new UndoStack<number>();
+    for (let i = 0; i < 55; i++) {
+      stack.push(i);
+    }
+    expect(stack.size).toBe(UNDO_MAX_DEPTH);
+    // The first few entries should have been evicted
+    const all: number[] = [];
+    let v: number | null;
+    while ((v = stack.undo()) !== null) all.push(v);
+    // Should have entries 5..54 (i.e., the last 50)
+    expect(all[0]).toBe(54);
+    expect(all[all.length - 1]).toBe(5);
   });
 });

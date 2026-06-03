@@ -246,7 +246,7 @@ export const collapse_tree_expanded_paths = (
   return next;
 };
 
-const paths_equal = (a: MapPath, b: MapPath) =>
+export const paths_equal = (a: MapPath, b: MapPath) =>
   a.length === b.length && a.every((v, i) => v === b[i]);
 
 const full_path_for_subtree_rel = (basePath: MapPath, relPath: string): MapPath => {
@@ -254,13 +254,18 @@ const full_path_for_subtree_rel = (basePath: MapPath, relPath: string): MapPath 
   return [...basePath, ...relPath.split('.').map((s) => Number(s))];
 };
 
+/** Subtree-relative path for one level below the displayed root (`1`, not `1.2`). */
+export const is_direct_child_rel_path = (relPath: string): boolean =>
+  relPath !== '' && !relPath.includes('.');
+
 export const build_tree_rows = (
   workingMap: MapNodeWithClientId,
   basePath: MapPath,
   flagsByClientId: Map<string, MapNodeDiffFlags>,
   selectedNodePath: MapPath = [],
   reorder_enabled = false,
-  expandedPaths: ReadonlySet<string> = default_tree_expanded_paths()
+  expandedPaths: ReadonlySet<string> = default_tree_expanded_paths(),
+  reorder_direct_children_only = false
 ): MapTreeRow[] => {
   const rows: MapTreeRow[] = [];
   const subtreeRoot =
@@ -291,7 +296,10 @@ export const build_tree_rows = (
       childCount: list.length,
       edited: flags.edited,
       moved: flags.moved,
-      draggable: reorder_enabled && !isRoot,
+      draggable:
+        reorder_enabled &&
+        !isRoot &&
+        (!reorder_direct_children_only || is_direct_child_rel_path(relPath)),
       isSelected: paths_equal(full_path_for_subtree_rel(basePath, relPath), selectedNodePath),
       isExpanded: !isLeaf && list.length > 0 && expandedPaths.has(relPath),
       allowedDropPositions: ['above', 'below']

@@ -6,6 +6,9 @@
  * `translations.path`, and `media_attachment.path`.
  */
 
+import type { recursive_list_type } from '~/state/data_types';
+import { get_node_at_path } from '~/state/project_list';
+
 /** Staging suffix for two-phase swaps (`1:2` → `1:2_temp` → `1:5`). */
 export const PATH_TEMP_SUFFIX = '_temp';
 
@@ -38,6 +41,90 @@ export function buildPathSwapSteps(pathA: string, pathB: string): PathSwapStep[]
     { from_path: pathB, to_path: pathA },
     { from_path: stagedPath, to_path: pathB }
   ];
+}
+
+/** Matches the exact path or any deeper descendant under the same segment boundary. */
+export function dbPathMatchesPrefix(path: string, prefix: string): boolean {
+  return path === prefix || path.startsWith(`${prefix}:`);
+}
+
+/** Rewrites one matching prefix and leaves the remaining suffix untouched. */
+export function remapDbPathPrefix(path: string, fromPrefix: string, toPrefix: string): string {
+  if (!dbPathMatchesPrefix(path, fromPrefix)) {
+    return path;
+  }
+  return `${toPrefix}${path.slice(fromPrefix.length)}`;
+}
+
+/** Applies the three-step temp swap to a single DB path. */
+export function applyPathSwapStepsToPath(path: string, steps: PathSwapStep[]): string {
+  let nextPath = path;
+  for (const { from_path, to_path } of steps) {
+    nextPath = remapDbPathPrefix(nextPath, from_path, to_path);
+  }
+  return nextPath;
+}
+
+/** Applies the ordered client edits the same way the DB transaction does. */
+export function applyPathSwapEditsToPath(path: string, edits: PathSwapEdit[]): string {
+  let nextPath = path;
+  for (const {
+    swap_paths: [pathA, pathB]
+  } of edits) {
+    nextPath = applyPathSwapStepsToPath(nextPath, buildPathSwapSteps(pathA, pathB));
+  }
+  return nextPath;
+}
+
+/** Distinct prefixes touched by the ordered swaps. */
+export function listSwapPrefixes(edits: PathSwapEdit[]): string[] {
+  return [...new Set(edits.flatMap(({ swap_paths: [pathA, pathB] }) => [pathA, pathB]))];
+}
+
+export function formatMapPath(path: number[]): string {
+  return path.length === 0 ? '/' : `/${path.join('/')}`;
+}
+
+export function mapPathToDbPath(path: number[]): string {
+  return path.join(':');
+}
+
+export function dbPathToMapPath(path: string): number[] {
+  return dbPathToPathParams(path);
+}
+
+/** Order edits may touch only direct children of the chosen root. */
+export function isEditableDescendantPath(path: string, rootPath: number[]): boolean {
+  if (validateDbPath(path) !== null) {
+    return false;
+  }
+  const segments = path.split(':');
+  if (segments.length !== rootPath.length + 1) {
+    return false;
+  }
+  if (rootPath.length === 0) {
+    return true;
+  }
+  return dbPathMatchesPrefix(path, mapPathToDbPath(rootPath));
+}
+
+/** Expands one drag move into adjacent swaps so DB and UI end with the same order. */
+export function buildAdjacentSwapEdits(
+  parentPath: number[],
+  fromIndex: number,
+  toIndex: number
+): PathSwapEdit[] {
+  const edits: PathSwapEdit[] = [];
+  if (fromIndex === toIndex) {
+    return edits;
+  }
+  const step = fromIndex < toIndex ? 1 : -1;
+  for (let i = fromIndex; i !== toIndex; i += step) {
+    const pathA = mapPathToDbPath([...parentPath, i + 1]);
+    const pathB = mapPathToDbPath([...parentPath, i + step + 1]);
+    edits.push({ swap_paths: [pathA, pathB] });
+  }
+  return edits;
 }
 
 /** Converts a DB path string to numeric segments for cache keys (`1:2` → `[1, 2]`). */
@@ -108,4 +195,158 @@ export function validateSwapEdits(edits: PathSwapEdit[]): string | null {
   }
 
   return null;
+}
+
+export function validateSwapEditsRootScope(edits: PathSwapEdit[], rootPath: number[]): string | null {
+  const rootLabel = formatMapPath(rootPath);
+  for (let i = 0; i < edits.length; i++) {
+    const [pathA, pathB] = edits[i]!.swap_paths;
+    if (!isEditableDescendantPath(pathA, rootPath)) {
+      return `Swap ${i + 1}: Path A must stay under root ${rootLabel}`;
+    }
+    if (!isEditableDescendantPath(pathB, rootPath)) {
+      return `Swap ${i + 1}: Path B must stay under root ${rootLabel}`;
+    }
+  }
+  return null;
+}
+
+export function validateOrderRootPath(map: recursive_list_type, rootPath: number[]): string | null {
+  const root = rootPath.length === 0 ? map : get_node_at_path(map, rootPath);
+  if (!root) {
+    return `Reorder root ${formatMapPath(rootPath)} was not found in the project map`;
+  }
+  if (root.info.type !== 'list') {
+    return `Reorder root ${formatMapPath(rootPath)} must point to a list node`;
+  }
+  if ((root.list ?? []).length < 2) {
+    return `Reorder root ${formatMapPath(rootPath)} must have at least two direct children`;
+  }
+  return null;
+}
+
+/**
+ * Applies only metadata fields that the editor is allowed to change while keeping the tree shape
+ * and derived shloka counters intact.
+ */
+export function applyMetadataEditsToMap(
+  currentMap: recursive_list_type,
+  proposedMap: recursive_list_type
+): recursive_list_type {
+  if (currentMap.info.type !== proposedMap.info.type) {
+    throw new TypeError('Map node type changed during metadata save');
+  }
+  if (currentMap.info.type === 'list') {
+    if (proposedMap.info.type !== 'list') {
+      throw new TypeError('List node changed type during metadata save');
+    }
+    const currentChildren = currentMap.list ?? [];
+    const proposedChildren = proposedMap.list ?? [];
+    if (currentChildren.length !== proposedChildren.length) {
+      throw new TypeError('Map structure changed during metadata save');
+    }
+    const currentFingerprints = currentChildren.map(metadataStructureFingerprint);
+    const proposedFingerprints = proposedChildren.map(metadataStructureFingerprint);
+    for (let i = 0; i < currentFingerprints.length; i++) {
+      if (currentFingerprints[i] !== proposedFingerprints[i]) {
+        throw new TypeError('Map structure changed during metadata save');
+      }
+    }
+    // Without stable child ids, ambiguous siblings must keep their local metadata identity in place
+    // or we cannot tell whether the client renamed a node or swapped same-shaped siblings.
+    const duplicateFingerprints = new Set(
+      currentFingerprints.filter((fingerprint, index) => currentFingerprints.indexOf(fingerprint) !== index)
+    );
+    for (const fingerprint of duplicateFingerprints) {
+      const currentLocalIds = currentChildren
+        .map((child, index) =>
+          currentFingerprints[index] === fingerprint ? metadataLocalIdentity(child) : null
+        )
+        .filter((value): value is string => value !== null);
+      const proposedLocalIds = proposedChildren
+        .map((child, index) =>
+          proposedFingerprints[index] === fingerprint ? metadataLocalIdentity(child) : null
+        )
+        .filter((value): value is string => value !== null);
+      if (
+        currentLocalIds.join('|') !== proposedLocalIds.join('|') &&
+        [...currentLocalIds].sort().join('|') === [...proposedLocalIds].sort().join('|')
+      ) {
+        throw new TypeError('Ambiguous sibling identity changed during metadata save');
+      }
+    }
+    return {
+      name_dev: proposedMap.name_dev,
+      info: {
+        type: 'list',
+        list_name: proposedMap.info.list_name,
+        list_count_expected: proposedMap.info.list_count_expected
+      },
+      list: currentChildren.map((child, index) =>
+        applyMetadataEditsToMap(child, proposedChildren[index]!)
+      )
+    };
+  }
+  return {
+    name_dev: proposedMap.name_dev,
+    info: currentMap.info,
+    list: []
+  };
+}
+
+function metadataStructureFingerprint(node: recursive_list_type): string {
+  if (node.info.type === 'shloka') {
+    return JSON.stringify({ type: 'shloka' });
+  }
+  return JSON.stringify({
+    type: 'list',
+    child_count: (node.list ?? []).length,
+    children: (node.list ?? []).map(metadataStructureFingerprint)
+  });
+}
+
+function metadataLocalIdentity(node: recursive_list_type): string {
+  if (node.info.type === 'shloka') {
+    return JSON.stringify({
+      type: 'shloka',
+      name_dev: node.name_dev
+    });
+  }
+  return JSON.stringify({
+    type: 'list',
+    name_dev: node.name_dev,
+    list_name: node.info.list_name,
+    list_count_expected: node.info.list_count_expected
+  });
+}
+
+/** Applies the exact swap sequence to the map JSON so the saved structure matches DB path swaps. */
+export function applySwapEditsToMap(
+  map: recursive_list_type,
+  edits: PathSwapEdit[]
+): recursive_list_type {
+  const next = JSON.parse(JSON.stringify(map)) as recursive_list_type;
+  for (const {
+    swap_paths: [pathA, pathB]
+  } of edits) {
+    const parentPath = dbPathToMapPath(pathA).slice(0, -1);
+    const indexA = dbPathToMapPath(pathA).at(-1)! - 1;
+    const indexB = dbPathToMapPath(pathB).at(-1)! - 1;
+    const parent = parentPath.length === 0 ? next : get_node_at_path(next, parentPath);
+    if (!parent || parent.info.type !== 'list') {
+      throw new TypeError(`Cannot apply swap under missing parent "${mapPathToDbPath(parentPath)}"`);
+    }
+    const list = [...(parent.list ?? [])];
+    if (
+      indexA < 0 ||
+      indexB < 0 ||
+      indexA >= list.length ||
+      indexB >= list.length
+    ) {
+      throw new RangeError(`Cannot apply swap "${pathA}" <-> "${pathB}" outside list bounds`);
+    }
+    [list[indexA], list[indexB]] = [list[indexB]!, list[indexA]!];
+    parent.list = list;
+  }
+  return next;
 }

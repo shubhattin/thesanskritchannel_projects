@@ -13,6 +13,7 @@
   } from 'lipilekhika/typing';
 
   let {
+    editor_locked,
     order_edit_mode,
     selectedNode,
     selected_path_resolved,
@@ -23,6 +24,7 @@
     onListNameChange,
     onListCountChange
   }: {
+    editor_locked: boolean;
     order_edit_mode: boolean;
     selectedNode: MapNodeWithClientId | null;
     selected_path_resolved: string;
@@ -100,6 +102,7 @@
               <Switch
                 id={name_dev_switch_id}
                 bind:checked={typing_enabled}
+                disabled={editor_locked}
                 title="Devanagari transliteration typing (Alt+X / Alt+C)"
               />
             </div>
@@ -127,7 +130,7 @@
         <Input
           id={name_dev_input_id}
           value={selectedNode.name_dev}
-          disabled={selected_is_root}
+          disabled={selected_is_root || editor_locked}
           oninput={(e) => onNameDevChange(e.currentTarget.value)}
           onbeforeinput={(e) =>
             handleTypingBeforeInputEvent(typing_ctx, e, onNameDevChange, typing_enabled)}
@@ -157,6 +160,7 @@
           <Input
             id="list_name"
             value={selectedNode.info.list_name}
+            disabled={editor_locked}
             oninput={(e) => onListNameChange(e.currentTarget.value)}
           />
           <div
@@ -186,6 +190,7 @@
             id="list_count_expected"
             inputmode="numeric"
             bind:value={list_count_draft}
+            disabled={editor_locked}
             oninput={(e) => onListCountChange(e.currentTarget.value)}
             aria-invalid={count_input_invalid}
           />

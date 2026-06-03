@@ -6,10 +6,12 @@ import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import {
   buildPathSwapSteps,
   dbPathToPathParams,
+  listSwapPrefixes,
   toTempDbPath,
   type PathSwapEdit
 } from './map_path_swap';
 
+// Match the exact node and all descendants when a whole subtree moves.
 const pathMatchesPrefix = (pathColumn: AnyColumn, prefix: string) =>
   or(eq(pathColumn, prefix), sql`${pathColumn} LIKE ${`${prefix}:%`}`);
 
@@ -24,22 +26,6 @@ const swapTables = [
   { table: media_attachment, pathColumn: media_attachment.path }
 ] as const;
 
-const tableHasPathPrefix = async (
-  tx: transactionType,
-  table: typeof texts | typeof translations | typeof media_attachment,
-  pathColumn: AnyColumn,
-  project_id: number,
-  prefix: string
-) => {
-  const hit = await tx
-    .select()
-    .from(table)
-    .where(and(eq(table.project_id, project_id), pathMatchesPrefix(pathColumn, prefix)))
-    .limit(1);
-
-  return hit.length > 0;
-};
-
 const assertNoRowsAtPrefix = async (
   tx: transactionType,
   project_id: number,
@@ -47,7 +33,12 @@ const assertNoRowsAtPrefix = async (
   message: string
 ) => {
   for (const { table, pathColumn } of swapTables) {
-    if (await tableHasPathPrefix(tx, table, pathColumn, project_id, prefix)) {
+    const hit = await tx
+      .select()
+      .from(table)
+      .where(and(eq(table.project_id, project_id), pathMatchesPrefix(pathColumn, prefix)))
+      .limit(1);
+    if (hit.length > 0) {
       throw new TRPCError({ code: 'CONFLICT', message });
     }
   }
@@ -103,12 +94,33 @@ export type PathSwapInvalidation = {
   translationPaths: { lang_id: number; path: string }[];
 };
 
+export const mergePathSwapInvalidation = (
+  ...invalidations: PathSwapInvalidation[]
+): PathSwapInvalidation => {
+  const textAndMediaPaths = new Set<string>();
+  const translationPaths = new Map<string, { lang_id: number; path: string }>();
+
+  for (const invalidation of invalidations) {
+    for (const path of invalidation.textAndMediaPaths) {
+      textAndMediaPaths.add(path);
+    }
+    for (const row of invalidation.translationPaths) {
+      translationPaths.set(`${row.lang_id}:${row.path}`, row);
+    }
+  }
+
+  return {
+    textAndMediaPaths: [...textAndMediaPaths],
+    translationPaths: [...translationPaths.values()]
+  };
+};
+
 export const collectPathSwapInvalidation = async (
   tx: transactionType,
   project_id: number,
   edits: PathSwapEdit[]
 ): Promise<PathSwapInvalidation> => {
-  const prefixes = [...new Set(edits.flatMap(({ swap_paths: [pathA, pathB] }) => [pathA, pathB]))];
+  const prefixes = listSwapPrefixes(edits);
   if (prefixes.length === 0) {
     return { textAndMediaPaths: [], translationPaths: [] };
   }

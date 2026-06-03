@@ -39,6 +39,9 @@
     clone_baseline_snapshots,
     clone_working_map,
     clone_recursive_list,
+    create_map_edit_child,
+    apply_map_edit_list_defaults,
+    apply_map_edit_shloka_defaults,
     MAP_EDIT_CLIENT_ID,
     format_path_resolved_label,
     paths_equal,
@@ -366,6 +369,46 @@
     mark_local_change();
     count_input_invalid = false;
     selectedNode.info = { ...selectedNode.info, list_count_expected: parsed };
+    bump_working();
+  }
+
+  function append_child(kind: 'shloka' | 'list') {
+    if (!selectedNode || selectedNode.info.type !== 'list' || order_edit_mode || save_in_flight) {
+      return;
+    }
+    mark_local_change();
+    selectedNode.list = [...(selectedNode.list ?? []), create_map_edit_child(kind)];
+    bump_working();
+  }
+
+  function convert_selected_to_list() {
+    if (
+      !selectedNode ||
+      selectedNode.info.type !== 'shloka' ||
+      (selectedNode.list ?? []).length > 0 ||
+      order_edit_mode ||
+      save_in_flight
+    ) {
+      return;
+    }
+    mark_local_change();
+    apply_map_edit_list_defaults(selectedNode, { preserve_name_dev: selected_is_root });
+    bump_working();
+  }
+
+  function convert_selected_to_shloka() {
+    if (
+      !selectedNode ||
+      selectedNode.info.type !== 'list' ||
+      (selectedNode.list ?? []).length > 0 ||
+      selected_is_root ||
+      order_edit_mode ||
+      save_in_flight
+    ) {
+      return;
+    }
+    mark_local_change();
+    apply_map_edit_shloka_defaults(selectedNode, { preserve_name_dev: selected_is_root });
     bump_working();
   }
 
@@ -722,6 +765,10 @@
       onNameDevChange={update_name_dev}
       onListNameChange={update_list_name}
       onListCountChange={update_list_count_expected}
+      onAddShlokaChild={() => append_child('shloka')}
+      onAddListChild={() => append_child('list')}
+      onConvertToList={convert_selected_to_list}
+      onConvertToShloka={convert_selected_to_shloka}
     />
   </div>
 

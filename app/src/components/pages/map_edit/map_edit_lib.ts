@@ -9,7 +9,13 @@ export type MapNodeWithClientId = recursive_list_type & {
 
 export type MapPath = number[];
 
-export type MapChangeKind = 'rename' | 'list_name_change' | 'expected_count_change' | 'reorder';
+export type MapChangeKind =
+  | 'rename'
+  | 'list_name_change'
+  | 'expected_count_change'
+  | 'reorder'
+  | 'add_child'
+  | 'type_change';
 
 export type MapChangeRow = {
   kind: MapChangeKind;
@@ -42,6 +48,63 @@ export type BaselineNodeSnapshot = {
 };
 
 const new_client_id = () => crypto.randomUUID();
+
+/** List-type label (`info.list_name`); always this for new or converted list nodes. */
+export const MAP_EDIT_DEFAULT_LIST_LEVEL_NAME = 'Level Name';
+export const MAP_EDIT_DEFAULT_SHLOKA_NAME_DEV = 'नवश्लोकानि';
+export const MAP_EDIT_DEFAULT_LIST_NAME_DEV = 'नवसूची';
+
+export const is_unsaved_added_map_node = (
+  clientId: string | undefined,
+  snapshots: Map<string, BaselineNodeSnapshot>
+): boolean => Boolean(clientId && !snapshots.has(clientId));
+
+export type MapEditTypeDefaultsOptions = {
+  /** Keep `name_dev` (map root = project `name_dev` per `recursive_list_schema`). */
+  preserve_name_dev?: boolean;
+};
+
+export const apply_map_edit_shloka_defaults = (
+  node: MapNodeWithClientId,
+  options?: MapEditTypeDefaultsOptions
+): void => {
+  if (!options?.preserve_name_dev) {
+    node.name_dev = MAP_EDIT_DEFAULT_SHLOKA_NAME_DEV;
+  }
+  node.info = { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null };
+  node.list = [];
+};
+
+export const apply_map_edit_list_defaults = (
+  node: MapNodeWithClientId,
+  options?: MapEditTypeDefaultsOptions
+): void => {
+  if (!options?.preserve_name_dev) {
+    node.name_dev = MAP_EDIT_DEFAULT_LIST_NAME_DEV;
+  }
+  node.info = {
+    type: 'list',
+    list_name: MAP_EDIT_DEFAULT_LIST_LEVEL_NAME,
+    list_count_expected: null
+  };
+  node.list = [];
+};
+
+export const create_map_edit_child = (kind: 'shloka' | 'list'): MapNodeWithClientId => {
+  const clientId = new_client_id();
+  const node: MapNodeWithClientId = {
+    name_dev: '',
+    info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+    list: [],
+    [MAP_EDIT_CLIENT_ID]: clientId
+  };
+  if (kind === 'shloka') {
+    apply_map_edit_shloka_defaults(node);
+  } else {
+    apply_map_edit_list_defaults(node);
+  }
+  return node;
+};
 
 export const parse_path_query = (raw: string | null): MapPath => {
   if (!raw?.trim()) return [];
@@ -332,7 +395,25 @@ export const compute_map_edit_diff = (
   const walk = (node: MapNodeWithClientId, path: MapPath) => {
     const clientId = node[MAP_EDIT_CLIENT_ID]!;
     const snap = snapshots.get(clientId);
-    if (!snap) return;
+    if (!snap) {
+      const label = format_path_short_label(path);
+      const position = path[path.length - 1] ?? 0;
+      const childKind = node.info.type === 'shloka' ? 'shloka' : 'list';
+      flagsByClientId.set(clientId, { edited: true, moved: false });
+      rows.push({
+        kind: 'add_child',
+        clientId,
+        path,
+        pathLabel: label,
+        summary: `Added ${childKind} child at position ${position}`
+      });
+      if (node.info.type === 'list') {
+        (node.list ?? []).forEach((child, i) => {
+          walk(child as MapNodeWithClientId, [...path, i + 1]);
+        });
+      }
+      return;
+    }
 
     if (path.length > 0) {
       const parentKey = snap.parentClientId;
@@ -346,6 +427,21 @@ export const compute_map_edit_diff = (
     const label = format_path_short_label(path);
     let edited = false;
 
+    const wInfo = node.info;
+    const bInfo = snap.info;
+    if (wInfo.type !== bInfo.type) {
+      edited = true;
+      const from = bInfo.type === 'shloka' ? 'Shloka' : 'List';
+      const to = wInfo.type === 'shloka' ? 'Shloka' : 'List';
+      rows.push({
+        kind: 'type_change',
+        clientId,
+        path,
+        pathLabel: label,
+        summary: `Converted ${from} → ${to}`
+      });
+    }
+
     if (node.name_dev !== snap.name_dev) {
       edited = true;
       rows.push({
@@ -357,8 +453,6 @@ export const compute_map_edit_diff = (
       });
     }
 
-    const wInfo = node.info;
-    const bInfo = snap.info;
     if (wInfo.type === 'list' && bInfo.type === 'list' && path.length > 0) {
       if (wInfo.list_name !== bInfo.list_name) {
         edited = true;

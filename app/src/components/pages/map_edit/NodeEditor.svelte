@@ -1,9 +1,11 @@
 <script lang="ts">
-  import { PenLine, TriangleAlert } from '@lucide/svelte';
+  import { PenLine, TriangleAlert, Plus, ArrowLeftRight } from '@lucide/svelte';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import { Switch } from '$lib/components/ui/switch';
+  import { Button } from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
+  import * as Popover from '$lib/components/ui/popover';
   import { Separator } from '$lib/components/ui/separator';
   import type { MapNodeWithClientId } from './map_edit_lib';
   import {
@@ -22,7 +24,11 @@
     count_input_invalid = false,
     onNameDevChange,
     onListNameChange,
-    onListCountChange
+    onListCountChange,
+    onAddShlokaChild,
+    onAddListChild,
+    onConvertToList,
+    onConvertToShloka
   }: {
     editor_locked: boolean;
     order_edit_mode: boolean;
@@ -34,7 +40,28 @@
     onNameDevChange: (value: string) => void;
     onListNameChange: (value: string) => void;
     onListCountChange: (raw: string) => void;
+    onAddShlokaChild: () => void;
+    onAddListChild: () => void;
+    onConvertToList: () => void;
+    onConvertToShloka: () => void;
   } = $props();
+
+  let add_child_popover_open = $state(false);
+
+  const selected_childless = $derived((selectedNode?.list?.length ?? 0) === 0);
+  const show_add_child = $derived(
+    !order_edit_mode && selectedNode?.info.type === 'list' && !editor_locked
+  );
+  const show_convert_to_list = $derived(
+    !order_edit_mode && selectedNode?.info.type === 'shloka' && selected_childless && !editor_locked
+  );
+  const show_convert_to_shloka = $derived(
+    !order_edit_mode &&
+      !selected_is_root &&
+      selectedNode?.info.type === 'list' &&
+      selected_childless &&
+      !editor_locked
+  );
 
   let typing_ctx = $derived(createTypingContext('Devanagari'));
 
@@ -147,6 +174,72 @@
           </p>
         {/if}
       </div>
+
+      {#if show_add_child || show_convert_to_list || show_convert_to_shloka}
+        <Separator />
+        <div class="flex flex-wrap gap-2">
+          {#if show_add_child}
+            <Popover.Root bind:open={add_child_popover_open}>
+              <Popover.Trigger class="p-0 outline-none">
+                <Button type="button" variant="outline" size="sm" class="gap-1.5">
+                  <Plus class="size-3.5" />
+                  Add child
+                </Button>
+              </Popover.Trigger>
+              <Popover.Content align="start" class="w-44 p-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  class="w-full justify-start"
+                  onclick={() => {
+                    add_child_popover_open = false;
+                    onAddShlokaChild();
+                  }}
+                >
+                  Add Shloka
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  class="w-full justify-start"
+                  onclick={() => {
+                    add_child_popover_open = false;
+                    onAddListChild();
+                  }}
+                >
+                  Add List
+                </Button>
+              </Popover.Content>
+            </Popover.Root>
+          {/if}
+          {#if show_convert_to_list}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              class="gap-1.5"
+              onclick={onConvertToList}
+            >
+              <ArrowLeftRight class="size-3.5" />
+              Convert to List
+            </Button>
+          {/if}
+          {#if show_convert_to_shloka}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              class="gap-1.5"
+              onclick={onConvertToShloka}
+            >
+              <ArrowLeftRight class="size-3.5" />
+              Convert to Shloka
+            </Button>
+          {/if}
+        </div>
+      {/if}
 
       {#if selectedNode.info.type === 'list'}
         <Separator />

@@ -229,73 +229,251 @@ export function validateOrderRootPath(map: recursive_list_type, rootPath: number
 }
 
 /**
- * Applies only metadata fields that the editor is allowed to change while keeping the tree shape
- * and derived shloka counters intact.
+ * Merges normal-mode map edits: metadata, append-only children, and childless shloka/list conversion.
+ * Rejects reorder, deletion, conversion with children, and client edits to derived shloka counters.
  */
 export function applyMetadataEditsToMap(
   currentMap: recursive_list_type,
   proposedMap: recursive_list_type
 ): recursive_list_type {
-  if (currentMap.info.type !== proposedMap.info.type) {
-    throw new TypeError('Map node type changed during metadata save');
+  if (proposedMap.info.type === 'shloka') {
+    throw new TypeError('Project map root must be a list node');
   }
-  if (currentMap.info.type === 'list') {
-    if (proposedMap.info.type !== 'list') {
-      throw new TypeError('List node changed type during metadata save');
+  return mergeMetadataNode(currentMap, proposedMap);
+}
+
+function mergeMetadataNode(
+  current: recursive_list_type,
+  proposed: recursive_list_type
+): recursive_list_type {
+  if (current.info.type === 'list' && proposed.info.type === 'list') {
+    return mergeMetadataListNode(current, proposed);
+  }
+  if (current.info.type === 'shloka' && proposed.info.type === 'shloka') {
+    return {
+      name_dev: proposed.name_dev,
+      info: current.info,
+      list: []
+    };
+  }
+  if (isChildlessTypeConversion(current, proposed)) {
+    return mergeAfterChildlessTypeConversion(current, proposed);
+  }
+  throw new TypeError('Map node type changed during metadata save');
+}
+
+/** Applies a type swap on a childless server node; proposed may already include new children. */
+function mergeAfterChildlessTypeConversion(
+  current: recursive_list_type,
+  proposed: recursive_list_type
+): recursive_list_type {
+  if (proposed.info.type === 'list') {
+    return mergeMetadataListNode(
+      {
+        name_dev: proposed.name_dev,
+        info: {
+          type: 'list',
+          list_name: proposed.info.list_name,
+          list_count_expected: proposed.info.list_count_expected
+        },
+        list: []
+      },
+      proposed
+    );
+  }
+  return adoptConvertedNode(proposed);
+}
+
+function mergeMetadataListNode(
+  current: recursive_list_type,
+  proposed: recursive_list_type
+): recursive_list_type {
+  if (proposed.info.type !== 'list') {
+    throw new TypeError('List node changed type during metadata save');
+  }
+  const currentChildren = current.list ?? [];
+  const proposedChildren = proposed.list ?? [];
+  if (proposedChildren.length < currentChildren.length) {
+    throw new TypeError('Map structure changed during metadata save');
+  }
+  if (proposedChildren.length > currentChildren.length) {
+    const prefixFingerprints = currentChildren.map(metadataStructureFingerprint);
+    const proposedPrefixFingerprints = proposedChildren
+      .slice(0, currentChildren.length)
+      .map(metadataStructureFingerprint);
+    for (let i = 0; i < prefixFingerprints.length; i++) {
+      const currentChild = currentChildren[i]!;
+      const proposedChild = proposedChildren[i]!;
+      if (prefixFingerprints[i] !== proposedPrefixFingerprints[i]) {
+        if (
+          !isChildlessTypeConversion(currentChild, proposedChild) &&
+          !isAppendOnlySubtreeChange(currentChild, proposedChild)
+        ) {
+          throw new TypeError('Map structure changed during metadata save');
+        }
+      }
     }
-    const currentChildren = currentMap.list ?? [];
-    const proposedChildren = proposedMap.list ?? [];
-    if (currentChildren.length !== proposedChildren.length) {
-      throw new TypeError('Map structure changed during metadata save');
-    }
+  } else {
     const currentFingerprints = currentChildren.map(metadataStructureFingerprint);
     const proposedFingerprints = proposedChildren.map(metadataStructureFingerprint);
     for (let i = 0; i < currentFingerprints.length; i++) {
+      const currentChild = currentChildren[i]!;
+      const proposedChild = proposedChildren[i]!;
       if (currentFingerprints[i] !== proposedFingerprints[i]) {
-        throw new TypeError('Map structure changed during metadata save');
+        if (
+          !isChildlessTypeConversion(currentChild, proposedChild) &&
+          !isAppendOnlySubtreeChange(currentChild, proposedChild)
+        ) {
+          throw new TypeError('Map structure changed during metadata save');
+        }
       }
     }
-    // Without stable child ids, ambiguous siblings must keep their local metadata identity in place
-    // or we cannot tell whether the client renamed a node or swapped same-shaped siblings.
-    const duplicateFingerprints = new Set(
-      currentFingerprints.filter(
-        (fingerprint, index) => currentFingerprints.indexOf(fingerprint) !== index
+    assertNoAmbiguousSiblingReorder(currentChildren, proposedChildren);
+  }
+
+  const mergedChildren: recursive_list_type[] = [];
+  for (let i = 0; i < proposedChildren.length; i++) {
+    if (i < currentChildren.length) {
+      mergedChildren.push(mergeMetadataNode(currentChildren[i]!, proposedChildren[i]!));
+    } else {
+      mergedChildren.push(adoptNewSubtree(proposedChildren[i]!));
+    }
+  }
+
+  return {
+    name_dev: proposed.name_dev,
+    info: {
+      type: 'list',
+      list_name: proposed.info.list_name,
+      list_count_expected: proposed.info.list_count_expected
+    },
+    list: mergedChildren
+  };
+}
+
+function assertNoAmbiguousSiblingReorder(
+  currentChildren: recursive_list_type[],
+  proposedChildren: recursive_list_type[]
+): void {
+  const currentFingerprints = currentChildren.map(metadataStructureFingerprint);
+  const proposedFingerprints = proposedChildren.map(metadataStructureFingerprint);
+  const duplicateFingerprints = new Set(
+    currentFingerprints.filter(
+      (fingerprint, index) => currentFingerprints.indexOf(fingerprint) !== index
+    )
+  );
+  for (const fingerprint of duplicateFingerprints) {
+    const currentLocalIds = currentChildren
+      .map((child, index) =>
+        currentFingerprints[index] === fingerprint ? metadataLocalIdentity(child) : null
       )
-    );
-    for (const fingerprint of duplicateFingerprints) {
-      const currentLocalIds = currentChildren
-        .map((child, index) =>
-          currentFingerprints[index] === fingerprint ? metadataLocalIdentity(child) : null
-        )
-        .filter((value): value is string => value !== null);
-      const proposedLocalIds = proposedChildren
-        .map((child, index) =>
-          proposedFingerprints[index] === fingerprint ? metadataLocalIdentity(child) : null
-        )
-        .filter((value): value is string => value !== null);
+      .filter((value): value is string => value !== null);
+    const proposedLocalIds = proposedChildren
+      .map((child, index) =>
+        proposedFingerprints[index] === fingerprint ? metadataLocalIdentity(child) : null
+      )
+      .filter((value): value is string => value !== null);
+    if (
+      currentLocalIds.join('|') !== proposedLocalIds.join('|') &&
+      [...currentLocalIds].sort().join('|') === [...proposedLocalIds].sort().join('|')
+    ) {
+      throw new TypeError('Ambiguous sibling identity changed during metadata save');
+    }
+  }
+}
+
+function isAppendOnlySubtreeChange(
+  current: recursive_list_type,
+  proposed: recursive_list_type
+): boolean {
+  if (current.info.type !== 'list' || proposed.info.type !== 'list') {
+    return false;
+  }
+  const currentChildren = current.list ?? [];
+  const proposedChildren = proposed.list ?? [];
+  if (proposedChildren.length <= currentChildren.length) {
+    return false;
+  }
+  for (let i = 0; i < currentChildren.length; i++) {
+    const currentChild = currentChildren[i]!;
+    const proposedChild = proposedChildren[i]!;
+    if (
+      metadataStructureFingerprint(currentChild) !== metadataStructureFingerprint(proposedChild)
+    ) {
       if (
-        currentLocalIds.join('|') !== proposedLocalIds.join('|') &&
-        [...currentLocalIds].sort().join('|') === [...proposedLocalIds].sort().join('|')
+        !isChildlessTypeConversion(currentChild, proposedChild) &&
+        !isAppendOnlySubtreeChange(currentChild, proposedChild)
       ) {
-        throw new TypeError('Ambiguous sibling identity changed during metadata save');
+        return false;
       }
     }
+  }
+  return true;
+}
+
+function isChildlessTypeConversion(
+  current: recursive_list_type,
+  proposed: recursive_list_type
+): boolean {
+  if (current.info.type === proposed.info.type) {
+    return false;
+  }
+  if ((current.list ?? []).length > 0) {
+    return false;
+  }
+  return (
+    (current.info.type === 'shloka' && proposed.info.type === 'list') ||
+    (current.info.type === 'list' && proposed.info.type === 'shloka')
+  );
+}
+
+function adoptConvertedNode(proposed: recursive_list_type): recursive_list_type {
+  if (proposed.info.type === 'list') {
     return {
-      name_dev: proposedMap.name_dev,
+      name_dev: proposed.name_dev,
       info: {
         type: 'list',
-        list_name: proposedMap.info.list_name,
-        list_count_expected: proposedMap.info.list_count_expected
+        list_name: proposed.info.list_name,
+        list_count_expected: proposed.info.list_count_expected
       },
-      list: currentChildren.map((child, index) =>
-        applyMetadataEditsToMap(child, proposedChildren[index]!)
-      )
+      list: []
     };
   }
   return {
-    name_dev: proposedMap.name_dev,
-    info: currentMap.info,
+    name_dev: proposed.name_dev,
+    info: {
+      type: 'shloka',
+      shloka_count: 0,
+      total: 0,
+      shloka_count_expected:
+        proposed.info.type === 'shloka' ? proposed.info.shloka_count_expected : null
+    },
     list: []
+  };
+}
+
+function adoptNewSubtree(proposed: recursive_list_type): recursive_list_type {
+  if (proposed.info.type === 'shloka') {
+    return {
+      name_dev: proposed.name_dev,
+      info: {
+        type: 'shloka',
+        shloka_count: 0,
+        total: 0,
+        shloka_count_expected:
+          proposed.info.type === 'shloka' ? proposed.info.shloka_count_expected : null
+      },
+      list: []
+    };
+  }
+  return {
+    name_dev: proposed.name_dev,
+    info: {
+      type: 'list',
+      list_name: proposed.info.list_name,
+      list_count_expected: proposed.info.list_count_expected
+    },
+    list: (proposed.list ?? []).map(adoptNewSubtree)
   };
 }
 

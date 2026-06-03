@@ -78,6 +78,21 @@ export function listSwapPrefixes(edits: PathSwapEdit[]): string[] {
   return [...new Set(edits.flatMap(({ swap_paths: [pathA, pathB] }) => [pathA, pathB]))];
 }
 
+export function formatMapPath(path: number[]): string {
+  return path.length === 0 ? '/' : `/${path.join('/')}`;
+}
+
+export function mapPathToDbPath(path: number[]): string {
+  return path.join(':');
+}
+
+export function isEditableDescendantPath(path: string, rootPath: number[]): boolean {
+  if (rootPath.length === 0) {
+    return validateDbPath(path) === null;
+  }
+  return dbPathMatchesPrefix(path, mapPathToDbPath(rootPath)) && path.split(':').length > rootPath.length;
+}
+
 /** Converts a DB path string to numeric segments for cache keys (`1:2` → `[1, 2]`). */
 export function dbPathToPathParams(path: string): number[] {
   const error = validateDbPath(path);
@@ -145,5 +160,19 @@ export function validateSwapEdits(edits: PathSwapEdit[]): string | null {
     if (err) return `Swap ${i + 1}: ${err}`;
   }
 
+  return null;
+}
+
+export function validateSwapEditsRootScope(edits: PathSwapEdit[], rootPath: number[]): string | null {
+  const rootLabel = formatMapPath(rootPath);
+  for (let i = 0; i < edits.length; i++) {
+    const [pathA, pathB] = edits[i]!.swap_paths;
+    if (!isEditableDescendantPath(pathA, rootPath)) {
+      return `Swap ${i + 1}: Path A must stay under root ${rootLabel}`;
+    }
+    if (!isEditableDescendantPath(pathB, rootPath)) {
+      return `Swap ${i + 1}: Path B must stay under root ${rootLabel}`;
+    }
+  }
   return null;
 }

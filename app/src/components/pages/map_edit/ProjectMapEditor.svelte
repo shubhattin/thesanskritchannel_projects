@@ -405,6 +405,7 @@
     try {
       await $save_order_mut.mutateAsync({
         project_id,
+        root_path: [...basePath],
         edits: pending_swaps,
         map: strip_client_ids(workingMap)
       });

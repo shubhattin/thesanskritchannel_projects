@@ -21,7 +21,7 @@ import {
   collectPathSwapInvalidation,
   mergePathSwapInvalidation
 } from '~/server/map_path_swap_db.server';
-import { DB_PATH_RE, validateSwapEdits } from '~/server/map_path_swap';
+import { DB_PATH_RE, validateSwapEdits, validateSwapEditsRootScope } from '~/server/map_path_swap';
 import { delay } from '~/tools/delay';
 import { recursive_list_schema } from '~/state/data_types';
 
@@ -45,6 +45,7 @@ const update_project_map_input = project_id_input.extend({
 });
 
 const save_project_map_order_input = project_id_input.extend({
+  root_path: z.array(z.int().positive()),
   edits: z.array(path_swap_edit_schema),
   map: recursive_list_schema
 });
@@ -107,12 +108,16 @@ export const update_project_map_route = protectedAdminProcedure
 
 const save_project_map_order = protectedAdminProcedure
   .input(save_project_map_order_input)
-  .mutation(async ({ input: { project_id, edits, map }, ctx: { cookie } }) => {
+  .mutation(async ({ input: { project_id, root_path, edits, map }, ctx: { cookie } }) => {
     const parsedEdits = edits;
     if (parsedEdits.length > 0) {
       const validationError = validateSwapEdits(parsedEdits);
       if (validationError) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: validationError });
+      }
+      const rootScopeError = validateSwapEditsRootScope(parsedEdits, root_path);
+      if (rootScopeError) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: rootScopeError });
       }
     }
 

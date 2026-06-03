@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPathSwapSteps,
   dbPathToPathParams,
+  isEditableDescendantPath,
+  mapPathToDbPath,
   toTempDbPath,
   validateDbPath,
   validateSwapEdits,
+  validateSwapEditsRootScope,
   validateSwapPair
 } from './map_path_swap';
 
@@ -49,5 +52,26 @@ describe('map_path_swap', () => {
 
   it('rejects invalid db paths when building cache params', () => {
     expect(() => dbPathToPathParams('1:bad')).toThrow('Invalid DB path "1:bad"');
+  });
+
+  it('formats map paths for db usage', () => {
+    expect(mapPathToDbPath([1, 2, 3])).toBe('1:2:3');
+    expect(mapPathToDbPath([])).toBe('');
+  });
+
+  it('restricts editable paths to deeper descendants of the chosen root', () => {
+    expect(isEditableDescendantPath('1:1:2', [1, 1])).toBe(true);
+    expect(isEditableDescendantPath('1:1', [1, 1])).toBe(false);
+    expect(isEditableDescendantPath('1:2:1', [1, 1])).toBe(false);
+    expect(isEditableDescendantPath('2:1', [])).toBe(true);
+  });
+
+  it('rejects swap edits outside the chosen root scope', () => {
+    expect(
+      validateSwapEditsRootScope([{ swap_paths: ['1:1:2', '1:1:3'] }], [1, 1])
+    ).toBeNull();
+    expect(
+      validateSwapEditsRootScope([{ swap_paths: ['1:1', '1:1:2'] }], [1, 1])
+    ).toBe('Swap 1: Path A must stay under root /1/1');
   });
 });

@@ -2,7 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
-import { db, type transactionType } from '~/db/db';
+import { db } from '~/db/db';
 import { projects } from '~/db/schema';
 import { redis } from '~/db/redis';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
@@ -21,7 +21,14 @@ import {
   collectPathSwapInvalidation,
   mergePathSwapInvalidation
 } from '~/server/map_path_swap_db.server';
-import { DB_PATH_RE, validateSwapEdits, validateSwapEditsRootScope } from '~/server/map_path_swap';
+import {
+  applyMetadataEditsToMap,
+  applySwapEditsToMap,
+  DB_PATH_RE,
+  validateOrderRootPath,
+  validateSwapEdits,
+  validateSwapEditsRootScope
+} from '~/server/map_path_swap';
 import { delay } from '~/tools/delay';
 import { recursive_list_schema } from '~/state/data_types';
 
@@ -50,18 +57,6 @@ const save_project_map_order_input = project_id_input.extend({
   map: recursive_list_schema
 });
 
-/** Ensures `project_id` exists; throws NOT_FOUND otherwise. */
-const require_project = async (tx: transactionType, project_id: number) => {
-  const project = await tx.query.projects.findFirst({
-    where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
-    columns: { id: true, key: true }
-  });
-  if (!project) {
-    throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
-  }
-  return project;
-};
-
 const invalidate_project_caches = async (
   cookie: string,
   project_id: number,
@@ -88,8 +83,25 @@ export const update_project_map_route = protectedAdminProcedure
   .mutation(async ({ input, ctx: { cookie } }) => {
     await delay(400);
     const project = await db.transaction(async (tx) => {
-      const existing = await require_project(tx, input.project_id);
-      const map = input.map;
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(${PROJECT_MAP_ORDER_LOCK_NAMESPACE}, ${input.project_id})`
+      );
+      const existing = await tx.query.projects.findFirst({
+        where: (tbl, { eq: eqId }) => eqId(tbl.id, input.project_id),
+        columns: { id: true, key: true, map: true }
+      });
+      if (!existing) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
+      }
+      let map = existing.map;
+      try {
+        map = applyMetadataEditsToMap(existing.map, input.map);
+      } catch (error) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: error instanceof Error ? error.message : 'Invalid metadata-only map update'
+        });
+      }
 
       await tx
         .update(projects)
@@ -127,18 +139,43 @@ const save_project_map_order = protectedAdminProcedure
       await tx.execute(
         sql`select pg_advisory_xact_lock(${PROJECT_MAP_ORDER_LOCK_NAMESPACE}, ${project_id})`
       );
-      const project = await require_project(tx, project_id);
+      const project = await tx.query.projects.findFirst({
+        where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
+        columns: { id: true, key: true, map: true }
+      });
+      if (!project) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
+      }
+      const rootError = validateOrderRootPath(project.map, root_path);
+      if (rootError) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: rootError });
+      }
       // Capture both states so moved descendants cannot leave stale cache entries behind.
       const invalidationBefore = await collectPathSwapInvalidation(tx, project_id, parsedEdits);
       if (parsedEdits.length > 0) {
         await applyOrderedDbPathSwaps(tx, project_id, parsedEdits);
       }
       const invalidationAfter = await collectPathSwapInvalidation(tx, project_id, parsedEdits);
+      let derivedMap = project.map;
+      try {
+        derivedMap = applySwapEditsToMap(project.map, parsedEdits);
+      } catch (error) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: error instanceof Error ? error.message : 'Invalid order swap payload'
+        });
+      }
+      if (JSON.stringify(map) !== JSON.stringify(derivedMap)) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Order save payload did not match the server-derived map for these swaps'
+        });
+      }
       await tx
         .update(projects)
         .set({
-          map,
-          name_dev: map.name_dev
+          map: derivedMap,
+          name_dev: derivedMap.name_dev
         })
         .where(eq(projects.id, project_id));
 

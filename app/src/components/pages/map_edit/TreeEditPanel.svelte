@@ -11,7 +11,11 @@
   let {
     workingMap,
     treeData,
+    editor_locked,
     order_edit_mode,
+    order_root_awaiting,
+    order_root_selected,
+    order_root_resolved,
     base_path_resolved,
     treeRef = $bindable(),
     onNodeClicked,
@@ -21,7 +25,11 @@
   }: {
     workingMap: MapNodeWithClientId | null;
     treeData: MapTreeItem[];
+    editor_locked: boolean;
     order_edit_mode: boolean;
+    order_root_awaiting: boolean;
+    order_root_selected: boolean;
+    order_root_resolved: string;
     base_path_resolved: string;
     treeRef?: TreeComponent<MapTreeItem> | undefined;
     onNodeClicked: (node: LTreeNode<MapTreeItem>) => void;
@@ -42,8 +50,10 @@
       <span class="text-sm font-semibold">Tree</span>
     </div>
     <p class="mt-0.5 text-xs text-muted-foreground">
-      {#if order_edit_mode}
-        Drag rows to reorder siblings — subtree under {base_path_resolved}
+      {#if order_root_awaiting}
+        Click a list with at least two children to choose the reorder root.
+      {:else if order_root_selected}
+        Reorder direct children under {order_root_resolved}
       {:else}
         Subtree under {base_path_resolved}
       {/if}
@@ -65,9 +75,11 @@
             isSelectedMember="isSelected"
             isExpandedMember="isExpanded"
             shouldToggleOnNodeClick={false}
-            dragDropMode={order_edit_mode ? 'self' : 'none'}
+            dragDropMode={order_root_selected && !editor_locked ? 'self' : 'none'}
             allowedDropPositionsMember="allowedDropPositions"
-            getAllowedDropPositionsCallback={order_edit_mode ? getAllowedDropPositions : undefined}
+            getAllowedDropPositionsCallback={
+              order_root_selected && !editor_locked ? getAllowedDropPositions : undefined
+            }
             beforeDropCallback={beforeDrop}
             {onNodeClicked}
           >
@@ -83,9 +95,13 @@
               <div
                 class="map-edit-tree-row group flex w-full items-center gap-2 py-1 pr-2"
                 class:map-edit-row-selected={row.isSelected}
+                class:cursor-pointer={!editor_locked &&
+                  order_root_awaiting &&
+                  row.nodeType === 'list' &&
+                  row.childCount >= 2}
                 data-node-kind={nodeKind}
               >
-                {#if order_edit_mode}
+                {#if order_root_selected}
                   {#if row.draggable}
                     <span
                       class="text-muted-foreground/60 transition-colors hover:text-muted-foreground"
@@ -98,6 +114,14 @@
                     </span>
                   {:else if !row.isRoot}
                     <span class="w-8 shrink-0" aria-hidden="true"></span>
+                  {/if}
+                {:else if order_root_awaiting}
+                  {#if row.nodeType === 'list' && row.childCount >= 2}
+                    <span class="w-5 shrink-0 text-[11px] text-primary tabular-nums">
+                      {row.visibleIndex || ''}{row.visibleIndex ? '.' : ''}
+                    </span>
+                  {:else if !row.isRoot}
+                    <span class="w-5 shrink-0" aria-hidden="true"></span>
                   {/if}
                 {:else if !row.isRoot}
                   {#if row.nodeType === 'list' && row.childCount === 0}
@@ -121,6 +145,11 @@
                     : ''}">{row.name_dev}</span
                 >
                 <div class="flex shrink-0 items-center gap-1">
+                  {#if order_root_awaiting && row.nodeType === 'list' && row.childCount >= 2}
+                    <Badge variant="outline" class="border-primary/30 text-[10px] text-primary"
+                      >select</Badge
+                    >
+                  {/if}
                   {#if !order_edit_mode && row.nodeType === 'list' && row.childCount > 0 && !row.isRoot}
                     <button
                       type="button"

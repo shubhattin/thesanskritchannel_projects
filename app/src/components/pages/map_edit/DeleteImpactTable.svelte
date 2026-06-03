@@ -27,7 +27,7 @@
   >
     All texts, translations, and media listed below will be permanently deleted when you save.
   </p>
-  <div class="rounded-md border border-border/60">
+  <div class="overflow-x-hidden rounded-md border border-border/60">
     <Table.Root class="table-fixed {compact ? 'text-xs' : 'text-sm'}">
       <colgroup>
         <col class="w-13" />

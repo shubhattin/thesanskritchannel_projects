@@ -66,8 +66,14 @@
         ? rows.length === 0 && pending_swaps.length === 0
         : rows.length === 0
   );
+
 </script>
 
+<div
+  class="w-full min-w-0 {compact
+    ? ''
+    : 'max-h-[min(48vh,28rem)] overflow-x-hidden overflow-y-auto overscroll-y-contain'}"
+>
 {#if delete_edit_mode}
   <DeleteImpactTable {project_id} rows={delete_review_rows} {compact} />
 {:else if is_empty}
@@ -113,3 +119,4 @@
     </ul>
   </Tooltip.Provider>
 {/if}
+</div>

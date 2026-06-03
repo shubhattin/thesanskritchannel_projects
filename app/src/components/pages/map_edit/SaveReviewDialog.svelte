@@ -193,7 +193,9 @@
       </div>
     </div>
 
-    <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-2">
+    <div
+      class="min-h-0 max-h-[45vh] flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 py-2"
+    >
       <p class="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
         Details
       </p>

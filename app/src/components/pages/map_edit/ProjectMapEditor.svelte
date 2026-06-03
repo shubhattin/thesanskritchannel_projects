@@ -958,7 +958,7 @@
     />
   </div>
 
-  <Card.Root class="overflow-hidden">
+  <Card.Root class="flex flex-col overflow-hidden">
     <div
       class="flex items-center justify-between border-b border-border/60 bg-muted/20 px-4 py-2.5"
     >
@@ -997,7 +997,7 @@
         ></div>
       {/if}
     </div>
-    <Card.Content class="px-4 py-3">
+    <Card.Content class="min-h-0 px-4 py-3">
       <ChangesPanel
         {editor_mode}
         {order_dirty}

@@ -784,3 +784,79 @@ export const build_delete_review_state = (
   });
   return { deletedRoots, terminalPaths, rows };
 };
+
+// ---------------------------------------------------------------------------
+// Undo stack — immer patch-based (stores inversePatches, not full clones)
+// ---------------------------------------------------------------------------
+
+import { enablePatches, produceWithPatches, applyPatches, setAutoFreeze, type Patch } from 'immer';
+
+// Must be called once to activate patch tracking in immer.
+enablePatches();
+setAutoFreeze(false);
+
+export { produceWithPatches, applyPatches, type Patch };
+
+export const UNDO_MAX_DEPTH = 50;
+
+/** Inverse patches that reverse one metadata edit, plus the selection to restore. */
+export type MetadataUndoEntry = {
+  inversePatches: Patch[];
+  selectedNodePath: MapPath;
+};
+
+/** Inverse patches that reverse one order edit, plus swaps and selection to restore. */
+export type OrderUndoEntry = {
+  inversePatches: Patch[];
+  pendingSwaps: import('~/server/map_path_swap').PathSwapEdit[];
+  selectedNodePath: MapPath;
+};
+
+/** Inverse patches that reverse one delete operation, plus selection to restore. */
+export type DeleteUndoEntry = {
+  inversePatches: Patch[];
+  selectedNodePath: MapPath;
+};
+
+/**
+ * Generic undo stack with a configurable max depth.
+ * Framework-agnostic — the Svelte component wraps this in reactive state.
+ */
+export class UndoStack<T> {
+  private _stack: T[] = [];
+  private _maxDepth: number;
+
+  constructor(maxDepth: number = UNDO_MAX_DEPTH) {
+    this._maxDepth = maxDepth;
+  }
+
+  /** Push an entry onto the stack. */
+  push(entry: T): void {
+    this._stack.push(entry);
+    if (this._stack.length > this._maxDepth) {
+      this._stack.splice(0, this._stack.length - this._maxDepth);
+    }
+  }
+
+  /** Pop and return the most recent entry, or `null` if empty. */
+  undo(): T | null {
+    return this._stack.pop() ?? null;
+  }
+
+  /** Peek at the most recent entry without removing it. */
+  peek(): T | null {
+    return this._stack[this._stack.length - 1] ?? null;
+  }
+
+  clear(): void {
+    this._stack = [];
+  }
+
+  get canUndo(): boolean {
+    return this._stack.length > 0;
+  }
+
+  get size(): number {
+    return this._stack.length;
+  }
+}

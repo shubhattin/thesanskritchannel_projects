@@ -25,6 +25,7 @@
     onNameDevChange,
     onListNameChange,
     onListCountChange,
+    onInputFieldFocus,
     onAddShlokaChild,
     onAddListChild,
     onConvertToList,
@@ -40,6 +41,7 @@
     onNameDevChange: (value: string) => void;
     onListNameChange: (value: string) => void;
     onListCountChange: (raw: string) => void;
+    onInputFieldFocus: () => void;
     onAddShlokaChild: () => void;
     onAddListChild: () => void;
     onConvertToList: () => void;
@@ -189,6 +191,7 @@
           oninput={(e) => onNameDevChange(e.currentTarget.value)}
           onbeforeinput={(e) =>
             handleTypingBeforeInputEvent(typing_ctx, e, onNameDevChange, typing_enabled)}
+          onfocus={onInputFieldFocus}
           onblur={() => typing_ctx.clearContext()}
           onkeydown={(e) => {
             if (toggle_typing_from_keyboard(e)) return;
@@ -283,6 +286,7 @@
             value={selectedNode.info.list_name}
             disabled={editor_locked}
             oninput={(e) => onListNameChange(e.currentTarget.value)}
+            onfocus={onInputFieldFocus}
           />
           <div
             class="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-950 dark:text-amber-100"
@@ -313,6 +317,7 @@
             bind:value={list_count_draft}
             disabled={editor_locked}
             oninput={(e) => onListCountChange(e.currentTarget.value)}
+            onfocus={onInputFieldFocus}
             aria-invalid={count_input_invalid}
           />
           {#if count_input_invalid}

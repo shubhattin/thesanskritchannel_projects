@@ -36,8 +36,6 @@
   import { LANG_LIST, LANG_LIST_IDS, type lang_list_type } from '~/state/lang_list';
   import { RiSystemAddLargeLine } from 'svelte-icons-pack/ri';
   import * as Popover from '$lib/components/ui/popover';
-  import * as Tabs from '$lib/components/ui/tabs';
-  import BulkEdit from './bulk/BulkEdit.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Textarea } from '$lib/components/ui/textarea';
   import AiTranslate from './ai_translate/AITranslate.svelte';

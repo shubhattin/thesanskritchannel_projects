@@ -61,7 +61,7 @@
   };
 </script>
 
-<label class="block space-x-2 sm:space-x-3">
+<div class="block space-x-2 sm:space-x-3">
   <span class="inline-flex items-center gap-0.5">
     <span class="text-sm font-bold sm:text-base">Select {name}</span>
     {#if is_admin}
@@ -154,4 +154,4 @@
       <Icon src={BiEdit} class="text-lg" />
     </Button>
   {/if}
-</label>
+</div>

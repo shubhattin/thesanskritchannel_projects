@@ -46,4 +46,5 @@ jobs:
             app/src/db/scripts/backup/translations.csv
             app/src/db/scripts/backup/texts.csv
             app/src/db/scripts/backup/projects.csv
+            app/src/db/scripts/backup/project_paths.csv
           retention-days: 60

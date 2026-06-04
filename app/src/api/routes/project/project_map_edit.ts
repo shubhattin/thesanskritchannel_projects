@@ -5,7 +5,6 @@ import {
   applyDeletePathCompactions,
   buildRedisKeysForDeleteInvalidation,
   collectDeleteInvalidation,
-  countExactPathResources,
   deleteResourcesAtPathPrefixes
 } from '~/server/map_path_delete_db.server';
 import {
@@ -38,13 +37,17 @@ import {
 import {
   applyMetadataEditsToMap,
   applySwapEditsToMap,
-  DB_PATH_RE,
   validateOrderRootPath,
   validateSwapEdits,
-  validateSwapEditsRootScope
+  validateSwapEditsRootScope,
+  validateDbPath
 } from '~/server/map_path_swap';
 import { delay } from '~/tools/delay';
 import { recursive_list_schema } from '~/state/data_types';
+import {
+  countExactPathResources,
+  insertProjectPaths
+} from '~/server/project_paths_db.server';
 
 const project_id_input = z.object({
   project_id: z.int()
@@ -76,7 +79,8 @@ const invalidate_project_caches = async (
 export const update_project_map_route = protectedAdminProcedure
   .input(
     project_id_input.extend({
-      map: recursive_list_schema
+      map: recursive_list_schema,
+      to_add_paths: z.array(z.string()).default([])
     })
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
@@ -102,6 +106,43 @@ export const update_project_map_route = protectedAdminProcedure
         });
       }
 
+      const oldPaths = collect_db_paths_from_map(existing.map);
+      const derivedPaths = collect_db_paths_from_map(map);
+      const uniqueToAddPaths = [...new Set(input.to_add_paths)];
+      if (uniqueToAddPaths.length !== input.to_add_paths.length) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Duplicate paths are not allowed in to_add_paths'
+        });
+      }
+      for (const path of uniqueToAddPaths) {
+        const error = validateDbPath(path);
+        if (error) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Invalid to_add_paths entry "${path}": ${error}`
+          });
+        }
+        if (!derivedPaths.has(path)) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `to_add_paths entry "${path}" is not present in the saved map`
+          });
+        }
+        if (oldPaths.has(path)) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `to_add_paths entry "${path}" already exists in the saved map`
+          });
+        }
+      }
+
+      await insertProjectPaths(
+        tx,
+        input.project_id,
+        uniqueToAddPaths.sort((a, b) => a.split(':').length - b.split(':').length || a.localeCompare(b))
+      );
+
       await tx
         .update(projects)
         .set({
@@ -119,7 +160,23 @@ export const update_project_map_route = protectedAdminProcedure
 
 const db_path_schema = z
   .string()
-  .regex(DB_PATH_RE, 'Path must be a colon-separated list of positive integers');
+  .refine((path) => validateDbPath(path) === null, {
+    message: 'Path must be a colon-separated list of positive integers'
+  });
+
+const collect_db_paths_from_map = (root: z.infer<typeof recursive_list_schema>): Set<string> => {
+  const paths = new Set<string>();
+  const walk = (node: z.infer<typeof recursive_list_schema>, path: number[]) => {
+    if (path.length > 0) {
+      paths.add(path.join(':'));
+    }
+    if (node.info.type === 'list') {
+      (node.list ?? []).forEach((child, index) => walk(child, [...path, index + 1]));
+    }
+  };
+  walk(root, []);
+  return paths;
+};
 
 const save_project_map_order = protectedAdminProcedure
   .input(

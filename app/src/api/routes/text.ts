@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import { publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
-import { texts } from '~/db/schema';
+import { project_paths, texts } from '~/db/schema';
 import { delay } from '~/tools/delay';
 import { cache_db_options_app } from '~/server/cache_db_options';
 import { get_text_data_func } from '~/server/cached_loader';
 import { get_project_by_key } from '~/server/project_list.server';
 // import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
-import { and, eq, like, sql } from 'drizzle-orm';
+import { and, eq, like, or, sql } from 'drizzle-orm';
 
 const get_text_data_route = publicProcedure
   .input(
@@ -39,24 +39,26 @@ export const search_text_in_texts_route = publicProcedure
       const project = await get_project_by_key(project_key, cache_db_options_app);
       if (!project) throw new Error(`Project not found: ${project_key}`);
       const project_id = project.id;
-      conditions.push(eq(texts.project_id, project_id));
+      conditions.push(eq(project_paths.project_id, project_id));
     }
     if (typeof path_params !== 'undefined') {
-      conditions.push(like(texts.path, `${path_params.join(':')}%`));
+      const prefix = path_params.join(':');
+      conditions.push(or(eq(project_paths.path, prefix), like(project_paths.path, `${prefix}:%`))!);
     }
 
     const data = await db
       .select({
-        project_id: texts.project_id,
-        path: texts.path,
+        project_id: project_paths.project_id,
+        path: project_paths.path,
         index: texts.index,
         shloka_num: texts.shloka_num,
         text: texts.text,
         totalCount: sql<number>`count(*) over()`
       })
       .from(texts)
+      .innerJoin(project_paths, eq(texts.project_path_id, project_paths.id))
       .where(and(...conditions))
-      .orderBy(texts.project_id, texts.path, texts.index)
+      .orderBy(project_paths.project_id, project_paths.path, texts.index)
       .limit(limit + 1)
       .offset(offset);
 

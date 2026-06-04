@@ -9,6 +9,9 @@ import { SiteLekhaSchemaZod } from '../db/schema_zod';
 import { waitUntil } from '@vercel/functions';
 import type z from 'zod';
 import type { project_type } from '../state/project_list';
+import { and, eq } from 'drizzle-orm';
+import { texts, translations } from '~/db/schema';
+import { requireProjectPath } from './project_paths_db.server';
 
 export type defer_promise_type = (promise: Promise<unknown>) => void;
 
@@ -42,16 +45,16 @@ export const get_text_data_func = async (
   const cache = await redis.get<shloka_list_type>(cache_key);
   if (cache) return cache;
 
-  const data = await db.query.texts.findMany({
-    columns: {
-      text: true,
-      index: true,
-      shloka_num: true
-    },
-    where: (tbl, { eq, and }) =>
-      and(eq(tbl.project_id, project_id), eq(tbl.path, path_params.join(':'))),
-    orderBy: ({ index }, { asc }) => asc(index)
-  });
+  const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
+  const data = await db
+    .select({
+      text: texts.text,
+      index: texts.index,
+      shloka_num: texts.shloka_num
+    })
+    .from(texts)
+    .where(eq(texts.project_path_id, projectPath.id))
+    .orderBy(texts.index);
 
   defer_promise(
     redis.set(cache_key, data, {
@@ -80,6 +83,7 @@ export const get_translation_data_func = async (
   const { levels } = await get_project_info_by_id(project_id, options);
   const path_params = get_path_params(selected_text_levels, levels);
   const path = path_params.join(':');
+  const projectPath = await requireProjectPath(db, project_id, path);
   let cache = null;
   if (import.meta.env.PROD) {
     cache = await redis.get<typeof data>(
@@ -88,15 +92,14 @@ export const get_translation_data_func = async (
   }
   if (cache) data = cache;
   else {
-    data = await db.query.translations.findMany({
-      columns: {
-        index: true,
-        text: true
-      },
-      where: (tbl, { eq, and }) =>
-        and(eq(tbl.project_id, project_id), eq(tbl.lang_id, lang_id), eq(tbl.path, path)),
-      orderBy: ({ index }, { asc }) => asc(index)
-    });
+    data = await db
+      .select({
+        index: translations.index,
+        text: translations.text
+      })
+      .from(translations)
+      .where(and(eq(translations.project_path_id, projectPath.id), eq(translations.lang_id, lang_id)))
+      .orderBy(translations.index);
     if (import.meta.env.PROD) {
       // set cache in background
       defer_promise(
@@ -167,6 +170,7 @@ export const get_site_lekha_list_func = async (options: db_options): Promise<lek
       title: true,
       description: true,
       tags: true,
+      created_at: true,
       published_at: true,
       updated_at: true,
       draft: true,

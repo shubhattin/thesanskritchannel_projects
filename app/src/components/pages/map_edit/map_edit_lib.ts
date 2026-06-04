@@ -577,6 +577,28 @@ export const compute_map_edit_diff = (
   };
 };
 
+export const collect_unsaved_added_db_paths = (
+  root: MapNodeWithClientId,
+  snapshots: Map<string, BaselineNodeSnapshot>
+): string[] => {
+  const paths = new Set<string>();
+  const walk = (node: MapNodeWithClientId, path: MapPath) => {
+    const clientId = node[MAP_EDIT_CLIENT_ID];
+    if (path.length > 0 && is_unsaved_added_map_node(clientId, snapshots)) {
+      paths.add(map_path_to_db_path(path));
+    }
+    if (node.info.type === 'list') {
+      (node.list ?? []).forEach((child, index) => {
+        walk(child as MapNodeWithClientId, [...path, index + 1]);
+      });
+    }
+  };
+  walk(root, []);
+  return [...paths].sort(
+    (a, b) => a.split(':').length - b.split(':').length || a.localeCompare(b)
+  );
+};
+
 export const find_node_by_client_id = (
   root: MapNodeWithClientId,
   clientId: string

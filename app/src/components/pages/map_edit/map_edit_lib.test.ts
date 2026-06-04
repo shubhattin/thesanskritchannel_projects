@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   apply_map_edit_list_defaults,
+  apply_map_edit_shloka_defaults,
   build_delete_review_state,
   clone_map_with_client_ids,
   clone_working_map,
+  collect_unsaved_added_db_paths,
   collect_deleted_paths_from_entry,
   compute_map_edit_diff,
   create_map_edit_child,
@@ -119,6 +121,59 @@ describe('map_edit_lib normal-mode structure edits', () => {
 
     const diff = compute_map_edit_diff(working, snapshots);
     expect(diff.rows.some((r) => r.summary === 'Converted List → Shloka')).toBe(true);
+  });
+});
+
+describe('map_edit_lib collect_unsaved_added_db_paths', () => {
+  it('collects one appended child path', () => {
+    const { working, snapshots } = setup_working();
+    const listNode = get_node_at_map_path(working, [1])!;
+    listNode.list = [...(listNode.list ?? []), create_map_edit_child('shloka')];
+
+    expect(collect_unsaved_added_db_paths(working, snapshots)).toEqual(['1:2']);
+  });
+
+  it('collects nested paths for an appended subtree', () => {
+    const { working, snapshots } = setup_working();
+    const listNode = get_node_at_map_path(working, [1])!;
+    const child = create_map_edit_child('list');
+    child.list = [...(child.list ?? []), create_map_edit_child('shloka')];
+    listNode.list = [...(listNode.list ?? []), child];
+
+    expect(collect_unsaved_added_db_paths(working, snapshots)).toEqual(['1:2', '1:2:1']);
+  });
+
+  it('removes a newly added path when that node is deleted before save', () => {
+    const { working, snapshots } = setup_working();
+    const listNode = get_node_at_map_path(working, [1])!;
+    listNode.list = [...(listNode.list ?? []), create_map_edit_child('shloka')];
+    expect(collect_unsaved_added_db_paths(working, snapshots)).toEqual(['1:2']);
+
+    remove_node_at_path(working, [1, 2]);
+    expect(collect_unsaved_added_db_paths(working, snapshots)).toEqual([]);
+  });
+
+  it('restores the derived path list after undo-like state restoration', () => {
+    const { working, snapshots } = setup_working();
+    const beforeAdd = clone_working_map(working);
+    const listNode = get_node_at_map_path(working, [1])!;
+    listNode.list = [...(listNode.list ?? []), create_map_edit_child('shloka')];
+    expect(collect_unsaved_added_db_paths(working, snapshots)).toEqual(['1:2']);
+
+    const restored = clone_working_map(beforeAdd);
+    expect(collect_unsaved_added_db_paths(restored, snapshots)).toEqual([]);
+  });
+
+  it('keeps a new node path when the node type changes before save', () => {
+    const { working, snapshots } = setup_working();
+    const listNode = get_node_at_map_path(working, [1])!;
+    const added = create_map_edit_child('shloka');
+    listNode.list = [...(listNode.list ?? []), added];
+    expect(collect_unsaved_added_db_paths(working, snapshots)).toEqual(['1:2']);
+
+    apply_map_edit_list_defaults(added);
+    apply_map_edit_shloka_defaults(added);
+    expect(collect_unsaved_added_db_paths(working, snapshots)).toEqual(['1:2']);
   });
 });
 

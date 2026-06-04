@@ -10,6 +10,7 @@ export const import_data = async (confirm_env = true) => {
   const user_project_join = await db.query.user_project_join.findMany();
   const user_project_language_join = await db.query.user_project_language_join.findMany();
   const projects = await db.query.projects.findMany();
+  const project_paths = await db.query.project_paths.findMany();
   const translations = await db.query.translations.findMany();
   const texts = await db.query.texts.findMany();
   const other = await db.query.other.findMany();
@@ -20,6 +21,7 @@ export const import_data = async (confirm_env = true) => {
     user_project_join,
     user_project_language_join,
     projects,
+    project_paths,
     translations,
     texts,
     other,

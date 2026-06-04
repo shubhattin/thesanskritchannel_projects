@@ -9,7 +9,8 @@ import {
   other,
   texts,
   site_lekhas,
-  projects
+  projects,
+  project_paths
 } from '~/db/schema';
 import {
   UserProjectJoinSchemaZod,
@@ -19,7 +20,8 @@ import {
   MediaAttachmentSchemaZod,
   OtherSchemaZod,
   SiteLekhaSchemaZod,
-  ProjectSchemaZod
+  ProjectSchemaZod,
+  ProjectPathSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -50,19 +52,21 @@ const main = async () => {
       texts: TextSchemaZod.array(),
       other: OtherSchemaZod.array(),
       media_attachment: MediaAttachmentSchemaZod.array(),
-      site_lekhas: SiteLekhaSchemaZod.array()
+      site_lekhas: SiteLekhaSchemaZod.array(),
+      project_paths: ProjectPathSchemaZod.array()
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
   dbClient_ext.transaction(async (tx) => {
     // deleting all the tables initially
     try {
-      await tx.delete(user_project_join);
-      await tx.delete(user_project_language_join);
-      await tx.delete(user_project_language_join);
+      // Children first (FK order: path rows → projects)
       await tx.delete(translations);
       await tx.delete(texts);
       await tx.delete(media_attachment);
+      await tx.delete(user_project_join);
+      await tx.delete(user_project_language_join);
+      await tx.delete(project_paths);
       await tx.delete(projects);
       await tx.delete(other);
       await tx.delete(site_lekhas);
@@ -77,6 +81,17 @@ const main = async () => {
       console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`projects`'));
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting projects:'), chalk.yellow(e));
+    }
+
+    // resetting project_paths
+    try {
+      await tx.insert(project_paths).values(data.project_paths);
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`project_paths`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting project_paths:'), chalk.yellow(e));
     }
 
     // resetting user_project_join
@@ -162,6 +177,9 @@ const main = async () => {
     // resetting SERIAL
     try {
       await tx.execute(sql`SELECT setval('"projects_id_seq"', (select MAX(id) from "projects"))`);
+      await tx.execute(
+        sql`SELECT setval('"project_paths_id_seq"', (select MAX(id) from "project_paths"))`
+      );
       await tx.execute(
         sql`SELECT setval('"media_attachment_id_seq"', (select MAX(id) from "media_attachment"))`
       );

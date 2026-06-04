@@ -35,7 +35,10 @@ export const project_paths = pgTable(
     project_id: integer()
       .notNull()
       .references(() => projects.id, { onDelete: 'restrict' }),
-    path: text().notNull()
+    path: text().notNull(),
+    prev_path: text(),
+    // optional field for internal uses, debugging and recovery
+    updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
   },
   (table) => [
     unique('project_paths_project_id_path_unique').on(table.project_id, table.path),
@@ -56,7 +59,8 @@ export const texts = pgTable(
     shloka_num: integer(),
     text: text().default('').notNull(),
     /** Used for search queries (trigram search) */
-    text_search: text().default('').notNull()
+    text_search: text().default('').notNull(),
+    updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
   },
   ({ project_path_id, index }) => [
     primaryKey({
@@ -73,7 +77,8 @@ export const translations = pgTable(
       .references(() => project_paths.id, { onDelete: 'cascade' }),
     lang_id: integer().notNull(),
     index: integer().notNull(),
-    text: text().default('').notNull()
+    text: text().default('').notNull(),
+    updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
   },
   ({ project_path_id, lang_id, index }) => [
     primaryKey({
@@ -103,7 +108,8 @@ export const media_attachment = pgTable(
     // lang_id of the resource (null if not specific)
     media_type: media_type_enum().notNull(),
     link: text().notNull(),
-    name: text().notNull()
+    name: text().notNull(),
+    updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
   },
   ({ project_path_id }) => [index().on(project_path_id)]
 );
@@ -118,6 +124,7 @@ export const site_lekhas = pgTable(
     url_slug: text('url_slug').notNull().unique(),
     /** Markdown content */
     content: text('content').notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     published_at: timestamp('published_at', { withTimezone: true }),
     updated_at: timestamp('updated_at', { withTimezone: true }).$onUpdate(() => new Date()),
     draft: boolean('draft').notNull().default(true),

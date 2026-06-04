@@ -48,6 +48,8 @@
     create_map_edit_child,
     apply_map_edit_list_defaults,
     apply_map_edit_shloka_defaults,
+    can_convert_childless_to_list,
+    can_convert_childless_to_shloka,
     MAP_EDIT_CLIENT_ID,
     format_path_resolved_label,
     paths_equal,
@@ -650,38 +652,27 @@
   }
 
   function convert_selected_to_list() {
-    if (
-      !selectedNode ||
-      selectedNode.info.type !== 'shloka' ||
-      (selectedNode.list ?? []).length > 0 ||
-      editor_mode !== 'metadata' ||
-      save_in_flight
-    ) {
-      return;
-    }
+    if (!workingMap || editor_mode !== 'metadata' || save_in_flight) return;
+    const node = get_node_at_map_path(workingMap, selectedNodePath);
+    if (!can_convert_childless_to_list(node)) return;
     mark_local_change();
+    const preserve_name_dev = selected_is_root;
     const next = mutate_metadata((draft) => {
-      const node = get_node_at_map_path(draft, selectedNodePath);
-      if (node) apply_map_edit_list_defaults(node, { preserve_name_dev: selected_is_root });
+      const draftNode = get_node_at_map_path(draft, selectedNodePath);
+      if (draftNode) apply_map_edit_list_defaults(draftNode, { preserve_name_dev });
     });
     if (next) workingMap = next;
   }
 
   function convert_selected_to_shloka() {
-    if (
-      !selectedNode ||
-      selectedNode.info.type !== 'list' ||
-      (selectedNode.list ?? []).length > 0 ||
-      selected_is_root ||
-      editor_mode !== 'metadata' ||
-      save_in_flight
-    ) {
-      return;
-    }
+    if (!workingMap || editor_mode !== 'metadata' || save_in_flight) return;
+    const node = get_node_at_map_path(workingMap, selectedNodePath);
+    if (!can_convert_childless_to_shloka(node)) return;
     mark_local_change();
+    const preserve_name_dev = selected_is_root;
     const next = mutate_metadata((draft) => {
-      const node = get_node_at_map_path(draft, selectedNodePath);
-      if (node) apply_map_edit_shloka_defaults(node, { preserve_name_dev: selected_is_root });
+      const draftNode = get_node_at_map_path(draft, selectedNodePath);
+      if (draftNode) apply_map_edit_shloka_defaults(draftNode, { preserve_name_dev });
     });
     if (next) workingMap = next;
   }

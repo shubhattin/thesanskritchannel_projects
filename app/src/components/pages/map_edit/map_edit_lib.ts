@@ -75,6 +75,17 @@ export const apply_map_edit_shloka_defaults = (
   node.list = [];
 };
 
+export const is_childless_map_node = (node: recursive_list_type): boolean =>
+  (node.list ?? []).length === 0;
+
+/** Childless shloka nodes may convert to list at any depth, including the project root. */
+export const can_convert_childless_to_list = (node: MapNodeWithClientId | null): boolean =>
+  Boolean(node && node.info.type === 'shloka' && is_childless_map_node(node));
+
+/** Childless list nodes may convert to shloka at any depth, including the project root. */
+export const can_convert_childless_to_shloka = (node: MapNodeWithClientId | null): boolean =>
+  Boolean(node && node.info.type === 'list' && is_childless_map_node(node));
+
 export const apply_map_edit_list_defaults = (
   node: MapNodeWithClientId,
   options?: MapEditTypeDefaultsOptions

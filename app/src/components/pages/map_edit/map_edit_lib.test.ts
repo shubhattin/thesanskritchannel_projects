@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   apply_map_edit_list_defaults,
   apply_map_edit_shloka_defaults,
+  can_convert_childless_to_list,
+  can_convert_childless_to_shloka,
   build_delete_review_state,
   clone_map_with_client_ids,
   clone_working_map,
@@ -12,11 +14,13 @@ import {
   expand_terminal_deleted_paths,
   get_node_at_map_path,
   remove_node_at_path,
+  strip_client_ids,
   UndoStack,
   UNDO_MAX_DEPTH,
   type BaselineNodeSnapshot,
   type MapNodeWithClientId
 } from './map_edit_lib';
+import { applyMetadataEditsToMap } from '~/server/map_path_swap';
 import type { recursive_list_type } from '~/state/data_types';
 
 const base_map = (): recursive_list_type => ({
@@ -42,6 +46,18 @@ const base_map = (): recursive_list_type => ({
   ]
 });
 
+const childless_shloka_root_map = (): recursive_list_type => ({
+  name_dev: 'Project',
+  info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+  list: []
+});
+
+const childless_list_root_map = (): recursive_list_type => ({
+  name_dev: 'Project',
+  info: { type: 'list', list_name: 'Kanda', list_count_expected: null },
+  list: []
+});
+
 function setup_working() {
   const snapshots = new Map<string, BaselineNodeSnapshot>();
   const working = clone_map_with_client_ids(base_map(), null, 0, snapshots);
@@ -49,6 +65,51 @@ function setup_working() {
 }
 
 describe('map_edit_lib normal-mode structure edits', () => {
+  it('allows childless shloka project root to convert to list', () => {
+    const snapshots = new Map<string, BaselineNodeSnapshot>();
+    const working = clone_map_with_client_ids(childless_shloka_root_map(), null, 0, snapshots);
+    expect(can_convert_childless_to_list(working)).toBe(true);
+    expect(can_convert_childless_to_shloka(working)).toBe(false);
+
+    apply_map_edit_list_defaults(working, { preserve_name_dev: true });
+    expect(working.info.type).toBe('list');
+    expect(working.name_dev).toBe('Project');
+
+    const diff = compute_map_edit_diff(working, snapshots);
+    expect(diff.dirty).toBe(true);
+    expect(diff.rows.some((r) => r.kind === 'type_change' && r.pathLabel === '/')).toBe(true);
+
+    const merged = applyMetadataEditsToMap(
+      childless_shloka_root_map(),
+      strip_client_ids(working)
+    );
+    expect(merged.info.type).toBe('list');
+    expect(merged.info.type === 'list' && merged.info.list_name).toBe('Level Name');
+  });
+
+  it('allows childless list project root to convert to shloka', () => {
+    const snapshots = new Map<string, BaselineNodeSnapshot>();
+    const working = clone_map_with_client_ids(childless_list_root_map(), null, 0, snapshots);
+    expect(can_convert_childless_to_list(working)).toBe(false);
+    expect(can_convert_childless_to_shloka(working)).toBe(true);
+
+    apply_map_edit_shloka_defaults(working, { preserve_name_dev: true });
+    expect(working.info.type).toBe('shloka');
+    expect(working.name_dev).toBe('Project');
+
+    const diff = compute_map_edit_diff(working, snapshots);
+    expect(diff.dirty).toBe(true);
+    expect(diff.rows.some((r) => r.kind === 'type_change' && r.pathLabel === '/')).toBe(true);
+
+    const merged = applyMetadataEditsToMap(childless_list_root_map(), strip_client_ids(working));
+    expect(merged.info).toEqual({
+      type: 'shloka',
+      shloka_count: 0,
+      total: 0,
+      shloka_count_expected: null
+    });
+  });
+
   it('creates shloka and list children with expected defaults', () => {
     const shloka = create_map_edit_child('shloka');
     expect(shloka.name_dev).toBe('नवश्लोकानि');

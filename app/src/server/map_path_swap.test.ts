@@ -209,6 +209,48 @@ describe('map_path_swap', () => {
     });
   });
 
+  it('accepts childless shloka project root to list without new children', () => {
+    const current: recursive_list_type = {
+      name_dev: 'Project',
+      info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+      list: []
+    };
+    const proposed: recursive_list_type = {
+      name_dev: 'Project',
+      info: { type: 'list', list_name: 'Kanda', list_count_expected: null },
+      list: []
+    };
+    const merged = applyMetadataEditsToMap(current, proposed);
+    expect(merged.info.type).toBe('list');
+    expect(merged.info).toEqual({
+      type: 'list',
+      list_name: 'Kanda',
+      list_count_expected: null
+    });
+    expect(merged.list).toEqual([]);
+  });
+
+  it('accepts childless list project root to shloka', () => {
+    const current: recursive_list_type = {
+      name_dev: 'Project',
+      info: { type: 'list', list_name: 'Kanda', list_count_expected: null },
+      list: []
+    };
+    const proposed: recursive_list_type = {
+      name_dev: 'Project',
+      info: { type: 'shloka', shloka_count: 99, total: 99, shloka_count_expected: 12 },
+      list: []
+    };
+    const merged = applyMetadataEditsToMap(current, proposed);
+    expect(merged.info).toEqual({
+      type: 'shloka',
+      shloka_count: 0,
+      total: 0,
+      shloka_count_expected: 12
+    });
+    expect(merged.list).toEqual([]);
+  });
+
   it('accepts childless type conversion with appended children in the same save', () => {
     const current: recursive_list_type = {
       name_dev: 'Project',
@@ -231,7 +273,7 @@ describe('map_path_swap', () => {
     expect(merged.list?.map((n) => n.name_dev)).toEqual(['A']);
   });
 
-  it('rejects saving a shloka node as the project map root', () => {
+  it('rejects converting project root to shloka when it has children', () => {
     const current = sampleMap();
     const proposed: recursive_list_type = {
       name_dev: 'Project',
@@ -239,7 +281,7 @@ describe('map_path_swap', () => {
       list: []
     };
     expect(() => applyMetadataEditsToMap(current, proposed)).toThrow(
-      'Project map root must be a list node'
+      'Map node type changed during metadata save'
     );
   });
 

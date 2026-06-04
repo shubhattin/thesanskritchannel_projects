@@ -6,7 +6,8 @@
   "version": "0.0.1",
   "scripts": {
     "format": "bun --cwd app format && bun --cwd site format",
-    "check": "bun --cwd app check && bun --cwd site check"
+    "check": "bun --cwd app check && bun --cwd site check",
+    "test": "bun --cwd app test && bun --cwd site test"
   },
   "workspaces": [
     "app",

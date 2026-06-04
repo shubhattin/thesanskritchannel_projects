@@ -7,7 +7,11 @@
   import * as Card from '$lib/components/ui/card';
   import * as Popover from '$lib/components/ui/popover';
   import { Separator } from '$lib/components/ui/separator';
-  import type { MapNodeWithClientId } from './map_edit_lib';
+  import {
+    can_convert_childless_to_list,
+    can_convert_childless_to_shloka,
+    type MapNodeWithClientId
+  } from './map_edit_lib';
   import {
     clearTypingContextOnKeyDown,
     createTypingContext,
@@ -53,22 +57,14 @@
   const order_edit_mode = $derived(editor_mode === 'order');
   const delete_edit_mode = $derived(editor_mode === 'delete');
 
-  const selected_childless = $derived((selectedNode?.list?.length ?? 0) === 0);
   const show_add_child = $derived(
     editor_mode === 'metadata' && selectedNode?.info.type === 'list' && !editor_locked
   );
   const show_convert_to_list = $derived(
-    editor_mode === 'metadata' &&
-      selectedNode?.info.type === 'shloka' &&
-      selected_childless &&
-      !editor_locked
+    editor_mode === 'metadata' && can_convert_childless_to_list(selectedNode) && !editor_locked
   );
   const show_convert_to_shloka = $derived(
-    editor_mode === 'metadata' &&
-      !selected_is_root &&
-      selectedNode?.info.type === 'list' &&
-      selected_childless &&
-      !editor_locked
+    editor_mode === 'metadata' && can_convert_childless_to_shloka(selectedNode) && !editor_locked
   );
 
   let typing_ctx = $derived(createTypingContext('Devanagari'));

@@ -30,6 +30,34 @@ describe('project_map_sync.server', () => {
     expect(sort_db_paths_by_depth(collect_db_paths_from_map(base_map()))).toEqual(['1', '1:1']);
   });
 
+  it('accepts metadata save with empty to_add_paths when only the project root type changes', () => {
+    const shlokaRoot: recursive_list_type = {
+      name_dev: 'Project',
+      info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+      list: []
+    };
+    const listRoot: recursive_list_type = {
+      name_dev: 'Project',
+      info: { type: 'list', list_name: 'Kanda', list_count_expected: null },
+      list: []
+    };
+
+    expect(
+      validate_explicit_to_add_paths(
+        collect_db_paths_from_map(shlokaRoot),
+        collect_db_paths_from_map(listRoot),
+        []
+      )
+    ).toEqual([]);
+    expect(
+      validate_explicit_to_add_paths(
+        collect_db_paths_from_map(listRoot),
+        collect_db_paths_from_map(shlokaRoot),
+        []
+      )
+    ).toEqual([]);
+  });
+
   it('accepts exact to_add_paths coverage and returns depth-sorted paths', () => {
     const previousMap = base_map();
     const nextMap = base_map();

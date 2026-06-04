@@ -236,9 +236,6 @@ export function applyMetadataEditsToMap(
   currentMap: recursive_list_type,
   proposedMap: recursive_list_type
 ): recursive_list_type {
-  if (proposedMap.info.type === 'shloka') {
-    throw new TypeError('Project map root must be a list node');
-  }
   return mergeMetadataNode(currentMap, proposedMap);
 }
 

@@ -48,6 +48,10 @@ import {
   countExactPathResources,
   insertProjectPaths
 } from '~/server/project_paths_db.server';
+import {
+  collect_db_paths_from_map,
+  validate_explicit_to_add_paths
+} from '~/server/project_map_sync.server';
 
 const project_id_input = z.object({
   project_id: z.int()
@@ -108,39 +112,12 @@ export const update_project_map_route = protectedAdminProcedure
 
       const oldPaths = collect_db_paths_from_map(existing.map);
       const derivedPaths = collect_db_paths_from_map(map);
-      const uniqueToAddPaths = [...new Set(input.to_add_paths)];
-      if (uniqueToAddPaths.length !== input.to_add_paths.length) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Duplicate paths are not allowed in to_add_paths'
-        });
-      }
-      for (const path of uniqueToAddPaths) {
-        const error = validateDbPath(path);
-        if (error) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Invalid to_add_paths entry "${path}": ${error}`
-          });
-        }
-        if (!derivedPaths.has(path)) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `to_add_paths entry "${path}" is not present in the saved map`
-          });
-        }
-        if (oldPaths.has(path)) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `to_add_paths entry "${path}" already exists in the saved map`
-          });
-        }
-      }
+      const toAddPaths = validate_explicit_to_add_paths(oldPaths, derivedPaths, input.to_add_paths);
 
       await insertProjectPaths(
         tx,
         input.project_id,
-        uniqueToAddPaths.sort((a, b) => a.split(':').length - b.split(':').length || a.localeCompare(b))
+        toAddPaths
       );
 
       await tx
@@ -163,20 +140,6 @@ const db_path_schema = z
   .refine((path) => validateDbPath(path) === null, {
     message: 'Path must be a colon-separated list of positive integers'
   });
-
-const collect_db_paths_from_map = (root: z.infer<typeof recursive_list_schema>): Set<string> => {
-  const paths = new Set<string>();
-  const walk = (node: z.infer<typeof recursive_list_schema>, path: number[]) => {
-    if (path.length > 0) {
-      paths.add(path.join(':'));
-    }
-    if (node.info.type === 'list') {
-      (node.list ?? []).forEach((child, index) => walk(child, [...path, index + 1]));
-    }
-  };
-  walk(root, []);
-  return paths;
-};
 
 const save_project_map_order = protectedAdminProcedure
   .input(
@@ -206,7 +169,7 @@ const save_project_map_order = protectedAdminProcedure
 
     await delay(400);
 
-    const { project, redisKeys } = await db.transaction(async (tx) => {
+    const { project, map: derivedMap, redisKeys } = await db.transaction(async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(${PROJECT_MAP_ORDER_LOCK_NAMESPACE}, ${project_id})`
       );
@@ -256,7 +219,7 @@ const save_project_map_order = protectedAdminProcedure
 
     await invalidate_project_caches(cookie, project_id, project.key, redisKeys);
 
-    return { success: true as const, swap_count: parsedEdits.length, map };
+    return { success: true as const, swap_count: parsedEdits.length, map: derivedMap };
   });
 
 const delete_project_map_nodes = protectedAdminProcedure

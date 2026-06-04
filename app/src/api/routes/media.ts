@@ -3,12 +3,16 @@ import { t, publicProcedure, protectedAdminProcedure } from '../trpc_init';
 import { cache_db_options_app } from '~/server/cache_db_options';
 import { get_project_info_by_id } from '~/server/project_list.server';
 import { db } from '~/db/db';
-import { MediaAttachmentSchemaZod } from '~/db/schema_zod';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
-import { media_attachment } from '~/db/schema';
+import { media_attachment, project_paths } from '~/db/schema';
 import ms from 'ms';
 import { eq } from 'drizzle-orm';
 import { get_path_params } from '~/state/project_list';
+import { requireProjectPath } from '~/server/project_paths_db.server';
+
+/** DB root path is `''`; cache keys use `[]`, not `[0]` from `''.split(':')`. */
+const path_params_from_db_path = (path: string): number[] =>
+  path === '' ? [] : path.split(':').map(Number);
 
 const get_media_list_route = publicProcedure
   .input(
@@ -33,16 +37,17 @@ const get_media_list_route = publicProcedure
     if (cache) return cache;
 
     const path = path_params.join(':');
-    const media_list = await db.query.media_attachment.findMany({
-      columns: {
-        id: true,
-        link: true,
-        media_type: true,
-        lang_id: true,
-        name: true
-      },
-      where: (tbl, { eq, and }) => and(eq(tbl.project_id, project_id), eq(tbl.path, path))
-    });
+    const projectPath = await requireProjectPath(db, project_id, path);
+    const media_list = await db
+      .select({
+        id: media_attachment.id,
+        link: media_attachment.link,
+        media_type: media_attachment.media_type,
+        lang_id: media_attachment.lang_id,
+        name: media_attachment.name
+      })
+      .from(media_attachment)
+      .where(eq(media_attachment.project_path_id, projectPath.id));
     await redis.set(REDIS_CACHE_KEYS.media_links(project_id, path_params), media_list, {
       ex: ms('30days') / 1000
     });
@@ -52,10 +57,12 @@ const get_media_list_route = publicProcedure
 
 const add_media_link_route = protectedAdminProcedure
   .input(
-    MediaAttachmentSchemaZod.omit({
-      id: true,
-      path: true
-    }).extend({
+    z.object({
+      project_id: z.int(),
+      lang_id: z.int().nullable(),
+      media_type: z.enum(['pdf', 'text', 'video', 'audio']),
+      link: z.url(),
+      name: z.string().min(1),
       selected_text_levels: z.array(z.int().nullable())
     })
   )
@@ -63,14 +70,13 @@ const add_media_link_route = protectedAdminProcedure
     async ({ input: { project_id, lang_id, link, media_type, selected_text_levels, name } }) => {
       const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
       const path_params = get_path_params(selected_text_levels, levels);
-      const path = path_params.join(':');
+      const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
       const [inserted] = await Promise.all([
         db
           .insert(media_attachment)
           .values({
-            project_id,
+            project_path_id: projectPath.id,
             lang_id,
-            path,
             link,
             media_type,
             name
@@ -87,47 +93,64 @@ const add_media_link_route = protectedAdminProcedure
 
 const update_media_link_route = protectedAdminProcedure
   .input(
-    MediaAttachmentSchemaZod.omit({ path: true }).extend({
+    z.object({
+      id: z.int(),
       project_id: z.int(),
+      lang_id: z.int().nullable(),
+      media_type: z.enum(['pdf', 'text', 'video', 'audio']),
+      link: z.url(),
+      name: z.string().min(1),
       selected_text_levels: z.array(z.int().nullable())
     })
   )
-  .mutation(
-    async ({
-      input: { project_id, selected_text_levels, id, lang_id, link, media_type, name }
-    }) => {
-      const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
-      const path_params = get_path_params(selected_text_levels, levels);
-      // const path = path_params.join(':');
+  .mutation(async ({ input: { id, lang_id, link, media_type, name } }) => {
+    const existing = await db
+      .select({ project_id: project_paths.project_id, path: project_paths.path })
+      .from(media_attachment)
+      .innerJoin(project_paths, eq(media_attachment.project_path_id, project_paths.id))
+      .where(eq(media_attachment.id, id))
+      .limit(1);
+    const row = existing[0];
+    if (!row) throw new Error('Media link not found');
+    const path_params = path_params_from_db_path(row.path);
 
-      await Promise.all([
-        db
-          .update(media_attachment)
-          .set({ link, media_type, name, lang_id })
-          .where(eq(media_attachment.id, id))
-      ]);
-      await Promise.allSettled([redis.del(REDIS_CACHE_KEYS.media_links(project_id, path_params))]);
-      return {
-        success: true
-      };
-    }
-  );
+    await Promise.all([
+      db
+        .update(media_attachment)
+        .set({ link, media_type, name, lang_id })
+        .where(eq(media_attachment.id, id))
+    ]);
+    await Promise.allSettled([
+      redis.del(REDIS_CACHE_KEYS.media_links(row.project_id, path_params))
+    ]);
+    return {
+      success: true
+    };
+  });
 
 const delete_media_link_route = protectedAdminProcedure
   .input(
     z.object({
-      project_id: z.int(),
       link_id: z.int(),
+      project_id: z.int(),
       selected_text_levels: z.array(z.int().nullable())
     })
   )
-  .mutation(async ({ input: { link_id, project_id, selected_text_levels } }) => {
-    const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
-    const path_params = get_path_params(selected_text_levels, levels);
+  .mutation(async ({ input: { link_id } }) => {
+    const existing = await db
+      .select({ project_id: project_paths.project_id, path: project_paths.path })
+      .from(media_attachment)
+      .innerJoin(project_paths, eq(media_attachment.project_path_id, project_paths.id))
+      .where(eq(media_attachment.id, link_id))
+      .limit(1);
+    const row = existing[0];
+    if (!row) throw new Error('Media link not found');
+    const path_params = path_params_from_db_path(row.path);
 
-    // await db.delete(media_attachment).where((tbl, { eq }) => eq(tbl.id, link_id));
     await Promise.allSettled([db.delete(media_attachment).where(eq(media_attachment.id, link_id))]);
-    await Promise.allSettled([redis.del(REDIS_CACHE_KEYS.media_links(project_id, path_params))]);
+    await Promise.allSettled([
+      redis.del(REDIS_CACHE_KEYS.media_links(row.project_id, path_params))
+    ]);
     return {
       success: true
     };

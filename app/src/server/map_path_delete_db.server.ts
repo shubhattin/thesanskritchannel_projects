@@ -1,27 +1,16 @@
-import { and, count, eq, or, sql, type AnyColumn } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import type { transactionType } from '~/db/db';
-import { media_attachment, texts, translations } from '~/db/schema';
+import { media_attachment, project_paths, texts, translations } from '~/db/schema';
 import type { DeletePathCompaction } from './map_path_delete.server';
-import { dbPathMatchesPrefix } from './map_path_swap';
 import {
   buildRedisKeysForPathSwapInvalidation,
-  remapPathPrefixOnTable,
   type PathSwapInvalidation
 } from './map_path_swap_db.server';
-
-const pathMatchesPrefix = (pathColumn: AnyColumn, prefix: string) =>
-  or(eq(pathColumn, prefix), sql`${pathColumn} LIKE ${`${prefix}:%`}`);
-
-const pathMatchesAnyPrefix = (pathColumn: AnyColumn, prefixes: string[]) => {
-  const clauses = prefixes.map((prefix) => pathMatchesPrefix(pathColumn, prefix));
-  return clauses.length === 1 ? clauses[0]! : or(...clauses);
-};
-
-const resourceTables = [
-  { table: texts, pathColumn: texts.path },
-  { table: translations, pathColumn: translations.path },
-  { table: media_attachment, pathColumn: media_attachment.path }
-] as const;
+import {
+  countExactPathResources,
+  listProjectPathsAtOrUnderPrefixes
+} from './project_paths_db.server';
+import { remapDbPathPrefix } from './map_path_swap';
 
 export const collectDeleteInvalidation = async (
   tx: transactionType,
@@ -32,30 +21,29 @@ export const collectDeleteInvalidation = async (
     return { textAndMediaPaths: [], translationPaths: [] };
   }
 
-  const textRows = await tx
-    .select({ path: texts.path })
-    .from(texts)
-    .where(and(eq(texts.project_id, project_id), pathMatchesAnyPrefix(texts.path, prefixes)));
+  const paths = await listProjectPathsAtOrUnderPrefixes(tx, project_id, prefixes);
+  const projectPathIds = paths.map((row) => row.id);
+  if (projectPathIds.length === 0) {
+    return { textAndMediaPaths: [], translationPaths: [] };
+  }
 
-  const mediaRows = await tx
-    .select({ path: media_attachment.path })
-    .from(media_attachment)
-    .where(
-      and(
-        eq(media_attachment.project_id, project_id),
-        pathMatchesAnyPrefix(media_attachment.path, prefixes)
-      )
-    );
-
-  const translationRows = await tx
-    .select({ lang_id: translations.lang_id, path: translations.path })
-    .from(translations)
-    .where(
-      and(
-        eq(translations.project_id, project_id),
-        pathMatchesAnyPrefix(translations.path, prefixes)
-      )
-    );
+  const [textRows, mediaRows, translationRows] = await Promise.all([
+    tx
+      .select({ path: project_paths.path })
+      .from(texts)
+      .innerJoin(project_paths, eq(texts.project_path_id, project_paths.id))
+      .where(inArray(texts.project_path_id, projectPathIds)),
+    tx
+      .select({ path: project_paths.path })
+      .from(media_attachment)
+      .innerJoin(project_paths, eq(media_attachment.project_path_id, project_paths.id))
+      .where(inArray(media_attachment.project_path_id, projectPathIds)),
+    tx
+      .select({ lang_id: translations.lang_id, path: project_paths.path })
+      .from(translations)
+      .innerJoin(project_paths, eq(translations.project_path_id, project_paths.id))
+      .where(inArray(translations.project_path_id, projectPathIds))
+  ]);
 
   const pathSet = new Set<string>();
   for (const row of textRows) pathSet.add(row.path);
@@ -74,11 +62,14 @@ export const deleteResourcesAtPathPrefixes = async (
   prefixes: string[]
 ) => {
   if (prefixes.length === 0) return;
-  for (const { table, pathColumn } of resourceTables) {
-    await tx
-      .delete(table)
-      .where(and(eq(table.project_id, project_id), pathMatchesAnyPrefix(pathColumn, prefixes)));
-  }
+  const paths = await listProjectPathsAtOrUnderPrefixes(tx, project_id, prefixes);
+  if (paths.length === 0) return;
+  await tx.delete(project_paths).where(
+    inArray(
+      project_paths.id,
+      paths.map((row) => row.id)
+    )
+  );
 };
 
 export const applyDeletePathCompactions = async (
@@ -89,9 +80,13 @@ export const applyDeletePathCompactions = async (
   if (compactions.length === 0) return;
   for (const { remap_steps } of compactions) {
     if (remap_steps.length === 0) continue;
-    for (const { table, pathColumn } of resourceTables) {
-      for (const { from_path, to_path } of remap_steps) {
-        await remapPathPrefixOnTable(tx, table, pathColumn, project_id, from_path, to_path);
+    for (const { from_path, to_path } of remap_steps) {
+      const rows = await listProjectPathsAtOrUnderPrefixes(tx, project_id, [from_path]);
+      for (const row of rows) {
+        await tx
+          .update(project_paths)
+          .set({ path: remapDbPathPrefix(row.path, from_path, to_path) })
+          .where(eq(project_paths.id, row.id));
       }
     }
   }
@@ -102,38 +97,4 @@ export const buildRedisKeysForDeleteInvalidation = (
   invalidation: PathSwapInvalidation
 ) => buildRedisKeysForPathSwapInvalidation(project_id, invalidation);
 
-export type ExactPathResourceCounts = {
-  texts: number;
-  translations: number;
-  media_attachment: number;
-  total: number;
-};
-
-export const countExactPathResources = async (
-  tx: transactionType,
-  project_id: number,
-  dbPath: string
-): Promise<ExactPathResourceCounts> => {
-  const [textRow] = await tx
-    .select({ c: count() })
-    .from(texts)
-    .where(and(eq(texts.project_id, project_id), eq(texts.path, dbPath)));
-  const [translationRow] = await tx
-    .select({ c: count() })
-    .from(translations)
-    .where(and(eq(translations.project_id, project_id), eq(translations.path, dbPath)));
-  const [mediaRow] = await tx
-    .select({ c: count() })
-    .from(media_attachment)
-    .where(and(eq(media_attachment.project_id, project_id), eq(media_attachment.path, dbPath)));
-
-  const textsCount = Number(textRow?.c ?? 0);
-  const translationsCount = Number(translationRow?.c ?? 0);
-  const mediaCount = Number(mediaRow?.c ?? 0);
-  return {
-    texts: textsCount,
-    translations: translationsCount,
-    media_attachment: mediaCount,
-    total: textsCount + translationsCount + mediaCount
-  };
-};
+export type ExactPathResourceCounts = Awaited<ReturnType<typeof countExactPathResources>>;

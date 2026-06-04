@@ -3,10 +3,9 @@ import * as schema from './schema';
 import { drizzle as drizzle_neon } from 'drizzle-orm/neon-serverless';
 import { Pool } from '@neondatabase/serverless';
 import { get_db_url } from './db_utils';
-import type { PgTransaction } from 'drizzle-orm/pg-core';
-import type { NeonQueryResultHKT } from 'drizzle-orm/neon-serverless';
-import type { ExtractTablesWithRelations } from 'drizzle-orm';
-import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js';
+import type { pgTransactionType } from './db_types';
+
+export type { drizzleDbType, pgTransactionType, TxOrDb } from './db_types';
 
 const DB_URL = get_db_url(env);
 
@@ -22,14 +21,7 @@ export const db = import.meta.env.DEV
   : // using neon websocket adapter
     drizzle_neon(new Pool({ connectionString: DB_URL }), { schema });
 
-export type transactionType =
-  | PgTransaction<NeonQueryResultHKT, typeof schema, ExtractTablesWithRelations<typeof schema>>
-  | PgTransaction<
-      PostgresJsQueryResultHKT,
-      typeof schema,
-      ExtractTablesWithRelations<typeof schema>
-    >
-  | typeof db;
+export type transactionType = pgTransactionType | typeof db;
 
 // fix for neon websocket adapter error
 import { neonConfig } from '@neondatabase/serverless';

@@ -57,7 +57,8 @@
     build_delete_review_state,
     remove_node_at_path,
     is_ancestor_path,
-    map_path_to_db_path
+    map_path_to_db_path,
+    collect_unsaved_added_db_paths
   } from './map_edit_lib';
   import { buildAdjacentSwapEdits, type PathSwapEdit } from '~/server/map_path_swap';
   import TreeEditPanel from './TreeEditPanel.svelte';
@@ -168,6 +169,10 @@
     return compute_map_edit_diff(workingMap, baselineSnapshots, {
       kinds: ['rename', 'list_name_change', 'expected_count_change', 'add_child', 'type_change']
     }).dirty;
+  });
+  const metadata_to_add_paths = $derived.by(() => {
+    if (!workingMap || editor_mode !== 'metadata') return [] as string[];
+    return collect_unsaved_added_db_paths(workingMap, baselineSnapshots);
   });
 
   const order_root_selected = $derived(order_edit_mode && order_root_path !== null);
@@ -892,7 +897,8 @@
     if (!workingMap || save_in_flight) return;
     $save_mut.mutate({
       project_id,
-      map: strip_client_ids(workingMap)
+      map: strip_client_ids(workingMap),
+      to_add_paths: metadata_to_add_paths
     });
   }
 

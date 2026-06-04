@@ -94,7 +94,8 @@
     try {
       await $save_mut.mutateAsync({
         project_id,
-        map: apply_map_metadata_patch(target.map, patch)
+        map: apply_map_metadata_patch(target.map, patch),
+        to_add_paths: []
       });
       close();
     } catch {

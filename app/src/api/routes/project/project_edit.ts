@@ -5,6 +5,7 @@ import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db, type transactionType } from '~/db/db';
 import {
   media_attachment,
+  project_paths,
   projects,
   texts,
   translations,
@@ -19,6 +20,7 @@ import {
   clear_project_registry_cache
 } from '~/server/project_list.server';
 import { notify_site_invalidate_project_list_caches } from '~/server/invalidate_site_project_cache.server';
+import { countResourcesForProject } from '~/server/project_paths_db.server';
 import { delay } from '~/tools/delay';
 import { type recursive_list_type, recursive_list_schema } from '~/state/data_types';
 
@@ -130,12 +132,7 @@ const get_delete_resource_counts_for_project = async (project_id: number) => {
   const count_rows_for_project = async (
     tx: transactionType,
     project_id: number,
-    table:
-      | typeof texts
-      | typeof translations
-      | typeof media_attachment
-      | typeof user_project_join
-      | typeof user_project_language_join
+    table: typeof project_paths | typeof user_project_join | typeof user_project_language_join
   ) => {
     const [row] = await tx
       .select({ count: count() })
@@ -143,22 +140,36 @@ const get_delete_resource_counts_for_project = async (project_id: number) => {
       .where(eq(table.project_id, project_id));
     return Number(row?.count ?? 0);
   };
-  const [texts_count, translations_count, media_count, users_join_count, user_languages_count] =
-    await Promise.all([
-      count_rows_for_project(db, project_id, texts),
-      count_rows_for_project(db, project_id, translations),
-      count_rows_for_project(db, project_id, media_attachment),
-      count_rows_for_project(db, project_id, user_project_join),
-      count_rows_for_project(db, project_id, user_project_language_join)
-    ]);
+  const [
+    texts_count,
+    translations_count,
+    media_count,
+    project_paths_count,
+    users_join_count,
+    user_languages_count
+  ] = await Promise.all([
+    countResourcesForProject(db, project_id, texts),
+    countResourcesForProject(db, project_id, translations),
+    countResourcesForProject(db, project_id, media_attachment),
+    count_rows_for_project(db, project_id, project_paths),
+    count_rows_for_project(db, project_id, user_project_join),
+    count_rows_for_project(db, project_id, user_project_language_join)
+  ]);
 
   return {
     texts: texts_count,
     translations: translations_count,
     media_attachment: media_count,
+    project_paths: project_paths_count,
     user_project_join: users_join_count,
     user_project_language_join: user_languages_count,
-    total: texts_count + translations_count + media_count + users_join_count + user_languages_count
+    total:
+      texts_count +
+      translations_count +
+      media_count +
+      project_paths_count +
+      users_join_count +
+      user_languages_count
   };
 };
 

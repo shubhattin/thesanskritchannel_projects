@@ -1,30 +1,15 @@
 import { TRPCError } from '@trpc/server';
-import { and, eq, or, sql, type AnyColumn } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { transactionType } from '~/db/db';
-import { media_attachment, texts, translations } from '~/db/schema';
+import { media_attachment, project_paths, texts, translations } from '~/db/schema';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import {
   buildPathSwapSteps,
   dbPathToPathParams,
-  listSwapPrefixes,
   toTempDbPath,
   type PathSwapEdit
 } from './map_path_swap';
-
-// Match the exact node and all descendants when a whole subtree moves.
-const pathMatchesPrefix = (pathColumn: AnyColumn, prefix: string) =>
-  or(eq(pathColumn, prefix), sql`${pathColumn} LIKE ${`${prefix}:%`}`);
-
-const pathMatchesAnyPrefix = (pathColumn: AnyColumn, prefixes: string[]) => {
-  const clauses = prefixes.map((prefix) => pathMatchesPrefix(pathColumn, prefix));
-  return clauses.length === 1 ? clauses[0]! : or(...clauses);
-};
-
-const swapTables = [
-  { table: texts, pathColumn: texts.path },
-  { table: translations, pathColumn: translations.path },
-  { table: media_attachment, pathColumn: media_attachment.path }
-] as const;
+import { listProjectPathsAtOrUnderPrefixes } from './project_paths_db.server';
 
 const assertNoRowsAtPrefix = async (
   tx: transactionType,
@@ -32,22 +17,18 @@ const assertNoRowsAtPrefix = async (
   prefix: string,
   message: string
 ) => {
-  for (const { table, pathColumn } of swapTables) {
-    const hit = await tx
-      .select()
-      .from(table)
-      .where(and(eq(table.project_id, project_id), pathMatchesPrefix(pathColumn, prefix)))
-      .limit(1);
-    if (hit.length > 0) {
-      throw new TRPCError({ code: 'CONFLICT', message });
-    }
+  const hit = await tx.query.project_paths.findFirst({
+    where: (tbl, { and: andOp, eq: eqOp }) =>
+      andOp(eqOp(tbl.project_id, project_id), eqOp(tbl.path, prefix)),
+    columns: { id: true }
+  });
+  if (hit) {
+    throw new TRPCError({ code: 'CONFLICT', message });
   }
 };
 
-export const remapPathPrefixOnTable = async (
+const remapPathPrefixOnProjectPaths = async (
   tx: transactionType,
-  table: typeof texts | typeof translations | typeof media_attachment,
-  pathColumn: AnyColumn,
   project_id: number,
   fromPrefix: string,
   toPrefix: string
@@ -55,13 +36,16 @@ export const remapPathPrefixOnTable = async (
   const fromPrefixLength = fromPrefix.length;
   const substringStart = sql.raw(String(fromPrefixLength + 1));
   await tx
-    .update(table)
+    .update(project_paths)
     .set({
-      // Use a literal numeric start position so Postgres does integer slicing, not regex
-      // `substring(text from pattern)` semantics on a bound parameter.
-      path: sql`${toPrefix} || substring(${pathColumn} from ${substringStart})`
+      path: sql`${toPrefix} || substring(${project_paths.path} from ${substringStart})`
     })
-    .where(and(eq(table.project_id, project_id), pathMatchesPrefix(pathColumn, fromPrefix)));
+    .where(
+      and(
+        eq(project_paths.project_id, project_id),
+        sql`(${project_paths.path} = ${fromPrefix} OR ${project_paths.path} LIKE ${`${fromPrefix}:%`})`
+      )
+    );
 };
 
 export const applyOrderedDbPathSwaps = async (
@@ -81,10 +65,8 @@ export const applyOrderedDbPathSwaps = async (
     );
 
     const steps = buildPathSwapSteps(pathA, pathB);
-    for (const { table, pathColumn } of swapTables) {
-      for (const { from_path, to_path } of steps) {
-        await remapPathPrefixOnTable(tx, table, pathColumn, project_id, from_path, to_path);
-      }
+    for (const { from_path, to_path } of steps) {
+      await remapPathPrefixOnProjectPaths(tx, project_id, from_path, to_path);
     }
   }
 };
@@ -120,35 +102,34 @@ export const collectPathSwapInvalidation = async (
   project_id: number,
   edits: PathSwapEdit[]
 ): Promise<PathSwapInvalidation> => {
-  const prefixes = listSwapPrefixes(edits);
+  const prefixes = [...new Set(edits.flatMap(({ swap_paths: [pathA, pathB] }) => [pathA, pathB]))];
   if (prefixes.length === 0) {
     return { textAndMediaPaths: [], translationPaths: [] };
   }
 
-  const textRows = await tx
-    .select({ path: texts.path })
-    .from(texts)
-    .where(and(eq(texts.project_id, project_id), pathMatchesAnyPrefix(texts.path, prefixes)));
+  const paths = await listProjectPathsAtOrUnderPrefixes(tx, project_id, prefixes);
+  const projectPathIds = paths.map((row) => row.id);
+  if (projectPathIds.length === 0) {
+    return { textAndMediaPaths: [], translationPaths: [] };
+  }
 
-  const mediaRows = await tx
-    .select({ path: media_attachment.path })
-    .from(media_attachment)
-    .where(
-      and(
-        eq(media_attachment.project_id, project_id),
-        pathMatchesAnyPrefix(media_attachment.path, prefixes)
-      )
-    );
-
-  const translationRows = await tx
-    .select({ lang_id: translations.lang_id, path: translations.path })
-    .from(translations)
-    .where(
-      and(
-        eq(translations.project_id, project_id),
-        pathMatchesAnyPrefix(translations.path, prefixes)
-      )
-    );
+  const [textRows, mediaRows, translationRows] = await Promise.all([
+    tx
+      .select({ path: project_paths.path })
+      .from(texts)
+      .innerJoin(project_paths, eq(texts.project_path_id, project_paths.id))
+      .where(inArray(texts.project_path_id, projectPathIds)),
+    tx
+      .select({ path: project_paths.path })
+      .from(media_attachment)
+      .innerJoin(project_paths, eq(media_attachment.project_path_id, project_paths.id))
+      .where(inArray(media_attachment.project_path_id, projectPathIds)),
+    tx
+      .select({ lang_id: translations.lang_id, path: project_paths.path })
+      .from(translations)
+      .innerJoin(project_paths, eq(translations.project_path_id, project_paths.id))
+      .where(inArray(translations.project_path_id, projectPathIds))
+  ]);
 
   const pathSet = new Set<string>();
   for (const row of textRows) pathSet.add(row.path);

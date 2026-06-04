@@ -4,10 +4,11 @@ import { z } from 'zod';
 import { db } from '~/db/db';
 import { error } from '@sveltejs/kit';
 import { texts } from '~/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import { shloka_list_schema } from '~/state/data_types';
 import { remove_vedic_svara_chihnAni } from '~/utils/normalize_text';
+import { requireProjectPath } from '~/server/project_paths_db.server';
 
 const CACHE_KEY_DB_NAME = 'cache_verify_key';
 
@@ -44,15 +45,15 @@ export const POST: RequestHandler = async ({ url, request }) => {
       await Promise.all(
         path_params_list.map(async ({ path_params, new_shloka_list }) => {
           const path = path_params.join(':');
+          const projectPath = await requireProjectPath(tx, project_id, path);
 
-          // safest sync: replace rows for this (project_id, path)
-          await tx.delete(texts).where(and(eq(texts.project_id, project_id), eq(texts.path, path)));
+          // safest sync: replace rows for this resolved project path row
+          await tx.delete(texts).where(eq(texts.project_path_id, projectPath.id));
 
           if (new_shloka_list.length > 0) {
             await tx.insert(texts).values(
               new_shloka_list.map((s) => ({
-                project_id,
-                path,
+                project_path_id: projectPath.id,
                 index: s.index,
                 shloka_num: s.shloka_num,
                 text: s.text,

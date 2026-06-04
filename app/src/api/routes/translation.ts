@@ -2,7 +2,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAppScopeProcedure_ProjectsPortal, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
-import { translations } from '~/db/schema';
+import { project_paths, translations } from '~/db/schema';
 import { delay } from '~/tools/delay';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { cache_db_options_app } from '~/server/cache_db_options';
@@ -10,6 +10,7 @@ import { get_project_info_by_id } from '~/server/project_list.server';
 import { get_languages_for_project_user } from './project/project';
 import { get_path_params } from '~/state/project_list';
 import { get_translation_data_func } from '~/server/cached_loader';
+import { requireProjectPath } from '~/server/project_paths_db.server';
 
 const get_translation_route = publicProcedure
   .input(
@@ -46,6 +47,7 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
       const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
       const path_params = get_path_params(selected_text_levels, levels);
       const path = path_params.join(':');
+      const projectPath = await requireProjectPath(db, project_id, path);
 
       // authorization check to edit or add lang records
       if (user.role !== 'admin') {
@@ -63,9 +65,8 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
               .from(translations)
               .where(
                 and(
-                  eq(translations.project_id, project_id),
+                  eq(translations.project_path_id, projectPath.id),
                   eq(translations.lang_id, lang_id),
-                  eq(translations.path, path),
                   inArray(translations.index, indexes)
                 )
               )
@@ -80,9 +81,8 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
           add_entries.length > 0 &&
             tx.insert(translations).values(
               add_entries.map(([index, i]) => ({
-                project_id,
+                project_path_id: projectPath.id,
                 lang_id,
-                path,
                 index,
                 text: data[i]
               }))
@@ -94,9 +94,8 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
               .set({ text: data[dataIndex] })
               .where(
                 and(
-                  eq(translations.project_id, project_id),
+                  eq(translations.project_path_id, projectPath.id),
                   eq(translations.lang_id, lang_id),
-                  eq(translations.path, path),
                   eq(translations.index, index)
                 )
               )
@@ -125,15 +124,16 @@ const get_all_langs_translation_route = protectedAppScopeProcedure_ProjectsPorta
     const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
     const path_params = get_path_params(selected_text_levels, levels);
     const path = path_params.join(':');
-    const data = await db.query.translations.findMany({
-      columns: {
-        index: true,
-        text: true,
-        lang_id: true
-      },
-      where: (tbl, { eq, and }) => and(eq(tbl.project_id, project_id), eq(tbl.path, path)),
-      orderBy: ({ lang_id, index }, { asc }) => [asc(lang_id), asc(index)]
-    });
+    const projectPath = await requireProjectPath(db, project_id, path);
+    const data = await db
+      .select({
+        index: translations.index,
+        text: translations.text,
+        lang_id: translations.lang_id
+      })
+      .from(translations)
+      .where(eq(translations.project_path_id, projectPath.id))
+      .orderBy(translations.lang_id, translations.index);
     const data_map = new Map<number, Map<number, string>>();
     for (let i = 0; i < data.length; i++) {
       if (!data_map.has(data[i].lang_id)) data_map.set(data[i].lang_id, new Map());

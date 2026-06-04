@@ -17,6 +17,7 @@ import {
 
 const lekha_post_input = SiteLekhaSchemaZod.omit({
   id: true,
+  created_at: true,
   published_at: true,
   updated_at: true
 });

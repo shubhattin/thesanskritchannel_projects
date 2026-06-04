@@ -5,7 +5,6 @@ import {
   applyDeletePathCompactions,
   buildRedisKeysForDeleteInvalidation,
   collectDeleteInvalidation,
-  countExactPathResources,
   deleteResourcesAtPathPrefixes
 } from '~/server/map_path_delete_db.server';
 import {
@@ -38,13 +37,18 @@ import {
 import {
   applyMetadataEditsToMap,
   applySwapEditsToMap,
-  DB_PATH_RE,
   validateOrderRootPath,
   validateSwapEdits,
-  validateSwapEditsRootScope
+  validateSwapEditsRootScope,
+  validateDbPath
 } from '~/server/map_path_swap';
 import { delay } from '~/tools/delay';
 import { recursive_list_schema } from '~/state/data_types';
+import { countExactPathResources, insertProjectPaths } from '~/server/project_paths_db.server';
+import {
+  collect_db_paths_from_map,
+  validate_explicit_to_add_paths
+} from '~/server/project_map_sync.server';
 
 const project_id_input = z.object({
   project_id: z.int()
@@ -76,7 +80,8 @@ const invalidate_project_caches = async (
 export const update_project_map_route = protectedAdminProcedure
   .input(
     project_id_input.extend({
-      map: recursive_list_schema
+      map: recursive_list_schema,
+      to_add_paths: z.array(z.string()).default([])
     })
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
@@ -102,6 +107,12 @@ export const update_project_map_route = protectedAdminProcedure
         });
       }
 
+      const oldPaths = collect_db_paths_from_map(existing.map);
+      const derivedPaths = collect_db_paths_from_map(map);
+      const toAddPaths = validate_explicit_to_add_paths(oldPaths, derivedPaths, input.to_add_paths);
+
+      await insertProjectPaths(tx, input.project_id, toAddPaths);
+
       await tx
         .update(projects)
         .set({
@@ -117,9 +128,9 @@ export const update_project_map_route = protectedAdminProcedure
     return { success: true as const, map: project.map };
   });
 
-const db_path_schema = z
-  .string()
-  .regex(DB_PATH_RE, 'Path must be a colon-separated list of positive integers');
+const db_path_schema = z.string().refine((path) => validateDbPath(path) === null, {
+  message: 'Path must be a colon-separated list of positive integers'
+});
 
 const save_project_map_order = protectedAdminProcedure
   .input(
@@ -149,7 +160,11 @@ const save_project_map_order = protectedAdminProcedure
 
     await delay(400);
 
-    const { project, redisKeys } = await db.transaction(async (tx) => {
+    const {
+      project,
+      map: derivedMap,
+      redisKeys
+    } = await db.transaction(async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(${PROJECT_MAP_ORDER_LOCK_NAMESPACE}, ${project_id})`
       );
@@ -199,7 +214,7 @@ const save_project_map_order = protectedAdminProcedure
 
     await invalidate_project_caches(cookie, project_id, project.key, redisKeys);
 
-    return { success: true as const, swap_count: parsedEdits.length, map };
+    return { success: true as const, swap_count: parsedEdits.length, map: derivedMap };
   });
 
 const delete_project_map_nodes = protectedAdminProcedure

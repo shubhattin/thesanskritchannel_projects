@@ -8,7 +8,8 @@ import {
   index,
   jsonb,
   timestamp,
-  boolean
+  boolean,
+  unique
 } from 'drizzle-orm/pg-core';
 import type { recursive_list_type } from '~/state/data_types';
 import { relations } from 'drizzle-orm';
@@ -27,22 +28,43 @@ export const projects = pgTable('projects', {
   updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
 });
 
-export const texts = pgTable(
-  'texts',
+export const project_paths = pgTable(
+  'project_paths',
   {
+    id: serial().primaryKey(),
     project_id: integer()
       .notNull()
       .references(() => projects.id, { onDelete: 'restrict' }),
     path: text().notNull(),
+    prev_path: text(),
+    // optional field for internal uses, debugging and recovery
+    updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
+  },
+  (table) => [
+    unique('project_paths_project_id_path_unique').on(table.project_id, table.path),
+    index('project_paths_project_id_path_prefix_idx').on(
+      table.project_id,
+      table.path.op('text_ops')
+    )
+  ]
+);
+
+export const texts = pgTable(
+  'texts',
+  {
+    project_path_id: integer()
+      .notNull()
+      .references(() => project_paths.id, { onDelete: 'cascade' }),
     index: integer().notNull(),
     shloka_num: integer(),
     text: text().default('').notNull(),
     /** Used for search queries (trigram search) */
-    text_search: text().default('').notNull()
+    text_search: text().default('').notNull(),
+    updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
   },
-  ({ project_id, path, index }) => [
+  ({ project_path_id, index }) => [
     primaryKey({
-      columns: [project_id, path, index]
+      columns: [project_path_id, index]
     })
   ]
 );
@@ -50,17 +72,17 @@ export const texts = pgTable(
 export const translations = pgTable(
   'translations',
   {
-    project_id: integer()
+    project_path_id: integer()
       .notNull()
-      .references(() => projects.id, { onDelete: 'restrict' }),
+      .references(() => project_paths.id, { onDelete: 'cascade' }),
     lang_id: integer().notNull(),
-    path: text().notNull(),
     index: integer().notNull(),
-    text: text().default('').notNull()
+    text: text().default('').notNull(),
+    updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
   },
-  ({ project_id, lang_id, path, index }) => [
+  ({ project_path_id, lang_id, index }) => [
     primaryKey({
-      columns: [project_id, lang_id, path, index]
+      columns: [project_path_id, lang_id, index]
     })
   ]
 );
@@ -79,17 +101,17 @@ export const media_attachment = pgTable(
   'media_attachment',
   {
     id: serial().primaryKey(),
-    project_id: integer()
+    project_path_id: integer()
       .notNull()
-      .references(() => projects.id, { onDelete: 'restrict' }),
+      .references(() => project_paths.id, { onDelete: 'cascade' }),
     lang_id: integer(),
     // lang_id of the resource (null if not specific)
-    path: text().notNull(),
     media_type: media_type_enum().notNull(),
     link: text().notNull(),
-    name: text().notNull()
+    name: text().notNull(),
+    updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
   },
-  ({ project_id, path }) => [index().on(project_id, path)]
+  ({ project_path_id }) => [index().on(project_path_id)]
 );
 
 export const site_lekhas = pgTable(
@@ -102,6 +124,7 @@ export const site_lekhas = pgTable(
     url_slug: text('url_slug').notNull().unique(),
     /** Markdown content */
     content: text('content').notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     published_at: timestamp('published_at', { withTimezone: true }),
     updated_at: timestamp('updated_at', { withTimezone: true }).$onUpdate(() => new Date()),
     draft: boolean('draft').notNull().default(true),
@@ -141,23 +164,40 @@ export const user_project_language_join = pgTable(
 // relations
 
 export const projectRelations = relations(projects, ({ many }) => ({
-  texts: many(texts),
-  translations: many(translations),
-  media_attachment: many(media_attachment),
+  project_paths: many(project_paths),
   users_join: many(user_project_join),
   user_language_join: many(user_project_language_join)
 }));
 
+export const projectPathRelations = relations(project_paths, ({ many, one }) => ({
+  project: one(projects, {
+    fields: [project_paths.project_id],
+    references: [projects.id]
+  }),
+  texts: many(texts),
+  translations: many(translations),
+  media_attachment: many(media_attachment)
+}));
+
 export const textRelations = relations(texts, ({ one }) => ({
-  project: one(projects, { fields: [texts.project_id], references: [projects.id] })
+  project_path: one(project_paths, {
+    fields: [texts.project_path_id],
+    references: [project_paths.id]
+  })
 }));
 
 export const translationRelations = relations(translations, ({ one }) => ({
-  project: one(projects, { fields: [translations.project_id], references: [projects.id] })
+  project_path: one(project_paths, {
+    fields: [translations.project_path_id],
+    references: [project_paths.id]
+  })
 }));
 
 export const mediaAttachmentRelations = relations(media_attachment, ({ one }) => ({
-  project: one(projects, { fields: [media_attachment.project_id], references: [projects.id] })
+  project_path: one(project_paths, {
+    fields: [media_attachment.project_path_id],
+    references: [project_paths.id]
+  })
 }));
 
 export const userProjectJoinRelations = relations(user_project_join, ({ one }) => ({

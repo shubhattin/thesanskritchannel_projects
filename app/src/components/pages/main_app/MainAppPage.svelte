@@ -3,7 +3,7 @@
   import { goto } from '$app/navigation';
   import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
   import { onMount, untrack } from 'svelte';
-  import { writable } from 'svelte/store';
+  import { get, writable } from 'svelte/store';
   import { z } from 'zod';
   import { LanguageIcon, MultimediaIcon } from '~/components/icons';
   import {
@@ -40,11 +40,10 @@
   import type { recursive_list_type } from '~/state/data_types';
   import { transliterate_custom } from '~/tools/converter';
   import { delay } from '~/tools/delay';
-  import { get_script_for_lang, get_text_font_class } from '~/tools/font_tools';
+  import { get_script_for_lang } from '~/tools/font_tools';
   import Icon from '~/tools/Icon.svelte';
   import { fade, scale, slide } from 'svelte/transition';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
-  import { AiOutlineStop } from 'svelte-icons-pack/ai';
   import Display from './display/Display.svelte';
   import {
     english_edit_status,
@@ -63,6 +62,10 @@
   import { Button } from '$lib/components/ui/button';
   import * as Select from '$lib/components/ui/select';
   import ProjectSettingsBar from './settings/ProjectSettingsBar.svelte';
+  import TextLevelSelector from './TextLevelSelector.svelte';
+  import EditListNameDialog, { type ListNameEditTarget } from './EditListNameDialog.svelte';
+  import EditNameDevDialog, { type NameDevEditTarget } from './EditNameDevDialog.svelte';
+  import { create_map_metadata_save_mutation } from './map_metadata_save';
 
   const query_client = useQueryClient();
 
@@ -106,6 +109,27 @@
 
   const levels = $derived($project_state.levels);
   const level_names = $derived($project_state.level_names);
+  const is_admin = $derived($user_info?.role === 'admin');
+  const project_id = $derived($project_state.project_id);
+
+  const map_metadata_save_mut = create_map_metadata_save_mutation(
+    () => get(project_state).project_id ?? undefined
+  );
+
+  let list_name_dialog_open = $state(false);
+  let list_name_target = $state<ListNameEditTarget | null>(null);
+  let name_dev_dialog_open = $state(false);
+  let name_dev_target = $state<NameDevEditTarget | null>(null);
+
+  function open_list_name_edit(map: recursive_list_type, path: number[], initial_value: string) {
+    list_name_target = { path, initial_value, map };
+    list_name_dialog_open = true;
+  }
+
+  function open_name_dev_edit(map: recursive_list_type, path: number[], initial_value: string) {
+    name_dev_target = { path, initial_value, map };
+    name_dev_dialog_open = true;
+  }
   const active_leaf_state_index = $derived.by(() => {
     for (let i = 0; i < levels - 1; i++) {
       if ($selected_text_levels[i] != null) return i;
@@ -204,32 +228,6 @@
       update_viewing_script_selection: false
     });
   });
-
-  const transliterate_options = async (options: option_type[], script: script_list_type) => {
-    if (!browser) return options;
-    const transliterate_texts = await transliterate_custom(
-      options.map((v) => v.text!),
-      BASE_SCRIPT,
-      script
-    );
-    return options.map((v, i) => ({ ...v, text: transliterate_texts[i] }));
-  };
-
-  const transliterate_selected_label = async (
-    options: false | option_type[],
-    initial_option: option_type,
-    selected_value: number | null,
-    script: script_list_type
-  ) => {
-    if (!selected_value) return 'Select';
-    const selected_text = options
-      ? (options.find((o) => o.value === selected_value)?.text ?? '')
-      : (initial_option.text ?? '');
-    if (!selected_text) return `${selected_value}.`;
-    if (!browser || script === BASE_SCRIPT) return `${selected_value}. ${selected_text}`;
-    const text_tr = await transliterate_custom(selected_text, BASE_SCRIPT, script);
-    return `${selected_value}. ${text_tr}`;
-  };
 
   let trans_lang_selection = writable(0);
   $trans_lang = $trans_lang_selection;
@@ -364,99 +362,51 @@
       : initial_option_base}
   {@const list_at_depth =
     map_root && get_map_list_at_depth(map_root, levels, $selected_text_levels, i)}
+  {@const list_name_path = path_params.slice(0, i) as number[]}
+  {@const list_name_node = map_root ? get_node_at_path(map_root, list_name_path) : null}
+  {@const name_dev_path =
+    map_root && initial_option_base.value ? (path_params.slice(0, i + 1) as number[]) : null}
   {#if i === 0 || list_at_depth || initial_option.value}
-    {@render selecter({
-      name: level_name,
-      text_level_state_index,
-      initial_option,
-      options: list_at_depth
+    <TextLevelSelector
+      name={level_name}
+      {text_level_state_index}
+      {initial_option}
+      options={list_at_depth
         ? map_list_nodes_to_selector_options(list_at_depth, {
             mark_empty_child: i < levels - 2
           })
-        : false
-    })}
+        : false}
+      is_admin={is_admin && !!map_root}
+      controls_disabled={$editing_status_on}
+      show_name_dev_edit={!!name_dev_path && name_dev_path.length > 0}
+      on_edit_list_name={() => {
+        if (!map_root || !list_name_node || list_name_node.info.type !== 'list') return;
+        open_list_name_edit(map_root, list_name_path, list_name_node.info.list_name);
+      }}
+      on_edit_name_dev={() => {
+        if (!map_root || !name_dev_path?.length) return;
+        const node = get_node_at_path(map_root, name_dev_path);
+        if (!node) return;
+        open_name_dev_edit(map_root, name_dev_path, node.name_dev);
+      }}
+    />
   {/if}
 {/each}
 
-{#snippet selecter({
-  name,
-  options,
-  initial_option,
-  text_level_state_index
-}: {
-  name: string;
-  initial_option: option_type;
-  options: false | option_type[];
-  text_level_state_index: number;
-})}
-  <label class="block space-x-2 sm:space-x-3">
-    <span class="text-sm font-bold sm:text-base">Select {name}</span>
-    <Select.Root
-      type="single"
-      value={$selected_text_levels[text_level_state_index]?.toString() ?? ''}
-      onValueChange={(v) => {
-        const next_value = v ? parseInt(v) : null;
-        $selected_text_levels[text_level_state_index] = next_value;
-        // If a higher level changes, clear all dependent lower levels.
-        for (let i = 0; i < text_level_state_index; i++) {
-          $selected_text_levels[i] = null;
-        }
-      }}
-      disabled={$editing_status_on}
-    >
-      <Select.Trigger
-        class={`${get_text_font_class($viewing_script)} inline-flex h-10 w-44 px-2 py-1 sm:h-12 sm:w-52`}
-      >
-        {#await transliterate_selected_label(options, initial_option, $selected_text_levels[text_level_state_index], $viewing_script)}
-          {$selected_text_levels[text_level_state_index]
-            ? $selected_text_levels[text_level_state_index] + '. ' + initial_option.text
-            : 'Select'}
-        {:then label}
-          {label}
-        {/await}
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Item value="">Select</Select.Item>
-        {#if !options}
-          {#if initial_option.value}
-            <Select.Item value={initial_option.value.toString()}>
-              <span class="flex w-full items-center justify-between gap-2">
-                <span>{initial_option.value}. {initial_option.text}</span>
-                {#if initial_option.empty_child}
-                  <Icon class="text-base opacity-70" src={AiOutlineStop} />
-                {/if}
-              </span>
-            </Select.Item>
-          {/if}
-        {:else}
-          {#await transliterate_options(options, $viewing_script)}
-            {#each options as option}
-              <Select.Item value={option.value!.toString()}>
-                <span class="flex w-full items-center justify-between gap-2">
-                  <span>{option.value}. {option.text}</span>
-                  {#if option.empty_child}
-                    <Icon class="size-4 opacity-70" src={AiOutlineStop} />
-                  {/if}
-                </span>
-              </Select.Item>
-            {/each}
-          {:then options_tr}
-            {#each options_tr as option}
-              <Select.Item value={option.value!.toString()}>
-                <span class="flex w-full items-center justify-between gap-2">
-                  <span>{option.value}. {option.text}</span>
-                  {#if option.empty_child}
-                    <Icon class="size-4 opacity-70" src={AiOutlineStop} />
-                  {/if}
-                </span>
-              </Select.Item>
-            {/each}
-          {/await}
-        {/if}
-      </Select.Content>
-    </Select.Root>
-  </label>
-{/snippet}
+{#if project_id}
+  <EditListNameDialog
+    bind:open={list_name_dialog_open}
+    bind:target={list_name_target}
+    {project_id}
+    save_mut={map_metadata_save_mut}
+  />
+  <EditNameDevDialog
+    bind:open={name_dev_dialog_open}
+    bind:target={name_dev_target}
+    {project_id}
+    save_mut={map_metadata_save_mut}
+  />
+{/if}
 
 {#if $text_data_present}
   <div class="space-x-1 sm:space-x-3">

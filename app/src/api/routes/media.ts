@@ -22,7 +22,7 @@ const get_media_list_route = publicProcedure
     const path_params = get_path_params(selected_text_levels, levels);
     type return_type = {
       id: number;
-      lang_id: number;
+      lang_id: number | null;
       media_type: string;
       link: string;
       name: string;

@@ -82,7 +82,8 @@ export const media_attachment = pgTable(
     project_id: integer()
       .notNull()
       .references(() => projects.id, { onDelete: 'restrict' }),
-    lang_id: integer().notNull(),
+    lang_id: integer(),
+    // lang_id of the resource (null if not specific)
     path: text().notNull(),
     media_type: media_type_enum().notNull(),
     link: text().notNull(),

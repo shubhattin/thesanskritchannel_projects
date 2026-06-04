@@ -12,6 +12,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as Select from '$lib/components/ui/select';
+  import { toast } from 'svelte-sonner';
 
   let { modal_open_state = $bindable() }: { modal_open_state: boolean } = $props();
 
@@ -19,6 +20,7 @@
 
   const add_media_link_mut = client_q.media.add_media_link.mutation({
     onSuccess() {
+      toast.success('Media link added');
       quert_client.invalidateQueries({
         queryKey: [
           ['media', 'get_media_list'],
@@ -33,18 +35,27 @@
         exact: true
       });
       modal_open_state = false;
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Failed to add media link');
     }
   });
 
+  const LANG_NONE = '';
+
   let media_type = $state<media_list_type>('video');
-  let lang_id = $state(1);
+  let lang_id = $state<number | null>(1);
   let url = $state('');
   let name = $state('');
 
+  const lang_label = (id: number | null) =>
+    id === null
+      ? '--'
+      : (Object.entries(lang_list_obj).find(([, langId]) => langId === id)?.[0] ?? '--');
+
   const add_link_func = (e: Event) => {
     e.preventDefault();
-    if (url === '' || !z.string().url().safeParse(url).success || name === '' || lang_id === 0)
-      return;
+    if (url === '' || !z.string().url().safeParse(url).success || name === '') return;
     $add_media_link_mut.mutate({
       project_id: $project_state.project_id!,
       selected_text_levels: $selected_text_levels,
@@ -82,15 +93,16 @@
     <Label for="language" class="font-semibold">Language</Label>
     <Select.Root
       type="single"
-      value={lang_id.toString()}
+      value={lang_id === null ? LANG_NONE : lang_id.toString()}
       onValueChange={(v) => {
-        lang_id = parseInt(v) || 0;
+        lang_id = v === LANG_NONE ? null : parseInt(v);
       }}
     >
       <Select.Trigger id="language" class="w-full text-sm">
-        {Object.entries(lang_list_obj).find(([, id]) => id === lang_id)?.[0] ?? 'English'}
+        {lang_label(lang_id)}
       </Select.Trigger>
       <Select.Content>
+        <Select.Item value={LANG_NONE}>--</Select.Item>
         {#each Object.entries(lang_list_obj) as [lang, id]}
           <Select.Item value={id.toString()}>{lang}</Select.Item>
         {/each}

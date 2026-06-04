@@ -13,6 +13,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as Select from '$lib/components/ui/select';
+  import { toast } from 'svelte-sonner';
 
   type link_info_type = Awaited<ReturnType<typeof client.media.get_media_list.query>>[0];
 
@@ -42,11 +43,15 @@
         exact: true
       });
       modal_open_state = false;
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Failed to delete media link');
     }
   });
 
   const update_media_link_mut = client_q.media.update_media_link.mutation({
     onSuccess() {
+      toast.success('Media link updated');
       quert_client.invalidateQueries({
         queryKey: [
           ['media', 'get_media_list'],
@@ -61,13 +66,27 @@
         exact: true
       });
       modal_open_state = false;
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Failed to update media link');
     }
   });
 
+  const LANG_NONE = '';
+
   let media_type = $derived<media_list_type>(link_info.media_type as media_list_type);
-  let lang_id = $derived(link_info.lang_id);
+  let lang_id = $state<number | null>(null);
   let url = $derived(link_info.link);
   let name = $derived(link_info.name);
+
+  $effect.pre(() => {
+    lang_id = link_info.lang_id;
+  });
+
+  const lang_label = (id: number | null) =>
+    id === null
+      ? '--'
+      : (Object.entries(lang_list_obj).find(([, langId]) => langId === id)?.[0] ?? '--');
 
   const del_link_func = () => {
     $del_media_link_mut.mutate({
@@ -79,8 +98,7 @@
 
   const update_link_func = (e: Event) => {
     e.preventDefault();
-    if (url === '' || !z.string().url().safeParse(url).success || name === '' || lang_id === 0)
-      return;
+    if (url === '' || !z.string().url().safeParse(url).success || name === '') return;
     $update_media_link_mut.mutate({
       project_id: $project_state.project_id!,
       selected_text_levels: $selected_text_levels,
@@ -139,15 +157,16 @@
     <Label for="edit-language" class="font-semibold">Language</Label>
     <Select.Root
       type="single"
-      value={lang_id.toString()}
+      value={lang_id === null ? LANG_NONE : lang_id.toString()}
       onValueChange={(v) => {
-        lang_id = parseInt(v) || 0;
+        lang_id = v === LANG_NONE ? null : parseInt(v);
       }}
     >
       <Select.Trigger id="edit-language" class="w-full text-sm">
-        {Object.entries(lang_list_obj).find(([, id]) => id === lang_id)?.[0] ?? 'English'}
+        {lang_label(lang_id)}
       </Select.Trigger>
       <Select.Content>
+        <Select.Item value={LANG_NONE}>--</Select.Item>
         {#each Object.entries(lang_list_obj) as [lang, id]}
           <Select.Item value={id.toString()}>{lang}</Select.Item>
         {/each}

@@ -16,6 +16,7 @@ import {
 import mime from 'mime-types';
 import {
   MediaAttachmentSchemaZod,
+  ProjectPathSchemaZod,
   ProjectSchemaZod,
   SiteLekhaSchemaZod,
   TextSchemaZod,
@@ -125,6 +126,8 @@ async function backup_data() {
     fs.writeFileSync(`./backup/media_attachment.csv`, media_attachment_csv);
     const projects_csv = json2csv(ProjectSchemaZod.array().parse(data['projects']));
     fs.writeFileSync(`./backup/projects.csv`, projects_csv);
+    const project_paths_csv = json2csv(ProjectPathSchemaZod.array().parse(data['project_paths']));
+    fs.writeFileSync(`./backup/project_paths.csv`, project_paths_csv);
   }
   if (!argv.includes('--no-zip-backup')) {
     const archiveName = 'backup.7z';
@@ -304,7 +307,7 @@ async function main() {
     const backup_key = `${BACKUP_FOLDER_NAME}/${current_date_key}.7z`;
     await uploadFile(envs.AWS_DB_BACKUP_BUCKET_NAME, backup_key, './backup/backup.7z');
 
-    const MIN_BACKUPS_TO_KEEP = 5;
+    const MIN_BACKUPS_TO_KEEP = 12;
     await cleanupOldBackups(
       envs.AWS_DB_BACKUP_BUCKET_NAME,
       BACKUP_FOLDER_NAME + '/',

@@ -362,10 +362,11 @@
       : initial_option_base}
   {@const list_at_depth =
     map_root && get_map_list_at_depth(map_root, levels, $selected_text_levels, i)}
-  {@const list_name_path = path_params.slice(0, i) as number[]}
+  {@const dynamic_path = get_path_params_from_selected($selected_text_levels, levels)}
+  {@const list_name_path = dynamic_path.slice(0, i) as number[]}
   {@const list_name_node = map_root ? get_node_at_path(map_root, list_name_path) : null}
   {@const name_dev_path =
-    map_root && initial_option_base.value ? (path_params.slice(0, i + 1) as number[]) : null}
+    map_root && dynamic_path.length > i ? (dynamic_path.slice(0, i + 1) as number[]) : null}
   {#if i === 0 || list_at_depth || initial_option.value}
     <TextLevelSelector
       name={level_name}

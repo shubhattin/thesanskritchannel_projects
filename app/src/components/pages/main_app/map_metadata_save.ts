@@ -53,16 +53,17 @@ export function create_map_metadata_save_mutation(
   options?: { onMapSaved?: (map: recursive_list_type) => void }
 ) {
   return client_q.project.map_edit.update.mutation({
-    onSuccess: async ({ map }) => {
-      const project_id = getProjectId();
-      if (project_id === undefined) return;
+    onSuccess: async ({ map }, variables) => {
+      const mutation_project_id = variables.project_id;
+      await invalidate_project_registry_queries(mutation_project_id);
 
-      await invalidate_project_registry_queries(project_id);
-
-      project_state.update((s) => ({
-        ...s,
-        level_names: get_level_names_from_map(map).slice(0, s.levels)
-      }));
+      const current_project_id = getProjectId();
+      if (current_project_id === mutation_project_id) {
+        project_state.update((s) => ({
+          ...s,
+          level_names: get_level_names_from_map(map).slice(0, s.levels)
+        }));
+      }
 
       options?.onMapSaved?.(map);
       toast.success('Map updated');

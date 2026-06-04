@@ -62,20 +62,22 @@
 </script>
 
 <label class="block space-x-2 sm:space-x-3">
-  <span class="text-sm font-bold sm:text-base">Select {name}</span>
-  {#if is_admin}
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      class="inline-flex size-8 shrink-0 align-middle"
-      title="Edit level label"
-      disabled={controls_disabled}
-      onclick={() => on_edit_list_name?.()}
-    >
-      <Icon src={BiEdit} class="text-lg" />
-    </Button>
-  {/if}
+  <span class="inline-flex items-center gap-0.5">
+    <span class="text-sm font-bold sm:text-base">Select {name}</span>
+    {#if is_admin}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        class="inline-flex size-8 shrink-0 align-middle"
+        title="Edit level label"
+        disabled={controls_disabled}
+        onclick={() => on_edit_list_name?.()}
+      >
+        <Icon src={BiEdit} class="text-lg" />
+      </Button>
+    {/if}
+  </span>
   <Select.Root
     type="single"
     value={$selected_text_levels[text_level_state_index]?.toString() ?? ''}

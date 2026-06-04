@@ -1,9 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { and, count, eq, inArray, or, sql, type SQL } from 'drizzle-orm';
-import { db, type transactionType } from '~/db/db';
-import { media_attachment, project_paths, texts, translations } from '~/db/schema';
-
-type TxOrDb = transactionType | typeof db;
+import type { TxOrDb } from '../db/db_types';
+import { media_attachment, project_paths, texts, translations } from '../db/schema';
 
 export type ProjectPathRow = {
   id: number;
@@ -39,7 +37,11 @@ export const requireProjectPaths = async (
   if (deduped.length === 0) return new Map();
 
   const rows = await txOrDb
-    .select({ id: project_paths.id, project_id: project_paths.project_id, path: project_paths.path })
+    .select({
+      id: project_paths.id,
+      project_id: project_paths.project_id,
+      path: project_paths.path
+    })
     .from(project_paths)
     .where(and(eq(project_paths.project_id, project_id), inArray(project_paths.path, deduped)));
 
@@ -55,26 +57,23 @@ export const requireProjectPaths = async (
 };
 
 export const insertProjectPaths = async (
-  tx: transactionType,
+  tx: TxOrDb,
   project_id: number,
   paths: string[]
 ): Promise<void> => {
   const deduped = [...new Set(paths)];
   if (deduped.length === 0) return;
 
-  const existing = await tx
-    .select({ path: project_paths.path })
-    .from(project_paths)
-    .where(and(eq(project_paths.project_id, project_id), inArray(project_paths.path, deduped)));
-  const existingSet = new Set(existing.map((row) => row.path));
-  const toInsert = deduped.filter((path) => !existingSet.has(path));
-  if (toInsert.length === 0) return;
-
-  await tx.insert(project_paths).values(toInsert.map((path) => ({ project_id, path })));
+  await tx
+    .insert(project_paths)
+    .values(deduped.map((path) => ({ project_id, path })))
+    .onConflictDoNothing({
+      target: [project_paths.project_id, project_paths.path]
+    });
 };
 
 export const listProjectPathsAtOrUnderPrefixes = async (
-  tx: transactionType,
+  tx: TxOrDb,
   project_id: number,
   prefixes: string[]
 ): Promise<Array<{ id: number; path: string }>> => {
@@ -85,7 +84,10 @@ export const listProjectPathsAtOrUnderPrefixes = async (
     .select({ id: project_paths.id, path: project_paths.path })
     .from(project_paths)
     .where(
-      and(eq(project_paths.project_id, project_id), clauses.length === 1 ? clauses[0]! : or(...clauses)!)
+      and(
+        eq(project_paths.project_id, project_id),
+        clauses.length === 1 ? clauses[0]! : or(...clauses)!
+      )
     )
     .orderBy(project_paths.path);
 };
@@ -104,7 +106,7 @@ export const countResourcesForProject = async (
 };
 
 export const countExactPathResources = async (
-  tx: transactionType,
+  tx: TxOrDb,
   project_id: number,
   path: string
 ): Promise<{

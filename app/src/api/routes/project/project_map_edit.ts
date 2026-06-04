@@ -44,10 +44,7 @@ import {
 } from '~/server/map_path_swap';
 import { delay } from '~/tools/delay';
 import { recursive_list_schema } from '~/state/data_types';
-import {
-  countExactPathResources,
-  insertProjectPaths
-} from '~/server/project_paths_db.server';
+import { countExactPathResources, insertProjectPaths } from '~/server/project_paths_db.server';
 import {
   collect_db_paths_from_map,
   validate_explicit_to_add_paths
@@ -114,11 +111,7 @@ export const update_project_map_route = protectedAdminProcedure
       const derivedPaths = collect_db_paths_from_map(map);
       const toAddPaths = validate_explicit_to_add_paths(oldPaths, derivedPaths, input.to_add_paths);
 
-      await insertProjectPaths(
-        tx,
-        input.project_id,
-        toAddPaths
-      );
+      await insertProjectPaths(tx, input.project_id, toAddPaths);
 
       await tx
         .update(projects)
@@ -135,11 +128,9 @@ export const update_project_map_route = protectedAdminProcedure
     return { success: true as const, map: project.map };
   });
 
-const db_path_schema = z
-  .string()
-  .refine((path) => validateDbPath(path) === null, {
-    message: 'Path must be a colon-separated list of positive integers'
-  });
+const db_path_schema = z.string().refine((path) => validateDbPath(path) === null, {
+  message: 'Path must be a colon-separated list of positive integers'
+});
 
 const save_project_map_order = protectedAdminProcedure
   .input(
@@ -169,7 +160,11 @@ const save_project_map_order = protectedAdminProcedure
 
     await delay(400);
 
-    const { project, map: derivedMap, redisKeys } = await db.transaction(async (tx) => {
+    const {
+      project,
+      map: derivedMap,
+      redisKeys
+    } = await db.transaction(async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(${PROJECT_MAP_ORDER_LOCK_NAMESPACE}, ${project_id})`
       );

@@ -85,7 +85,9 @@ const main = async () => {
 
     // resetting project_paths
     try {
-      await tx.insert(project_paths).values(data.project_paths);
+      for (const chunk of chunkArray(data.project_paths, 5000)) {
+        await tx.insert(project_paths).values(chunk);
+      }
       console.log(
         chalk.green('✓ Successfully added values into table'),
         chalk.blue('`project_paths`')

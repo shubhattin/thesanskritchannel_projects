@@ -594,9 +594,7 @@ export const collect_unsaved_added_db_paths = (
     }
   };
   walk(root, []);
-  return [...paths].sort(
-    (a, b) => a.split(':').length - b.split(':').length || a.localeCompare(b)
-  );
+  return [...paths].sort((a, b) => a.split(':').length - b.split(':').length || a.localeCompare(b));
 };
 
 export const find_node_by_client_id = (

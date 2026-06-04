@@ -10,6 +10,10 @@ import { eq } from 'drizzle-orm';
 import { get_path_params } from '~/state/project_list';
 import { requireProjectPath } from '~/server/project_paths_db.server';
 
+/** DB root path is `''`; cache keys use `[]`, not `[0]` from `''.split(':')`. */
+const path_params_from_db_path = (path: string): number[] =>
+  path === '' ? [] : path.split(':').map(Number);
+
 const get_media_list_route = publicProcedure
   .input(
     z.object({
@@ -99,32 +103,30 @@ const update_media_link_route = protectedAdminProcedure
       selected_text_levels: z.array(z.int().nullable())
     })
   )
-  .mutation(
-    async ({
-      input: { id, lang_id, link, media_type, name }
-    }) => {
-      const existing = await db
-        .select({ project_id: project_paths.project_id, path: project_paths.path })
-        .from(media_attachment)
-        .innerJoin(project_paths, eq(media_attachment.project_path_id, project_paths.id))
-        .where(eq(media_attachment.id, id))
-        .limit(1);
-      const row = existing[0];
-      if (!row) throw new Error('Media link not found');
-      const path_params = row.path.split(':').map(Number);
+  .mutation(async ({ input: { id, lang_id, link, media_type, name } }) => {
+    const existing = await db
+      .select({ project_id: project_paths.project_id, path: project_paths.path })
+      .from(media_attachment)
+      .innerJoin(project_paths, eq(media_attachment.project_path_id, project_paths.id))
+      .where(eq(media_attachment.id, id))
+      .limit(1);
+    const row = existing[0];
+    if (!row) throw new Error('Media link not found');
+    const path_params = path_params_from_db_path(row.path);
 
-      await Promise.all([
-        db
-          .update(media_attachment)
-          .set({ link, media_type, name, lang_id })
-          .where(eq(media_attachment.id, id))
-      ]);
-      await Promise.allSettled([redis.del(REDIS_CACHE_KEYS.media_links(row.project_id, path_params))]);
-      return {
-        success: true
-      };
-    }
-  );
+    await Promise.all([
+      db
+        .update(media_attachment)
+        .set({ link, media_type, name, lang_id })
+        .where(eq(media_attachment.id, id))
+    ]);
+    await Promise.allSettled([
+      redis.del(REDIS_CACHE_KEYS.media_links(row.project_id, path_params))
+    ]);
+    return {
+      success: true
+    };
+  });
 
 const delete_media_link_route = protectedAdminProcedure
   .input(
@@ -143,10 +145,12 @@ const delete_media_link_route = protectedAdminProcedure
       .limit(1);
     const row = existing[0];
     if (!row) throw new Error('Media link not found');
-    const path_params = row.path.split(':').map(Number);
+    const path_params = path_params_from_db_path(row.path);
 
     await Promise.allSettled([db.delete(media_attachment).where(eq(media_attachment.id, link_id))]);
-    await Promise.allSettled([redis.del(REDIS_CACHE_KEYS.media_links(row.project_id, path_params))]);
+    await Promise.allSettled([
+      redis.del(REDIS_CACHE_KEYS.media_links(row.project_id, path_params))
+    ]);
     return {
       success: true
     };

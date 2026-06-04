@@ -132,10 +132,7 @@ const get_delete_resource_counts_for_project = async (project_id: number) => {
   const count_rows_for_project = async (
     tx: transactionType,
     project_id: number,
-    table:
-      | typeof project_paths
-      | typeof user_project_join
-      | typeof user_project_language_join
+    table: typeof project_paths | typeof user_project_join | typeof user_project_language_join
   ) => {
     const [row] = await tx
       .select({ count: count() })
@@ -150,15 +147,14 @@ const get_delete_resource_counts_for_project = async (project_id: number) => {
     project_paths_count,
     users_join_count,
     user_languages_count
-  ] =
-    await Promise.all([
-      countResourcesForProject(db, project_id, texts),
-      countResourcesForProject(db, project_id, translations),
-      countResourcesForProject(db, project_id, media_attachment),
-      count_rows_for_project(db, project_id, project_paths),
-      count_rows_for_project(db, project_id, user_project_join),
-      count_rows_for_project(db, project_id, user_project_language_join)
-    ]);
+  ] = await Promise.all([
+    countResourcesForProject(db, project_id, texts),
+    countResourcesForProject(db, project_id, translations),
+    countResourcesForProject(db, project_id, media_attachment),
+    count_rows_for_project(db, project_id, project_paths),
+    count_rows_for_project(db, project_id, user_project_join),
+    count_rows_for_project(db, project_id, user_project_language_join)
+  ]);
 
   return {
     texts: texts_count,

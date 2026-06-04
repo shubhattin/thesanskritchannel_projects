@@ -4,13 +4,13 @@ import type { recursive_list_type, shloka_list_type } from '../state/data_types'
 import { get_path_params } from '../state/project_list';
 import { get_project_by_key, get_project_info_by_id } from './project_list.server';
 import type { Redis } from '@upstash/redis/cloudflare';
-import type { db } from '~/db/db';
+import type { drizzleDbType } from '../db/db_types';
 import { SiteLekhaSchemaZod } from '../db/schema_zod';
 import { waitUntil } from '@vercel/functions';
 import type z from 'zod';
 import type { project_type } from '../state/project_list';
 import { and, eq } from 'drizzle-orm';
-import { texts, translations } from '~/db/schema';
+import { texts, translations } from '../db/schema';
 import { requireProjectPath } from './project_paths_db.server';
 
 export type defer_promise_type = (promise: Promise<unknown>) => void;
@@ -21,11 +21,10 @@ const defer_promise = (promise: Promise<unknown>, defer?: defer_promise_type) =>
   void promise.catch(() => {});
 };
 
-type DBType = typeof db;
 /** Cross project db, redis instances */
 export type db_options = {
   defer?: defer_promise_type;
-  db: DBType;
+  db: drizzleDbType;
   redis: Redis;
 };
 
@@ -42,7 +41,10 @@ export const get_text_data_func = async (
   const project_id = project.id;
 
   const cache_key = REDIS_CACHE_KEYS_CLIENT.text_data(project_id, path_params);
-  const cache = await redis.get<shloka_list_type>(cache_key);
+  let cache = null;
+  if (import.meta.env.PROD) {
+    cache = await redis.get<shloka_list_type>(cache_key);
+  }
   if (cache) return cache;
 
   const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
@@ -56,12 +58,14 @@ export const get_text_data_func = async (
     .where(eq(texts.project_path_id, projectPath.id))
     .orderBy(texts.index);
 
-  defer_promise(
-    redis.set(cache_key, data, {
-      ex: ms('30days') / 1000
-    }),
-    options.defer
-  );
+  if (import.meta.env.PROD) {
+    defer_promise(
+      redis.set(cache_key, data, {
+        ex: ms('30days') / 1000
+      }),
+      options.defer
+    );
+  }
 
   return data satisfies shloka_list_type;
 };
@@ -98,7 +102,9 @@ export const get_translation_data_func = async (
         text: translations.text
       })
       .from(translations)
-      .where(and(eq(translations.project_path_id, projectPath.id), eq(translations.lang_id, lang_id)))
+      .where(
+        and(eq(translations.project_path_id, projectPath.id), eq(translations.lang_id, lang_id))
+      )
       .orderBy(translations.index);
     if (import.meta.env.PROD) {
       // set cache in background

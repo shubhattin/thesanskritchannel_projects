@@ -41,7 +41,7 @@ export const search_text_in_texts_route = publicProcedure
       const project_id = project.id;
       conditions.push(eq(project_paths.project_id, project_id));
     }
-    if (typeof path_params !== 'undefined') {
+    if (typeof path_params !== 'undefined' && path_params.length > 0) {
       const prefix = path_params.join(':');
       conditions.push(or(eq(project_paths.path, prefix), like(project_paths.path, `${prefix}:%`))!);
     }

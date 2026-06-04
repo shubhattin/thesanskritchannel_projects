@@ -64,7 +64,12 @@ export const deleteResourcesAtPathPrefixes = async (
   if (prefixes.length === 0) return;
   const paths = await listProjectPathsAtOrUnderPrefixes(tx, project_id, prefixes);
   if (paths.length === 0) return;
-  await tx.delete(project_paths).where(inArray(project_paths.id, paths.map((row) => row.id)));
+  await tx.delete(project_paths).where(
+    inArray(
+      project_paths.id,
+      paths.map((row) => row.id)
+    )
+  );
 };
 
 export const applyDeletePathCompactions = async (
@@ -92,6 +97,4 @@ export const buildRedisKeysForDeleteInvalidation = (
   invalidation: PathSwapInvalidation
 ) => buildRedisKeysForPathSwapInvalidation(project_id, invalidation);
 
-export type ExactPathResourceCounts = Awaited<
-  ReturnType<typeof countExactPathResources>
->;
+export type ExactPathResourceCounts = Awaited<ReturnType<typeof countExactPathResources>>;

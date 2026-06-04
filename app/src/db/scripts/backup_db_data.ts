@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import { z } from 'zod';
-import { execFileSync, execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { import_data } from './import_data';
 import { dbClient_ext as db, query_client } from './client';
 import * as dotenv from 'dotenv';
@@ -127,10 +127,28 @@ async function backup_data() {
     fs.writeFileSync(`./backup/projects.csv`, projects_csv);
   }
   if (!argv.includes('--no-zip-backup')) {
-    console.log('Zipping backup files');
-    execSync(
-      'zip backup/backup.zip backup/db_dump_schema.sql backup/db_dump_data.sql backup/db_data.json backup/translations.csv backup/texts.csv'
-    );
+    const archiveName = 'backup.7z';
+    const archivePath = `${OUT_FOLDER}/${archiveName}`;
+    const filesToArchive = fs
+      .readdirSync(OUT_FOLDER)
+      .filter((name) => name !== archiveName)
+      .map((name) => `${OUT_FOLDER}/${name}`);
+    if (filesToArchive.length === 0) {
+      throw new Error('No backup files to archive');
+    }
+    console.log('Archiving backup files with 7z (LZMA2, max compression)');
+    execFileSync('7z', [
+      'a',
+      '-t7z',
+      '-m0=lzma2',
+      '-mx=9',
+      '-bd',
+      '-bb0',
+      '-bso0',
+      '-bsp0',
+      archivePath,
+      ...filesToArchive
+    ]);
   }
   console.log('Backup complete');
 }
@@ -283,8 +301,8 @@ async function main() {
       }
     }
     console.log(current_date_key);
-    const backup_key = `${BACKUP_FOLDER_NAME}/${current_date_key}.zip`;
-    await uploadFile(envs.AWS_DB_BACKUP_BUCKET_NAME, backup_key, './backup/backup.zip');
+    const backup_key = `${BACKUP_FOLDER_NAME}/${current_date_key}.7z`;
+    await uploadFile(envs.AWS_DB_BACKUP_BUCKET_NAME, backup_key, './backup/backup.7z');
 
     const MIN_BACKUPS_TO_KEEP = 5;
     await cleanupOldBackups(

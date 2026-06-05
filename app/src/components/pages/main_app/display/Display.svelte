@@ -62,6 +62,11 @@
   import { main_app_content_edit_dirty } from '~/state/main_app_content_edit_dirty.svelte';
   import { cn } from '$lib/utils';
   import Label from '~/lib/components/ui/label/label.svelte';
+  import {
+    apply_single_normalization_to_texts,
+    get_normalization_options,
+    type NormalizationKey
+  } from '~/tools/text_normalizations';
 
   type TextDraftRow = {
     client_id: string;
@@ -83,6 +88,7 @@
   const query_client = useQueryClient();
 
   const clone_text_rows = (rows: TextDraftRow[]) => rows.map((row) => ({ ...row }));
+  const text_normalization_options = get_normalization_options();
   const clone_translation_rows = (rows: TranslationDraftRow[]) => rows.map((row) => ({ ...row }));
 
   let transliterated_data = $state<string[]>([]);
@@ -93,6 +99,7 @@
   let text_baseline = $state<TextDraftRow[]>([]);
   let text_undo_stack = $state<TextDraftRow[][]>([]);
   let text_focus_group_open = $state(false);
+  let text_actions_popover_open = $state(false);
   let text_drag_index = $state<number | null>(null);
   let text_drop_index = $state<number | null>(null);
   let text_session_key = $state('');
@@ -455,6 +462,23 @@
   const delete_text_row = (client_id: string) => {
     push_text_undo();
     text_rows = text_rows.filter((row) => row.client_id !== client_id);
+  };
+
+  const apply_text_normalization = (key: NormalizationKey) => {
+    if (text_rows.length === 0) return;
+    push_text_undo();
+    const text_indices = text_rows.map((_, index) => index);
+    const updated_texts = apply_single_normalization_to_texts(
+      text_rows.map((row) => row.text),
+      text_indices,
+      key
+    );
+    text_rows = text_rows.map((row, index) => ({
+      ...row,
+      text: updated_texts[index] ?? row.text
+    }));
+    text_focus_group_open = false;
+    text_actions_popover_open = false;
   };
 
   const move_text_row = (from: number, to: number) => {
@@ -836,6 +860,30 @@
       {kind === 'text' ? 'Edit Text' : `Edit ${active_translation_name} Translation`}
     </div>
     <div class="flex flex-wrap items-center gap-2">
+      {#if kind === 'text'}
+        <Popover.Root bind:open={text_actions_popover_open}>
+          <Popover.Trigger>
+            {#snippet child({ props })}
+              <Button {...props} variant="outline" size="sm" disabled={text_rows.length === 0}>
+                Text Actions
+              </Button>
+            {/snippet}
+          </Popover.Trigger>
+          <Popover.Content align="start" class="w-[min(36rem,92vw)] p-1">
+            <div class="grid grid-cols-1 gap-1 sm:grid-cols-2">
+              {#each text_normalization_options as option (option.key)}
+                <button
+                  type="button"
+                  class="rounded-sm border border-border bg-background px-2.5 py-1.5 text-left text-xs leading-snug transition-colors hover:bg-muted"
+                  onclick={() => apply_text_normalization(option.key)}
+                >
+                  {option.description}
+                </button>
+              {/each}
+            </div>
+          </Popover.Content>
+        </Popover.Root>
+      {/if}
       <Button
         variant="outline"
         size="sm"

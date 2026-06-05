@@ -3,6 +3,7 @@ import {
   format_download_text,
   format_shloka_block,
   MISSING_TRANSLATION,
+  parse_import_text,
   should_show_normal_transliteration
 } from './download_text_format';
 
@@ -18,17 +19,11 @@ describe('download_text_format', () => {
 
   it('joins shloka blocks with a blank line', () => {
     expect(
-      format_download_text(
-        ['लिपि २', 'लिपि १'],
-        ['lipi 2', 'lipi 1'],
-        [0, 1],
-        null,
-        {
-          textScript: 'Devanagari',
-          includeNormal: true,
-          includeTranslation: false
-        }
-      )
+      format_download_text(['लिपि २', 'लिपि १'], ['lipi 2', 'lipi 1'], [0, 1], null, {
+        textScript: 'Devanagari',
+        includeNormal: true,
+        includeTranslation: false
+      })
     ).toBe('लिपि २\nlipi 2\n\nलिपि १\nlipi 1');
   });
 
@@ -110,5 +105,135 @@ describe('download_text_format', () => {
     expect(should_show_normal_transliteration('Devanagari')).toBe(true);
     expect(should_show_normal_transliteration('Normal')).toBe(false);
     expect(should_show_normal_transliteration('Romanized')).toBe(false);
+  });
+
+  it('parses text and normal transliteration without translation', () => {
+    expect(
+      parse_import_text(
+        `लिपि २
+lipi 2
+
+लिपि १
+lipi 1`,
+        { includesNormal: true, includesTranslation: false }
+      )
+    ).toEqual({
+      rows: [
+        { text: 'लिपि २', normal: 'lipi 2' },
+        { text: 'लिपि १', normal: 'lipi 1' }
+      ],
+      ignoredBlockCount: 0
+    });
+  });
+
+  it('parses multiline text, normal transliteration, and translation', () => {
+    const input = `स तत्र न्यवसद् भ्रात्रा सह सत्कारसत्कृतः ।
+मातुलेनाश्वपतिना पुत्रस्नेहेन लालितः ॥२-१-२॥
+sa tatra nyavasad bhrAtrA saha satkArasatkRtaH
+mAtulEnAshvapatinA putrasnEhEna lAlitaH 2-1-2
+
+There he dwelt together with his brother, honoured and duly received; and by his maternal uncle, the lord of horses (Aśvapati), he was cherished with a father’s fondness.`;
+
+    expect(parse_import_text(input, { includesNormal: true, includesTranslation: true })).toEqual({
+      rows: [
+        {
+          text: 'स तत्र न्यवसद् भ्रात्रा सह सत्कारसत्कृतः ।\nमातुलेनाश्वपतिना पुत्रस्नेहेन लालितः ॥२-१-२॥',
+          normal:
+            'sa tatra nyavasad bhrAtrA saha satkArasatkRtaH\nmAtulEnAshvapatinA putrasnEhEna lAlitaH 2-1-2',
+          translation:
+            'There he dwelt together with his brother, honoured and duly received; and by his maternal uncle, the lord of horses (Aśvapati), he was cherished with a father’s fondness.'
+        }
+      ],
+      ignoredBlockCount: 0
+    });
+  });
+
+  it('trims redundant leading and trailing spaces per line', () => {
+    expect(
+      parse_import_text(
+        `  लिपि २  
+  lipi 2  
+
+  Translation text  `,
+        { includesNormal: true, includesTranslation: true }
+      )
+    ).toEqual({
+      rows: [{ text: 'लिपि २', normal: 'lipi 2', translation: 'Translation text' }],
+      ignoredBlockCount: 0
+    });
+  });
+
+  it('omits translation when the translation section is a missing marker', () => {
+    expect(
+      parse_import_text(
+        `लिपि २
+lipi 2
+
+-----`,
+        { includesNormal: true, includesTranslation: true }
+      )
+    ).toEqual({
+      rows: [{ text: 'लिपि २', normal: 'lipi 2' }],
+      ignoredBlockCount: 0
+    });
+  });
+
+  it('skips incomplete trailing blocks and reports them', () => {
+    expect(
+      parse_import_text(
+        `लिपि २
+lipi 2
+
+Script two
+
+लिपि १
+lipi 1`,
+        { includesNormal: true, includesTranslation: true }
+      )
+    ).toEqual({
+      rows: [{ text: 'लिपि २', normal: 'lipi 2', translation: 'Script two' }],
+      ignoredBlockCount: 1
+    });
+  });
+
+  it('skips malformed main sections between valid blocks', () => {
+    expect(
+      parse_import_text(
+        `लिपि २
+lipi 2
+
+Script two
+
+only text without normal
+
+Malformed translation
+
+लिपि ३
+lipi 3
+
+Script three`,
+        { includesNormal: true, includesTranslation: true }
+      )
+    ).toEqual({
+      rows: [
+        { text: 'लिपि २', normal: 'lipi 2', translation: 'Script two' },
+        { text: 'लिपि ३', normal: 'lipi 3', translation: 'Script three' }
+      ],
+      ignoredBlockCount: 1
+    });
+  });
+
+  it('parses text with translation when normal is not included', () => {
+    expect(
+      parse_import_text(
+        `लिपि २
+
+Script two`,
+        { includesNormal: false, includesTranslation: true }
+      )
+    ).toEqual({
+      rows: [{ text: 'लिपि २', translation: 'Script two' }],
+      ignoredBlockCount: 0
+    });
   });
 });

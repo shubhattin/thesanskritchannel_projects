@@ -1,4 +1,4 @@
 [install]
-minimumReleaseAge = 259200 # 3 days (secs)
+minimumReleaseAge = 518400 # 6 days (secs)
 
 minimumReleaseAgeExcludes = ["@types/node", "typescript", "lipilekhika"]

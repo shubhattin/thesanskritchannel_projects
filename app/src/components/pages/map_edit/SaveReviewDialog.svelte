@@ -84,9 +84,6 @@
     localSaving = true;
     try {
       await onConfirm();
-      if (!saving) {
-        localSaving = false;
-      }
     } catch {
       localSaving = false;
     }

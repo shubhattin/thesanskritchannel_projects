@@ -95,7 +95,8 @@
   let pending_swaps = $state<PathSwapEdit[]>([]);
   let count_input_invalid = $state(false);
   let treeRef = $state<TreeComponent<MapTreeItem> | undefined>(undefined);
-  let saving_order = $state(false);
+  /** True from confirm through cache invalidation and map reset (after mutation settles). */
+  let finishing_save = $state(false);
   let last_tree_click = $state<{ path: string; at: number } | null>(null);
   let expandedTreePaths = $state<Set<string>>(default_tree_expanded_paths());
 
@@ -252,13 +253,6 @@
     map: recursive_list_type,
     options: { invalidateContent: boolean; successMessage: string }
   ) => {
-    save_review_open = false;
-    editor_mode = 'metadata';
-    order_root_path = null;
-    order_entry_map = null;
-    delete_entry_map = null;
-    pending_swaps = [];
-    clear_all_undo_stacks();
     await invalidate_project_registry_queries(project_id);
     await invalidate_project_map_queries(project_id);
     if (options.invalidateContent) {
@@ -266,8 +260,16 @@
     }
     last_synced_map_key = JSON.stringify(map);
     reset_from_server(map);
+    save_review_open = false;
+    editor_mode = 'metadata';
+    order_root_path = null;
+    order_entry_map = null;
+    delete_entry_map = null;
+    pending_swaps = [];
+    clear_all_undo_stacks();
+    map_edit_dirty.set(false);
     toast.success(options.successMessage);
-    saving_order = false;
+    finishing_save = false;
   };
 
   const save_mut = client_q.project.map_edit.update.mutation({
@@ -278,7 +280,7 @@
       });
     },
     onError: (err) => {
-      saving_order = false;
+      finishing_save = false;
       toast.error(err.message || 'Failed to save project map');
     }
   });
@@ -291,7 +293,7 @@
       });
     },
     onError: (err) => {
-      saving_order = false;
+      finishing_save = false;
       toast.error(err.message || 'Failed to save list order');
     }
   });
@@ -304,13 +306,16 @@
       });
     },
     onError: (err) => {
-      saving_order = false;
+      finishing_save = false;
       toast.error(err.message || 'Failed to delete map nodes');
     }
   });
 
   const save_in_flight = $derived(
-    $save_mut.isPending || $save_order_mut.isPending || $save_delete_mut.isPending || saving_order
+    $save_mut.isPending ||
+      $save_order_mut.isPending ||
+      $save_delete_mut.isPending ||
+      finishing_save
   );
 
   function reset_from_server(map: recursive_list_type) {
@@ -844,14 +849,14 @@
     const deletedDbPaths = delete_review_state.deletedRoots.map((path) =>
       map_path_to_db_path(path)
     );
-    saving_order = true;
+    finishing_save = true;
     try {
       await $save_delete_mut.mutateAsync({
         project_id,
         deleted_paths: deletedDbPaths
       });
     } catch {
-      saving_order = false;
+      finishing_save = false;
     }
   }
 
@@ -859,7 +864,7 @@
     if (!workingMap || save_in_flight || !order_root_selected || pending_swaps.length === 0) {
       return;
     }
-    saving_order = true;
+    finishing_save = true;
     try {
       await $save_order_mut.mutateAsync({
         project_id,
@@ -868,7 +873,7 @@
         map: strip_client_ids(workingMap)
       });
     } catch {
-      saving_order = false;
+      finishing_save = false;
     }
   }
 
@@ -884,13 +889,18 @@
     save_review_open = true;
   }
 
-  function confirm_save() {
+  async function confirm_save() {
     if (!workingMap || save_in_flight) return;
-    $save_mut.mutate({
-      project_id,
-      map: strip_client_ids(workingMap),
-      to_add_paths: metadata_to_add_paths
-    });
+    finishing_save = true;
+    try {
+      await $save_mut.mutateAsync({
+        project_id,
+        map: strip_client_ids(workingMap),
+        to_add_paths: metadata_to_add_paths
+      });
+    } catch {
+      finishing_save = false;
+    }
   }
 
   function request_cancel() {
@@ -1072,9 +1082,9 @@
             <Button
               size="sm"
               onclick={request_save}
-              disabled={!metadata_dirty || $save_mut.isPending || count_input_invalid}
+              disabled={!metadata_dirty || save_in_flight || count_input_invalid}
             >
-              {$save_mut.isPending ? 'Saving…' : 'Save'}
+              {save_in_flight ? 'Saving…' : 'Save'}
             </Button>
             <Button
               type="button"

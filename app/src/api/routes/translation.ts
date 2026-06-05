@@ -34,7 +34,7 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
     z.object({
       project_id: z.int(),
       lang_id: z.int(),
-      data: z.string().array(),
+      data: z.string().nullable().array(),
       indexes: z.number().array(),
       selected_text_levels: z.array(z.int().nullable())
     })
@@ -56,7 +56,7 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
         if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
       }
 
-      const indexed_indexes = indexes.map((v, i) => [v, i]);
+      const indexed_indexes = indexes.map((v, i) => [v, i] as const);
       await db.transaction(async (tx) => {
         const existing_indexes = new Set(
           (
@@ -73,25 +73,41 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
           ).map((v) => v.index)
         );
 
-        const add_entries = indexed_indexes.filter(([index]) => !existing_indexes.has(index));
-        const update_entries = indexed_indexes.filter(([index]) => existing_indexes.has(index));
+        const delete_entries = indexed_indexes.filter(([, i]) => data[i] === null);
+        const add_entries = indexed_indexes.filter(
+          ([index, i]) => data[i] !== null && !existing_indexes.has(index)
+        );
+        const update_entries = indexed_indexes.filter(
+          ([index, i]) => data[i] !== null && existing_indexes.has(index)
+        );
 
         await Promise.all([
+          ...delete_entries.map(([index]) =>
+            tx
+              .delete(translations)
+              .where(
+                and(
+                  eq(translations.project_path_id, projectPath.id),
+                  eq(translations.lang_id, lang_id),
+                  eq(translations.index, index)
+                )
+              )
+          ),
           // add entries
           add_entries.length > 0 &&
-            tx.insert(translations).values(
-              add_entries.map(([index, i]) => ({
-                project_path_id: projectPath.id,
-                lang_id,
-                index,
-                text: data[i]
-              }))
-            ),
+          tx.insert(translations).values(
+            add_entries.map(([index, i]) => ({
+              project_path_id: projectPath.id,
+              lang_id,
+              index,
+              text: data[i] ?? ''
+            }))
+          ),
           // update entries
           ...update_entries.map(([index, dataIndex]) =>
             tx
               .update(translations)
-              .set({ text: data[dataIndex] })
+              .set({ text: data[dataIndex] ?? '' })
               .where(
                 and(
                   eq(translations.project_path_id, projectPath.id),

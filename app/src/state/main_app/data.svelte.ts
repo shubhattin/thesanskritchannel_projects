@@ -7,6 +7,8 @@ import {
   selected_text_levels,
   text_data_present,
   editing_status_on,
+  editing_mode,
+  selected_translation_lang_ids,
   view_translation_status,
   trans_lang
 } from './state.svelte';
@@ -275,6 +277,101 @@ export const trans_lang_data_q = get_derived_query(
           ? {
               staleTime: Infinity
               // while editing the data should not go stale, else it would refetch lead to data loss
+            }
+          : {})
+      },
+      queryClient
+    );
+  }
+);
+
+export const trans_slot_data_query_key = derived(
+  [selected_translation_lang_ids, selected_text_levels, project_state],
+  ([$selected_translation_lang_ids, $selected_text_levels, $project_state]) =>
+    [
+      QUERY_KEYS.trans_lang_data(
+        $selected_translation_lang_ids[0] ?? -1,
+        $selected_text_levels,
+        $project_state.levels
+      ),
+      QUERY_KEYS.trans_lang_data(
+        $selected_translation_lang_ids[1] ?? -1,
+        $selected_text_levels,
+        $project_state.levels
+      )
+    ] as const
+);
+
+export const trans_slot_1_data_q = get_derived_query(
+  [
+    project_state,
+    selected_translation_lang_ids,
+    selected_text_levels,
+    editing_mode,
+    view_translation_status,
+    text_data_present
+  ],
+  ([
+    project_state_,
+    selected_translation_lang_ids_,
+    selected_text_levels_,
+    editing_mode_,
+    view_translation_status_,
+    text_data_present_
+  ]) => {
+    const lang_id = selected_translation_lang_ids_[0];
+    const query_has_path = has_translation_query_path(selected_text_levels_, project_state_.levels);
+    return createQuery(
+      {
+        ...trans_lang_data_q_options(lang_id ?? -1, selected_text_levels_, project_state_.levels),
+        enabled:
+          browser &&
+          view_translation_status_ &&
+          lang_id !== null &&
+          text_data_present_ &&
+          query_has_path,
+        ...(editing_mode_ === '1st_lang' || editing_mode_ === 'text'
+          ? {
+              staleTime: Infinity
+            }
+          : {})
+      },
+      queryClient
+    );
+  }
+);
+
+export const trans_slot_2_data_q = get_derived_query(
+  [
+    project_state,
+    selected_translation_lang_ids,
+    selected_text_levels,
+    editing_mode,
+    view_translation_status,
+    text_data_present
+  ],
+  ([
+    project_state_,
+    selected_translation_lang_ids_,
+    selected_text_levels_,
+    editing_mode_,
+    view_translation_status_,
+    text_data_present_
+  ]) => {
+    const lang_id = selected_translation_lang_ids_[1];
+    const query_has_path = has_translation_query_path(selected_text_levels_, project_state_.levels);
+    return createQuery(
+      {
+        ...trans_lang_data_q_options(lang_id ?? -1, selected_text_levels_, project_state_.levels),
+        enabled:
+          browser &&
+          view_translation_status_ &&
+          lang_id !== null &&
+          text_data_present_ &&
+          query_has_path,
+        ...(editing_mode_ === '2nd_lang' || editing_mode_ === 'text'
+          ? {
+              staleTime: Infinity
             }
           : {})
       },

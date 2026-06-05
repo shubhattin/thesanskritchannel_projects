@@ -36,12 +36,18 @@ export let text_data_present = writable(false);
 export const BASE_SCRIPT = 'Devanagari';
 
 export let viewing_script = writable<script_list_type>(BASE_SCRIPT);
+export type translation_slot_mode = '1st_lang' | '2nd_lang';
+export type editing_mode_type = 'none' | 'text' | translation_slot_mode;
+export let selected_translation_lang_ids = writable<[number | null, number | null]>([1, null]);
+export let editing_mode = writable<editing_mode_type>('none');
+
+// Legacy translation/edit state retained until old auxiliary editors are removed.
 export let trans_lang = writable<number>();
 export let view_translation_status = writable(false);
 
 // Edit
 export let editing_status_on = writable(false);
-export let sanskrit_mode = writable<number>();
+export let sanskrit_mode = writable(0);
 
 export let added_translations_indexes = writable<number[]>([]);
 export let edited_translations_indexes = writable<Set<number>>(new Set());

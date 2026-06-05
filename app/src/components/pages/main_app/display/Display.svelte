@@ -21,6 +21,7 @@
   import { client } from '~/api/client';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
+  import { Input } from '$lib/components/ui/input';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { Switch } from '$lib/components/ui/switch';
   import { Textarea } from '$lib/components/ui/textarea';
@@ -98,6 +99,7 @@
   let translation_session_key = $state('');
   let last_ai_query_revision = $state('');
   let edit_text_typer_status = $state(true);
+  let initial_row_count = $state(1);
 
   const active_translation_slot = $derived(
     $editing_mode === '1st_lang' ? 0 : $editing_mode === '2nd_lang' ? 1 : null
@@ -412,6 +414,20 @@
       shloka_type: false
     });
     text_rows = next;
+  };
+
+  const add_initial_text_rows = async () => {
+    const count = Math.max(1, Math.floor(Number(initial_row_count)) || 1);
+    push_text_undo();
+    text_rows = Array.from({ length: count }, () => ({
+      client_id: crypto.randomUUID(),
+      source_index: null,
+      text: '',
+      shloka_type: false
+    }));
+    text_focus_group_open = false;
+    initial_row_count = 1;
+    await focus_text_row_at(0);
   };
 
   const delete_text_row = (client_id: string) => {
@@ -852,108 +868,128 @@
       <Skeleton class="h-[80vh] w-full rounded-lg" />
     {:else}
       <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-xl border p-2">
-        {#each text_rows as row, i (row.client_id)}
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div
-            data-text-row-card
-            data-text-row-index={i}
-            class={cn(
-              'relative rounded-lg border bg-card p-2 pt-8 transition-[opacity,box-shadow,transform]',
-              text_drag_index === i && 'scale-[0.99] opacity-45',
-              text_drop_index === i &&
-                text_drag_index !== null &&
-                text_drag_index !== i &&
-                'ring-2 ring-primary ring-offset-2 ring-offset-background'
-            )}
-            ondragover={(e) => on_text_row_dragover(i, e)}
-            ondragleave={(e) => on_text_row_dragleave(i, e)}
-            ondrop={(e) => on_text_row_drop(i, e)}
-          >
-            {@render edit_row_index_badge(i, derived_shloka_nums[i])}
-            <div class="mb-2 flex flex-wrap items-center gap-2 pr-14">
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div
-                role="button"
-                tabindex="0"
-                draggable="true"
-                class="cursor-grab touch-none rounded p-0.5 text-muted-foreground select-none hover:bg-muted active:cursor-grabbing"
-                aria-label="Drag to reorder"
-                ondragstart={(e) => start_text_row_drag(i, e)}
-                ondragend={end_text_row_drag}
-              >
-                <GripVertical />
-              </div>
-              <label class="inline-flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={row.shloka_type}
-                  onCheckedChange={(checked) => {
-                    push_text_undo();
-                    text_rows = text_rows.map((candidate) =>
-                      candidate.client_id === row.client_id
-                        ? { ...candidate, shloka_type: checked === true }
-                        : candidate
-                    );
-                  }}
-                />
-                Shloka
-              </label>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="size-8"
-                aria-label="Move up"
-                onclick={() => move_text_row_and_focus(i, i - 1)}
-                disabled={i === 0}
-              >
-                <ArrowUp class="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="size-8"
-                aria-label="Move down"
-                onclick={() => move_text_row_and_focus(i, i + 1)}
-                disabled={i === text_rows.length - 1}
-              >
-                <ArrowDown class="size-4" />
-              </Button>
-              <Button variant="outline" size="sm" onclick={() => add_text_row(i)}>
+        {#if text_rows.length === 0}
+          <div class="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <p class="text-sm text-muted-foreground">This list has no shlokas yet.</p>
+            <div class="flex flex-wrap items-center justify-center gap-2">
+              <Label for="initial-row-count" class="text-sm">Rows to add</Label>
+              <Input
+                id="initial-row-count"
+                type="number"
+                min="1"
+                class="h-9 w-20"
+                bind:value={initial_row_count}
+              />
+              <Button size="sm" onclick={add_initial_text_rows}>
                 <Plus data-icon="inline-start" />
                 Add
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="size-8 text-destructive hover:text-destructive"
-                aria-label="Delete row"
-                onclick={() => delete_text_row(row.client_id)}
-              >
-                <Trash2 class="size-4" />
-              </Button>
             </div>
-            <Textarea
-              value={row.text}
-              onfocus={() => (text_focus_group_open = false)}
-              onblur={() => {
-                text_focus_group_open = false;
-                text_typing_ctx.clearContext();
-              }}
-              oninput={(e) => update_text_row(row.client_id, e.currentTarget.value)}
-              onbeforeinput={(e) =>
-                handleTypingBeforeInputEvent(
-                  text_typing_ctx,
-                  e,
-                  (newValue) => update_text_row(row.client_id, newValue),
-                  text_typing_enabled && edit_text_typer_status
-                )}
-              onkeydown={(e) => clearTypingContextOnKeyDown(e, text_typing_ctx)}
-              onkeyup={detect_shortcut_pressed}
-              class="min-h-28 w-full whitespace-pre-wrap"
-              style={editor_font_style(main_text_font_info)}
-            />
-            {@render edit_context_translation_panels_below(row.source_index ?? i)}
           </div>
-        {/each}
+        {:else}
+          {#each text_rows as row, i (row.client_id)}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              data-text-row-card
+              data-text-row-index={i}
+              class={cn(
+                'relative rounded-lg border bg-card p-2 pt-8 transition-[opacity,box-shadow,transform]',
+                text_drag_index === i && 'scale-[0.99] opacity-45',
+                text_drop_index === i &&
+                  text_drag_index !== null &&
+                  text_drag_index !== i &&
+                  'ring-2 ring-primary ring-offset-2 ring-offset-background'
+              )}
+              ondragover={(e) => on_text_row_dragover(i, e)}
+              ondragleave={(e) => on_text_row_dragleave(i, e)}
+              ondrop={(e) => on_text_row_drop(i, e)}
+            >
+              {@render edit_row_index_badge(i, derived_shloka_nums[i])}
+              <div class="mb-2 flex flex-wrap items-center gap-2 pr-14">
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                  role="button"
+                  tabindex="0"
+                  draggable="true"
+                  class="cursor-grab touch-none rounded p-0.5 text-muted-foreground select-none hover:bg-muted active:cursor-grabbing"
+                  aria-label="Drag to reorder"
+                  ondragstart={(e) => start_text_row_drag(i, e)}
+                  ondragend={end_text_row_drag}
+                >
+                  <GripVertical />
+                </div>
+                <label class="inline-flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={row.shloka_type}
+                    onCheckedChange={(checked) => {
+                      push_text_undo();
+                      text_rows = text_rows.map((candidate) =>
+                        candidate.client_id === row.client_id
+                          ? { ...candidate, shloka_type: checked === true }
+                          : candidate
+                      );
+                    }}
+                  />
+                  Shloka
+                </label>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="size-8"
+                  aria-label="Move up"
+                  onclick={() => move_text_row_and_focus(i, i - 1)}
+                  disabled={i === 0}
+                >
+                  <ArrowUp class="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="size-8"
+                  aria-label="Move down"
+                  onclick={() => move_text_row_and_focus(i, i + 1)}
+                  disabled={i === text_rows.length - 1}
+                >
+                  <ArrowDown class="size-4" />
+                </Button>
+                <Button variant="outline" size="sm" onclick={() => add_text_row(i)}>
+                  <Plus data-icon="inline-start" />
+                  Add
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="size-8 text-destructive hover:text-destructive"
+                  aria-label="Delete row"
+                  onclick={() => delete_text_row(row.client_id)}
+                >
+                  <Trash2 class="size-4" />
+                </Button>
+              </div>
+              <Textarea
+                value={row.text}
+                onfocus={() => (text_focus_group_open = false)}
+                onblur={() => {
+                  text_focus_group_open = false;
+                  text_typing_ctx.clearContext();
+                }}
+                oninput={(e) => update_text_row(row.client_id, e.currentTarget.value)}
+                onbeforeinput={(e) =>
+                  handleTypingBeforeInputEvent(
+                    text_typing_ctx,
+                    e,
+                    (newValue) => update_text_row(row.client_id, newValue),
+                    text_typing_enabled && edit_text_typer_status
+                  )}
+                onkeydown={(e) => clearTypingContextOnKeyDown(e, text_typing_ctx)}
+                onkeyup={detect_shortcut_pressed}
+                class="min-h-28 w-full whitespace-pre-wrap"
+                style={editor_font_style(main_text_font_info)}
+              />
+              {@render edit_context_translation_panels_below(row.source_index ?? i)}
+            </div>
+          {/each}
+        {/if}
       </div>
     {/if}
   </div>

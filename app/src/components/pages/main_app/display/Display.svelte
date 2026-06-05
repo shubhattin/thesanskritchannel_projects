@@ -2,18 +2,31 @@
   import { browser } from '$app/environment';
   import { beforeNavigate } from '$app/navigation';
   import { createMutation } from '@tanstack/svelte-query';
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { get } from 'svelte/store';
   import { fade } from 'svelte/transition';
-  import { ArrowDown, ArrowUp, GripVertical, Plus, Save, Trash2, Undo2, X } from '@lucide/svelte';
+  import {
+    ArrowDown,
+    ArrowUp,
+    GripVertical,
+    Loader2,
+    Plus,
+    Save,
+    Trash2,
+    Undo2,
+    X
+  } from '@lucide/svelte';
+  import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import { toast } from 'svelte-sonner';
   import { client } from '~/api/client';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import { Skeleton } from '$lib/components/ui/skeleton';
+  import { Switch } from '$lib/components/ui/switch';
   import { Textarea } from '$lib/components/ui/textarea';
   import {
     BASE_SCRIPT,
+    edit_context_visible,
     edit_language_typer_status,
     editing_mode,
     project_state,
@@ -21,7 +34,6 @@
     selected_text_levels,
     selected_translation_lang_ids,
     typing_assistance_modal_opened,
-    view_translation_status,
     viewing_script
   } from '~/state/main_app/state.svelte';
   import {
@@ -35,7 +47,7 @@
   import { transliterate_custom } from '~/tools/converter';
   import { get_font_family_and_size } from '~/tools/font_tools';
   import Icon from '~/tools/Icon.svelte';
-  import { BsClipboard2Check } from 'svelte-icons-pack/bs';
+  import { BsClipboard2Check, BsKeyboard } from 'svelte-icons-pack/bs';
   import { OiCopy16 } from 'svelte-icons-pack/oi';
   import { copy_text_to_clipboard } from '~/tools/kry';
   import * as Popover from '$lib/components/ui/popover';
@@ -45,6 +57,8 @@
     handleTypingBeforeInputEvent
   } from 'lipilekhika/typing';
   import { main_app_content_edit_dirty } from '~/state/main_app_content_edit_dirty.svelte';
+  import { cn } from '$lib/utils';
+  import Label from '~/lib/components/ui/label/label.svelte';
 
   type TextDraftRow = {
     client_id: string;
@@ -57,6 +71,7 @@
     source_text: string;
     value: string;
     original: string | null;
+    shloka_num: number | null;
   };
 
   const normalize_translation_value = (value: string | null) =>
@@ -74,12 +89,14 @@
   let text_undo_stack = $state<TextDraftRow[][]>([]);
   let text_focus_group_open = $state(false);
   let text_drag_index = $state<number | null>(null);
+  let text_drop_index = $state<number | null>(null);
   let text_session_key = $state('');
   let translation_rows = $state<TranslationDraftRow[]>([]);
   let translation_baseline = $state<TranslationDraftRow[]>([]);
   let translation_undo_stack = $state<TranslationDraftRow[][]>([]);
   let translation_focus_group_open = $state(false);
   let translation_session_key = $state('');
+  let edit_text_typer_status = $state(true);
 
   const active_translation_slot = $derived(
     $editing_mode === '1st_lang' ? 0 : $editing_mode === '2nd_lang' ? 1 : null
@@ -113,6 +130,14 @@
   const active_trans_font_info = $derived(
     get_font_family_and_size((active_translation_name || 'English') as lang_list_type)
   );
+  const derived_shloka_nums = $derived.by(() => {
+    let shloka_num = 0;
+    return text_rows.map((row) => {
+      if (!row.shloka_type) return null;
+      shloka_num++;
+      return shloka_num;
+    });
+  });
   const text_dirty = $derived(JSON.stringify(text_rows) !== JSON.stringify(text_baseline));
   const translation_dirty = $derived(
     translation_rows.some(
@@ -125,11 +150,20 @@
     if ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') return translation_dirty;
     return false;
   });
-  const ctx = $derived(
+  const text_typing_enabled = $derived($viewing_script === BASE_SCRIPT);
+  const translation_typing_ctx = $derived(
     createTypingContext((active_translation_name || 'Devanagari') as lang_list_type, {
       includeInherentVowel: $sanskrit_mode !== 1
     })
   );
+  const text_typing_ctx = $derived(
+    createTypingContext('Devanagari' as lang_list_type, {
+      includeInherentVowel: true
+    })
+  );
+
+  const editor_font_style = (font_info: { size: number; family: string }) =>
+    `font-size: ${font_info.size}rem; font-family: ${font_info.family};`;
 
   $effect(() => {
     transliterate_custom(
@@ -182,7 +216,8 @@
         index: row.index,
         source_text: row.text,
         value: original ?? '',
-        original
+        original,
+        shloka_num: row.shloka_num
       };
     });
     translation_baseline = clone_translation_rows(translation_rows);
@@ -191,7 +226,8 @@
   });
 
   $effect(() => {
-    ctx.ready;
+    translation_typing_ctx.ready;
+    text_typing_ctx.ready;
   });
 
   $effect(() => {
@@ -258,8 +294,30 @@
     copy_text(texts_to_copy.join('\n\n\n'));
   };
 
+  let discard_dialog_open = $state(false);
+  let save_dialog_open = $state(false);
+  let pending_save_kind = $state<'text' | 'translation' | null>(null);
+
   const close_editor = () => {
     $editing_mode = 'none';
+  };
+
+  const request_close_editor = () => {
+    if (editor_has_unsaved_changes) {
+      discard_dialog_open = true;
+      return;
+    }
+    close_editor();
+  };
+
+  const confirm_discard = () => {
+    discard_dialog_open = false;
+    close_editor();
+  };
+
+  const request_save = (kind: 'text' | 'translation') => {
+    pending_save_kind = kind;
+    save_dialog_open = true;
   };
 
   const push_text_undo = () => {
@@ -320,12 +378,65 @@
   };
 
   const move_text_row = (from: number, to: number) => {
-    if (from === to || to < 0 || to >= text_rows.length) return;
+    if (from === to || to < 0 || to >= text_rows.length) return false;
     push_text_undo();
     const next = clone_text_rows(text_rows);
     const [row] = next.splice(from, 1);
     next.splice(to, 0, row!);
     text_rows = next;
+    return true;
+  };
+
+  const focus_text_row_at = async (index: number) => {
+    await tick();
+    const card = document.querySelector(`[data-text-row-index="${index}"]`);
+    card?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    (card?.querySelector('textarea') as HTMLTextAreaElement | null)?.focus();
+  };
+
+  const move_text_row_and_focus = async (from: number, to: number) => {
+    if (!move_text_row(from, to)) return;
+    await focus_text_row_at(to);
+  };
+
+  const start_text_row_drag = (index: number, event: DragEvent) => {
+    text_drag_index = index;
+    const transfer = event.dataTransfer;
+    if (!transfer) return;
+    transfer.effectAllowed = 'move';
+    transfer.setData('text/plain', String(index));
+    const card = (event.currentTarget as HTMLElement).closest('[data-text-row-card]');
+    if (card instanceof HTMLElement) {
+      transfer.setDragImage(card, 24, 24);
+    }
+  };
+
+  const end_text_row_drag = () => {
+    text_drag_index = null;
+    text_drop_index = null;
+  };
+
+  const on_text_row_dragover = (index: number, event: DragEvent) => {
+    event.preventDefault();
+    if (text_drag_index === null || text_drag_index === index) return;
+    text_drop_index = index;
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+  };
+
+  const on_text_row_dragleave = (index: number, event: DragEvent) => {
+    const current_target = event.currentTarget;
+    if (!(current_target instanceof HTMLElement)) return;
+    const related = event.relatedTarget;
+    if (related instanceof Node && current_target.contains(related)) return;
+    if (text_drop_index === index) text_drop_index = null;
+  };
+
+  const on_text_row_drop = async (index: number, event: DragEvent) => {
+    event.preventDefault();
+    const from = text_drag_index;
+    const moved = from !== null && move_text_row(from, index);
+    end_text_row_drag();
+    if (moved) await focus_text_row_at(index);
   };
 
   const save_text_mut = createMutation({
@@ -345,6 +456,7 @@
         invalidate_project_content_queries($project_state.project_id ?? undefined),
         invalidate_project_map_queries($project_state.project_id ?? undefined)
       ]);
+      save_dialog_open = false;
       toast.success('Text saved');
       close_editor();
     },
@@ -375,6 +487,7 @@
         return;
       }
       await invalidate_project_content_queries($project_state.project_id ?? undefined);
+      save_dialog_open = false;
       toast.success('Translation saved');
       close_editor();
     },
@@ -383,10 +496,32 @@
     }
   });
 
+  const save_pending = $derived($save_text_mut.isPending || $save_translation_mut.isPending);
+  const save_confirm_description = $derived(
+    pending_save_kind === 'text'
+      ? 'Your text edits will be saved to the server.'
+      : pending_save_kind === 'translation'
+        ? `Your ${active_translation_name} translation edits will be saved to the server.`
+        : ''
+  );
+
+  const confirm_save = () => {
+    if (pending_save_kind === 'text') $save_text_mut.mutate();
+    else if (pending_save_kind === 'translation') $save_translation_mut.mutate();
+  };
+
+  $effect(() => {
+    if (!save_dialog_open) pending_save_kind = null;
+  });
+
   const detect_shortcut_pressed = (event: KeyboardEvent) => {
     if (event.altKey && event.key.toLowerCase() === 'x') {
       event.preventDefault();
-      $edit_language_typer_status = !$edit_language_typer_status;
+      if ($editing_mode === 'text') {
+        if (text_typing_enabled) edit_text_typer_status = !edit_text_typer_status;
+      } else {
+        $edit_language_typer_status = !$edit_language_typer_status;
+      }
     }
   };
 </script>
@@ -406,6 +541,43 @@
   {@render translation_editor()}
 {:else}
   {@render readonly_display()}
+{/if}
+
+{#if $editing_mode !== 'none'}
+  <AlertDialog.Root bind:open={discard_dialog_open}>
+    <AlertDialog.Content class="max-w-md">
+      <AlertDialog.Header>
+        <AlertDialog.Title>Discard unsaved edits?</AlertDialog.Title>
+        <AlertDialog.Description class="text-sm text-muted-foreground">
+          You have unsaved changes. Discard them and leave the editor?
+        </AlertDialog.Description>
+      </AlertDialog.Header>
+      <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
+        <AlertDialog.Cancel>Keep editing</AlertDialog.Cancel>
+        <Button variant="destructive" onclick={confirm_discard}>Discard</Button>
+      </AlertDialog.Footer>
+    </AlertDialog.Content>
+  </AlertDialog.Root>
+
+  <AlertDialog.Root bind:open={save_dialog_open}>
+    <AlertDialog.Content class="max-w-md">
+      <AlertDialog.Header>
+        <AlertDialog.Title>Save changes?</AlertDialog.Title>
+        <AlertDialog.Description class="text-sm text-muted-foreground">
+          {save_confirm_description}
+        </AlertDialog.Description>
+      </AlertDialog.Header>
+      <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
+        <AlertDialog.Cancel disabled={save_pending}>Cancel</AlertDialog.Cancel>
+        <AlertDialog.Action disabled={save_pending} onclick={confirm_save}>
+          {#if save_pending}
+            <Loader2 class="size-4 animate-spin" />
+          {/if}
+          Save
+        </AlertDialog.Action>
+      </AlertDialog.Footer>
+    </AlertDialog.Content>
+  </AlertDialog.Root>
 {/if}
 
 {#if $typing_assistance_modal_opened && active_translation_lang_id !== null}
@@ -447,7 +619,7 @@
   </div>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="h-[95vh] overflow-scroll rounded-xl border-2 border-gray-400 p-0 dark:border-gray-600"
+    class="h-[110vh] overflow-scroll rounded-xl border-2 border-gray-400 p-0 dark:border-gray-600"
     onmouseenter={() => (text_portion_hovered = true)}
     onmouseleave={() => {
       if (!copy_btn_popup_state) text_portion_hovered = false;
@@ -477,14 +649,8 @@
               {/if}
               <div class="mt-0 flex w-full flex-col gap-1">
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div
-                  style:font-size={`${main_text_font_info.size}rem`}
-                  style:font-family={main_text_font_info.family}
-                  ondblclick={() => copy_text(shloka_lines)}
-                >
-                  {#each shloka_lines.split('\n') as line_shlk, line_index (line_index)}
-                    <div>{line_shlk}</div>
-                  {/each}
+                <div ondblclick={() => copy_text(shloka_lines)}>
+                  {@render multiline_display(shloka_lines, main_text_font_info)}
                 </div>
                 {@render translation_display_line(i, 0)}
                 {@render translation_display_line(i, 1)}
@@ -497,24 +663,85 @@
   </div>
 {/snippet}
 
+{#snippet multiline_display(
+  text: string,
+  font_info: { size: number; family: string },
+  class_name = ''
+)}
+  <div
+    class={class_name}
+    style:font-size={`${font_info.size}rem`}
+    style:font-family={font_info.family}
+  >
+    {#each text.split('\n') as line, line_index (line_index)}
+      <div>{line}</div>
+    {/each}
+  </div>
+{/snippet}
+
+{#snippet edit_row_index_badge(index: number, shloka_num: number | null)}
+  <span class="absolute top-2 right-2 text-xs text-muted-foreground tabular-nums select-none"
+    >{index}{#if shloka_num !== null}
+      - {shloka_num}{/if}</span
+  >
+{/snippet}
+
+{#snippet edit_context_translation_line(data_index: number, slot: 0 | 1)}
+  {@const query = slot === 0 ? $trans_slot_1_data_q : $trans_slot_2_data_q}
+  {@const font_info = slot === 0 ? first_trans_font_info : second_trans_font_info}
+  {#if query.isSuccess && query.data?.has(data_index)}
+    <div
+      class={slot === 0
+        ? 'text-stone-500 dark:text-slate-400'
+        : 'text-yellow-700 dark:text-yellow-500'}
+    >
+      {@render multiline_display(query.data.get(data_index)!, font_info, 'text-sm')}
+    </div>
+  {/if}
+{/snippet}
+
+{#snippet edit_context_text_panel(data_index: number, fallback_text: string)}
+  {#if $editing_mode !== 'text' && $edit_context_visible.text}
+    {@const display_text = transliterated_data[data_index] ?? fallback_text}
+    <div class="mb-2">
+      {@render multiline_display(display_text, main_text_font_info, 'text-sm')}
+    </div>
+  {/if}
+{/snippet}
+
+{#snippet edit_context_translation_panels_below(data_index: number)}
+  {@const show_lang_1 =
+    $editing_mode !== '1st_lang' &&
+    $edit_context_visible.lang_1 &&
+    $selected_translation_lang_ids[0] !== null}
+  {@const show_lang_2 =
+    $editing_mode !== '2nd_lang' &&
+    $edit_context_visible.lang_2 &&
+    $selected_translation_lang_ids[1] !== null}
+  {#if show_lang_1 || show_lang_2}
+    <div class="mt-2 flex flex-col gap-1.5 border-t border-border/60 pt-2">
+      {#if show_lang_1}
+        {@render edit_context_translation_line(data_index, 0)}
+      {/if}
+      {#if show_lang_2}
+        {@render edit_context_translation_line(data_index, 1)}
+      {/if}
+    </div>
+  {/if}
+{/snippet}
+
 {#snippet translation_display_line(i: number, slot: 0 | 1)}
   {@const query = slot === 0 ? $trans_slot_1_data_q : $trans_slot_2_data_q}
   {@const font_info = slot === 0 ? first_trans_font_info : second_trans_font_info}
-  {#if $view_translation_status && query.isSuccess && query.data?.has(i)}
+  {#if query.isSuccess && query.data?.has(i)}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       ondblclick={() => copy_text(query.data.get(i)!)}
       class={slot === 0
         ? 'text-stone-500 dark:text-slate-400'
         : 'text-yellow-700 dark:text-yellow-500'}
-      style:font-size={`${font_info.size}rem`}
-      style:font-family={font_info.family}
     >
-      {#each query.data.get(i)?.split('\n') ?? [] as line_trans, line_index (line_index)}
-        {#if line_trans !== ''}
-          <div>{line_trans}</div>
-        {/if}
-      {/each}
+      {@render multiline_display(query.data.get(i)!, font_info)}
     </div>
   {/if}
 {/snippet}
@@ -538,13 +765,13 @@
         <Undo2 data-icon="inline-start" />
         Undo
       </Button>
-      <Button variant="outline" size="sm" onclick={close_editor}>
+      <Button variant="outline" size="sm" onclick={request_close_editor}>
         <X data-icon="inline-start" />
         Cancel
       </Button>
       <Button
         size="sm"
-        onclick={() => (kind === 'text' ? $save_text_mut.mutate() : $save_translation_mut.mutate())}
+        onclick={() => request_save(kind)}
         disabled={!editor_has_unsaved_changes ||
           (kind === 'text' ? $save_text_mut.isPending : $save_translation_mut.isPending)}
       >
@@ -564,25 +791,56 @@
 {#snippet text_editor()}
   <div class="flex h-screen flex-col gap-3">
     {@render editor_toolbar('text')}
+    {#if text_typing_enabled}
+      <div class="flex flex-wrap items-center gap-2 px-1">
+        <Label>
+          <Switch
+            id="edit_text_typer"
+            bind:checked={edit_text_typer_status}
+            class="focus:outline-none"
+          />
+          <Icon src={BsKeyboard} class="text-3xl" />
+        </Label>
+        <span class="text-xs text-muted-foreground">
+          Use <span class="font-semibold">Alt+x</span> to toggle typing
+        </span>
+      </div>
+    {/if}
     {#if !$text_data_q.isSuccess}
       <Skeleton class="h-[80vh] w-full rounded-lg" />
     {:else}
-      <div class="flex flex-col gap-2 overflow-scroll rounded-xl border p-2">
+      <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-xl border p-2">
         {#each text_rows as row, i (row.client_id)}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
-            class="rounded-lg border bg-card p-2"
-            draggable="true"
-            ondragstart={() => (text_drag_index = i)}
-            ondragover={(e) => e.preventDefault()}
-            ondrop={() => {
-              if (text_drag_index !== null) move_text_row(text_drag_index, i);
-              text_drag_index = null;
-            }}
+            data-text-row-card
+            data-text-row-index={i}
+            class={cn(
+              'relative rounded-lg border bg-card p-2 pt-8 transition-[opacity,box-shadow,transform]',
+              text_drag_index === i && 'scale-[0.99] opacity-45',
+              text_drop_index === i &&
+                text_drag_index !== null &&
+                text_drag_index !== i &&
+                'ring-2 ring-primary ring-offset-2 ring-offset-background'
+            )}
+            ondragover={(e) => on_text_row_dragover(i, e)}
+            ondragleave={(e) => on_text_row_dragleave(i, e)}
+            ondrop={(e) => on_text_row_drop(i, e)}
           >
-            <div class="mb-2 flex flex-wrap items-center gap-2">
-              <GripVertical class="text-muted-foreground" />
-              <span class="text-xs text-muted-foreground">Index {i}</span>
+            {@render edit_row_index_badge(i, derived_shloka_nums[i])}
+            <div class="mb-2 flex flex-wrap items-center gap-2 pr-14">
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                role="button"
+                tabindex="0"
+                draggable="true"
+                class="cursor-grab touch-none rounded p-0.5 text-muted-foreground select-none hover:bg-muted active:cursor-grabbing"
+                aria-label="Drag to reorder"
+                ondragstart={(e) => start_text_row_drag(i, e)}
+                ondragend={end_text_row_drag}
+              >
+                <GripVertical />
+              </div>
               <label class="inline-flex items-center gap-2 text-sm">
                 <Checkbox
                   checked={row.shloka_type}
@@ -598,44 +856,60 @@
                 Shloka
               </label>
               <Button
-                variant="outline"
-                size="sm"
-                onclick={() => move_text_row(i, i - 1)}
+                variant="ghost"
+                size="icon"
+                class="size-8"
+                aria-label="Move up"
+                onclick={() => move_text_row_and_focus(i, i - 1)}
                 disabled={i === 0}
               >
-                <ArrowUp data-icon="inline-start" />
-                Up
+                <ArrowUp class="size-4" />
               </Button>
               <Button
-                variant="outline"
-                size="sm"
-                onclick={() => move_text_row(i, i + 1)}
+                variant="ghost"
+                size="icon"
+                class="size-8"
+                aria-label="Move down"
+                onclick={() => move_text_row_and_focus(i, i + 1)}
                 disabled={i === text_rows.length - 1}
               >
-                <ArrowDown data-icon="inline-start" />
-                Down
+                <ArrowDown class="size-4" />
               </Button>
               <Button variant="outline" size="sm" onclick={() => add_text_row(i)}>
                 <Plus data-icon="inline-start" />
                 Add
               </Button>
               <Button
-                variant="destructive"
-                size="sm"
+                variant="ghost"
+                size="icon"
+                class="size-8 text-destructive hover:text-destructive"
+                aria-label="Delete row"
                 onclick={() => delete_text_row(row.client_id)}
               >
-                <Trash2 data-icon="inline-start" />
-                Delete
+                <Trash2 class="size-4" />
               </Button>
             </div>
             <Textarea
               value={row.text}
               onfocus={() => (text_focus_group_open = false)}
-              onblur={() => (text_focus_group_open = false)}
+              onblur={() => {
+                text_focus_group_open = false;
+                text_typing_ctx.clearContext();
+              }}
               oninput={(e) => update_text_row(row.client_id, e.currentTarget.value)}
-              class="min-h-24 w-full"
-              style={`font-size: ${main_text_font_info.size}rem; font-family: ${main_text_font_info.family};`}
+              onbeforeinput={(e) =>
+                handleTypingBeforeInputEvent(
+                  text_typing_ctx,
+                  e,
+                  (newValue) => update_text_row(row.client_id, newValue),
+                  text_typing_enabled && edit_text_typer_status
+                )}
+              onkeydown={(e) => clearTypingContextOnKeyDown(e, text_typing_ctx)}
+              onkeyup={detect_shortcut_pressed}
+              class="min-h-28 w-full whitespace-pre-wrap"
+              style={editor_font_style(main_text_font_info)}
             />
+            {@render edit_context_translation_panels_below(row.source_index ?? i)}
           </div>
         {/each}
       </div>
@@ -649,13 +923,11 @@
     {#if !active_translation_query.isSuccess || !$text_data_q.isSuccess}
       <Skeleton class="h-[80vh] w-full rounded-lg" />
     {:else}
-      <div class="flex flex-col gap-2 overflow-scroll rounded-xl border p-2">
+      <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-xl border p-2">
         {#each translation_rows as row (row.index)}
-          <div class="rounded-lg border bg-card p-2">
-            <div class="mb-2">
-              <span class="text-xs text-muted-foreground">Index {row.index}</span>
-            </div>
-            <div class="mb-2 text-sm text-muted-foreground">{row.source_text}</div>
+          <div class="relative rounded-lg border bg-card p-2 pt-8">
+            {@render edit_row_index_badge(row.index, row.shloka_num)}
+            {@render edit_context_text_panel(row.index, row.source_text)}
             <Textarea
               value={row.value}
               placeholder="Leave empty to remove translation on save"
@@ -663,7 +935,7 @@
               oninput={(e) => update_translation_row(row.index, e.currentTarget.value)}
               onbeforeinput={(e) =>
                 handleTypingBeforeInputEvent(
-                  ctx,
+                  translation_typing_ctx,
                   e,
                   (newValue) => update_translation_row(row.index, newValue),
                   $edit_language_typer_status &&
@@ -671,13 +943,14 @@
                 )}
               onblur={() => {
                 translation_focus_group_open = false;
-                ctx.clearContext();
+                translation_typing_ctx.clearContext();
               }}
-              onkeydown={(e) => clearTypingContextOnKeyDown(e, ctx)}
+              onkeydown={(e) => clearTypingContextOnKeyDown(e, translation_typing_ctx)}
               onkeyup={detect_shortcut_pressed}
-              class="min-h-24 w-full"
-              style={`font-size: ${active_trans_font_info.size}rem; font-family: ${active_trans_font_info.family};`}
+              class="min-h-36 w-full whitespace-pre-wrap"
+              style={editor_font_style(active_trans_font_info)}
             />
+            {@render edit_context_translation_panels_below(row.index)}
           </div>
         {/each}
       </div>

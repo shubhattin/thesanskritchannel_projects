@@ -25,6 +25,7 @@
     ai_tool_opened,
     view_translation_status,
     selected_translation_lang_ids,
+    edit_context_visible,
     edit_language_typer_status,
     sanskrit_mode,
     typing_assistance_modal_opened,
@@ -46,6 +47,7 @@
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
   import Display from './display/Display.svelte';
   import {
+    langs_with_translations_q,
     prefetch_text_data,
     prefetch_translation_data,
     project_map_q,
@@ -59,12 +61,14 @@
   import AiImageGenerator from './ai_image_tool/AIImageGenerator.svelte';
   import { preloadScriptData, type ScriptLangType } from 'lipilekhika';
   import { Button } from '$lib/components/ui/button';
+  import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Select from '$lib/components/ui/select';
   import ProjectSettingsBar from './settings/ProjectSettingsBar.svelte';
   import TextLevelSelector from './TextLevelSelector.svelte';
   import EditListNameDialog, { type ListNameEditTarget } from './EditListNameDialog.svelte';
   import EditNameDevDialog, { type NameDevEditTarget } from './EditNameDevDialog.svelte';
   import { create_map_metadata_save_mutation } from './map_metadata_save';
+  import Label from '~/lib/components/ui/label/label.svelte';
 
   let { path_params = [] }: { path_params?: number[] } = $props();
 
@@ -247,6 +251,39 @@
     return $user_project_info_q.data.languages!.map((l) => l.lang_id).includes(lang_id);
   };
 
+  type lang_option = { lang: string; id: number };
+
+  const get_lang_slot_label = (slot: 0 | 1) => {
+    const lang_id = $selected_translation_lang_ids[slot];
+    return lang_id === null ? `Lang ${slot + 1}` : LANG_LIST[LANG_LIST_IDS.indexOf(lang_id)]!;
+  };
+
+  const set_edit_context_visible = (key: 'text' | 'lang_1' | 'lang_2', checked: boolean) => {
+    $edit_context_visible = { ...$edit_context_visible, [key]: checked };
+  };
+
+  const start_text_edit = () => {
+    $viewing_script_selection = BASE_SCRIPT;
+    $editing_mode = 'text';
+  };
+
+  const get_grouped_lang_options = (
+    other_lang_id: number | null,
+    langs_with_translations: number[] | undefined
+  ) => {
+    const with_trans = new Set(langs_with_translations ?? []);
+    const available: lang_option[] = [];
+    const unavailable: lang_option[] = [];
+    for (let i = 0; i < LANG_LIST.length; i++) {
+      const id = LANG_LIST_IDS[i]!;
+      if (id === other_lang_id) continue;
+      const entry = { lang: LANG_LIST[i]!, id };
+      if (with_trans.has(id)) available.push(entry);
+      else unavailable.push(entry);
+    }
+    return { available, unavailable };
+  };
+
   $effect(() => {
     if (
       active_translation_lang_id !== null &&
@@ -319,7 +356,8 @@
   <Select.Root
     type="single"
     bind:value={$viewing_script_selection as any}
-    disabled={$viewing_script_selection !== BASE_SCRIPT && $viewing_script_mut.isPending}
+    disabled={$editing_mode === 'text' ||
+      ($viewing_script_selection !== BASE_SCRIPT && $viewing_script_mut.isPending)}
   >
     <Select.Trigger class="inline-flex h-10 w-32 px-2 py-1 text-sm sm:h-12 sm:w-40 sm:text-base">
       {$viewing_script_selection}
@@ -413,115 +451,158 @@
 {/if}
 
 {#if $text_data_present}
-  <div class="space-x-1 sm:space-x-3">
-    {#if $project_state.levels > 1}
-      {#if active_leaf_value !== 1}
-        <Button
-          onclick={() => {
-            const idx = active_leaf_state_index;
-            const cur = $selected_text_levels[idx] ?? 1;
-            $selected_text_levels[idx] = Math.max(1, cur - 1);
-          }}
-          onmouseenter={() => prefetch_adjacent_text('prev')}
-          variant="outline"
-          size="sm"
-          disabled={$editing_mode !== 'none'}
-        >
-          <Icon class="-mt-1 text-xl" src={TiArrowBackOutline} />
-          Previous
+  <div class="flex flex-col gap-2">
+    <div class="flex flex-wrap items-center gap-1 sm:gap-3">
+      {#if $project_state.levels > 1}
+        {#if active_leaf_value !== 1}
+          <Button
+            onclick={() => {
+              const idx = active_leaf_state_index;
+              const cur = $selected_text_levels[idx] ?? 1;
+              $selected_text_levels[idx] = Math.max(1, cur - 1);
+            }}
+            onmouseenter={() => prefetch_adjacent_text('prev')}
+            variant="outline"
+            size="sm"
+            disabled={$editing_mode !== 'none'}
+          >
+            <Icon class="-mt-1 text-xl" src={TiArrowBackOutline} />
+            Previous
+          </Button>
+        {/if}
+        {#if active_leaf_value !== derived_list_count}
+          <Button
+            onclick={() => {
+              const idx = active_leaf_state_index;
+              const cur = $selected_text_levels[idx] ?? 1;
+              const max = derived_list_count ?? cur;
+              $selected_text_levels[idx] = Math.min(max, cur + 1);
+            }}
+            onmouseenter={() => prefetch_adjacent_text('next')}
+            variant="outline"
+            size="sm"
+            disabled={$editing_mode !== 'none'}
+          >
+            Next
+            <Icon class="-mt-1 text-xl" src={TiArrowForwardOutline} />
+          </Button>
+        {/if}
+      {/if}
+      {#if $editing_mode === 'none' && is_admin}
+        <Button onclick={start_text_edit} variant="outline" size="sm">
+          <Icon src={BiEdit} class="text-xl sm:text-2xl" />
+          Edit Text
         </Button>
       {/if}
-      {#if active_leaf_value !== derived_list_count}
-        <Button
-          onclick={() => {
-            const idx = active_leaf_state_index;
-            const cur = $selected_text_levels[idx] ?? 1;
-            const max = derived_list_count ?? cur;
-            $selected_text_levels[idx] = Math.min(max, cur + 1);
-          }}
-          onmouseenter={() => prefetch_adjacent_text('next')}
-          variant="outline"
-          size="sm"
-          disabled={$editing_mode !== 'none'}
-        >
-          Next
-          <Icon class="-mt-1 text-xl" src={TiArrowForwardOutline} />
-        </Button>
-      {/if}
-    {/if}
-    {#if !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
-      {#if !$view_translation_status}
-        <Button
-          onclick={() => {
-            $view_translation_status = true;
-          }}
-          class="rounded-md bg-orange-500 px-1 py-0 text-sm font-semibold text-white transition-colors hover:bg-orange-600 focus-visible:ring-orange-500 dark:bg-orange-600 dark:hover:bg-orange-700 dark:focus-visible:ring-orange-600"
-          size="sm"
-        >
-          View Translations
-        </Button>
+      {#if !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
         {@render btn_multi()}
-      {:else}
-        <div class="mt-2 inline-flex flex-wrap items-center gap-2 sm:mt-0">
-          <span class="inline-flex items-center gap-1 text-sm sm:text-base">
-            Translation
-            <Icon src={LanguageIcon} class="text-xl sm:text-2xl" />
-          </span>
+      {/if}
+    </div>
+    {#if !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
+      <div class="flex flex-wrap items-end gap-x-4 gap-y-1">
+        <div class="grid max-w-md grid-cols-2 gap-x-4 gap-y-0.5">
           {#each [0, 1] as slot (slot)}
             {@const slot_lang_id = $selected_translation_lang_ids[slot]}
-            {@const other_lang_id = $selected_translation_lang_ids[slot === 0 ? 1 : 0]}
-            <div class="inline-flex items-center gap-1">
-              <Select.Root
-                type="single"
-                value={slot_lang_id === null ? 'none' : slot_lang_id.toString()}
-                onValueChange={(v) => {
-                  set_translation_slot_lang(slot as 0 | 1, v === 'none' ? null : Number(v));
-                }}
-                disabled={$editing_mode !== 'none' || $viewing_script_mut.isPending}
-              >
-                <Select.Trigger class="inline-flex w-28 px-2 py-1 text-sm sm:w-36 sm:text-base">
-                  {slot_lang_id === null
-                    ? slot === 0
-                      ? '1st: none'
-                      : '2nd: none'
-                    : LANG_LIST[LANG_LIST_IDS.indexOf(slot_lang_id)]}
-                </Select.Trigger>
-                <Select.Content>
-                  <Select.Item value="none">None</Select.Item>
-                  {#each LANG_LIST as lang, i (lang)}
-                    {#if LANG_LIST_IDS[i] !== other_lang_id}
-                      <Select.Item value={LANG_LIST_IDS[i].toString()}>{lang}</Select.Item>
-                    {/if}
-                  {/each}
-                </Select.Content>
-              </Select.Root>
+            <div class="flex items-center gap-1 text-xs text-muted-foreground">
+              <span>Lang {slot + 1}</span>
               {#if $editing_mode === 'none' && can_edit_language(slot_lang_id)}
                 <Button
                   onclick={() => ($editing_mode = slot === 0 ? '1st_lang' : '2nd_lang')}
                   variant="outline"
                   size="sm"
-                  class="my-1"
+                  class="h-7 px-2 text-xs"
                 >
-                  <Icon src={BiEdit} class="text-xl sm:text-2xl" />
+                  <Icon src={BiEdit} class="text-base" />
                   Edit
                 </Button>
               {/if}
             </div>
           {/each}
-          {#if $editing_mode === 'none' && is_admin}
-            <Button
-              onclick={() => ($editing_mode = 'text')}
-              variant="outline"
-              size="sm"
-              class="my-1"
+          {#each [0, 1] as slot (slot)}
+            {@const slot_lang_id = $selected_translation_lang_ids[slot]}
+            {@const other_lang_id = $selected_translation_lang_ids[slot === 0 ? 1 : 0]}
+            {@const { available, unavailable } = get_grouped_lang_options(
+              other_lang_id,
+              $langs_with_translations_q.data
+            )}
+            <Select.Root
+              type="single"
+              value={slot_lang_id === null ? 'none' : slot_lang_id.toString()}
+              onValueChange={(v) => {
+                set_translation_slot_lang(slot as 0 | 1, v === 'none' ? null : Number(v));
+              }}
+              disabled={$editing_mode === '1st_lang' ||
+                $editing_mode === '2nd_lang' ||
+                $viewing_script_mut.isPending}
             >
-              <Icon src={BiEdit} class="text-xl sm:text-2xl" />
-              Edit Text
-            </Button>
-          {/if}
-          {@render btn_multi()}
+              <Select.Trigger class="inline-flex h-7 w-full max-w-34 px-2 text-xs">
+                {slot_lang_id === null ? 'None' : LANG_LIST[LANG_LIST_IDS.indexOf(slot_lang_id)]}
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="none">None</Select.Item>
+                {#if available.length > 0}
+                  <Select.Group>
+                    {#if unavailable.length > 0}
+                      <Select.Label>Has translation</Select.Label>
+                    {/if}
+                    {#each available as { lang, id } (id)}
+                      <Select.Item value={id.toString()}>{lang}</Select.Item>
+                    {/each}
+                  </Select.Group>
+                {/if}
+                {#if unavailable.length > 0}
+                  <Select.Group>
+                    <Select.Label>Translation not available</Select.Label>
+                    {#each unavailable as { lang, id } (id)}
+                      <Select.Item value={id.toString()}>{lang}</Select.Item>
+                    {/each}
+                  </Select.Group>
+                {/if}
+              </Select.Content>
+            </Select.Root>
+          {/each}
         </div>
-      {/if}
+        {#if $editing_mode !== 'none'}
+          <div
+            class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-0.5 text-xs text-muted-foreground"
+          >
+            <span class="font-medium">Show</span>
+            {#if $editing_mode !== 'text'}
+              <label class="inline-flex cursor-pointer items-center gap-1.5">
+                <Checkbox
+                  checked={$edit_context_visible.text}
+                  onCheckedChange={(checked) => set_edit_context_visible('text', checked === true)}
+                />
+                Text
+              </label>
+            {/if}
+            {#if $editing_mode !== '1st_lang' && $selected_translation_lang_ids[0] !== null}
+              <label
+                class="inline-flex cursor-pointer items-center gap-1.5 text-stone-500 dark:text-slate-400"
+              >
+                <Checkbox
+                  checked={$edit_context_visible.lang_1}
+                  onCheckedChange={(checked) =>
+                    set_edit_context_visible('lang_1', checked === true)}
+                />
+                {get_lang_slot_label(0)}
+              </label>
+            {/if}
+            {#if $editing_mode !== '2nd_lang' && $selected_translation_lang_ids[1] !== null}
+              <label
+                class="inline-flex cursor-pointer items-center gap-1.5 text-yellow-700 dark:text-yellow-500"
+              >
+                <Checkbox
+                  checked={$edit_context_visible.lang_2}
+                  onCheckedChange={(checked) =>
+                    set_edit_context_visible('lang_2', checked === true)}
+                />
+                {get_lang_slot_label(1)}
+              </label>
+            {/if}
+          </div>
+        {/if}
+      </div>
     {/if}
     {#snippet btn_multi()}
       {#await import('./multimedia/MultiMediaLinks.svelte')}
@@ -536,14 +617,14 @@
 {/if}
 {#if active_translation_lang_id !== null && active_translation_lang_id !== lang_list_obj.English && ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') && !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
   <div class="flex gap-2.5 sm:gap-4">
-    <div class="flex items-center gap-2">
+    <Label class="flex items-center gap-2">
       <Switch
         id="edit_lang"
         bind:checked={$edit_language_typer_status}
         class="focus:outline-none"
       />
       <Icon src={BsKeyboard} class="text-4xl" />
-    </div>
+    </Label>
     {#if $sanskrit_mode_texts.isSuccess && !$sanskrit_mode_texts.isFetching}
       <Select.Root
         type="single"

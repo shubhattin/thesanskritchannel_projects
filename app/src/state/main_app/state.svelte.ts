@@ -41,9 +41,16 @@ export type editing_mode_type = 'none' | 'text' | translation_slot_mode;
 export let selected_translation_lang_ids = writable<[number | null, number | null]>([1, null]);
 export let editing_mode = writable<editing_mode_type>('none');
 
+export type edit_context_panel_key = 'text' | 'lang_1' | 'lang_2';
+export let edit_context_visible = writable<Record<edit_context_panel_key, boolean>>({
+  text: true,
+  lang_1: true,
+  lang_2: false
+});
+
 // Legacy translation/edit state retained until old auxiliary editors are removed.
 export let trans_lang = writable<number>();
-export let view_translation_status = writable(false);
+export let view_translation_status = writable(true);
 
 // Edit
 export let editing_status_on = writable(false);

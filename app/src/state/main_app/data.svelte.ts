@@ -81,11 +81,22 @@ export const invalidate_project_registry_queries = async (project_id?: number) =
   ]);
 };
 
+export const invalidate_langs_with_translations_queries = (project_key?: string) =>
+  queryClient.invalidateQueries({
+    predicate: (query) =>
+      query.queryKey[0] === 'langs_with_translations' &&
+      (project_key === undefined || query.queryKey[1] === project_key)
+  });
+
 export const invalidate_project_content_queries = async (project_id?: number) => {
+  const project_key =
+    project_id === undefined ? undefined : (get(project_state).project_key ?? undefined);
+
   if (project_id === undefined) {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['text_data'] }),
-      queryClient.invalidateQueries({ queryKey: ['trans'] })
+      queryClient.invalidateQueries({ queryKey: ['trans'] }),
+      invalidate_langs_with_translations_queries()
     ]);
     return;
   }
@@ -96,7 +107,8 @@ export const invalidate_project_content_queries = async (project_id?: number) =>
     }),
     queryClient.invalidateQueries({
       predicate: (query) => query.queryKey[0] === 'trans' && query.queryKey[1] === project_id
-    })
+    }),
+    invalidate_langs_with_translations_queries(project_key)
   ]);
 };
 
@@ -211,6 +223,30 @@ export const prefetch_text_data = (
 };
 
 // Translations
+
+export const langs_with_translations_q = get_derived_query(
+  [project_state, selected_text_levels, text_data_present],
+  ([project_state_, selected_text_levels_, text_data_present_]) => {
+    const path_params = get_dynamic_path_params(selected_text_levels_, project_state_.levels);
+    return createQuery(
+      {
+        queryKey: ['langs_with_translations', project_state_.project_key, ...path_params],
+        queryFn: () =>
+          client.translation.get_langs_with_translations.query({
+            project_key: project_state_.project_key!,
+            path_params
+          }),
+        enabled:
+          browser &&
+          text_data_present_ &&
+          !!project_state_.project_key &&
+          has_translation_query_path(selected_text_levels_, project_state_.levels),
+        staleTime: ms('5minutes')
+      },
+      queryClient
+    );
+  }
+);
 
 export const trans_en_data_q = get_derived_query(
   [

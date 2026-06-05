@@ -19,6 +19,11 @@
   import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
   import { LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
   import { parse_import_text } from './display/project_utility/download_text_format';
+  import {
+    apply_normalizations_to_texts,
+    DEFAULT_ENABLED_NORMALIZATIONS,
+    get_normalization_options
+  } from '~/tools/text_normalizations';
 
   type SaveMode = 'use-existing' | 'overwrite';
   type ReviewedState = 'no' | 'yes';
@@ -32,6 +37,20 @@
   let active_tab = $state('text');
   let save_mode = $state<SaveMode>('overwrite');
   let reviewed_output = $state<ReviewedState>('no');
+  let selected_normalization_keys = $state<string[]>([...DEFAULT_ENABLED_NORMALIZATIONS]);
+  const normalization_options = get_normalization_options();
+  const enabled_normalizations = $derived(
+    normalization_options
+      .map((option) => option.key)
+      .filter((key) => selected_normalization_keys.includes(key))
+  );
+  const transformations_label = $derived(
+    selected_normalization_keys.length === 0
+      ? 'Select transformations'
+      : selected_normalization_keys.length === normalization_options.length
+        ? 'All transformations'
+        : `${selected_normalization_keys.length} selected`
+  );
 
   const existing_rows = $derived($text_data_q.data ?? []);
   const existing_text_exists = $derived(existing_rows.length > 0);
@@ -42,6 +61,16 @@
     })
   );
   const parsed_rows = $derived(parsed_result.rows);
+  const transformed_rows = $derived.by(() => {
+    if (parsed_rows.length === 0) return [];
+    const texts = parsed_rows.map((row) => row.text);
+    const indices = parsed_rows.map((_, index) => index);
+    const transformed_texts = apply_normalizations_to_texts(texts, indices, enabled_normalizations);
+    return parsed_rows.map((row, index) => ({
+      ...row,
+      text: transformed_texts[index] ?? row.text
+    }));
+  });
   const target_text_count = $derived(
     save_mode === 'use-existing' ? existing_rows.length : parsed_rows.length
   );
@@ -63,12 +92,13 @@
     include_translation;
     selected_lang_id;
     save_mode;
+    selected_normalization_keys;
     reviewed_output = 'no';
   });
 
   const get_output_text_for_row = (index: number) => {
     if (save_mode === 'use-existing') return existing_rows[index]?.text ?? '';
-    return parsed_rows[index]?.text ?? '';
+    return transformed_rows[index]?.text ?? '';
   };
 
   const get_output_translation_for_row = (index: number) => {
@@ -82,7 +112,7 @@
     const count =
       save_mode === 'use-existing'
         ? Math.max(existing_rows.length, parsed_rows.length)
-        : parsed_rows.length;
+        : transformed_rows.length;
     return Array.from({ length: count }, (_, i) => i);
   };
 
@@ -99,7 +129,7 @@
         await client.text.save_text_rows.mutate({
           project_id: $project_state.project_id,
           selected_text_levels: $selected_text_levels,
-          rows: parsed_rows.map((row) => ({
+          rows: transformed_rows.map((row) => ({
             source_index: null,
             text: row.text,
             shloka_type: false
@@ -154,7 +184,7 @@
 
       <Tabs.Content value="text" class="min-h-0 flex-1">
         <div class="flex h-full min-h-0 flex-col gap-4">
-          <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-2">
+          <div class="grid gap-3 rounded-lg border p-3 lg:grid-cols-2">
             <div class="flex flex-col gap-3">
               <label class="flex items-center gap-2 text-sm">
                 <Checkbox bind:checked={include_normal} />
@@ -164,29 +194,45 @@
                 <Checkbox bind:checked={include_translation} />
                 <span>Input includes Translation</span>
               </label>
+
+              {#if include_translation}
+                <div class="flex flex-col gap-1.5">
+                  <Label for="load-from-text-lang">Translation language</Label>
+                  <Select.Root
+                    type="single"
+                    value={String(selected_lang_id)}
+                    onValueChange={(value) => {
+                      if (value) selected_lang_id = Number(value);
+                    }}
+                  >
+                    <Select.Trigger id="load-from-text-lang" class="w-full">
+                      {selected_lang_label}
+                    </Select.Trigger>
+                    <Select.Content>
+                      {#each LANG_LIST as lang, i (lang)}
+                        <Select.Item value={String(LANG_LIST_IDS[i])}>{lang}</Select.Item>
+                      {/each}
+                    </Select.Content>
+                  </Select.Root>
+                </div>
+              {/if}
             </div>
 
-            {#if include_translation}
-              <div class="flex flex-col gap-1.5">
-                <Label for="load-from-text-lang">Translation language</Label>
-                <Select.Root
-                  type="single"
-                  value={String(selected_lang_id)}
-                  onValueChange={(value) => {
-                    if (value) selected_lang_id = Number(value);
-                  }}
-                >
-                  <Select.Trigger id="load-from-text-lang" class="w-full">
-                    {selected_lang_label}
-                  </Select.Trigger>
-                  <Select.Content>
-                    {#each LANG_LIST as lang, i (lang)}
-                      <Select.Item value={String(LANG_LIST_IDS[i])}>{lang}</Select.Item>
-                    {/each}
-                  </Select.Content>
-                </Select.Root>
-              </div>
-            {/if}
+            <div class="flex flex-col gap-1.5">
+              <Label for="load-from-text-transformations">Transformations</Label>
+              <Select.Root type="multiple" bind:value={selected_normalization_keys}>
+                <Select.Trigger id="load-from-text-transformations" class="h-auto min-h-9 w-full py-2">
+                  <span class="line-clamp-2 text-left text-sm">{transformations_label}</span>
+                </Select.Trigger>
+                <Select.Content class="max-h-64">
+                  {#each normalization_options as option (option.key)}
+                    <Select.Item value={option.key} label={option.description}>
+                      {option.description}
+                    </Select.Item>
+                  {/each}
+                </Select.Content>
+              </Select.Root>
+            </div>
           </div>
 
           <div class="flex min-h-0 flex-1 flex-col gap-1.5">
@@ -221,7 +267,7 @@
                 {/if}
               </div>
               <div class="text-muted-foreground">
-                Existing text rows: {existing_rows.length}. New text rows: {parsed_rows.length}.
+                Existing text rows: {existing_rows.length}. New text rows: {transformed_rows.length}.
                 Imported rows are saved as regular text rows; after adding, use Edit Text to mark
                 individual rows as shlokas.
               </div>
@@ -247,22 +293,26 @@
           </div>
 
           {#if save_mode === 'overwrite' && existing_text_exists}
-            <div class="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            <div
+              class="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+            >
               Existing text will be overwritten. Old rows: {existing_rows.length}; new rows:
-              {parsed_rows.length}.
+              {transformed_rows.length}.
             </div>
           {/if}
 
           <ScrollArea class="min-h-0 flex-1 rounded-lg border p-3">
-            {#if parsed_rows.length === 0}
-              <p class="text-sm text-muted-foreground">Paste text in the Text tab to preview output.</p>
+            {#if transformed_rows.length === 0}
+              <p class="text-sm text-muted-foreground">
+                Paste text in the Text tab to preview output.
+              </p>
             {:else}
               <div class="flex flex-col gap-4">
                 {#each get_preview_indexes() as index (index)}
                   {@const text = get_output_text_for_row(index)}
                   {@const translation = get_output_translation_for_row(index)}
                   <div class="rounded-md border bg-card p-3">
-                    <div class="whitespace-pre-wrap text-sm">
+                    <div class="text-sm whitespace-pre-wrap">
                       <span class="font-semibold">{index + 1}.</span>
                       {#if text}
                         <span> {text}</span>
@@ -271,7 +321,7 @@
                       {/if}
                     </div>
                     {#if include_translation}
-                      <div class="mt-2 whitespace-pre-wrap pl-6 text-sm text-muted-foreground">
+                      <div class="mt-2 pl-6 text-sm whitespace-pre-wrap text-muted-foreground">
                         {translation ?? '----'}
                       </div>
                     {/if}

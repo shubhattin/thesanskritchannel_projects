@@ -6,7 +6,6 @@
     selected_text_levels,
     BASE_SCRIPT,
     image_tool_opened,
-    viewing_script,
     ai_tool_opened,
     project_state,
     editing_mode
@@ -19,8 +18,8 @@
   import { BiImage } from 'svelte-icons-pack/bi';
   import type { Workbook } from 'exceljs';
   import { TrOutlineFileTypeTxt } from 'svelte-icons-pack/tr';
-  import { download_file_in_browser } from '~/tools/download_file_browser';
   import { transliterate_custom } from '~/tools/converter';
+  import DownloadTextTool from './DownloadTextTool.svelte';
   import { RiUserFacesRobot2Line } from 'svelte-icons-pack/ri';
   import { useSession } from '~/lib/auth-client';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -92,37 +91,8 @@
     }
   });
 
-  const download_text_file = createMutation({
-    mutationKey: ['chapter', 'download_text_data'],
-    mutationFn: async () => {
-      if (!browser) return;
-      const text = (
-        await transliterate_custom(
-          $text_data_q.data!.map((shloka_lines) => shloka_lines.text),
-          BASE_SCRIPT,
-          $viewing_script
-        )
-      ).join('\n\n');
-      const blob = new Blob([text], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const name_first_line = get_last_level_name($selected_text_levels).split('\n')[0].trim();
-      const sarga_name_normal = await transliterate_custom(name_first_line, BASE_SCRIPT, 'Normal');
-      const sarga_name_script = await transliterate_custom(
-        name_first_line,
-        BASE_SCRIPT,
-        $viewing_script
-      );
-      const is_not_brahmic_script = ['Normal', 'Romanized'].includes($viewing_script);
-      const lowest_selected = get_lowest_selected($selected_text_levels);
-      download_file_in_browser(
-        url,
-        (lowest_selected ? `${lowest_selected} ` : '') +
-          `${sarga_name_script}${is_not_brahmic_script ? '' : ` (${sarga_name_normal})`}.txt`
-      );
-    }
-  });
-
   let utility_popover_state = $state(false);
+  let download_text_tool_opened = $state(false);
 
   let cache_tool_modal_opened = $state(false);
   const tools_disabled = $derived($editing_mode !== 'none');
@@ -188,7 +158,7 @@
       class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
       onclick={() => {
         utility_popover_state = false;
-        $download_text_file.mutate();
+        download_text_tool_opened = true;
       }}
     >
       <Icon src={TrOutlineFileTypeTxt} class="mr-1 text-2xl" />
@@ -234,6 +204,8 @@
     />
   {/await}
 {/if}
+
+<DownloadTextTool bind:open={download_text_tool_opened} />
 
 <Dialog.Root bind:open={cache_tool_modal_opened}>
   <Dialog.Content class="max-w-md">

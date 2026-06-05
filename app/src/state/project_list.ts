@@ -217,7 +217,10 @@ export const get_path_params = (
   selected_text_levels: (number | null)[],
   project_levels: number
 ) => {
-  return selected_text_levels.slice(0, project_levels - 1).reverse() as number[];
+  const params = selected_text_levels.slice(0, project_levels - 1).reverse();
+  while (params.length && params[params.length - 1] == null) params.pop();
+  if (params.some((v) => v == null)) return [];
+  return params as number[];
 };
 
 export type project_info_type = project_type & {

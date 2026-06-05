@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { project_paths, projects, texts, translations } from '~/db/schema';
@@ -112,6 +113,9 @@ const save_text_rows_route = protectedAdminProcedure
   .mutation(async ({ input: { project_id, selected_text_levels, rows }, ctx: { cookie } }) => {
     const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
     const path_params = get_path_params(selected_text_levels, levels);
+    if (levels > 1 && path_params.length === 0) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });
+    }
     const path = path_params.join(':');
     const textRows = buildTextRowsForSave(rows);
     const shloka_count = textRows.filter((row) => row.shloka_num !== null).length;

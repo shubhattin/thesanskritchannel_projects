@@ -137,7 +137,7 @@
       if (
         !text_data ||
         translations.length !== text_data.length ||
-        translations.some((v, i) => v.index !== i || !v.text)
+        translations.some((v, i) => v.index !== i)
       ) {
         console.error('Translation Rejected: Length mismatch or index mismatch');
         console.error(translations);

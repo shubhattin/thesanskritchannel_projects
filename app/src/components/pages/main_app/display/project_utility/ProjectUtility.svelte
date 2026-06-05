@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
+  import { resolve } from '$app/paths';
   import { get_last_level_name, get_total_count, text_data_q } from '~/state/main_app/data.svelte';
   import {
     selected_text_levels,
@@ -7,7 +8,8 @@
     image_tool_opened,
     viewing_script,
     ai_tool_opened,
-    project_state
+    project_state,
+    editing_mode
   } from '~/state/main_app/state.svelte';
   import { createMutation } from '@tanstack/svelte-query';
   import { RiDocumentFileExcel2Line, RiSystemSearchLine } from 'svelte-icons-pack/ri';
@@ -123,6 +125,7 @@
   let utility_popover_state = $state(false);
 
   let cache_tool_modal_opened = $state(false);
+  const tools_disabled = $derived($editing_mode !== 'none');
 </script>
 
 <Popover.Root bind:open={utility_popover_state}>
@@ -132,7 +135,7 @@
   <Popover.Content side="bottom" class="w-auto space-y-1 p-1 text-sm">
     <a
       class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
-      href="/search"
+      href={resolve('/search')}
     >
       <Icon src={RiSystemSearchLine} class="-mt-1 mr-1 size-5" />
       Search
@@ -154,7 +157,9 @@
     {/if}
     <button
       class="flex w-full items-center justify-start gap-2 rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
+      disabled={tools_disabled}
       onclick={() => {
+        if (tools_disabled) return;
         utility_popover_state = false;
         image_tool_opened.set(true);
       }}
@@ -165,7 +170,9 @@
     {#if user_info && user_info.role === 'admin'}
       <button
         class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
+        disabled={tools_disabled}
         onclick={() => {
+          if (tools_disabled) return;
           utility_popover_state = false;
           $ai_tool_opened = true;
         }}

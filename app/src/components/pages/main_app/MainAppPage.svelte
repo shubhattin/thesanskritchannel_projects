@@ -244,7 +244,7 @@
     if (lang_id === null || !$user_info) return false;
     if ($user_info.role === 'admin') return true;
     if (!$user_project_info_q.isSuccess) return false;
-    return $user_project_info_q.data.languages!.map((l) => l.lang_id).includes(lang_id);
+    return $user_project_info_q.data.languages?.map((l) => l.lang_id).includes(lang_id) ?? false;
   };
 
   type lang_option = { lang: string; id: number };

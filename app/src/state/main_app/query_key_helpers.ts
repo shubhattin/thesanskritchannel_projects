@@ -26,12 +26,11 @@ export const build_trans_lang_data_query_key = (
   selected_text_levels: (number | null)[],
   project_levels: number
 ) => {
-  const normalized = get_normalized_selected_text_levels(selected_text_levels, project_levels);
   return [
     'trans',
     project_id,
     lang_id,
-    ...get_dynamic_path_params(normalized, project_levels)
+    ...get_dynamic_path_params(selected_text_levels, project_levels)
   ] as const;
 };
 
@@ -39,4 +38,5 @@ export const build_content_session_scope = (
   project_id: number | null,
   selected_text_levels: (number | null)[],
   project_levels: number
-) => `${project_id ?? ''}:${get_dynamic_path_params(selected_text_levels, project_levels).join(':')}`;
+) =>
+  `${project_id ?? ''}:${get_dynamic_path_params(selected_text_levels, project_levels).join(':')}`;

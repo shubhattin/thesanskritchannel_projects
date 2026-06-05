@@ -19,11 +19,7 @@ import { get_node_at_path, build_project_registry } from '../project_list';
 import { user_info } from '../user.svelte';
 import type { shloka_list_type } from '~/state/data_types';
 import ms from 'ms';
-import {
-  build_content_session_scope,
-  get_dynamic_path_params,
-  get_normalized_selected_text_levels
-} from './query_key_helpers';
+import { build_content_session_scope, get_dynamic_path_params } from './query_key_helpers';
 
 export { build_content_session_scope };
 
@@ -191,7 +187,7 @@ export const text_data_q = get_derived_query(
           prject_state_.levels!
         ),
         enabled: text_data_present_,
-        ...(editing_mode_ === 'text' ? { staleTime: Infinity } : {})
+        ...pin_query_while_editing(editing_mode_)
       },
       queryClient
     )
@@ -256,11 +252,7 @@ export const trans_en_data_q = get_derived_query(
 export const trans_lang_data_query_key = derived(
   [trans_lang, selected_text_levels, project_state],
   ([_trans_lang, _selected_text_levels, _project_state]) =>
-    QUERY_KEYS.trans_lang_data(
-      _trans_lang,
-      get_normalized_selected_text_levels(_selected_text_levels, _project_state.levels),
-      _project_state.levels
-    )
+    trans_lang_data_q_options(_trans_lang, _selected_text_levels, _project_state.levels).queryKey
 );
 
 export const trans_lang_data_q = get_derived_query(
@@ -364,13 +356,9 @@ export const trans_lang_data_q_options = (
   selected_text_levels: (number | null)[],
   project_levels = get(project_state).levels
 ) => {
-  const normalized_selected_text_levels = get_normalized_selected_text_levels(
-    selected_text_levels,
-    project_levels
-  );
   return queryOptions({
-    queryKey: QUERY_KEYS.trans_lang_data(lang_id, normalized_selected_text_levels, project_levels),
-    queryFn: () => get_translations(normalized_selected_text_levels, lang_id)
+    queryKey: QUERY_KEYS.trans_lang_data(lang_id, selected_text_levels, project_levels),
+    queryFn: () => get_translations(selected_text_levels, lang_id)
   });
 };
 

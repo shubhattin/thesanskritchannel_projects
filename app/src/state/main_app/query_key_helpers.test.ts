@@ -4,6 +4,7 @@ import {
   get_dynamic_path_params,
   get_normalized_selected_text_levels
 } from './query_key_helpers';
+import { get_path_params } from '../project_list';
 
 describe('query_key_helpers', () => {
   it('trims sparse trailing nulls on the lowest route levels', () => {
@@ -11,6 +12,7 @@ describe('query_key_helpers', () => {
     const sparse = [null, null, 12, 3, null];
 
     expect(get_dynamic_path_params(sparse, project_levels)).toEqual([3, 12]);
+    expect(get_path_params(sparse, project_levels)).toEqual([3, 12]);
     expect(get_normalized_selected_text_levels(sparse, project_levels)).toEqual([
       12,
       3,
@@ -19,7 +21,7 @@ describe('query_key_helpers', () => {
     ]);
   });
 
-  it('builds translation query keys from normalized sparse selections', () => {
+  it('builds translation query keys from sparse selections', () => {
     const project_id = 7;
     const lang_id = 2;
     const project_levels = 5;
@@ -28,7 +30,9 @@ describe('query_key_helpers', () => {
     expect(build_trans_lang_data_query_key(project_id, lang_id, sparse, project_levels)).toEqual([
       'trans',
       project_id,
-      lang_id
+      lang_id,
+      3,
+      12
     ]);
   });
 

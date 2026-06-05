@@ -1,7 +1,7 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { beforeNavigate } from '$app/navigation';
-  import { createMutation } from '@tanstack/svelte-query';
+  import { createMutation, useQueryClient } from '@tanstack/svelte-query';
   import { onDestroy, onMount, tick, untrack } from 'svelte';
   import { get } from 'svelte/store';
   import { fade } from 'svelte/transition';
@@ -43,7 +43,8 @@
     invalidate_project_map_queries,
     text_data_q,
     trans_slot_1_data_q,
-    trans_slot_2_data_q
+    trans_slot_2_data_q,
+    trans_slot_data_query_key
   } from '~/state/main_app/data.svelte';
   import { LANG_LIST, LANG_LIST_IDS, lang_list_obj, type lang_list_type } from '~/state/lang_list';
   import { transliterate_custom } from '~/tools/converter';
@@ -78,6 +79,8 @@
 
   const normalize_translation_value = (value: string | null) =>
     value === null || value === '' ? null : value;
+
+  const query_client = useQueryClient();
 
   const clone_text_rows = (rows: TextDraftRow[]) => rows.map((row) => ({ ...row }));
   const clone_translation_rows = (rows: TranslationDraftRow[]) => rows.map((row) => ({ ...row }));
@@ -332,13 +335,9 @@
       const parts = [`${shloka_lines}\n${normal_shlokas[i]}`];
       const persisted_index = $text_data_q.data[i]?.index;
       const first =
-        persisted_index === undefined
-          ? undefined
-          : $trans_slot_1_data_q.data?.get(persisted_index);
+        persisted_index === undefined ? undefined : $trans_slot_1_data_q.data?.get(persisted_index);
       const second =
-        persisted_index === undefined
-          ? undefined
-          : $trans_slot_2_data_q.data?.get(persisted_index);
+        persisted_index === undefined ? undefined : $trans_slot_2_data_q.data?.get(persisted_index);
       if (first) parts.push(first);
       if (second) parts.push(second);
       return parts.join('\n\n');
@@ -354,6 +353,19 @@
     $editing_mode = 'none';
   };
 
+  const discard_active_translation_cache = async () => {
+    const slot = active_translation_slot;
+    if (slot === null) return;
+
+    const restored = new Map<number, string>();
+    for (const row of translation_baseline) {
+      if (row.original !== null) restored.set(row.index, row.original);
+    }
+
+    query_client.setQueryData(get(trans_slot_data_query_key)[slot], restored);
+    await invalidate_project_content_queries($project_state.project_id ?? undefined);
+  };
+
   const request_close_editor = () => {
     if (editor_has_unsaved_changes) {
       discard_dialog_open = true;
@@ -362,8 +374,10 @@
     close_editor();
   };
 
-  const confirm_discard = () => {
+  const confirm_discard = async () => {
+    const discarding_translation = $editing_mode === '1st_lang' || $editing_mode === '2nd_lang';
     discard_dialog_open = false;
+    if (discarding_translation) await discard_active_translation_cache();
     close_editor();
   };
 
@@ -550,6 +564,7 @@
     onSuccess: async (res) => {
       if (!res.success) {
         toast.error('Permission denied for this language');
+        save_dialog_open = false;
         return;
       }
       await invalidate_project_content_queries($project_state.project_id ?? undefined);
@@ -752,10 +767,10 @@
   >
 {/snippet}
 
-{#snippet edit_context_translation_line(data_index: number, slot: 0 | 1)}
+{#snippet edit_context_translation_line(data_index: number | null, slot: 0 | 1)}
   {@const query = slot === 0 ? $trans_slot_1_data_q : $trans_slot_2_data_q}
   {@const font_info = slot === 0 ? first_trans_font_info : second_trans_font_info}
-  {#if query.isSuccess && query.data?.has(data_index)}
+  {#if data_index !== null && query.isSuccess && query.data?.has(data_index)}
     <div
       class={slot === 0
         ? 'text-stone-500 dark:text-slate-400'
@@ -775,7 +790,7 @@
   {/if}
 {/snippet}
 
-{#snippet edit_context_translation_panels_below(data_index: number)}
+{#snippet edit_context_translation_panels_below(data_index: number | null)}
   {@const show_lang_1 =
     $editing_mode !== '1st_lang' &&
     $edit_context_visible.lang_1 &&
@@ -995,7 +1010,7 @@
                 class="min-h-28 w-full whitespace-pre-wrap"
                 style={editor_font_style(main_text_font_info)}
               />
-              {@render edit_context_translation_panels_below(row.source_index ?? i)}
+              {@render edit_context_translation_panels_below(row.source_index)}
             </div>
           {/each}
         {/if}

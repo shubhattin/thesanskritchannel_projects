@@ -2,7 +2,7 @@
   import { browser } from '$app/environment';
   import { beforeNavigate } from '$app/navigation';
   import { createMutation } from '@tanstack/svelte-query';
-  import { onDestroy, onMount, tick } from 'svelte';
+  import { onDestroy, onMount, tick, untrack } from 'svelte';
   import { get } from 'svelte/store';
   import { fade } from 'svelte/transition';
   import {
@@ -96,6 +96,7 @@
   let translation_undo_stack = $state<TranslationDraftRow[][]>([]);
   let translation_focus_group_open = $state(false);
   let translation_session_key = $state('');
+  let last_ai_query_revision = $state('');
   let edit_text_typer_status = $state(true);
 
   const active_translation_slot = $derived(
@@ -224,6 +225,7 @@
     translation_undo_stack = [];
     translation_focus_group_open = false;
     translation_session_key = key;
+    last_ai_query_revision = JSON.stringify([...active_translation_query.data.entries()]);
   });
 
   $effect(() => {
@@ -237,22 +239,32 @@
       return;
 
     const query_data = active_translation_query.data;
-    const ai_merges: { index: number; value: string }[] = [];
+    const query_revision = JSON.stringify([...query_data.entries()]);
+    if (query_revision === last_ai_query_revision) return;
 
-    for (const row of translation_rows) {
-      const from_query = query_data.get(row.index);
-      if (!from_query || from_query === row.value) continue;
-      ai_merges.push({ index: row.index, value: from_query });
-    }
+    untrack(() => {
+      const ai_merges: { index: number; value: string }[] = [];
 
-    if (ai_merges.length === 0) return;
+      for (const row of translation_rows) {
+        const from_query = query_data.get(row.index);
+        if (!from_query || from_query === row.value) continue;
+        ai_merges.push({ index: row.index, value: from_query });
+      }
 
-    translation_undo_stack = [...translation_undo_stack, clone_translation_rows(translation_rows)];
-    translation_rows = translation_rows.map((row) => {
-      const merge = ai_merges.find((entry) => entry.index === row.index);
-      return merge ? { ...row, value: merge.value } : row;
+      if (ai_merges.length > 0) {
+        translation_undo_stack = [
+          ...translation_undo_stack,
+          clone_translation_rows(translation_rows)
+        ];
+        translation_rows = translation_rows.map((row) => {
+          const merge = ai_merges.find((entry) => entry.index === row.index);
+          return merge ? { ...row, value: merge.value } : row;
+        });
+        translation_focus_group_open = false;
+      }
+
+      last_ai_query_revision = query_revision;
     });
-    translation_focus_group_open = false;
   });
 
   $effect(() => {

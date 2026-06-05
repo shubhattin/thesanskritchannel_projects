@@ -16,6 +16,7 @@
     project_list_q
   } from '~/state/main_app/data.svelte';
   import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+  import { toast } from 'svelte-sonner';
   import { AIIcon } from '~/components/icons';
   import Icon from '~/tools/Icon.svelte';
   import { get_result_from_trigger_run_id } from '~/tools/trigger';
@@ -28,7 +29,9 @@
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Dialog from '$lib/components/ui/dialog';
+  import * as RadioGroup from '$lib/components/ui/radio-group';
   import * as Select from '$lib/components/ui/select';
+  import Label from '$lib/components/ui/label/label.svelte';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 
@@ -38,6 +41,7 @@
   let dialog_open = $state(false);
   let include_english_context = $state(false);
   let translate_error = $state<string | null>(null);
+  let overwrite_confirmed = $state<'yes' | 'no'>('no');
 
   onDestroy(() => {
     show_time_status = false;
@@ -80,6 +84,7 @@
 
   function open_translate_dialog() {
     translate_error = null;
+    overwrite_confirmed = 'no';
     if (is_non_english_target) include_english_context = english_context_available;
     dialog_open = true;
   }
@@ -87,7 +92,10 @@
   function handle_dialog_open_change(open: boolean) {
     if (!open && $translate_sarga_mut.isPending) return;
     dialog_open = open;
-    if (!open) translate_error = null;
+    if (!open) {
+      translate_error = null;
+      overwrite_confirmed = 'no';
+    }
   }
 
   let selected_model: keyof typeof TEXT_MODEL_LIST = $state('gpt-5.2');
@@ -100,6 +108,10 @@
 
   const has_existing_translations = $derived(
     active_translation_query.isSuccess && (active_translation_query.data?.size ?? 0) > 0
+  );
+
+  const can_confirm_translate = $derived(
+    !has_existing_translations || overwrite_confirmed === 'yes'
   );
 
   const translate_sarga_mut = createMutation({
@@ -147,6 +159,7 @@
       show_time_status = true;
       translate_error = null;
       dialog_open = false;
+      toast.success(`AI translation to ${active_translation_name} completed`);
     },
     onError(err) {
       translate_error = err.message || 'Translation failed';
@@ -218,12 +231,40 @@
           </Dialog.Description>
         </Dialog.Header>
         {#if has_existing_translations}
-          <p
-            class="flex items-start gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400"
+          <div
+            class="space-y-2 rounded-md border border-amber-300/60 bg-amber-50/50 p-3 dark:border-amber-700/50 dark:bg-amber-950/20"
           >
-            <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <span>Your current translations will be overwritten with the new AI translations.</span>
-          </p>
+            <p
+              class="flex items-start gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400"
+            >
+              <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span
+                >Your current translations will be overwritten with the new AI translations.</span
+              >
+            </p>
+            <fieldset class="space-y-1.5">
+              <legend class="text-xs font-medium text-amber-800 dark:text-amber-300">
+                Overwrite existing translations?
+              </legend>
+              <RadioGroup.Root
+                bind:value={overwrite_confirmed}
+                class="flex flex-wrap gap-x-4 gap-y-1"
+              >
+                <div class="flex items-center gap-1.5">
+                  <RadioGroup.Item value="no" id="ai-translate-overwrite-no" />
+                  <Label for="ai-translate-overwrite-no" class="cursor-pointer text-xs font-normal"
+                    >No</Label
+                  >
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <RadioGroup.Item value="yes" id="ai-translate-overwrite-yes" />
+                  <Label for="ai-translate-overwrite-yes" class="cursor-pointer text-xs font-normal"
+                    >Yes</Label
+                  >
+                </div>
+              </RadioGroup.Root>
+            </fieldset>
+          </div>
         {/if}
         {#if translate_error}
           <p class="text-sm font-semibold text-destructive">{translate_error}</p>
@@ -247,7 +288,8 @@
         {/if}
         <Dialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
           <Button variant="outline" onclick={() => handle_dialog_open_change(false)}>Cancel</Button>
-          <Button onclick={translate_sarga_func}>Translate</Button>
+          <Button disabled={!can_confirm_translate} onclick={translate_sarga_func}>Translate</Button
+          >
         </Dialog.Footer>
       {/if}
     </Dialog.Content>

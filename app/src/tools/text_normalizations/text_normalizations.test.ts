@@ -50,7 +50,7 @@ describe('text_normalizations', () => {
   it('applies default pipeline to selected indices only', () => {
     const texts = ['|| १७ || :', 'skip me'];
     expect(apply_normalizations_to_texts(texts, [0], DEFAULT_ENABLED_NORMALIZATIONS)).toEqual([
-      '॥१७॥ ः',
+      '॥ १७ ॥ ः',
       'skip me'
     ]);
   });

@@ -83,7 +83,7 @@
 
   $effect(() => {
     if (!open) return;
-    if (!existing_text_exists) save_mode = 'overwrite';
+    if (!existing_text_exists || !include_translation) save_mode = 'overwrite';
   });
 
   $effect(() => {
@@ -278,7 +278,7 @@
               {/if}
             </div>
 
-            {#if existing_text_exists}
+            {#if existing_text_exists && include_translation}
               <RadioGroup.Root bind:value={save_mode} class="min-w-52 gap-2">
                 <label class="flex items-center gap-2 text-sm">
                   <RadioGroup.Item value="use-existing" />

@@ -44,10 +44,12 @@ Do not miss or reorder any index. Indexes should be in natural increasing order.
 `;
 
 export const OTHER_SYSTEM_PROMPT = `
-I will be providing you with Sanskrit shlokas of a certain text along with its English tranlsations in a list format.
-Generate Translations in the instructed language to all those shlokas based on both the Sanskrit shloka and English Translation.
+I will be providing you with Sanskrit shlokas of a certain text in a list format.
+Some entries may also include an English translation as additional context.
+Generate translations in the instructed language for all those shlokas based primarily on the Sanskrit shloka.
+When an English translation is provided for an entry, use it as supplementary context to preserve meaning and detail, but always translate into the instructed language.
 Use vocabulary which is generally used while translating that text and other such Hindu religious (dharmic) texts to the provided language.
-Also make it contain the entire essence and detail of the English translation, please do not miss any details.
+Also make it contain the entire essence and detail of the source material, please do not miss any details.
 Keep the translations consistent for all the shlokas, until the very last. Do not make it shorter towards the later shlokas.
 Include translations for all the shlokas. Don't leave out any shloka translation.
 Do not return English translations rather translate it to the provided language.

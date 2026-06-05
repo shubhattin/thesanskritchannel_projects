@@ -208,7 +208,7 @@
         translation_session_key = '';
       return;
     }
-    const key = `${$editing_mode}:${active_translation_lang_id}:${JSON.stringify($text_data_q.data)}:${JSON.stringify([...active_translation_query.data.entries()])}`;
+    const key = `${$editing_mode}:${active_translation_lang_id}:${JSON.stringify($text_data_q.data)}`;
     if (translation_session_key === key) return;
     translation_rows = ($text_data_q.data ?? []).map((row) => {
       const original = active_translation_query.data.get(row.index) ?? null;
@@ -222,7 +222,37 @@
     });
     translation_baseline = clone_translation_rows(translation_rows);
     translation_undo_stack = [];
+    translation_focus_group_open = false;
     translation_session_key = key;
+  });
+
+  $effect(() => {
+    if (
+      !($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') ||
+      active_translation_lang_id === null ||
+      !active_translation_query.isSuccess ||
+      !active_translation_query.data ||
+      !translation_session_key
+    )
+      return;
+
+    const query_data = active_translation_query.data;
+    const ai_merges: { index: number; value: string }[] = [];
+
+    for (const row of translation_rows) {
+      const from_query = query_data.get(row.index);
+      if (!from_query || from_query === row.value) continue;
+      ai_merges.push({ index: row.index, value: from_query });
+    }
+
+    if (ai_merges.length === 0) return;
+
+    translation_undo_stack = [...translation_undo_stack, clone_translation_rows(translation_rows)];
+    translation_rows = translation_rows.map((row) => {
+      const merge = ai_merges.find((entry) => entry.index === row.index);
+      return merge ? { ...row, value: merge.value } : row;
+    });
+    translation_focus_group_open = false;
   });
 
   $effect(() => {

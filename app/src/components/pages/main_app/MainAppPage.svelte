@@ -69,6 +69,7 @@
   import EditNameDevDialog, { type NameDevEditTarget } from './EditNameDevDialog.svelte';
   import { create_map_metadata_save_mutation } from './map_metadata_save';
   import Label from '~/lib/components/ui/label/label.svelte';
+  import AITranslate from './display/ai_translate/AITranslate.svelte';
 
   let { path_params = [] }: { path_params?: number[] } = $props();
 
@@ -599,6 +600,9 @@
                 />
                 {get_lang_slot_label(1)}
               </label>
+            {/if}
+            {#if $editing_mode === '1st_lang' || $editing_mode === '2nd_lang'}
+              <AITranslate />
             {/if}
           </div>
         {/if}

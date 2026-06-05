@@ -66,6 +66,7 @@
   import TextLevelSelector from './TextLevelSelector.svelte';
   import EditListNameDialog, { type ListNameEditTarget } from './EditListNameDialog.svelte';
   import EditNameDevDialog, { type NameDevEditTarget } from './EditNameDevDialog.svelte';
+  import LoadFromTextTool from './LoadFromTextTool.svelte';
   import { create_map_metadata_save_mutation } from './map_metadata_save';
   import Label from '~/lib/components/ui/label/label.svelte';
   import AITranslate from './display/ai_translate/AITranslate.svelte';
@@ -109,6 +110,7 @@
   let list_name_target = $state<ListNameEditTarget | null>(null);
   let name_dev_dialog_open = $state(false);
   let name_dev_target = $state<NameDevEditTarget | null>(null);
+  let load_from_text_open = $state(false);
 
   function open_list_name_edit(map: recursive_list_type, path: number[], initial_value: string) {
     list_name_target = { path, initial_value, map };
@@ -489,6 +491,16 @@
           <Icon src={BiEdit} class="text-xl sm:text-2xl" />
           Edit Text
         </Button>
+        <div class="ml-2 border-l pl-3">
+          <Button
+            onclick={() => (load_from_text_open = true)}
+            variant="secondary"
+            size="sm"
+            class="border border-amber-500/40"
+          >
+            Load from Text
+          </Button>
+        </div>
       {/if}
       {#if !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
         {@render btn_multi()}
@@ -614,6 +626,7 @@
     {/snippet}
   </div>
 {/if}
+<LoadFromTextTool bind:open={load_from_text_open} />
 {#if active_translation_lang_id !== null && active_translation_lang_id !== lang_list_obj.English && ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') && !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
   <div class="flex gap-2.5 sm:gap-4">
     <Label class="flex items-center gap-2">

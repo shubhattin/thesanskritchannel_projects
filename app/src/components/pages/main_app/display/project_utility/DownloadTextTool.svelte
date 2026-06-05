@@ -14,11 +14,7 @@
     text_data_q,
     trans_lang_data_q_options
   } from '~/state/main_app/data.svelte';
-  import {
-    BASE_SCRIPT,
-    project_state,
-    selected_text_levels
-  } from '~/state/main_app/state.svelte';
+  import { BASE_SCRIPT, project_state, selected_text_levels } from '~/state/main_app/state.svelte';
   import { get_lang_from_id, SCRIPT_LIST, type script_list_type } from '~/state/lang_list';
   import { queryClient } from '~/state/queryClient';
   import { download_file_in_browser } from '~/tools/download_file_browser';
@@ -64,17 +60,18 @@
   );
 
   const translation_q: CreateQueryResult<Map<number, string>, Error> = derived(
-    [project_state, selected_text_levels, selected_lang_id, include_translation_store, dialog_open_store],
+    [
+      project_state,
+      selected_text_levels,
+      selected_lang_id,
+      include_translation_store,
+      dialog_open_store
+    ],
     ([project_state_, selected_text_levels_, lang_id, include_translation_, is_open], set) => {
       const query = createQuery(
         {
           ...trans_lang_data_q_options(lang_id ?? -1, selected_text_levels_, project_state_.levels),
-          enabled:
-            browser &&
-            is_open &&
-            include_translation_ &&
-            lang_id !== null &&
-            lang_id !== 0
+          enabled: browser && is_open && include_translation_ && lang_id !== null && lang_id !== 0
         },
         queryClient
       );
@@ -84,7 +81,9 @@
   );
 
   const selected_lang_label = $derived(
-    $selected_lang_id === null ? 'Select language' : (get_lang_from_id($selected_lang_id) ?? 'Language')
+    $selected_lang_id === null
+      ? 'Select language'
+      : (get_lang_from_id($selected_lang_id) ?? 'Language')
   );
 
   $effect(() => {
@@ -163,9 +162,7 @@
           with_normal
         );
         const translationMap =
-          with_translation && translation_data
-            ? (translation_data as Map<number, string>)
-            : null;
+          with_translation && translation_data ? (translation_data as Map<number, string>) : null;
         preview_text = format_download_text(scriptTexts, normalTexts, indices, translationMap, {
           textScript: script,
           includeNormal: with_normal,
@@ -243,7 +240,9 @@
             {#if $langs_with_translations_q.isLoading}
               <Skeleton class="h-10 w-full" />
             {:else if lang_options.length === 0}
-              <p class="text-sm text-muted-foreground">No translations available for this section.</p>
+              <p class="text-sm text-muted-foreground">
+                No translations available for this section.
+              </p>
             {:else}
               <Select.Root
                 type="single"

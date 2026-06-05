@@ -27,7 +27,17 @@ const base_map = (): recursive_list_type => ({
 
 describe('project_map_sync.server', () => {
   it('collects all db paths from a nested map', () => {
-    expect(sort_db_paths_by_depth(collect_db_paths_from_map(base_map()))).toEqual(['1', '1:1']);
+    expect(sort_db_paths_by_depth(collect_db_paths_from_map(base_map()))).toEqual(['', '1', '1:1']);
+  });
+
+  it('includes the project root path for an empty shloka map', () => {
+    const shlokaRoot: recursive_list_type = {
+      name_dev: 'Project',
+      info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+      list: []
+    };
+
+    expect(sort_db_paths_by_depth(collect_db_paths_from_map(shlokaRoot))).toEqual(['']);
   });
 
   it('accepts metadata save with empty to_add_paths when only the project root type changes', () => {
@@ -56,6 +66,18 @@ describe('project_map_sync.server', () => {
         []
       )
     ).toEqual([]);
+  });
+
+  it('accepts the root db path when it is explicitly new', () => {
+    const shlokaRoot: recursive_list_type = {
+      name_dev: 'Project',
+      info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+      list: []
+    };
+
+    expect(
+      validate_explicit_to_add_paths(new Set(), collect_db_paths_from_map(shlokaRoot), [''])
+    ).toEqual(['']);
   });
 
   it('accepts exact to_add_paths coverage and returns depth-sorted paths', () => {

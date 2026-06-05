@@ -40,7 +40,8 @@ import {
   validateOrderRootPath,
   validateSwapEdits,
   validateSwapEditsRootScope,
-  validateDbPath
+  validateDbPath,
+  ROOT_DB_PATH
 } from '~/server/map_path_swap';
 import { delay } from '~/tools/delay';
 import { recursive_list_schema } from '~/state/data_types';
@@ -110,7 +111,7 @@ export const update_project_map_route = protectedAdminProcedure
       const derivedPaths = collect_db_paths_from_map(map);
       const toAddPaths = validate_explicit_to_add_paths(oldPaths, derivedPaths, input.to_add_paths);
 
-      await insertProjectPaths(tx, input.project_id, toAddPaths);
+      await insertProjectPaths(tx, input.project_id, [ROOT_DB_PATH, ...toAddPaths]);
 
       await tx
         .update(projects)

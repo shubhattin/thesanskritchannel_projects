@@ -11,6 +11,7 @@ import { get_node_at_path } from '~/state/project_list';
 
 /** Staging suffix for two-phase swaps (`1:2` → `1:2_temp` → `1:5`). */
 export const PATH_TEMP_SUFFIX = '_temp';
+export const ROOT_DB_PATH = '';
 
 export const DB_PATH_RE = /^[1-9]\d*(?::[1-9]\d*)*$/;
 

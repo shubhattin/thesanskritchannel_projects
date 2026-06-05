@@ -31,7 +31,7 @@
 
   let text_script = $state<script_list_type>(BASE_SCRIPT);
   let include_normal = $state(true);
-  let include_translation = $state(false);
+  let include_translation = $state(true);
   let selected_lang_id = writable<number | null>(null);
   const include_translation_store = writable(false);
   const dialog_open_store = writable(false);

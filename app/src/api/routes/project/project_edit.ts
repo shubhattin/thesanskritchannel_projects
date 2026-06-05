@@ -20,7 +20,8 @@ import {
   clear_project_registry_cache
 } from '~/server/project_list.server';
 import { notify_site_invalidate_project_list_caches } from '~/server/invalidate_site_project_cache.server';
-import { countResourcesForProject } from '~/server/project_paths_db.server';
+import { countResourcesForProject, insertProjectPaths } from '~/server/project_paths_db.server';
+import { ROOT_DB_PATH } from '~/server/map_path_swap';
 import { delay } from '~/tools/delay';
 import { type recursive_list_type, recursive_list_schema } from '~/state/data_types';
 
@@ -264,6 +265,7 @@ const add_new_project_route = protectedAdminProcedure
           } satisfies recursive_list_type)
         })
         .returning();
+      await insertProjectPaths(tx, inserted.id, [ROOT_DB_PATH]);
       return inserted;
     });
 

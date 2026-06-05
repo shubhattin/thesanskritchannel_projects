@@ -89,7 +89,6 @@
     name_dev = '';
     description = '';
     slug = '';
-    typing_enabled = false;
   };
 
   $effect(() => {

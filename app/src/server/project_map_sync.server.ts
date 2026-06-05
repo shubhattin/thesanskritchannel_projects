@@ -1,15 +1,19 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { recursive_list_schema } from '~/state/data_types';
-import { validateDbPath } from './map_path_swap';
+import { ROOT_DB_PATH, validateDbPath } from './map_path_swap';
 
 export const sort_db_paths_by_depth = (paths: Iterable<string>): string[] =>
-  [...paths].sort((a, b) => a.split(':').length - b.split(':').length || a.localeCompare(b));
+  [...paths].sort(
+    (a, b) =>
+      (a === ROOT_DB_PATH ? 0 : a.split(':').length) -
+        (b === ROOT_DB_PATH ? 0 : b.split(':').length) || a.localeCompare(b)
+  );
 
 export const collect_db_paths_from_map = (
   root: z.infer<typeof recursive_list_schema>
 ): Set<string> => {
-  const paths = new Set<string>();
+  const paths = new Set<string>([ROOT_DB_PATH]);
   const walk = (node: z.infer<typeof recursive_list_schema>, path: number[]) => {
     if (path.length > 0) {
       paths.add(path.join(':'));
@@ -36,7 +40,7 @@ export const validate_explicit_to_add_paths = (
   }
 
   for (const path of uniqueToAddPaths) {
-    const error = validateDbPath(path);
+    const error = path === ROOT_DB_PATH ? null : validateDbPath(path);
     if (error) {
       throw new TRPCError({
         code: 'BAD_REQUEST',

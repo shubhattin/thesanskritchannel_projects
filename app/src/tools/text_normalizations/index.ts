@@ -38,7 +38,9 @@ export type NormalizationKey = keyof typeof normalizations;
 export const DEFAULT_ENABLED_NORMALIZATIONS = [
   'replace_colon_with_visarga',
   'remove_extra_spaces_and_collapse_single',
-  'replace_double_bar_with_purna_virama'
+  'replace_double_bar_with_purna_virama',
+  'remove_space_when_number_between_double_virama',
+  'replace_single_bar_with_virama'
 ] satisfies NormalizationKey[];
 
 const sort_normalization_keys = (keys: readonly NormalizationKey[]) =>

@@ -221,7 +221,10 @@
             <div class="flex flex-col gap-1.5">
               <Label for="load-from-text-transformations">Transformations</Label>
               <Select.Root type="multiple" bind:value={selected_normalization_keys}>
-                <Select.Trigger id="load-from-text-transformations" class="h-auto min-h-9 w-full py-2">
+                <Select.Trigger
+                  id="load-from-text-transformations"
+                  class="h-auto min-h-9 w-full py-2"
+                >
                   <span class="line-clamp-2 text-left text-sm">{transformations_label}</span>
                 </Select.Trigger>
                 <Select.Content class="max-h-64">

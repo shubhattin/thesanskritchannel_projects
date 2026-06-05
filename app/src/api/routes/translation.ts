@@ -1,16 +1,33 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { TRPCError } from '@trpc/server';
+import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAppScopeProcedure_ProjectsPortal, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
-import { project_paths, translations } from '~/db/schema';
+import { project_paths, texts, translations } from '~/db/schema';
 import { delay } from '~/tools/delay';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { cache_db_options_app } from '~/server/cache_db_options';
-import { get_project_info_by_id } from '~/server/project_list.server';
+import { get_project_by_key, get_project_info_by_id } from '~/server/project_list.server';
 import { get_languages_for_project_user } from './project/project';
 import { get_path_params } from '~/state/project_list';
 import { get_translation_data_func } from '~/server/cached_loader';
 import { requireProjectPath } from '~/server/project_paths_db.server';
+import { TEXT_EDIT_LOCK_NAMESPACE } from '~/server/text_row_edit.server';
+
+const edit_translation_input = z
+  .object({
+    project_id: z.int(),
+    lang_id: z.int(),
+    data: z.string().nullable().array(),
+    indexes: z.number().array(),
+    selected_text_levels: z.array(z.int().nullable())
+  })
+  .refine(({ data, indexes }) => data.length === indexes.length, {
+    message: 'data and indexes must have the same length'
+  })
+  .refine(({ indexes }) => new Set(indexes).size === indexes.length, {
+    message: 'indexes must be unique'
+  });
 
 const get_translation_route = publicProcedure
   .input(
@@ -30,15 +47,7 @@ const get_translation_route = publicProcedure
   });
 
 const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
-  .input(
-    z.object({
-      project_id: z.int(),
-      lang_id: z.int(),
-      data: z.string().array(),
-      indexes: z.number().array(),
-      selected_text_levels: z.array(z.int().nullable())
-    })
-  )
+  .input(edit_translation_input)
   .mutation(
     async ({
       ctx: { user },
@@ -46,6 +55,9 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
     }) => {
       const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
       const path_params = get_path_params(selected_text_levels, levels);
+      if (levels > 1 && path_params.length === 0) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });
+      }
       const path = path_params.join(':');
       const projectPath = await requireProjectPath(db, project_id, path);
 
@@ -55,9 +67,32 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
         const allowed_langs = languages.map((lang) => lang.lang_id);
         if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
       }
+      if (indexes.length === 0) return { success: true };
 
-      const indexed_indexes = indexes.map((v, i) => [v, i]);
+      const indexed_indexes = indexes.map((v, i) => [v, i] as const);
       await db.transaction(async (tx) => {
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
+        );
+
+        const current_text_indexes = new Set(
+          (
+            await tx
+              .select({ index: texts.index })
+              .from(texts)
+              .where(and(eq(texts.project_path_id, projectPath.id), inArray(texts.index, indexes)))
+          ).map((v) => v.index)
+        );
+        const missing_text_index = indexed_indexes.find(
+          ([index, i]) => data[i] !== null && !current_text_indexes.has(index)
+        );
+        if (missing_text_index) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Translation index has no matching text row: ${missing_text_index[0]}`
+          });
+        }
+
         const existing_indexes = new Set(
           (
             await tx
@@ -73,34 +108,48 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
           ).map((v) => v.index)
         );
 
-        const add_entries = indexed_indexes.filter(([index]) => !existing_indexes.has(index));
-        const update_entries = indexed_indexes.filter(([index]) => existing_indexes.has(index));
+        const delete_entries = indexed_indexes.filter(([, i]) => data[i] === null);
+        const add_entries = indexed_indexes.filter(
+          ([index, i]) => data[i] !== null && !existing_indexes.has(index)
+        );
+        const update_entries = indexed_indexes.filter(
+          ([index, i]) => data[i] !== null && existing_indexes.has(index)
+        );
 
-        await Promise.all([
-          // add entries
-          add_entries.length > 0 &&
-            tx.insert(translations).values(
-              add_entries.map(([index, i]) => ({
-                project_path_id: projectPath.id,
-                lang_id,
-                index,
-                text: data[i]
-              }))
-            ),
-          // update entries
-          ...update_entries.map(([index, dataIndex]) =>
-            tx
-              .update(translations)
-              .set({ text: data[dataIndex] })
-              .where(
-                and(
-                  eq(translations.project_path_id, projectPath.id),
-                  eq(translations.lang_id, lang_id),
-                  eq(translations.index, index)
-                )
+        if (delete_entries.length > 0) {
+          await tx.delete(translations).where(
+            and(
+              eq(translations.project_path_id, projectPath.id),
+              eq(translations.lang_id, lang_id),
+              inArray(
+                translations.index,
+                delete_entries.map(([index]) => index)
               )
-          )
-        ]);
+            )
+          );
+        }
+        if (add_entries.length > 0) {
+          await tx.insert(translations).values(
+            add_entries.map(([index, i]) => ({
+              project_path_id: projectPath.id,
+              lang_id,
+              index,
+              text: data[i] ?? ''
+            }))
+          );
+        }
+        for (const [index, dataIndex] of update_entries) {
+          await tx
+            .update(translations)
+            .set({ text: data[dataIndex] ?? '' })
+            .where(
+              and(
+                eq(translations.project_path_id, projectPath.id),
+                eq(translations.lang_id, lang_id),
+                eq(translations.index, index)
+              )
+            );
+        }
       });
 
       await redis.del(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params));
@@ -110,6 +159,30 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
       };
     }
   );
+
+const get_langs_with_translations_route = protectedAppScopeProcedure_ProjectsPortal
+  .input(
+    z.object({
+      project_key: z.string(),
+      path_params: z.int().array()
+    })
+  )
+  .query(async ({ input: { project_key, path_params } }) => {
+    const project = await get_project_by_key(project_key, cache_db_options_app);
+    if (!project) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: `Project not found: ${project_key}` });
+    }
+
+    const path = path_params.join(':');
+    const projectPath = await requireProjectPath(db, project.id, path);
+    const rows = await db
+      .select({ lang_id: translations.lang_id })
+      .from(translations)
+      .where(and(eq(translations.project_path_id, projectPath.id), ne(translations.text, '')))
+      .groupBy(translations.lang_id);
+
+    return rows.map((row) => row.lang_id);
+  });
 
 const get_all_langs_translation_route = protectedAppScopeProcedure_ProjectsPortal
   .input(
@@ -123,6 +196,9 @@ const get_all_langs_translation_route = protectedAppScopeProcedure_ProjectsPorta
 
     const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
     const path_params = get_path_params(selected_text_levels, levels);
+    if (levels > 1 && path_params.length === 0) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });
+    }
     const path = path_params.join(':');
     const projectPath = await requireProjectPath(db, project_id, path);
     const data = await db
@@ -145,5 +221,6 @@ const get_all_langs_translation_route = protectedAppScopeProcedure_ProjectsPorta
 export const translation_router = t.router({
   get_translation: get_translation_route,
   edit_translation: edit_translation_route,
+  get_langs_with_translations: get_langs_with_translations_route,
   get_all_langs_translation: get_all_langs_translation_route
 });

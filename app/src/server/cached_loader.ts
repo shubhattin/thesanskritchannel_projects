@@ -86,6 +86,9 @@ export const get_translation_data_func = async (
 
   const { levels } = await get_project_info_by_id(project_id, options);
   const path_params = get_path_params(selected_text_levels, levels);
+  if (levels > 1 && path_params.length === 0) {
+    throw new Error('Invalid text path selection');
+  }
   const path = path_params.join(':');
   const projectPath = await requireProjectPath(db, project_id, path);
   let cache = null;

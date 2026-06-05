@@ -49,12 +49,11 @@ import {
   collect_db_paths_from_map,
   validate_explicit_to_add_paths
 } from '~/server/project_map_sync.server';
+import { TEXT_EDIT_LOCK_NAMESPACE } from '~/server/text_row_edit.server';
 
 const project_id_input = z.object({
   project_id: z.int()
 });
-
-const PROJECT_MAP_ORDER_LOCK_NAMESPACE = 41021;
 
 const invalidate_project_caches = async (
   cookie: string,
@@ -88,7 +87,7 @@ export const update_project_map_route = protectedAdminProcedure
     await delay(400);
     const project = await db.transaction(async (tx) => {
       await tx.execute(
-        sql`select pg_advisory_xact_lock(${PROJECT_MAP_ORDER_LOCK_NAMESPACE}, ${input.project_id})`
+        sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${input.project_id})`
       );
       const existing = await tx.query.projects.findFirst({
         where: (tbl, { eq: eqId }) => eqId(tbl.id, input.project_id),
@@ -166,7 +165,7 @@ const save_project_map_order = protectedAdminProcedure
       redisKeys
     } = await db.transaction(async (tx) => {
       await tx.execute(
-        sql`select pg_advisory_xact_lock(${PROJECT_MAP_ORDER_LOCK_NAMESPACE}, ${project_id})`
+        sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
       );
       const project = await tx.query.projects.findFirst({
         where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
@@ -233,7 +232,7 @@ const delete_project_map_nodes = protectedAdminProcedure
 
     const { project, map, redisKeys } = await db.transaction(async (tx) => {
       await tx.execute(
-        sql`select pg_advisory_xact_lock(${PROJECT_MAP_ORDER_LOCK_NAMESPACE}, ${project_id})`
+        sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
       );
       const project = await tx.query.projects.findFirst({
         where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),

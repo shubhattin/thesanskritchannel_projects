@@ -12,7 +12,7 @@
   import { Skeleton } from '~/lib/components/ui/skeleton';
   import UserControls from '~/components/pages/main_app/user/UserControls.svelte';
   import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
-  import { editing_status_on, text_data_present } from '~/state/main_app/state.svelte';
+  import { editing_mode, text_data_present } from '~/state/main_app/state.svelte';
   import { map_edit_dirty } from '~/state/map_edit_dirty.svelte';
   import { get_project_from_key, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import { project_list_q, project_map_q } from '~/state/main_app/data.svelte';
@@ -26,7 +26,7 @@
   const project_queries_ready = $derived(
     $project_list_q.isSuccess && $project_map_q.isSuccess && !!current_project
   );
-  const nav_disabled = $derived($editing_status_on || $map_edit_dirty);
+  const nav_disabled = $derived($editing_mode !== 'none' || $map_edit_dirty);
   const is_admin = $derived($user_info?.role === 'admin');
   const active_tab = $derived(
     page.url.pathname.includes(`/${project_key}/edit`) ? 'edit-map' : 'texts'

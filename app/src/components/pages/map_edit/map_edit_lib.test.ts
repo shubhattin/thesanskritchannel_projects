@@ -79,10 +79,7 @@ describe('map_edit_lib normal-mode structure edits', () => {
     expect(diff.dirty).toBe(true);
     expect(diff.rows.some((r) => r.kind === 'type_change' && r.pathLabel === '/')).toBe(true);
 
-    const merged = applyMetadataEditsToMap(
-      childless_shloka_root_map(),
-      strip_client_ids(working)
-    );
+    const merged = applyMetadataEditsToMap(childless_shloka_root_map(), strip_client_ids(working));
     expect(merged.info.type).toBe('list');
     expect(merged.info.type === 'list' && merged.info.list_name).toBe('Level Name');
   });

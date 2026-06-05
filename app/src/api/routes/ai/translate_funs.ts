@@ -21,27 +21,10 @@ import {
 const openrouter_text_model = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY });
 
 const MODELS = {
-  'gpt-4.1': openrouter_text_model('openai/gpt-4.1'),
-  'o3-mini': openrouter_text_model('openai/o3-mini'),
-  'gpt-5.1': openrouter_text_model('openai/gpt-5.1'),
   'gpt-5.2': openrouter_text_model('openai/gpt-5.2')
 } satisfies Record<ai_text_models_type, any>;
 
 const model_custom_options = {
-  'o3-mini': {
-    providerOptions: {
-      openrouter: {
-        reasoningEffort: 'medium'
-      }
-    }
-  },
-  'gpt-5.1': {
-    providerOptions: {
-      openrouter: {
-        reasoningEffort: 'low'
-      }
-    }
-  },
   'gpt-5.2': {
     providerOptions: {
       openrouter: {

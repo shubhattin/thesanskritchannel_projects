@@ -1,7 +1,7 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
-  import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
+  import { createMutation, createQuery } from '@tanstack/svelte-query';
   import { onMount, untrack } from 'svelte';
   import { get, writable } from 'svelte/store';
   import { z } from 'zod';
@@ -9,6 +9,7 @@
   import {
     LANG_LIST,
     LANG_LIST_IDS,
+    get_script_for_lang_id,
     lang_list_obj,
     SCRIPT_LIST,
     script_list_obj,
@@ -16,14 +17,14 @@
   } from '~/state/lang_list';
   import {
     project_state,
-    editing_status_on,
+    editing_mode,
     viewing_script,
     selected_text_levels,
     BASE_SCRIPT,
     text_data_present,
     ai_tool_opened,
-    trans_lang,
-    view_translation_status,
+    selected_translation_lang_ids,
+    edit_context_visible,
     edit_language_typer_status,
     sanskrit_mode,
     typing_assistance_modal_opened,
@@ -40,13 +41,12 @@
   import type { recursive_list_type } from '~/state/data_types';
   import { transliterate_custom } from '~/tools/converter';
   import { delay } from '~/tools/delay';
-  import { get_script_for_lang } from '~/tools/font_tools';
   import Icon from '~/tools/Icon.svelte';
   import { fade, scale, slide } from 'svelte/transition';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
   import Display from './display/Display.svelte';
   import {
-    english_edit_status,
+    langs_with_translations_q,
     prefetch_text_data,
     prefetch_translation_data,
     project_map_q,
@@ -60,14 +60,15 @@
   import AiImageGenerator from './ai_image_tool/AIImageGenerator.svelte';
   import { preloadScriptData, type ScriptLangType } from 'lipilekhika';
   import { Button } from '$lib/components/ui/button';
+  import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Select from '$lib/components/ui/select';
   import ProjectSettingsBar from './settings/ProjectSettingsBar.svelte';
   import TextLevelSelector from './TextLevelSelector.svelte';
   import EditListNameDialog, { type ListNameEditTarget } from './EditListNameDialog.svelte';
   import EditNameDevDialog, { type NameDevEditTarget } from './EditNameDevDialog.svelte';
   import { create_map_metadata_save_mutation } from './map_metadata_save';
-
-  const query_client = useQueryClient();
+  import Label from '~/lib/components/ui/label/label.svelte';
+  import AITranslate from './display/ai_translate/AITranslate.svelte';
 
   let { path_params = [] }: { path_params?: number[] } = $props();
 
@@ -76,27 +77,15 @@
     if (import.meta.env.DEV) {
       (async () => {
         const conf = await loadLocalConfig();
-        if (conf.view_translation_status) $view_translation_status = true;
-        if (conf.trans_lang)
-          $trans_lang_mut.mutateAsync(3).then(() => {
-            // 3 -> Hindi
-            editing_status_on.set(true);
-          });
-        if (conf.editing_status_on) $editing_status_on = true;
+        if (conf.trans_lang) {
+          // 3 -> Hindi
+          $selected_translation_lang_ids = [1, 3];
+          $editing_mode = '2nd_lang';
+        }
+        if (conf.editing_status_on) $editing_mode = '2nd_lang';
         if (conf.image_tool_opened) $image_tool_opened = true;
-        if (conf.ai_tool_opened) {
-          $ai_tool_opened = true;
-          $view_translation_status = true;
-        }
+        if (conf.ai_tool_opened) $ai_tool_opened = true;
       })();
-    }
-    if (browser && import.meta.env.PROD) {
-      window.addEventListener('beforeunload', function (e) {
-        if ($editing_status_on) {
-          e.preventDefault(); // If you prevent default behavior in Mozilla Firefox prompt will always be shown
-          e.returnValue = ''; // Chrome requires returnValue to be set
-        }
-      });
     }
     await preloadScriptData(BASE_SCRIPT);
     mounted = true;
@@ -188,7 +177,9 @@
     const adjacent_levels = [...$selected_text_levels];
     adjacent_levels[idx] = next_value;
     prefetch_text_data(adjacent_levels, $project_state.project_key, levels);
-    prefetch_translation_data(adjacent_levels, $trans_lang ?? 0);
+    for (const lang_id of $selected_translation_lang_ids) {
+      if (lang_id !== null) prefetch_translation_data(adjacent_levels, lang_id);
+    }
   };
 
   $effect(() => {
@@ -229,55 +220,92 @@
     });
   });
 
-  let trans_lang_selection = writable(0);
-  $trans_lang = $trans_lang_selection;
-  const trans_lang_mut = createMutation({
-    mutationKey: ['trans_lang'],
-    mutationFn: async (lang_id: number) => {
-      if (!mounted || !browser || lang_id === 0) return lang_id;
-      // loading trnaslation lang data for typing support
-      await delay(300);
-      let script = get_script_for_lang(lang_id);
-      await Promise.all([
-        $viewing_script_mut.mutateAsync({ script, update_viewing_script_selection: true })
-      ]);
-      return lang_id;
-    },
-    onSuccess(lang_id) {
-      $trans_lang_selection = lang_id;
-      $trans_lang = lang_id;
-      query_client.invalidateQueries({ queryKey: ['sanskrit_mode_texts'] });
+  const set_translation_slot_lang = async (slot: 0 | 1, lang_id: number | null) => {
+    const next = [...$selected_translation_lang_ids] as [number | null, number | null];
+    next[slot] = lang_id;
+    $selected_translation_lang_ids = next;
+    if (!mounted || !browser || lang_id === null || lang_id === lang_list_obj.English) return;
+    await delay(300);
+    const script = get_script_for_lang_id(lang_id);
+    if (script) {
+      await $viewing_script_mut.mutateAsync({ script, update_viewing_script_selection: true });
     }
-  });
-  $effect(() => {
-    if ($editing_status_on && $trans_lang !== 0)
-      preloadScriptData(LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as ScriptLangType);
-  });
-  $effect(() => {
-    const _trans_lang_mut = untrack(() => $trans_lang_mut);
-    _trans_lang_mut.mutate($trans_lang_selection);
-  });
+  };
+
+  const active_translation_lang_id = $derived(
+    $editing_mode === '1st_lang'
+      ? $selected_translation_lang_ids[0]
+      : $editing_mode === '2nd_lang'
+        ? $selected_translation_lang_ids[1]
+        : null
+  );
+
+  const can_edit_language = (lang_id: number | null) => {
+    if (lang_id === null || !$user_info) return false;
+    if ($user_info.role === 'admin') return true;
+    if (!$user_project_info_q.isSuccess) return false;
+    return $user_project_info_q.data.languages?.map((l) => l.lang_id).includes(lang_id) ?? false;
+  };
+
+  type lang_option = { lang: string; id: number };
+
+  const get_lang_slot_label = (slot: 0 | 1) => {
+    const lang_id = $selected_translation_lang_ids[slot];
+    return lang_id === null ? `Lang ${slot + 1}` : LANG_LIST[LANG_LIST_IDS.indexOf(lang_id)]!;
+  };
+
+  const set_edit_context_visible = (key: 'text' | 'lang_1' | 'lang_2', checked: boolean) => {
+    $edit_context_visible = { ...$edit_context_visible, [key]: checked };
+  };
+
+  const start_text_edit = () => {
+    $viewing_script_selection = BASE_SCRIPT;
+    $editing_mode = 'text';
+  };
+
+  const get_grouped_lang_options = (
+    other_lang_id: number | null,
+    langs_with_translations: number[] | undefined
+  ) => {
+    const with_trans = new Set(langs_with_translations ?? []);
+    const available: lang_option[] = [];
+    const unavailable: lang_option[] = [];
+    for (let i = 0; i < LANG_LIST.length; i++) {
+      const id = LANG_LIST_IDS[i]!;
+      if (id === other_lang_id) continue;
+      const entry = { lang: LANG_LIST[i]!, id };
+      if (with_trans.has(id)) available.push(entry);
+      else unavailable.push(entry);
+    }
+    return { available, unavailable };
+  };
 
   $effect(() => {
-    $english_edit_status =
-      $trans_lang === 0 &&
-      ($user_info?.role === 'admin' ||
-        ($user_project_info_q.isSuccess &&
-          $user_project_info_q.data
-            .languages!.map((l) => l.lang_id)
-            .includes(lang_list_obj.English)));
+    if (
+      active_translation_lang_id !== null &&
+      active_translation_lang_id !== lang_list_obj.English &&
+      ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang')
+    ) {
+      preloadScriptData(
+        LANG_LIST[LANG_LIST_IDS.indexOf(active_translation_lang_id)] as ScriptLangType
+      );
+    }
   });
 
   // Language Typing for Schwa Deletion
   let sanskrit_mode_texts = $derived(
     createQuery({
-      queryKey: ['sanskrit_mode_texts'],
-      enabled: browser && $editing_status_on && $trans_lang !== 0,
+      queryKey: ['sanskrit_mode_texts', active_translation_lang_id],
+      enabled:
+        browser &&
+        ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') &&
+        active_translation_lang_id !== null &&
+        active_translation_lang_id !== lang_list_obj.English,
       queryFn: () =>
         transliterate_custom(
           ['राम्', 'राम'],
           BASE_SCRIPT,
-          LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as ScriptLangType
+          LANG_LIST[LANG_LIST_IDS.indexOf(active_translation_lang_id!)] as ScriptLangType
         ),
       placeholderData: ['राम्', 'राम']
     })
@@ -293,13 +321,21 @@
   } as const;
   $effect(() => {
     (async () => {
-      if (!$editing_status_on || $sanskrit_mode_texts.isFetching || !$sanskrit_mode_texts.isSuccess)
+      if (
+        !($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') ||
+        $sanskrit_mode_texts.isFetching ||
+        !$sanskrit_mode_texts.isSuccess
+      )
         return;
-      if ($trans_lang === 0) return;
+      if (
+        active_translation_lang_id === null ||
+        active_translation_lang_id === lang_list_obj.English
+      )
+        return;
       let schwa_deletion = false;
       if (
         SPECIFIC_SCHWA.scripts.includes(script_list_obj[$viewing_script]) ||
-        SPECIFIC_SCHWA.langs.includes($trans_lang)
+        SPECIFIC_SCHWA.langs.includes(active_translation_lang_id)
       ) {
         schwa_deletion = true;
       }
@@ -316,7 +352,8 @@
   <Select.Root
     type="single"
     bind:value={$viewing_script_selection as any}
-    disabled={$viewing_script_selection !== BASE_SCRIPT && $viewing_script_mut.isPending}
+    disabled={$editing_mode === 'text' ||
+      ($viewing_script_selection !== BASE_SCRIPT && $viewing_script_mut.isPending)}
   >
     <Select.Trigger class="inline-flex h-10 w-32 px-2 py-1 text-sm sm:h-12 sm:w-40 sm:text-base">
       {$viewing_script_selection}
@@ -378,7 +415,7 @@
           })
         : false}
       is_admin={is_admin && !!map_root}
-      controls_disabled={$editing_status_on}
+      controls_disabled={$editing_mode !== 'none'}
       show_name_dev_edit={!!name_dev_path && name_dev_path.length > 0}
       on_edit_list_name={() => {
         if (!map_root || !list_name_node || list_name_node.info.type !== 'list') return;
@@ -410,111 +447,161 @@
 {/if}
 
 {#if $text_data_present}
-  <div class="space-x-1 sm:space-x-3">
-    {#if $project_state.levels > 1}
-      {#if active_leaf_value !== 1}
-        <Button
-          onclick={() => {
-            const idx = active_leaf_state_index;
-            const cur = $selected_text_levels[idx] ?? 1;
-            $selected_text_levels[idx] = Math.max(1, cur - 1);
-          }}
-          onmouseenter={() => prefetch_adjacent_text('prev')}
-          variant="outline"
-          size="sm"
-          disabled={$editing_status_on}
-        >
-          <Icon class="-mt-1 text-xl" src={TiArrowBackOutline} />
-          Previous
+  <div class="flex flex-col gap-2">
+    <div class="flex flex-wrap items-center gap-1 sm:gap-3">
+      {#if $project_state.levels > 1}
+        {#if active_leaf_value !== 1}
+          <Button
+            onclick={() => {
+              const idx = active_leaf_state_index;
+              const cur = $selected_text_levels[idx] ?? 1;
+              $selected_text_levels[idx] = Math.max(1, cur - 1);
+            }}
+            onmouseenter={() => prefetch_adjacent_text('prev')}
+            variant="outline"
+            size="sm"
+            disabled={$editing_mode !== 'none'}
+          >
+            <Icon class="-mt-1 text-xl" src={TiArrowBackOutline} />
+            Previous
+          </Button>
+        {/if}
+        {#if active_leaf_value !== derived_list_count}
+          <Button
+            onclick={() => {
+              const idx = active_leaf_state_index;
+              const cur = $selected_text_levels[idx] ?? 1;
+              const max = derived_list_count ?? cur;
+              $selected_text_levels[idx] = Math.min(max, cur + 1);
+            }}
+            onmouseenter={() => prefetch_adjacent_text('next')}
+            variant="outline"
+            size="sm"
+            disabled={$editing_mode !== 'none'}
+          >
+            Next
+            <Icon class="-mt-1 text-xl" src={TiArrowForwardOutline} />
+          </Button>
+        {/if}
+      {/if}
+      {#if $editing_mode === 'none' && is_admin}
+        <Button onclick={start_text_edit} variant="outline" size="sm">
+          <Icon src={BiEdit} class="text-xl sm:text-2xl" />
+          Edit Text
         </Button>
       {/if}
-      {#if active_leaf_value !== derived_list_count}
-        <Button
-          onclick={() => {
-            const idx = active_leaf_state_index;
-            const cur = $selected_text_levels[idx] ?? 1;
-            const max = derived_list_count ?? cur;
-            $selected_text_levels[idx] = Math.min(max, cur + 1);
-          }}
-          onmouseenter={() => prefetch_adjacent_text('next')}
-          variant="outline"
-          size="sm"
-          disabled={$editing_status_on}
-        >
-          Next
-          <Icon class="-mt-1 text-xl" src={TiArrowForwardOutline} />
-        </Button>
-      {/if}
-    {/if}
-    {#if !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
-      {#if !$view_translation_status}
-        <Button
-          onclick={() => {
-            $view_translation_status = true;
-          }}
-          class="rounded-md bg-orange-500 px-1 py-0 text-sm font-semibold text-white transition-colors hover:bg-orange-600 focus-visible:ring-orange-500 dark:bg-orange-600 dark:hover:bg-orange-700 dark:focus-visible:ring-orange-600"
-          size="sm"
-        >
-          View Translations
-        </Button>
+      {#if !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
         {@render btn_multi()}
-      {:else}
-        <div class="mt-2 block space-x-1.5 sm:mt-0 sm:inline-block sm:space-x-2">
-          <label class="mr-1 inline-block space-x-1.5 text-sm sm:mr-3 sm:space-x-4 sm:text-base">
-            Translation
-            <Icon src={LanguageIcon} class="text-xl sm:text-2xl" />
+      {/if}
+    </div>
+    {#if !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
+      <div class="flex flex-wrap items-end gap-x-4 gap-y-1">
+        <div class="grid max-w-md grid-cols-2 gap-x-4 gap-y-0.5">
+          {#each [0, 1] as slot (slot)}
+            {@const slot_lang_id = $selected_translation_lang_ids[slot]}
+            <div class="flex items-center gap-1 text-xs text-muted-foreground">
+              <span>Lang {slot + 1}</span>
+              {#if $editing_mode === 'none' && can_edit_language(slot_lang_id)}
+                <Button
+                  onclick={() => ($editing_mode = slot === 0 ? '1st_lang' : '2nd_lang')}
+                  variant="outline"
+                  size="sm"
+                  class="h-7 px-2 text-xs"
+                >
+                  <Icon src={BiEdit} class="text-base" />
+                  Edit
+                </Button>
+              {/if}
+            </div>
+          {/each}
+          {#each [0, 1] as slot (slot)}
+            {@const slot_lang_id = $selected_translation_lang_ids[slot]}
+            {@const other_lang_id = $selected_translation_lang_ids[slot === 0 ? 1 : 0]}
+            {@const { available, unavailable } = get_grouped_lang_options(
+              other_lang_id,
+              $langs_with_translations_q.data
+            )}
             <Select.Root
               type="single"
-              value={$trans_lang_selection.toString()}
+              value={slot_lang_id === null ? 'none' : slot_lang_id.toString()}
               onValueChange={(v) => {
-                $trans_lang_selection = parseInt(v) || 0;
+                set_translation_slot_lang(slot as 0 | 1, v === 'none' ? null : Number(v));
               }}
-              disabled={$editing_status_on || $viewing_script_mut.isPending}
+              disabled={$editing_mode === '1st_lang' ||
+                $editing_mode === '2nd_lang' ||
+                $viewing_script_mut.isPending}
             >
-              <Select.Trigger class="inline-flex w-24 px-2 py-1 text-sm sm:w-32 sm:text-base">
-                {LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang_selection)] ?? 'English'}
+              <Select.Trigger class="inline-flex h-7 w-full max-w-34 px-2 text-xs">
+                {slot_lang_id === null ? 'None' : LANG_LIST[LANG_LIST_IDS.indexOf(slot_lang_id)]}
               </Select.Trigger>
               <Select.Content>
-                <Select.Item value="0">English</Select.Item>
-                {#each LANG_LIST as lang, i (lang)}
-                  {#if lang !== 'English'}
-                    <Select.Item value={LANG_LIST_IDS[i].toString()}>{lang}</Select.Item>
-                  {/if}
-                {/each}
+                <Select.Item value="none">None</Select.Item>
+                {#if available.length > 0}
+                  <Select.Group>
+                    {#if unavailable.length > 0}
+                      <Select.Label>Has translation</Select.Label>
+                    {/if}
+                    {#each available as { lang, id } (id)}
+                      <Select.Item value={id.toString()}>{lang}</Select.Item>
+                    {/each}
+                  </Select.Group>
+                {/if}
+                {#if unavailable.length > 0}
+                  <Select.Group>
+                    <Select.Label>Translation not available</Select.Label>
+                    {#each unavailable as { lang, id } (id)}
+                      <Select.Item value={id.toString()}>{lang}</Select.Item>
+                    {/each}
+                  </Select.Group>
+                {/if}
               </Select.Content>
             </Select.Root>
-          </label>
-          {#if !$editing_status_on && $user_info}
-            {@const languages =
-              $user_info.role !== 'admin' && $user_project_info_q.isSuccess
-                ? $user_project_info_q.data.languages!.map((l) => l.lang_id)
-                : []}
-            {#if $trans_lang !== 0 && ($user_info.role === 'admin' || languages.indexOf($trans_lang) !== -1)}
-              <Button
-                onclick={() => ($editing_status_on = true)}
-                variant="outline"
-                size="sm"
-                class="my-1"
-              >
-                <Icon src={BiEdit} class="text-xl sm:text-2xl" />
-                Edit
-              </Button>
-            {:else if $trans_lang === 0 && ($user_info.role === 'admin' || languages.indexOf(1) !== -1)}
-              <!-- 1 -> English -->
-              <Button
-                onclick={() => ($editing_status_on = true)}
-                variant="outline"
-                size="sm"
-                class="my-1"
-              >
-                <Icon src={BiEdit} class="text-xl sm:text-2xl" />
-                Edit English
-              </Button>
-            {/if}
-          {/if}
-          {@render btn_multi()}
+          {/each}
         </div>
-      {/if}
+        {#if $editing_mode !== 'none'}
+          <div
+            class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-0.5 text-xs text-muted-foreground"
+          >
+            <span class="font-medium">Show</span>
+            {#if $editing_mode !== 'text'}
+              <label class="inline-flex cursor-pointer items-center gap-1.5">
+                <Checkbox
+                  checked={$edit_context_visible.text}
+                  onCheckedChange={(checked) => set_edit_context_visible('text', checked === true)}
+                />
+                Text
+              </label>
+            {/if}
+            {#if $editing_mode !== '1st_lang' && $selected_translation_lang_ids[0] !== null}
+              <label
+                class="inline-flex cursor-pointer items-center gap-1.5 text-stone-500 dark:text-slate-400"
+              >
+                <Checkbox
+                  checked={$edit_context_visible.lang_1}
+                  onCheckedChange={(checked) =>
+                    set_edit_context_visible('lang_1', checked === true)}
+                />
+                {get_lang_slot_label(0)}
+              </label>
+            {/if}
+            {#if $editing_mode !== '2nd_lang' && $selected_translation_lang_ids[1] !== null}
+              <label
+                class="inline-flex cursor-pointer items-center gap-1.5 text-yellow-700 dark:text-yellow-500"
+              >
+                <Checkbox
+                  checked={$edit_context_visible.lang_2}
+                  onCheckedChange={(checked) =>
+                    set_edit_context_visible('lang_2', checked === true)}
+                />
+                {get_lang_slot_label(1)}
+              </label>
+            {/if}
+            {#if $editing_mode === '1st_lang' || $editing_mode === '2nd_lang'}
+              <AITranslate />
+            {/if}
+          </div>
+        {/if}
+      </div>
     {/if}
     {#snippet btn_multi()}
       {#await import('./multimedia/MultiMediaLinks.svelte')}
@@ -527,20 +614,20 @@
     {/snippet}
   </div>
 {/if}
-{#if $trans_lang !== 0 && $editing_status_on && !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
-  <div class="flex space-x-2.5 sm:space-x-4">
-    <div class="flex items-center gap-2">
+{#if active_translation_lang_id !== null && active_translation_lang_id !== lang_list_obj.English && ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') && !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
+  <div class="flex gap-2.5 sm:gap-4">
+    <Label class="flex items-center gap-2">
       <Switch
         id="edit_lang"
         bind:checked={$edit_language_typer_status}
         class="focus:outline-none"
       />
       <Icon src={BsKeyboard} class="text-4xl" />
-    </div>
+    </Label>
     {#if $sanskrit_mode_texts.isSuccess && !$sanskrit_mode_texts.isFetching}
       <Select.Root
         type="single"
-        value={$sanskrit_mode.toString()}
+        value={String($sanskrit_mode ?? 0)}
         onValueChange={(value) => {
           if (!value) return;
           $sanskrit_mode = Number(value);

@@ -1,5 +1,8 @@
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import type { recursive_list_type } from '~/state/data_types';
+
+/** Serializes text row saves and translation edits for the same project. */
+export const TEXT_EDIT_LOCK_NAMESPACE = 42801;
 import { remove_vedic_svara_chihnAni } from '~/utils/normalize_text';
 
 export type TextEditorRowInput = {

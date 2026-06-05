@@ -31,7 +31,7 @@
     selected_text_levels,
     viewing_script,
     trans_lang,
-    editing_status_on,
+    editing_mode,
     project_state,
     BASE_SCRIPT
   } from '~/state/main_app/state.svelte';
@@ -336,7 +336,7 @@
                   $image_selected_levels[i] = null;
                 }
               }}
-              disabled={$editing_status_on}
+              disabled={$editing_mode !== 'none'}
             >
               <Select.Trigger
                 class={`${get_text_font_class($image_script)} inline-flex h-10 w-40 p-1 text-sm`}

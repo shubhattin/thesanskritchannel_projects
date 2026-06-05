@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { and, eq, inArray, ne } from 'drizzle-orm';
+import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAppScopeProcedure_ProjectsPortal, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
@@ -12,6 +12,19 @@ import { get_languages_for_project_user } from './project/project';
 import { get_path_params } from '~/state/project_list';
 import { get_translation_data_func } from '~/server/cached_loader';
 import { requireProjectPath } from '~/server/project_paths_db.server';
+import { TEXT_EDIT_LOCK_NAMESPACE } from '~/server/text_row_edit.server';
+
+const edit_translation_input = z
+  .object({
+    project_id: z.int(),
+    lang_id: z.int(),
+    data: z.string().nullable().array(),
+    indexes: z.number().array(),
+    selected_text_levels: z.array(z.int().nullable())
+  })
+  .refine(({ data, indexes }) => data.length === indexes.length, {
+    message: 'data and indexes must have the same length'
+  });
 
 const get_translation_route = publicProcedure
   .input(
@@ -31,15 +44,7 @@ const get_translation_route = publicProcedure
   });
 
 const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
-  .input(
-    z.object({
-      project_id: z.int(),
-      lang_id: z.int(),
-      data: z.string().nullable().array(),
-      indexes: z.number().array(),
-      selected_text_levels: z.array(z.int().nullable())
-    })
-  )
+  .input(edit_translation_input)
   .mutation(
     async ({
       ctx: { user },
@@ -59,6 +64,10 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
 
       const indexed_indexes = indexes.map((v, i) => [v, i] as const);
       await db.transaction(async (tx) => {
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
+        );
+
         const existing_indexes = new Set(
           (
             await tx

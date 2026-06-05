@@ -6,11 +6,10 @@ import {
   project_state,
   selected_text_levels,
   text_data_present,
-  editing_status_on,
   editing_mode,
   selected_translation_lang_ids,
-  view_translation_status,
-  trans_lang
+  trans_lang,
+  type editing_mode_type
 } from './state.svelte';
 import { browser } from '$app/environment';
 import { delay } from '~/tools/delay';
@@ -20,40 +19,26 @@ import { get_node_at_path, build_project_registry } from '../project_list';
 import { user_info } from '../user.svelte';
 import type { shloka_list_type } from '~/state/data_types';
 import ms from 'ms';
+import {
+  build_content_session_scope,
+  get_dynamic_path_params,
+  get_normalized_selected_text_levels
+} from './query_key_helpers';
+
+export { build_content_session_scope };
 
 /** Keeps previous text visible across query-key changes (e.g. next/prev navigation). */
 let last_successful_text_data: shloka_list_type | undefined;
 let last_successful_text_project_id: number | null = null;
-
-const get_dynamic_path_params = (
-  selected_text_levels: (number | null)[],
-  project_levels: number
-) => {
-  // selected_text_levels is lower -> higher (index 0 is lowest route param).
-  // For variable subtree depth, allow trailing nulls on the *lowest* end.
-  const params = selected_text_levels.slice(0, project_levels - 1).reverse();
-  while (params.length && params[params.length - 1] == null) params.pop();
-  if (params.some((v) => v == null)) return [];
-  return params as number[];
-};
-
-const get_normalized_selected_text_levels = (
-  selected_text_levels: (number | null)[],
-  project_levels: number
-) => {
-  if (project_levels <= 1) return [] as (number | null)[];
-  const path_params = get_dynamic_path_params(selected_text_levels, project_levels);
-  const normalized = Array.from({ length: project_levels - 1 }, () => null as number | null);
-  const reversed = [...path_params].reverse();
-  for (let i = 0; i < reversed.length; i++) normalized[i] = reversed[i]!;
-  return normalized;
-};
 
 const has_translation_query_path = (
   selected_text_levels: (number | null)[],
   project_levels: number
 ) =>
   project_levels === 1 || get_dynamic_path_params(selected_text_levels, project_levels).length > 0;
+
+const pin_query_while_editing = (editing_mode_: editing_mode_type) =>
+  editing_mode_ !== 'none' ? { staleTime: Infinity } : {};
 
 export const project_list_q = createQuery(
   {
@@ -196,8 +181,8 @@ export const text_data_q_options = (
 };
 
 export const text_data_q = get_derived_query(
-  [project_state, selected_text_levels, text_data_present],
-  ([prject_state_, selected_text_levels_, text_data_present_]) =>
+  [project_state, selected_text_levels, text_data_present, editing_mode],
+  ([prject_state_, selected_text_levels_, text_data_present_, editing_mode_]) =>
     createQuery(
       {
         ...text_data_q_options(
@@ -205,7 +190,8 @@ export const text_data_q = get_derived_query(
           prject_state_.project_key!,
           prject_state_.levels!
         ),
-        enabled: text_data_present_
+        enabled: text_data_present_,
+        ...(editing_mode_ === 'text' ? { staleTime: Infinity } : {})
       },
       queryClient
     )
@@ -249,20 +235,8 @@ export const langs_with_translations_q = get_derived_query(
 );
 
 export const trans_en_data_q = get_derived_query(
-  [
-    project_state,
-    selected_text_levels,
-    view_translation_status,
-    editing_status_on,
-    text_data_present
-  ],
-  ([
-    project_state_,
-    selected_text_levels_,
-    view_translation_status_,
-    editing_status_on_,
-    text_data_present_
-  ]) => {
+  [project_state, selected_text_levels, editing_mode, text_data_present],
+  ([project_state_, selected_text_levels_, editing_mode_, text_data_present_]) => {
     const query_has_path = has_translation_query_path(selected_text_levels_, project_state_.levels);
     return createQuery(
       {
@@ -271,15 +245,8 @@ export const trans_en_data_q = get_derived_query(
           selected_text_levels_,
           project_state_.levels
         ),
-        // by also adding the kanda and chapter they are auto invalidated
-        // so we dont have to manually invalidate it if were only chapter,trans,English
-        enabled: browser && view_translation_status_ && text_data_present_ && query_has_path,
-        ...(editing_status_on_
-          ? {
-              staleTime: Infinity
-              // while editing the data should not go stale, else it would refetch lead to data loss
-            }
-          : {})
+        enabled: browser && text_data_present_ && query_has_path,
+        ...pin_query_while_editing(editing_mode_)
       },
       queryClient
     );
@@ -288,33 +255,23 @@ export const trans_en_data_q = get_derived_query(
 
 export const trans_lang_data_query_key = derived(
   [trans_lang, selected_text_levels, project_state],
-  (
-    [_trans_lang, _selected_text_levels, _project_state],
-    set: (value: (string | number | (number | null)[] | null)[]) => void
-  ) => {
-    set(QUERY_KEYS.trans_lang_data(_trans_lang, _selected_text_levels, _project_state.levels));
-  }
+  ([_trans_lang, _selected_text_levels, _project_state]) =>
+    QUERY_KEYS.trans_lang_data(
+      _trans_lang,
+      get_normalized_selected_text_levels(_selected_text_levels, _project_state.levels),
+      _project_state.levels
+    )
 );
+
 export const trans_lang_data_q = get_derived_query(
-  [project_state, trans_lang, selected_text_levels, editing_status_on, text_data_present],
-  ([
-    project_state_,
-    trans_lang_,
-    selected_text_levels_,
-    editing_status_on_,
-    text_data_present_
-  ]) => {
+  [project_state, trans_lang, selected_text_levels, editing_mode, text_data_present],
+  ([project_state_, trans_lang_, selected_text_levels_, editing_mode_, text_data_present_]) => {
     const query_has_path = has_translation_query_path(selected_text_levels_, project_state_.levels);
     return createQuery(
       {
         ...trans_lang_data_q_options(trans_lang_, selected_text_levels_, project_state_.levels),
         enabled: browser && trans_lang_ !== 0 && text_data_present_ && query_has_path,
-        ...(editing_status_on_
-          ? {
-              staleTime: Infinity
-              // while editing the data should not go stale, else it would refetch lead to data loss
-            }
-          : {})
+        ...pin_query_while_editing(editing_mode_)
       },
       queryClient
     );
@@ -325,16 +282,16 @@ export const trans_slot_data_query_key = derived(
   [selected_translation_lang_ids, selected_text_levels, project_state],
   ([$selected_translation_lang_ids, $selected_text_levels, $project_state]) =>
     [
-      QUERY_KEYS.trans_lang_data(
+      trans_lang_data_q_options(
         $selected_translation_lang_ids[0] ?? -1,
         $selected_text_levels,
         $project_state.levels
-      ),
-      QUERY_KEYS.trans_lang_data(
+      ).queryKey,
+      trans_lang_data_q_options(
         $selected_translation_lang_ids[1] ?? -1,
         $selected_text_levels,
         $project_state.levels
-      )
+      ).queryKey
     ] as const
 );
 
@@ -344,7 +301,6 @@ export const trans_slot_1_data_q = get_derived_query(
     selected_translation_lang_ids,
     selected_text_levels,
     editing_mode,
-    view_translation_status,
     text_data_present
   ],
   ([
@@ -352,7 +308,6 @@ export const trans_slot_1_data_q = get_derived_query(
     selected_translation_lang_ids_,
     selected_text_levels_,
     editing_mode_,
-    view_translation_status_,
     text_data_present_
   ]) => {
     const lang_id = selected_translation_lang_ids_[0];
@@ -360,12 +315,7 @@ export const trans_slot_1_data_q = get_derived_query(
     return createQuery(
       {
         ...trans_lang_data_q_options(lang_id ?? -1, selected_text_levels_, project_state_.levels),
-        enabled:
-          browser &&
-          view_translation_status_ &&
-          lang_id !== null &&
-          text_data_present_ &&
-          query_has_path,
+        enabled: browser && lang_id !== null && text_data_present_ && query_has_path,
         ...(editing_mode_ === '1st_lang' || editing_mode_ === 'text'
           ? {
               staleTime: Infinity
@@ -383,7 +333,6 @@ export const trans_slot_2_data_q = get_derived_query(
     selected_translation_lang_ids,
     selected_text_levels,
     editing_mode,
-    view_translation_status,
     text_data_present
   ],
   ([
@@ -391,7 +340,6 @@ export const trans_slot_2_data_q = get_derived_query(
     selected_translation_lang_ids_,
     selected_text_levels_,
     editing_mode_,
-    view_translation_status_,
     text_data_present_
   ]) => {
     const lang_id = selected_translation_lang_ids_[1];
@@ -399,12 +347,7 @@ export const trans_slot_2_data_q = get_derived_query(
     return createQuery(
       {
         ...trans_lang_data_q_options(lang_id ?? -1, selected_text_levels_, project_state_.levels),
-        enabled:
-          browser &&
-          view_translation_status_ &&
-          lang_id !== null &&
-          text_data_present_ &&
-          query_has_path,
+        enabled: browser && lang_id !== null && text_data_present_ && query_has_path,
         ...(editing_mode_ === '2nd_lang' || editing_mode_ === 'text'
           ? {
               staleTime: Infinity

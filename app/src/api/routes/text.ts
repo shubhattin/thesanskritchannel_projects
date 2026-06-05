@@ -22,10 +22,9 @@ import {
   buildTextRowsForSave,
   cloneMapWithUpdatedLeafCounts,
   getAffectedTranslationLangIds,
-  remapTranslationsForTextRows
+  remapTranslationsForTextRows,
+  TEXT_EDIT_LOCK_NAMESPACE
 } from '~/server/text_row_edit.server';
-
-const TEXT_EDIT_LOCK_NAMESPACE = 42801;
 
 const get_text_data_route = publicProcedure
   .input(
@@ -181,7 +180,9 @@ const save_text_rows_route = protectedAdminProcedure
       };
     });
 
-    await redis.del(...redisKeys);
+    if (redisKeys.length > 0) {
+      await redis.del(...redisKeys);
+    }
     if (mapChanged) {
       clear_server_project_map_cache(project_id);
       clear_server_project_info_cache(projectKey);

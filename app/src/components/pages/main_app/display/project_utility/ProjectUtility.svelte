@@ -7,7 +7,6 @@
     image_tool_opened,
     viewing_script,
     ai_tool_opened,
-    view_translation_status,
     project_state
   } from '~/state/main_app/state.svelte';
   import { createMutation } from '@tanstack/svelte-query';
@@ -169,7 +168,6 @@
         onclick={() => {
           utility_popover_state = false;
           $ai_tool_opened = true;
-          $view_translation_status = true;
         }}
       >
         <Icon

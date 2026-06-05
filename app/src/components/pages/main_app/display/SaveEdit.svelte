@@ -3,7 +3,7 @@
   import {
     selected_text_levels,
     trans_lang,
-    editing_status_on,
+    editing_mode,
     added_translations_indexes,
     edited_translations_indexes,
     project_state
@@ -52,7 +52,7 @@
       if (res.success) {
         $added_translations_indexes = [];
         $edited_translations_indexes = new Set();
-        $editing_status_on = false;
+        $editing_mode = 'none';
       }
     }
   });
@@ -76,7 +76,7 @@
       });
       $added_translations_indexes = [];
       $edited_translations_indexes = new Set();
-      $editing_status_on = false;
+      $editing_mode = 'none';
       // ^ reset the data
     }
   });

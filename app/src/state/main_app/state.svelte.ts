@@ -48,12 +48,9 @@ export let edit_context_visible = writable<Record<edit_context_panel_key, boolea
   lang_2: false
 });
 
-// Legacy translation/edit state retained until old auxiliary editors are removed.
+// Legacy translation state retained until old auxiliary editors are removed.
 export let trans_lang = writable<number>();
-export let view_translation_status = writable(true);
 
-// Edit
-export let editing_status_on = writable(false);
 export let sanskrit_mode = writable(0);
 
 export let added_translations_indexes = writable<number[]>([]);

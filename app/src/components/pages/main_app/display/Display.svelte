@@ -38,6 +38,7 @@
     viewing_script
   } from '~/state/main_app/state.svelte';
   import {
+    build_content_session_scope,
     invalidate_project_content_queries,
     invalidate_project_map_queries,
     text_data_q,
@@ -187,7 +188,7 @@
       if ($editing_mode !== 'text') text_session_key = '';
       return;
     }
-    const key = JSON.stringify($text_data_q.data);
+    const key = `${build_content_session_scope($project_state.project_id, $selected_text_levels, $project_state.levels)}:${JSON.stringify($text_data_q.data)}`;
     if (text_session_key === key) return;
     text_rows = $text_data_q.data.map((row) => ({
       client_id: crypto.randomUUID(),
@@ -211,7 +212,7 @@
         translation_session_key = '';
       return;
     }
-    const key = `${$editing_mode}:${active_translation_lang_id}:${JSON.stringify($text_data_q.data)}`;
+    const key = `${build_content_session_scope($project_state.project_id, $selected_text_levels, $project_state.levels)}:${$editing_mode}:${active_translation_lang_id}:${JSON.stringify($text_data_q.data)}`;
     if (translation_session_key === key) return;
     translation_rows = ($text_data_q.data ?? []).map((row) => {
       const original = active_translation_query.data.get(row.index) ?? null;
@@ -329,8 +330,15 @@
     );
     const texts_to_copy = transliterated_data.map((shloka_lines, i) => {
       const parts = [`${shloka_lines}\n${normal_shlokas[i]}`];
-      const first = $trans_slot_1_data_q.data?.get(i);
-      const second = $trans_slot_2_data_q.data?.get(i);
+      const persisted_index = $text_data_q.data[i]?.index;
+      const first =
+        persisted_index === undefined
+          ? undefined
+          : $trans_slot_1_data_q.data?.get(persisted_index);
+      const second =
+        persisted_index === undefined
+          ? undefined
+          : $trans_slot_2_data_q.data?.get(persisted_index);
       if (first) parts.push(first);
       if (second) parts.push(second);
       return parts.join('\n\n');
@@ -789,17 +797,18 @@
 {/snippet}
 
 {#snippet translation_display_line(i: number, slot: 0 | 1)}
+  {@const persisted_index = $text_data_q.data?.[i]?.index}
   {@const query = slot === 0 ? $trans_slot_1_data_q : $trans_slot_2_data_q}
   {@const font_info = slot === 0 ? first_trans_font_info : second_trans_font_info}
-  {#if query.isSuccess && query.data?.has(i)}
+  {#if persisted_index !== undefined && query.isSuccess && query.data?.has(persisted_index)}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-      ondblclick={() => copy_text(query.data.get(i)!)}
+      ondblclick={() => copy_text(query.data.get(persisted_index)!)}
       class={slot === 0
         ? 'text-stone-500 dark:text-slate-400'
         : 'text-yellow-700 dark:text-yellow-500'}
     >
-      {@render multiline_display(query.data.get(i)!, font_info)}
+      {@render multiline_display(query.data.get(persisted_index)!, font_info)}
     </div>
   {/if}
 {/snippet}

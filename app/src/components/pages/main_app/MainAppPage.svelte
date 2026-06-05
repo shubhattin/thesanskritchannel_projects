@@ -23,7 +23,6 @@
     BASE_SCRIPT,
     text_data_present,
     ai_tool_opened,
-    view_translation_status,
     selected_translation_lang_ids,
     edit_context_visible,
     edit_language_typer_status,
@@ -78,7 +77,6 @@
     if (import.meta.env.DEV) {
       (async () => {
         const conf = await loadLocalConfig();
-        if (conf.view_translation_status) $view_translation_status = true;
         if (conf.trans_lang) {
           // 3 -> Hindi
           $selected_translation_lang_ids = [1, 3];
@@ -86,10 +84,7 @@
         }
         if (conf.editing_status_on) $editing_mode = '2nd_lang';
         if (conf.image_tool_opened) $image_tool_opened = true;
-        if (conf.ai_tool_opened) {
-          $ai_tool_opened = true;
-          $view_translation_status = true;
-        }
+        if (conf.ai_tool_opened) $ai_tool_opened = true;
       })();
     }
     await preloadScriptData(BASE_SCRIPT);

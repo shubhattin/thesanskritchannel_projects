@@ -5,7 +5,7 @@
   import { BiLogOut } from 'svelte-icons-pack/bi';
   import { AiOutlineUser } from 'svelte-icons-pack/ai';
   import { LanguageIcon } from '~/components/icons';
-  import { editing_status_on } from '~/state/main_app/state.svelte';
+  import { editing_mode } from '~/state/main_app/state.svelte';
   import { user_project_info_q } from '~/state/main_app/data.svelte';
   import { VscAccount } from 'svelte-icons-pack/vsc';
   import { OiLinkExternal16, OiSync16 } from 'svelte-icons-pack/oi';
@@ -88,7 +88,7 @@
             button_pos="left"
           >
             <button
-              disabled={$editing_status_on}
+              disabled={$editing_mode !== 'none'}
               class="flex items-center gap-1 rounded-md bg-destructive px-2 py-0.5 pb-0.5 pl-1 text-sm font-bold text-destructive-foreground sm:text-base"
             >
               <Icon class="text-2xl" src={BiLogOut} />

@@ -3,7 +3,6 @@
   import {
     editing_mode,
     selected_translation_lang_ids,
-    added_translations_indexes,
     TEXT_MODEL_LIST,
     project_state
   } from '~/state/main_app/state.svelte';
@@ -25,7 +24,7 @@
   import { onDestroy } from 'svelte';
   import { get } from 'svelte/store';
   import { LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
-  import { get_project_from_id, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
+  import { get_project_from_id } from '~/state/project_list';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -102,6 +101,7 @@
 
   const can_show_translate_ui = $derived.by(() => {
     if (active_translation_slot === null || active_translation_lang_id === null) return false;
+    if (!$project_state.project_id || !$project_list_q.isSuccess) return false;
     if (!$text_data_q.isSuccess || !$text_data_q.data?.length) return false;
     return active_translation_query.isSuccess;
   });
@@ -147,12 +147,15 @@
 
       const slot_query = slot === 0 ? get(trans_slot_1_data_q) : get(trans_slot_2_data_q);
       const new_data = new Map(slot_query.data);
-      const added_indexes = [...get(added_translations_indexes)];
-      translations.forEach((translation) => {
-        if (!new_data.has(translation.index)) added_indexes.push(translation.index);
-        new_data.set(translation.index, translation.text);
-      });
-      added_translations_indexes.set(added_indexes);
+      for (const translation of translations) {
+        const positional_index = translation.index;
+        if (positional_index < 0 || positional_index >= text_data.length) {
+          console.error('Translation Rejected: out-of-range positional index', translation);
+          translate_error = 'Translation rejected: out-of-range index';
+          return;
+        }
+        new_data.set(text_data[positional_index]!.index, translation.text);
+      }
 
       const query_key = get(trans_slot_data_query_key)[slot];
       await query_client.setQueryData(query_key, new_data);
@@ -169,14 +172,26 @@
   async function translate_sarga_func() {
     const slot = active_translation_slot;
     const lang_id = active_translation_lang_id;
-    if (slot === null || lang_id === null || !$text_data_q.data) return;
+    const project_id = $project_state.project_id;
+    if (slot === null || lang_id === null || !project_id || !$text_data_q.data) return;
+    if (!$project_list_q.isSuccess || !$project_list_q.data) {
+      translate_error = 'Project list is not loaded yet';
+      return;
+    }
+
+    const project = get_project_from_id(project_id, $project_list_q.data);
+    if (!project) {
+      translate_error = 'Project not found';
+      return;
+    }
 
     const english_data =
       include_english_context && is_non_english_target ? $trans_en_data_q.data : undefined;
 
-    const texts_obj_list = $text_data_q.data.map((shloka_line, i) => {
+    const texts_obj_list = $text_data_q.data.map((shloka_line) => {
       let english_translation: string | undefined;
-      if (english_data?.has(i)) english_translation = english_data.get(i)!;
+      if (english_data?.has(shloka_line.index))
+        english_translation = english_data.get(shloka_line.index)!;
       return {
         index: shloka_line.index,
         text: shloka_line.text,
@@ -185,13 +200,10 @@
     });
 
     await $translate_sarga_mut.mutateAsync({
-      project_id: $project_state.project_id!,
+      project_id,
       lang_id,
       model: selected_model,
-      text_name: get_project_from_id(
-        $project_state.project_id!,
-        $project_list_q.data ?? EMPTY_PROJECT_REGISTRY
-      )!.name,
+      text_name: project.name,
       text_data: texts_obj_list
     });
   }

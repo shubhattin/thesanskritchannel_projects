@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Map as MapIcon, ArrowUpDown, FolderRoot, Trash2, Undo2, Network } from '@lucide/svelte';
+  import { Map as MapIcon, ArrowUpDown, FolderRoot, Trash2, Undo2 } from '@lucide/svelte';
   import type { Tree as TreeComponent, LTreeNode, DropPosition } from '@keenmate/svelte-treeview';
   import { browser } from '$app/environment';
   import { beforeNavigate } from '$app/navigation';
@@ -67,7 +67,6 @@
   import NodeEditor from './NodeEditor.svelte';
   import ChangesPanel from './ChangesPanel.svelte';
   import SaveReviewDialog from './SaveReviewDialog.svelte';
-  import MapVisualizationDialog from './MapVisualizationDialog.svelte';
 
   let {
     project_id,
@@ -100,7 +99,6 @@
   let finishing_save = $state(false);
   let last_tree_click = $state<{ path: string; at: number } | null>(null);
   let expandedTreePaths = $state<Set<string>>(default_tree_expanded_paths());
-  let visualization_open = $state(false);
 
   // ── Undo stacks (one per mode) ──
   // Plain variables — mutations are internal to UndoStack; reactivity is
@@ -1004,16 +1002,6 @@
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={!workingMap}
-            onclick={() => (visualization_open = true)}
-          >
-            <Network class="mr-1 size-3.5" />
-            Visualize map
-          </Button>
           {#if delete_edit_mode && delete_dirty}
             <Badge variant="destructive" class="tabular-nums">
               {delete_review_state.terminalPaths.length} path{delete_review_state.terminalPaths
@@ -1335,8 +1323,6 @@
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>
-
-<MapVisualizationDialog bind:open={visualization_open} {workingMap} {project_name_dev} />
 
 <AlertDialog.Root bind:open={discard_delete_dialog_open}>
   <AlertDialog.Content>

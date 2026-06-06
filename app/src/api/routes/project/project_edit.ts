@@ -259,8 +259,9 @@ const add_new_project_route = protectedAdminProcedure
             name_dev,
             list: [],
             info: {
-              type: 'list',
-              list_name: 'Level name'
+              type: 'shloka',
+              shloka_count: 0,
+              total: 0
             }
           } satisfies recursive_list_type)
         })

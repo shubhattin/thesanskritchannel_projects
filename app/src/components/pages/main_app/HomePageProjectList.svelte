@@ -6,6 +6,8 @@
   import * as Select from '$lib/components/ui/select';
   import SearchIcon from '@lucide/svelte/icons/search';
   import Plus from '@lucide/svelte/icons/plus';
+  import ListChecks from '@lucide/svelte/icons/list-checks';
+  import ListX from '@lucide/svelte/icons/list-x';
   import { user_info } from '~/state/user.svelte';
   import ProjectAddNewDialog from './settings/ProjectAddNewDialog.svelte';
 
@@ -127,11 +129,33 @@
             href={'/' + project.key}
             class="group block rounded-lg border border-border bg-card px-4 py-3 shadow-sm transition-colors duration-150 hover:border-secondary/80 hover:bg-muted/25 focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none"
           >
-            <h2
-              class="text-base leading-snug font-semibold tracking-tight group-hover:text-primary"
-            >
-              {project.name}
-            </h2>
+            <div class="flex items-start justify-between gap-2">
+              <h2
+                class="min-w-0 flex-1 text-base leading-snug font-semibold tracking-tight group-hover:text-primary"
+              >
+                {project.name}
+              </h2>
+              {#if is_admin}
+                <span
+                  class="inline-flex shrink-0 rounded-md p-0.5 {project.listed
+                    ? 'text-primary'
+                    : 'text-muted-foreground opacity-80'}"
+                  title={project.listed
+                    ? 'Listed on the public site'
+                    : 'Not listed (hidden from public list)'}
+                  role="img"
+                  aria-label={project.listed
+                    ? 'Listed on the public site'
+                    : 'Not listed on the public site'}
+                >
+                  {#if project.listed}
+                    <ListChecks class="size-4" aria-hidden="true" />
+                  {:else}
+                    <ListX class="size-4" aria-hidden="true" />
+                  {/if}
+                </span>
+              {/if}
+            </div>
             <p class="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{project.name_dev}</p>
             {#if project.description}
               <p class="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground/90">

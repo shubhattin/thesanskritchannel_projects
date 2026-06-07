@@ -1,6 +1,5 @@
 import get_session_from_cookie from '$lib/get_auth_from_cookie';
 import type { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
-import type { inferAsyncReturnType } from '@trpc/server';
 import type { RequestEvent } from '@sveltejs/kit';
 
 export const createContext = async (event: RequestEvent | FetchCreateContextFnOptions) => {
@@ -15,4 +14,4 @@ export const createContext = async (event: RequestEvent | FetchCreateContextFnOp
   };
 };
 
-export type Context = inferAsyncReturnType<typeof createContext>;
+export type Context = Awaited<ReturnType<typeof createContext>>;

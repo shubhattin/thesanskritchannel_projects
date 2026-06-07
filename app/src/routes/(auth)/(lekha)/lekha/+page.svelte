@@ -4,6 +4,7 @@
   import ListIcon from '@lucide/svelte/icons/list';
   import FileText from '@lucide/svelte/icons/file-text';
   import Plus from '@lucide/svelte/icons/plus';
+  import ArrowLeft from '@lucide/svelte/icons/arrow-left';
   import LekhaList from '~/components/lekha/LekhaList.svelte';
   import MetaTags from '~/components/tags/MetaTags.svelte';
 
@@ -14,7 +15,12 @@
 
 <div class="flex w-full flex-col items-center gap-4 pt-2">
   <div class="flex w-full max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <h1 class="text-xl font-semibold tracking-tight">Lekha</h1>
+    <div class="flex items-center gap-2">
+      <Button variant="ghost" size="icon-sm" href="/" aria-label="Back to home">
+        <ArrowLeft class="size-4" aria-hidden="true" />
+      </Button>
+      <h1 class="text-xl font-semibold tracking-tight">Lekha</h1>
+    </div>
     <Button href="/lekha/add" class="shrink-0 gap-2">
       <Plus class="size-4" aria-hidden="true" />
       New post

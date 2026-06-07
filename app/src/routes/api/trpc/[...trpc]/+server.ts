@@ -8,7 +8,7 @@ const handler: RequestHandler = (event) =>
     endpoint: '/api/trpc',
     req: event.request,
     router,
-    createContext: async (event) => await createContext(event)
+    createContext: async () => await createContext(event)
   });
 
 export const GET = handler;

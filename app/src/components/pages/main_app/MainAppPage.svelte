@@ -46,11 +46,12 @@
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
   import Display from './display/Display.svelte';
   import {
-    langs_with_translations_q,
+    active_langs_with_translations_q_options,
     prefetch_text_data,
     prefetch_translation_data,
-    project_map_q,
-    user_project_info_q
+    project_list_q_options,
+    project_map_q_options,
+    user_project_info_q_options
   } from '~/state/main_app/data.svelte';
   import { useSession } from '~/lib/auth-client';
   import { BiEdit, BiHelpCircle } from 'svelte-icons-pack/bi';
@@ -99,14 +100,29 @@
 
   const session = useSession();
 
-  const levels = $derived($project_state.levels);
-  const level_names = $derived($project_state.level_names);
+  const project_list_q = $derived(createQuery(project_list_q_options()));
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+  const user_project_info_q = $derived(
+    createQuery(user_project_info_q_options($session.data?.user?.id, $project_state))
+  );
+  const langs_with_translations_q = $derived(
+    createQuery(
+      active_langs_with_translations_q_options(
+        $selected_text_levels,
+        $project_state,
+        $text_data_present
+      )
+    )
+  );
+
+  const levels = $derived($project_state?.levels ?? 0);
+  const level_names = $derived($project_state?.level_names ?? []);
   const is_admin = $derived($session.data?.user.role === 'admin');
   const user_info = $derived($session.data?.user);
-  const project_id = $derived($project_state.project_id);
+  const project_id = $derived($project_state?.project_id);
 
   const map_metadata_save_mut = create_map_metadata_save_mutation(
-    () => get(project_state).project_id ?? undefined
+    () => get(project_state)?.project_id ?? undefined
   );
 
   let list_name_dialog_open = $state(false);
@@ -173,7 +189,7 @@
   };
 
   const prefetch_adjacent_text = (direction: 'prev' | 'next') => {
-    if (!browser || !$text_data_present || !$project_state.project_key) return;
+    if (!browser || !$text_data_present || !$project_state) return;
     const idx = active_leaf_state_index;
     const cur = $selected_text_levels[idx] ?? 1;
     const max = derived_list_count ?? cur;
@@ -181,9 +197,9 @@
     if (next_value === cur) return;
     const adjacent_levels = [...$selected_text_levels];
     adjacent_levels[idx] = next_value;
-    prefetch_text_data(adjacent_levels, $project_state.project_key, levels);
+    prefetch_text_data(adjacent_levels, $project_state);
     for (const lang_id of $selected_translation_lang_ids) {
-      if (lang_id !== null) prefetch_translation_data(adjacent_levels, lang_id);
+      if (lang_id !== null) prefetch_translation_data(adjacent_levels, $project_state, lang_id);
     }
   };
 
@@ -191,7 +207,7 @@
     if (!browser) return;
     let link = window.location.pathname;
     const path_params = $selected_text_levels.slice(0, levels - 1).reverse(); // higher -> lower
-    link = get_link($project_state.project_key!, path_params);
+    link = get_link($project_state!.project_key, path_params);
     if (window.location.pathname !== link) goto(link);
   });
 
@@ -454,7 +470,7 @@
 {#if $text_data_present}
   <div class="flex flex-col gap-2">
     <div class="flex flex-wrap items-center gap-1 sm:gap-3">
-      {#if $project_state.levels > 1}
+      {#if ($project_state?.levels ?? 0) > 1}
         {#if active_leaf_value !== 1}
           <Button
             onclick={() => {

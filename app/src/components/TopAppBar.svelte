@@ -7,7 +7,8 @@
   import { AiOutlineMenu } from 'svelte-icons-pack/ai';
   import { page } from '$app/state';
   import { get_page_title_info } from '~/state/page_titles';
-  import { project_list_q } from '~/state/main_app/data.svelte';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { project_list_q_options } from '~/state/main_app/data.svelte';
   import { EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import type { Snippet } from 'svelte';
   import { ContributeIcon, SiConvertio, YoutubeIcon } from './icons';
@@ -15,6 +16,8 @@
   import { BiArrowBack } from 'svelte-icons-pack/bi';
 
   let { start, headline, end }: { start?: Snippet; headline?: Snippet; end?: Snippet } = $props();
+
+  const project_list_q = $derived(createQuery(project_list_q_options()));
 
   let pathname = $derived(page.url.pathname);
   let page_title = $derived(

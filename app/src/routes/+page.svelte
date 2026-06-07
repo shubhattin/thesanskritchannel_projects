@@ -6,8 +6,10 @@
   const session = useSession();
 </script>
 
-{#if $session.data?.user}
-  <Home />
-{:else}
-  <Login />
+{#if !$session.isPending}
+  {#if $session.data?.user}
+    <Home />
+  {:else}
+    <Login />
+  {/if}
 {/if}

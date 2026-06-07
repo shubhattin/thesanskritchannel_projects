@@ -2,6 +2,14 @@ import { writable } from 'svelte/store';
 import type { script_list_type } from '~/state/lang_list';
 import type { ai_text_models_type } from '~/api/routes/ai/ai_types';
 
+export type ProjectState = {
+  project_key: string;
+  project_id: number;
+  listed: boolean;
+  levels: number;
+  level_names: string[];
+};
+
 /**
  * This stores the info related to current selected text
  *
@@ -10,19 +18,7 @@ import type { ai_text_models_type } from '~/api/routes/ai/ai_types';
  * `index` is not part of this
  */
 export let selected_text_levels = writable<(number | null)[]>([null, null]);
-export let project_state = writable<{
-  project_key: string | null;
-  project_id: number | null;
-  listed: boolean;
-  levels: number;
-  level_names: string[];
-}>({
-  project_key: null,
-  project_id: null,
-  listed: false,
-  levels: 0,
-  level_names: []
-});
+export let project_state = writable<ProjectState | null>(null);
 export let list_count = writable<number | null>(null);
 
 /**

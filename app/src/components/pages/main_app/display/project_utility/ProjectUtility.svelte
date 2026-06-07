@@ -1,16 +1,22 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { resolve } from '$app/paths';
-  import { get_last_level_name, get_total_count, text_data_q } from '~/state/main_app/data.svelte';
+  import {
+    active_text_data_q_options,
+    get_last_level_name,
+    get_total_count,
+    project_map_q_options
+  } from '~/state/main_app/data.svelte';
   import {
     selected_text_levels,
     BASE_SCRIPT,
     image_tool_opened,
     ai_tool_opened,
     project_state,
-    editing_mode
+    editing_mode,
+    text_data_present
   } from '~/state/main_app/state.svelte';
-  import { createMutation } from '@tanstack/svelte-query';
+  import { createMutation, createQuery } from '@tanstack/svelte-query';
   import { RiDocumentFileExcel2Line, RiSystemSearchLine } from 'svelte-icons-pack/ri';
   import { transliterate_xlxs_file } from '~/tools/excel/transliterate_xlsx_file';
   import { client } from '~/api/client';
@@ -29,6 +35,19 @@
 
   const session = useSession();
   let user_info = $derived($session.data?.user);
+
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+
+  const text_data_q = $derived(
+    createQuery(
+      active_text_data_q_options(
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
 
   let current_workbook = $state<Workbook>(null!);
   let current_file_name = $state<string>(null!);
@@ -53,10 +72,14 @@
       const COLUMN_FOR_DEV = 2;
       const TEXT_START_ROW = 2;
       const translation_texts = await client.translation.get_all_langs_translation.query({
-        project_id: $project_state.project_id!,
+        project_id: $project_state!.project_id,
         selected_text_levels: $selected_text_levels
       });
-      const total_count = get_total_count($selected_text_levels);
+      const total_count = get_total_count(
+        $selected_text_levels,
+        $project_map_q.data,
+        $project_state?.levels ?? 0
+      );
       for (let i = 0; i < $text_data_q.data!.length; i++) {
         worksheet.getCell(i + COLUMN_FOR_DEV, TEXT_START_ROW).value = $text_data_q.data![i].text;
         worksheet.getCell(i + COLUMN_FOR_DEV, 1).value = i === total_count + 1 ? -1 : i;
@@ -79,7 +102,11 @@
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
       const name = await transliterate_custom(
-        get_last_level_name($selected_text_levels).split('\n')[0],
+        get_last_level_name(
+          $selected_text_levels,
+          $project_map_q.data,
+          $project_state?.levels ?? 0
+        ).split('\n')[0],
         BASE_SCRIPT,
         'Normal'
       );

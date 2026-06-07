@@ -2,8 +2,10 @@ import Konva from 'konva';
 import {
   image_shloka,
   image_shloka_data,
-  image_text_data_q,
-  image_trans_data_q,
+  image_text_data_q_options,
+  image_trans_data_q_options,
+  image_lang as image_lang_store,
+  image_selected_levels,
   main_text_font_configs,
   normal_text_font_config,
   trans_text_font_configs,
@@ -29,7 +31,8 @@ import {
 } from '~/state/lang_list';
 import { transliterate_custom } from '~/tools/converter';
 import { FONT_FAMILY_NAME } from '~/tools/font_tools';
-import { BASE_SCRIPT, project_state } from '~/state/main_app/state.svelte';
+import { BASE_SCRIPT, project_state, text_data_present } from '~/state/main_app/state.svelte';
+import { queryClient } from '~/state/queryClient';
 import type { ScriptLangType } from 'lipilekhika';
 import { ensure_fonts_loaded, get_font_load_descriptors } from './font_loader';
 
@@ -510,13 +513,16 @@ export const compute_all_layouts = async (
   const image_lang = LANG_LIST[LANG_LIST_IDS.indexOf(image_lang_id)] as lang_list_type;
   const $shloka_configs = get(shloka_configs);
   const $main_text_font_configs = get(main_text_font_configs);
-  const $image_sarga_data = get(image_text_data_q);
   const $trans_text_font_configs = get(trans_text_font_configs);
   const $normal_text_font_config = get(normal_text_font_config);
   const $SPACE_ABOVE_REFERENCE_LINE = get(SPACE_ABOVE_REFERENCE_LINE);
   const $translation_bounding_coords = get(translation_bounding_coords);
-  const $project_key = get(project_state).project_key!;
-  const $project_levels = get(project_state).levels;
+  const project = get(project_state);
+  if (!project) return null;
+  const $project_key = project.project_key;
+  const $project_levels = project.levels;
+  const $image_selected_levels = get(image_selected_levels);
+  const $text_data_present = get(text_data_present);
 
   const shloka_val = shloka_index === null ? get(image_shloka) : shloka_index;
 
@@ -526,6 +532,12 @@ export const compute_all_layouts = async (
   const trans_text_font_info = $trans_text_font_configs[image_lang];
   const norm_text_font_info = $normal_text_font_config;
   const SPACE_BETWEEN_MAIN_AND_NORM = main_text_font_info.space_between_main_and_normal;
+
+  const $image_sarga_data = {
+    data: queryClient.getQueryData(
+      image_text_data_q_options($image_selected_levels, project, $text_data_present).queryKey
+    )
+  };
 
   // Ensure fonts are loaded via browser's native API
   await ensure_fonts_loaded([
@@ -697,7 +709,16 @@ export const compute_all_layouts = async (
   }
 
   // --- Translation text ---
-  const trans_query = get(image_trans_data_q);
+  const trans_query = {
+    data: queryClient.getQueryData(
+      image_trans_data_q_options(
+        $image_selected_levels,
+        get(image_lang_store),
+        project,
+        $text_data_present
+      ).queryKey
+    ) as Map<number, string> | undefined
+  };
   const trans_text_data = use_editable
     ? get(image_trans_text)
     : (trans_query.data?.get(shloka_val) ?? '');

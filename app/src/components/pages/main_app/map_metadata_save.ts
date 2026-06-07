@@ -59,10 +59,14 @@ export function create_map_metadata_save_mutation(
 
       const current_project_id = getProjectId();
       if (current_project_id === mutation_project_id) {
-        project_state.update((s) => ({
-          ...s,
-          level_names: get_level_names_from_map(map).slice(0, s.levels)
-        }));
+        project_state.update((s) =>
+          s
+            ? {
+                ...s,
+                level_names: get_level_names_from_map(map).slice(0, s.levels)
+              }
+            : s
+        );
       }
 
       options?.onMapSaved?.(map);

@@ -22,29 +22,32 @@
 
   const session = useSession();
 
-  const users_list = createQuery({
-    queryKey: ['users_list'],
-    queryFn: async () => {
-      type res_type = {
-        email: string;
-        id: string;
-        name: string;
-        role: string | null;
-        app_scopes: {
-          scope: string;
+  const users_list = $derived(
+    createQuery({
+      queryKey: ['users_list', $session.data?.user?.id],
+      queryFn: async () => {
+        type res_type = {
+          email: string;
+          id: string;
+          name: string;
+          role: string | null;
+          app_scopes: {
+            scope: string;
+          }[];
         }[];
-      }[];
-      const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/user/list_users`, {
-        params: {
-          user_id: $session.data?.user?.id ?? ''
-        },
-        credentials: 'include'
-      });
-      if (!res.ok) return [];
-      const users = (await res.json()) as res_type;
-      return users;
-    }
-  });
+        const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/user/list_users`, {
+          params: {
+            user_id: $session.data?.user?.id ?? ''
+          },
+          credentials: 'include'
+        });
+        if (!res.ok) return [];
+        const users = (await res.json()) as res_type;
+        return users;
+      },
+      enabled: !!$session.data?.user?.id
+    })
+  );
 
   $effect(() => {
     if ($selected_user_type) $selected_user_id = null;

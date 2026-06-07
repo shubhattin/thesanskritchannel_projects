@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { get_total_count, project_map_q } from '~/state/main_app/data.svelte';
+  import { get_total_count, project_map_q_options } from '~/state/main_app/data.svelte';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { project_state, text_data_present } from '~/state/main_app/state.svelte';
   import {
     DEFAULT_MAIN_TEXT_FONT_CONFIGS,
     DEFAULT_TRANS_TEXT_FONT_CONFIGS,
@@ -8,13 +10,13 @@
     image_selected_levels,
     image_script,
     image_shloka,
-    image_trans_data_q,
+    image_text_data_q_options,
+    image_trans_data_q_options,
     main_text_font_configs,
     normal_text_font_config,
     shaded_background_image_status,
     show_image_on_top_right,
     trans_text_font_configs,
-    image_text_data_q,
     image_shloka_data,
     image_trans_text,
     image_render_colors,
@@ -58,8 +60,29 @@
     handleTypingBeforeInputEvent
   } from 'lipilekhika/typing';
 
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+
+  const image_text_data_q = $derived(
+    createQuery(
+      image_text_data_q_options($image_selected_levels, $project_state, $text_data_present)
+    )
+  );
+
+  const image_trans_data_q = $derived(
+    createQuery(
+      image_trans_data_q_options(
+        $image_selected_levels,
+        $image_lang,
+        $project_state,
+        $text_data_present
+      )
+    )
+  );
+
   let total_count = $derived(
-    $project_map_q.isSuccess ? get_total_count($image_selected_levels) : 0
+    $project_map_q.isSuccess
+      ? get_total_count($image_selected_levels, $project_map_q.data, $project_state?.levels ?? 0)
+      : 0
   );
 
   let settings_tab: 'spacing' | 'text' | 'colors' | 'bounding' = $state('spacing');

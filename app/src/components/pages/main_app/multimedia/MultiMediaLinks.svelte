@@ -17,7 +17,7 @@
 
   const media_list_q = $derived(
     client_q.media.get_media_list.query({
-      project_id: $project_state.project_id!,
+      project_id: $project_state!.project_id,
       selected_text_levels: $selected_text_levels
     })
   );

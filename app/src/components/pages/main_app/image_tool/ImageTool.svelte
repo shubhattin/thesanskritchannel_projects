@@ -13,8 +13,8 @@
     image_script,
     image_lang,
     image_shloka,
-    image_text_data_q,
-    image_trans_data_q,
+    image_text_data_q_options,
+    image_trans_data_q_options,
     trans_text_font_configs,
     main_text_font_configs,
     normal_text_font_config,
@@ -33,14 +33,16 @@
     trans_lang,
     editing_mode,
     project_state,
-    BASE_SCRIPT
+    BASE_SCRIPT,
+    text_data_present
   } from '~/state/main_app/state.svelte';
+  import { createQuery } from '@tanstack/svelte-query';
   import { get_script_for_lang, get_text_font_class } from '~/tools/font_tools';
   import { SCRIPT_LIST, type script_list_type } from '~/state/lang_list';
   import { current_shloka_type, shloka_configs, SPACE_ABOVE_REFERENCE_LINE } from './settings';
   import { compute_all_layouts, type CanvasLayoutResult } from './render_text';
   import ImageOptions from './ImageOptions.svelte';
-  import { get_starting_index, project_map_q } from '~/state/main_app/data.svelte';
+  import { get_starting_index, project_map_q_options } from '~/state/main_app/data.svelte';
   import { transliterate_custom } from '~/tools/converter';
   import { deepCopy } from '~/tools/kry';
   import * as Select from '$lib/components/ui/select';
@@ -58,6 +60,25 @@
   };
 
   let { onClose }: Props = $props();
+
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+
+  const image_text_data_q = $derived(
+    createQuery(
+      image_text_data_q_options($image_selected_levels, $project_state, $text_data_present)
+    )
+  );
+
+  const image_trans_data_q = $derived(
+    createQuery(
+      image_trans_data_q_options(
+        $image_selected_levels,
+        $image_lang,
+        $project_state,
+        $text_data_present
+      )
+    )
+  );
 
   let mounted = $state(false);
   let layout_el = $state<HTMLDivElement>(null!);
@@ -129,8 +150,8 @@
   $image_script = $viewing_script;
   if ($trans_lang !== 0) $image_lang = $trans_lang;
 
-  const levels = $derived($project_state.levels);
-  const level_names = $derived($project_state.level_names);
+  const levels = $derived($project_state?.levels ?? 0);
+  const level_names = $derived($project_state?.level_names ?? []);
   type option_type = { text?: string; value?: number };
 
   const transliterate_options = async (options: option_type[], script: script_list_type) => {
@@ -184,7 +205,7 @@
 
   $effect(() => {
     if ($image_selected_levels) {
-      $image_shloka = get_starting_index($project_state.project_key!, $image_selected_levels);
+      $image_shloka = get_starting_index($project_state!.project_key, $image_selected_levels);
       // reset after change
     }
   });

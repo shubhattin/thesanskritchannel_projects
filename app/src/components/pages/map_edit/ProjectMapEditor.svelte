@@ -10,8 +10,10 @@
     invalidate_project_content_queries,
     invalidate_project_map_queries,
     invalidate_project_registry_queries,
-    project_map_q
+    project_map_q_options
   } from '~/state/main_app/data.svelte';
+  import { project_state } from '~/state/main_app/state.svelte';
+  import { createQuery } from '@tanstack/svelte-query';
   import { map_edit_dirty } from '~/state/map_edit_dirty.svelte';
   import type { recursive_list_type } from '~/state/data_types';
   import { Button } from '$lib/components/ui/button';
@@ -75,6 +77,8 @@
     project_id: number;
     project_name_dev: string;
   } = $props();
+
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
 
   let baselineMap = $state<recursive_list_type | null>(null);
   let workingMap = $state<MapNodeWithClientId | null>(null);

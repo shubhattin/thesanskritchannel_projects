@@ -34,7 +34,7 @@
           ['media', 'get_media_list'],
           {
             input: {
-              project_id: $project_state.project_id!,
+              project_id: $project_state!.project_id,
               selected_text_levels: $selected_text_levels
             },
             type: 'query'
@@ -57,7 +57,7 @@
           ['media', 'get_media_list'],
           {
             input: {
-              project_id: $project_state.project_id!,
+              project_id: $project_state!.project_id,
               selected_text_levels: $selected_text_levels
             },
             type: 'query'
@@ -90,7 +90,7 @@
 
   const del_link_func = () => {
     $del_media_link_mut.mutate({
-      project_id: $project_state.project_id!,
+      project_id: $project_state!.project_id,
       selected_text_levels: $selected_text_levels,
       link_id: link_info.id
     });
@@ -100,7 +100,7 @@
     e.preventDefault();
     if (url === '' || !z.string().url().safeParse(url).success || name === '') return;
     $update_media_link_mut.mutate({
-      project_id: $project_state.project_id!,
+      project_id: $project_state!.project_id,
       selected_text_levels: $selected_text_levels,
       media_type,
       lang_id,

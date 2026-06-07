@@ -5,7 +5,8 @@
   import MetaTags from '~/components/tags/MetaTags.svelte';
   import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
   import { get_project_from_key, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
-  import { project_list_q, project_map_q } from '~/state/main_app/data.svelte';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { project_list_q_options, project_map_q_options } from '~/state/main_app/data.svelte';
   import MainAppPage from '~/components/pages/main_app/MainAppPage.svelte';
   import { Skeleton } from '~/lib/components/ui/skeleton';
 
@@ -15,6 +16,9 @@
     path_params: number[];
   };
   let { data }: { data: PageDataWithLevels } = $props();
+
+  const project_list_q = $derived(createQuery(project_list_q_options()));
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
 
   const project_key = $derived(data.project_key);
   const levels = $derived(data.levels);

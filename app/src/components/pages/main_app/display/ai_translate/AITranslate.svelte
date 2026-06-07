@@ -4,17 +4,18 @@
     editing_mode,
     selected_translation_lang_ids,
     TEXT_MODEL_LIST,
-    project_state
+    project_state,
+    selected_text_levels,
+    text_data_present
   } from '~/state/main_app/state.svelte';
   import {
-    trans_slot_1_data_q,
-    trans_slot_2_data_q,
-    trans_slot_data_query_key,
-    text_data_q,
-    trans_en_data_q,
-    project_list_q
+    active_text_data_q_options,
+    active_trans_en_data_q_options,
+    get_trans_slot_data_query_keys,
+    project_list_q_options,
+    trans_slot_data_q_options
   } from '~/state/main_app/data.svelte';
-  import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+  import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
   import { toast } from 'svelte-sonner';
   import { AIIcon } from '~/components/icons';
   import Icon from '~/tools/Icon.svelte';
@@ -35,6 +36,64 @@
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 
   const query_client = useQueryClient();
+
+  const project_list_q = $derived(createQuery(project_list_q_options()));
+
+  const text_data_q = $derived(
+    createQuery(
+      active_text_data_q_options(
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
+
+  const trans_slot_data_query_key = $derived(
+    get_trans_slot_data_query_keys(
+      $selected_translation_lang_ids,
+      $selected_text_levels,
+      $project_state
+    )
+  );
+
+  const trans_slot_1_data_q = $derived(
+    createQuery(
+      trans_slot_data_q_options(
+        0,
+        $selected_translation_lang_ids,
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
+
+  const trans_slot_2_data_q = $derived(
+    createQuery(
+      trans_slot_data_q_options(
+        1,
+        $selected_translation_lang_ids,
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
+
+  const trans_en_data_q = $derived(
+    createQuery(
+      active_trans_en_data_q_options(
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
 
   let show_time_status = $state(false);
   let dialog_open = $state(false);
@@ -101,7 +160,7 @@
 
   const can_show_translate_ui = $derived.by(() => {
     if (active_translation_slot === null || active_translation_lang_id === null) return false;
-    if (!$project_state.project_id || !$project_list_q.isSuccess) return false;
+    if (!$project_state?.project_id || !$project_list_q.isSuccess) return false;
     if (!$text_data_q.isSuccess || !$text_data_q.data?.length) return false;
     return active_translation_query.isSuccess;
   });
@@ -133,7 +192,7 @@
       if (slot === null) return;
 
       const translations = response.translations;
-      const text_data = get(text_data_q).data;
+      const text_data = $text_data_q.data;
       if (
         !text_data ||
         translations.length !== text_data.length ||
@@ -145,7 +204,7 @@
         return;
       }
 
-      const slot_query = slot === 0 ? get(trans_slot_1_data_q) : get(trans_slot_2_data_q);
+      const slot_query = slot === 0 ? $trans_slot_1_data_q : $trans_slot_2_data_q;
       const new_data = new Map(slot_query.data);
       for (const translation of translations) {
         const positional_index = translation.index;
@@ -157,7 +216,7 @@
         new_data.set(text_data[positional_index]!.index, translation.text);
       }
 
-      const query_key = get(trans_slot_data_query_key)[slot];
+      const query_key = trans_slot_data_query_key[slot];
       await query_client.setQueryData(query_key, new_data);
       show_time_status = true;
       translate_error = null;
@@ -172,7 +231,7 @@
   async function translate_sarga_func() {
     const slot = active_translation_slot;
     const lang_id = active_translation_lang_id;
-    const project_id = $project_state.project_id;
+    const project_id = $project_state?.project_id;
     if (slot === null || lang_id === null || !project_id || !$text_data_q.data) return;
     if (!$project_list_q.isSuccess || !$project_list_q.data) {
       translate_error = 'Project list is not loaded yet';

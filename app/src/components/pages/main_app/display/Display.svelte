@@ -1,7 +1,7 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { beforeNavigate } from '$app/navigation';
-  import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+  import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
   import { onDestroy, onMount, tick, untrack } from 'svelte';
   import { get } from 'svelte/store';
   import { fade } from 'svelte/transition';
@@ -35,16 +35,16 @@
     selected_text_levels,
     selected_translation_lang_ids,
     typing_assistance_modal_opened,
-    viewing_script
+    viewing_script,
+    text_data_present
   } from '~/state/main_app/state.svelte';
   import {
+    active_text_data_q_options,
     build_content_session_scope,
+    get_trans_slot_data_query_keys,
     invalidate_project_content_queries,
     invalidate_project_map_queries,
-    text_data_q,
-    trans_slot_1_data_q,
-    trans_slot_2_data_q,
-    trans_slot_data_query_key
+    trans_slot_data_q_options
   } from '~/state/main_app/data.svelte';
   import { LANG_LIST, LANG_LIST_IDS, lang_list_obj, type lang_list_type } from '~/state/lang_list';
   import { transliterate_custom } from '~/tools/converter';
@@ -86,6 +86,51 @@
     value === null || value === '' ? null : value;
 
   const query_client = useQueryClient();
+
+  const text_data_q = $derived(
+    createQuery(
+      active_text_data_q_options(
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
+
+  const trans_slot_data_query_key = $derived(
+    get_trans_slot_data_query_keys(
+      $selected_translation_lang_ids,
+      $selected_text_levels,
+      $project_state
+    )
+  );
+
+  const trans_slot_1_data_q = $derived(
+    createQuery(
+      trans_slot_data_q_options(
+        0,
+        $selected_translation_lang_ids,
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
+
+  const trans_slot_2_data_q = $derived(
+    createQuery(
+      trans_slot_data_q_options(
+        1,
+        $selected_translation_lang_ids,
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
 
   const clone_text_rows = (rows: TextDraftRow[]) => rows.map((row) => ({ ...row }));
   const text_normalization_options = get_normalization_options();
@@ -198,7 +243,7 @@
       if ($editing_mode !== 'text') text_session_key = '';
       return;
     }
-    const key = `${build_content_session_scope($project_state.project_id, $selected_text_levels, $project_state.levels)}:${JSON.stringify($text_data_q.data)}`;
+    const key = `${build_content_session_scope($project_state!.project_id, $selected_text_levels, $project_state!.levels)}:${JSON.stringify($text_data_q.data)}`;
     if (text_session_key === key) return;
     text_rows = $text_data_q.data.map((row) => ({
       client_id: crypto.randomUUID(),
@@ -222,7 +267,7 @@
         translation_session_key = '';
       return;
     }
-    const key = `${build_content_session_scope($project_state.project_id, $selected_text_levels, $project_state.levels)}:${$editing_mode}:${active_translation_lang_id}:${JSON.stringify($text_data_q.data)}`;
+    const key = `${build_content_session_scope($project_state!.project_id, $selected_text_levels, $project_state!.levels)}:${$editing_mode}:${active_translation_lang_id}:${JSON.stringify($text_data_q.data)}`;
     if (translation_session_key === key) return;
     translation_rows = ($text_data_q.data ?? []).map((row) => {
       const original = active_translation_query.data.get(row.index) ?? null;
@@ -369,8 +414,8 @@
       if (row.original !== null) restored.set(row.index, row.original);
     }
 
-    query_client.setQueryData(get(trans_slot_data_query_key)[slot], restored);
-    await invalidate_project_content_queries($project_state.project_id ?? undefined);
+    query_client.setQueryData(trans_slot_data_query_key[slot], restored);
+    await invalidate_project_content_queries($project_state?.project_id ?? undefined);
   };
 
   const request_close_editor = () => {
@@ -547,7 +592,7 @@
     mutationKey: ['text', 'save_text_rows'],
     mutationFn: async () =>
       client.text.save_text_rows.mutate({
-        project_id: $project_state.project_id!,
+        project_id: $project_state!.project_id,
         selected_text_levels: $selected_text_levels,
         rows: text_rows.map(({ source_index, text, shloka_type }) => ({
           source_index,
@@ -557,8 +602,8 @@
       }),
     onSuccess: async () => {
       await Promise.all([
-        invalidate_project_content_queries($project_state.project_id ?? undefined),
-        invalidate_project_map_queries($project_state.project_id ?? undefined)
+        invalidate_project_content_queries($project_state?.project_id ?? undefined),
+        invalidate_project_map_queries($project_state?.project_id ?? undefined)
       ]);
       save_dialog_open = false;
       toast.success('Text saved');
@@ -578,7 +623,7 @@
           normalize_translation_value(row.value) !== normalize_translation_value(row.original)
       );
       return client.translation.edit_translation.mutate({
-        project_id: $project_state.project_id!,
+        project_id: $project_state!.project_id,
         lang_id: active_translation_lang_id,
         selected_text_levels: $selected_text_levels,
         indexes: changed.map((row) => row.index),
@@ -591,7 +636,7 @@
         save_dialog_open = false;
         return;
       }
-      await invalidate_project_content_queries($project_state.project_id ?? undefined);
+      await invalidate_project_content_queries($project_state?.project_id ?? undefined);
       save_dialog_open = false;
       toast.success('Translation saved');
       close_editor();
@@ -736,7 +781,7 @@
       <div transition:fade={{ duration: 250 }} class="flex flex-col gap-[0.15rem]">
         {#each transliterated_data as shloka_lines, i (i)}
           {@const is_spacing_allowed =
-            ['bhagavadgita'].includes($project_state.project_key!) &&
+            ['bhagavadgita'].includes($project_state!.project_key) &&
             i > 2 &&
             i < transliterated_data.length - 2}
           <div class="rounded-lg px-2 py-0.5 hover:bg-gray-200 dark:hover:bg-gray-800">

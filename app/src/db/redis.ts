@@ -5,8 +5,9 @@ import { REDIS_CACHE_KEYS_CLIENT } from './redis_shared';
 export const REDIS_CACHE_KEYS = REDIS_CACHE_KEYS_CLIENT;
 export const redis = createRedis(env);
 
-export async function deleteKeysWithPattern(pattern: string) {
-  const script = `
+type RedisEvalClient = Pick<typeof redis, 'eval'>;
+
+const DELETE_KEYS_WITH_PATTERN_SCRIPT = `
       local cursor = "0"
       local deleted = 0
       repeat
@@ -20,11 +21,7 @@ export async function deleteKeysWithPattern(pattern: string) {
       return deleted
     `;
 
-  return redis.eval(script, [], [pattern]);
-}
-
-export async function getKeysWithPattern(pattern: string): Promise<string[]> {
-  const script = `
+const GET_KEYS_WITH_PATTERN_SCRIPT = `
     local cursor = "0"
     local matched = {}
     repeat
@@ -38,6 +35,25 @@ export async function getKeysWithPattern(pattern: string): Promise<string[]> {
     return matched
   `;
 
-  const keys = (await redis.eval(script, [], [pattern])) as string[];
+export async function deleteKeysWithPatternForClient(
+  redisClient: RedisEvalClient,
+  pattern: string
+) {
+  return redisClient.eval(DELETE_KEYS_WITH_PATTERN_SCRIPT, [], [pattern]);
+}
+
+export async function getKeysWithPatternForClient(
+  redisClient: RedisEvalClient,
+  pattern: string
+): Promise<string[]> {
+  const keys = (await redisClient.eval(GET_KEYS_WITH_PATTERN_SCRIPT, [], [pattern])) as string[];
   return keys;
+}
+
+export async function deleteKeysWithPattern(pattern: string) {
+  return deleteKeysWithPatternForClient(redis, pattern);
+}
+
+export async function getKeysWithPattern(pattern: string): Promise<string[]> {
+  return getKeysWithPatternForClient(redis, pattern);
 }

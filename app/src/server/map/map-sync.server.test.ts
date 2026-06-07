@@ -5,7 +5,7 @@ import {
   collect_db_paths_from_map,
   sort_db_paths_by_depth,
   validate_explicit_to_add_paths
-} from './project_map_sync.server';
+} from './map-sync.server';
 
 const base_map = (): recursive_list_type => ({
   name_dev: 'Project',

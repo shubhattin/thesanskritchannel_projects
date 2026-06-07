@@ -2,7 +2,6 @@ import { TRPCError } from '@trpc/server';
 import { count, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
-import { db, type transactionType } from '~/db/db';
 import {
   media_attachment,
   project_paths,
@@ -12,33 +11,35 @@ import {
   user_project_join,
   user_project_language_join
 } from '~/db/schema';
-import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import { lekhaUrlSlugify } from '~/lib/carta_markdown/markdown';
-import {
-  clear_server_project_map_cache,
-  clear_project_registry_cache
-} from '~/server/project_list.server';
-import { notify_site_invalidate_project_list_caches } from '~/server/invalidate_site_project_cache.server';
-import { countResourcesForProject, insertProjectPaths } from '~/server/project_paths_db.server';
-import { ROOT_DB_PATH } from '~/server/map_path_swap';
+import { notify_site_invalidate_project_list_caches } from '~/server/site/invalidate-project-cache.server';
+import { countResourcesForProject, insertProjectPaths } from '~/server/project/paths-db.server';
+import { ROOT_DB_PATH } from '~/server/map/path-swap';
 import { delay } from '~/tools/delay';
 import { type recursive_list_type, recursive_list_schema } from '~/state/data_types';
-import { redis_del_effect, runAppEffect } from '~/server/effect';
+import {
+  invalidate_project_list_caches_effect,
+  ProjectService,
+  runAppEffect,
+  type TxOrDb,
+  withDb,
+  withTransaction
+} from '~/server/effect';
+import { Effect } from 'effect';
 
 const project_id_input = z.object({
   project_id: z.int()
 });
 
 const invalidate_project_list_caches = async (cookie: string) => {
-  clear_project_registry_cache();
   await Promise.all([
-    runAppEffect(redis_del_effect(REDIS_CACHE_KEYS_CLIENT.project_list())),
+    runAppEffect(invalidate_project_list_caches_effect()),
     notify_site_invalidate_project_list_caches(cookie)
   ]);
 };
 
 /** Ensures `project_id` exists; throws NOT_FOUND otherwise. */
-const require_project = async (tx: transactionType, project_id: number) => {
+const require_project = async (tx: TxOrDb, project_id: number) => {
   const project = await tx.query.projects.findFirst({
     where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
     columns: { id: true, key: true, listed: true }
@@ -59,24 +60,26 @@ export const update_project_name_description_route = protectedAdminProcedure
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
     await delay(400);
-    await db.transaction(async (tx) => {
-      await require_project(tx, input.project_id);
-      const { map: project_map } = (await tx.query.projects.findFirst({
-        where: ({ id }, { eq }) => eq(id, input.project_id),
-        columns: { map: true }
-      }))!;
-      // update top level name as it same as name_dev
-      project_map.name_dev = input.name_dev;
-      await tx
-        .update(projects)
-        .set({
-          name: input.name,
-          name_dev: input.name_dev,
-          description: input.description ?? null,
-          map: recursive_list_schema.parse(project_map)
-        })
-        .where(eq(projects.id, input.project_id));
-    });
+    await runAppEffect(
+      withTransaction('project.update_name_description', async (tx) => {
+        await require_project(tx, input.project_id);
+        const { map: project_map } = (await tx.query.projects.findFirst({
+          where: ({ id }, { eq }) => eq(id, input.project_id),
+          columns: { map: true }
+        }))!;
+        // update top level name as it same as name_dev
+        project_map.name_dev = input.name_dev;
+        await tx
+          .update(projects)
+          .set({
+            name: input.name,
+            name_dev: input.name_dev,
+            description: input.description ?? null,
+            map: recursive_list_schema.parse(project_map)
+          })
+          .where(eq(projects.id, input.project_id));
+      })
+    );
 
     await invalidate_project_list_caches(cookie);
     return { success: true };
@@ -90,20 +93,22 @@ export const edit_project_slug_route = protectedAdminProcedure
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
     await delay(400);
-    await db.transaction(async (tx) => {
-      await require_project(tx, input.project_id);
-      const key = lekhaUrlSlugify(input.key);
+    await runAppEffect(
+      withTransaction('project.edit_slug', async (tx) => {
+        await require_project(tx, input.project_id);
+        const key = lekhaUrlSlugify(input.key);
 
-      const conflict = await tx.query.projects.findFirst({
-        where: (tbl, { eq }) => eq(tbl.key, key),
-        columns: { id: true }
-      });
-      if (conflict) {
-        throw new TRPCError({ code: 'CONFLICT', message: 'This slug is already in use' });
-      }
+        const conflict = await tx.query.projects.findFirst({
+          where: (tbl, { eq }) => eq(tbl.key, key),
+          columns: { id: true }
+        });
+        if (conflict) {
+          throw new TRPCError({ code: 'CONFLICT', message: 'This slug is already in use' });
+        }
 
-      await tx.update(projects).set({ key }).where(eq(projects.id, input.project_id));
-    });
+        await tx.update(projects).set({ key }).where(eq(projects.id, input.project_id));
+      })
+    );
 
     await invalidate_project_list_caches(cookie);
     return { success: true };
@@ -117,21 +122,23 @@ export const update_project_listed_route = protectedAdminProcedure
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
     await delay(400);
-    await db.transaction(async (tx) => {
-      await require_project(tx, input.project_id);
-      await tx
-        .update(projects)
-        .set({ listed: input.listed })
-        .where(eq(projects.id, input.project_id));
-    });
+    await runAppEffect(
+      withTransaction('project.update_listed', async (tx) => {
+        await require_project(tx, input.project_id);
+        await tx
+          .update(projects)
+          .set({ listed: input.listed })
+          .where(eq(projects.id, input.project_id));
+      })
+    );
 
     await invalidate_project_list_caches(cookie);
     return { success: true };
   });
 
-const get_delete_resource_counts_for_project = async (project_id: number) => {
+const get_delete_resource_counts_for_project = async (db_instance: TxOrDb, project_id: number) => {
   const count_rows_for_project = async (
-    tx: transactionType,
+    tx: TxOrDb,
     project_id: number,
     table: typeof project_paths | typeof user_project_join | typeof user_project_language_join
   ) => {
@@ -149,12 +156,12 @@ const get_delete_resource_counts_for_project = async (project_id: number) => {
     users_join_count,
     user_languages_count
   ] = await Promise.all([
-    countResourcesForProject(db, project_id, texts),
-    countResourcesForProject(db, project_id, translations),
-    countResourcesForProject(db, project_id, media_attachment),
-    count_rows_for_project(db, project_id, project_paths),
-    count_rows_for_project(db, project_id, user_project_join),
-    count_rows_for_project(db, project_id, user_project_language_join)
+    countResourcesForProject(db_instance, project_id, texts),
+    countResourcesForProject(db_instance, project_id, translations),
+    countResourcesForProject(db_instance, project_id, media_attachment),
+    count_rows_for_project(db_instance, project_id, project_paths),
+    count_rows_for_project(db_instance, project_id, user_project_join),
+    count_rows_for_project(db_instance, project_id, user_project_language_join)
   ]);
 
   return {
@@ -178,28 +185,36 @@ export const get_delete_resource_counts_route = protectedAdminProcedure
   .input(project_id_input)
   .query(async ({ input }) => {
     await delay(300);
-    await require_project(db, input.project_id);
-    return get_delete_resource_counts_for_project(input.project_id);
+    return runAppEffect(
+      withDb('project.get_delete_resource_counts', async (db) => {
+        await require_project(db, input.project_id);
+        return get_delete_resource_counts_for_project(db, input.project_id);
+      })
+    );
   });
 
 export const delete_project_route = protectedAdminProcedure
   .input(project_id_input)
   .mutation(async ({ input, ctx: { cookie } }) => {
     await delay(400);
-    await db.transaction(async (tx) => {
-      await require_project(tx, input.project_id);
-      const counts = await get_delete_resource_counts_for_project(input.project_id);
-      if (counts.total > 0) {
-        throw new TRPCError({
-          code: 'PRECONDITION_FAILED',
-          message:
-            'This project still has connected data and cannot be deleted. Remove all related records first.'
-        });
-      }
-      await tx.delete(projects).where(eq(projects.id, input.project_id));
-    });
+    await runAppEffect(
+      withTransaction('project.delete', async (tx) => {
+        await require_project(tx, input.project_id);
+        const counts = await get_delete_resource_counts_for_project(tx, input.project_id);
+        if (counts.total > 0) {
+          throw new TRPCError({
+            code: 'PRECONDITION_FAILED',
+            message:
+              'This project still has connected data and cannot be deleted. Remove all related records first.'
+          });
+        }
+        await tx.delete(projects).where(eq(projects.id, input.project_id));
+      })
+    );
 
-    clear_server_project_map_cache(input.project_id);
+    await runAppEffect(
+      Effect.flatMap(ProjectService, (project) => project.clearMapCache(input.project_id))
+    );
     await invalidate_project_list_caches(cookie);
     return { success: true as const };
   });
@@ -212,11 +227,15 @@ export const check_project_slug_route = protectedAdminProcedure
     if (!key) {
       return { available: false, key: '' };
     }
-    const conflict = await db.query.projects.findFirst({
-      where: (tbl, { eq: eqId }) => eqId(tbl.key, key),
-      columns: { id: true }
-    });
-    return { available: !conflict, key };
+    return runAppEffect(
+      withDb('project.check_slug', async (db) => {
+        const conflict = await db.query.projects.findFirst({
+          where: (tbl, { eq: eqId }) => eqId(tbl.key, key),
+          columns: { id: true }
+        });
+        return { available: !conflict, key };
+      })
+    );
   });
 
 const add_new_project_route = protectedAdminProcedure
@@ -238,37 +257,39 @@ const add_new_project_route = protectedAdminProcedure
       });
     }
 
-    const project = await db.transaction(async (tx) => {
-      const conflict = await tx.query.projects.findFirst({
-        where: (tbl, { eq: eqId }) => eqId(tbl.key, key),
-        columns: { id: true }
-      });
-      if (conflict) {
-        throw new TRPCError({ code: 'CONFLICT', message: 'This slug is already in use' });
-      }
+    const project = await runAppEffect(
+      withTransaction('project.add_new', async (tx) => {
+        const conflict = await tx.query.projects.findFirst({
+          where: (tbl, { eq: eqId }) => eqId(tbl.key, key),
+          columns: { id: true }
+        });
+        if (conflict) {
+          throw new TRPCError({ code: 'CONFLICT', message: 'This slug is already in use' });
+        }
 
-      const [inserted] = await tx
-        .insert(projects)
-        .values({
-          name,
-          name_dev,
-          description: description ?? null,
-          key,
-          listed: false,
-          map: recursive_list_schema.parse({
+        const [inserted] = await tx
+          .insert(projects)
+          .values({
+            name,
             name_dev,
-            list: [],
-            info: {
-              type: 'shloka',
-              shloka_count: 0,
-              total: 0
-            }
-          } satisfies recursive_list_type)
-        })
-        .returning();
-      await insertProjectPaths(tx, inserted.id, [ROOT_DB_PATH]);
-      return inserted;
-    });
+            description: description ?? null,
+            key,
+            listed: false,
+            map: recursive_list_schema.parse({
+              name_dev,
+              list: [],
+              info: {
+                type: 'shloka',
+                shloka_count: 0,
+                total: 0
+              }
+            } satisfies recursive_list_type)
+          })
+          .returning();
+        await insertProjectPaths(tx, inserted.id, [ROOT_DB_PATH]);
+        return inserted;
+      })
+    );
 
     await invalidate_project_list_caches(cookie);
     return { success: true as const, project };

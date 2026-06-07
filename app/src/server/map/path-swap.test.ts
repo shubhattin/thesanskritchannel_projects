@@ -13,7 +13,7 @@ import {
   validateSwapEdits,
   validateSwapEditsRootScope,
   validateSwapPair
-} from './map_path_swap';
+} from './path-swap';
 import type { recursive_list_type } from '~/state/data_types';
 
 const sampleMap = (): recursive_list_type => ({

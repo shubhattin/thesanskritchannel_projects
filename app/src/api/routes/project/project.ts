@@ -1,34 +1,37 @@
 import { z } from 'zod';
 import { protectedAdminProcedure, protectedProcedure } from '../../trpc_init';
-import { db, type transactionType } from '~/db/db';
 import { delay } from '~/tools/delay';
 import { projects, user_project_join, user_project_language_join } from '~/db/schema';
 import { and, asc, count, eq, ilike, or } from 'drizzle-orm';
 import { t } from '../../trpc_init';
-import { REDIS_CACHE_KEYS, deleteKeysWithPattern } from '~/db/redis';
 import ms from 'ms';
 import { waitUntil } from '@vercel/functions';
 import { project_edit_router } from './project_edit';
 import { project_map_edit_router } from './project_map_edit';
 import {
+  delete_keys_with_pattern_effect,
   get_project_list_effect,
   get_project_map_by_id_effect,
+  REDIS_CACHE_KEYS,
   redis_del_effect,
   redis_get_effect,
   redis_set_effect,
-  runAppEffect
+  runAppEffect,
+  type TxOrDb,
+  withDb,
+  withTransaction
 } from '~/server/effect';
 
 export const get_languages_for_project_user = async (
   user_id: string,
   project_id: number,
-  db_instance: transactionType
+  db_instance: TxOrDb
 ) => {
   const cacheKey = REDIS_CACHE_KEYS.user_project_info(user_id, project_id);
   const cache = await runAppEffect(redis_get_effect<{ lang_id: number }[]>(cacheKey));
   if (cache) return cache;
 
-  const langugaes = await db_instance
+  const languages = await db_instance
     .select({
       lang_id: user_project_language_join.language_id
     })
@@ -40,11 +43,9 @@ export const get_languages_for_project_user = async (
       )
     );
 
-  waitUntil(
-    runAppEffect(redis_set_effect(cacheKey, langugaes, { ex: ms('20days') / 1000 }))
-  );
+  waitUntil(runAppEffect(redis_set_effect(cacheKey, languages, { ex: ms('20days') / 1000 })));
 
-  return langugaes;
+  return languages;
 };
 
 const add_to_project_route = protectedAdminProcedure
@@ -56,10 +57,14 @@ const add_to_project_route = protectedAdminProcedure
   )
   .mutation(async ({ input: { user_id, project_id } }) => {
     await delay(400);
-    await db.insert(user_project_join).values({
-      user_id,
-      project_id
-    });
+    await runAppEffect(
+      withDb('project.add_to_project', async (db) => {
+        await db.insert(user_project_join).values({
+          user_id,
+          project_id
+        });
+      })
+    );
 
     return { success: true };
   });
@@ -73,28 +78,32 @@ const remove_from_project_route = protectedAdminProcedure
   )
   .mutation(async ({ input }) => {
     const { user_id, project_id } = input;
-    await db.transaction(async (tx) => {
-      await Promise.all([
-        tx
-          .delete(user_project_join)
-          .where(
-            and(
-              eq(user_project_join.user_id, user_id),
-              eq(user_project_join.project_id, project_id)
+    await runAppEffect(
+      withTransaction('project.remove_from_project', async (tx) => {
+        await Promise.all([
+          tx
+            .delete(user_project_join)
+            .where(
+              and(
+                eq(user_project_join.user_id, user_id),
+                eq(user_project_join.project_id, project_id)
+              )
+            ),
+          // deleting the user project language assigned as well
+          tx
+            .delete(user_project_language_join)
+            .where(
+              and(
+                eq(user_project_language_join.user_id, user_id),
+                eq(user_project_language_join.project_id, project_id)
+              )
             )
-          ),
-        // deleting the user project language assigned as well
-        tx
-          .delete(user_project_language_join)
-          .where(
-            and(
-              eq(user_project_language_join.user_id, user_id),
-              eq(user_project_language_join.project_id, project_id)
-            )
-          )
-      ]);
-    });
-    await deleteKeysWithPattern(REDIS_CACHE_KEYS.user_project_info(user_id, '*'));
+        ]);
+      })
+    );
+    await runAppEffect(
+      delete_keys_with_pattern_effect(REDIS_CACHE_KEYS.user_project_info(user_id, '*'))
+    );
 
     return { success: true };
   });
@@ -110,39 +119,41 @@ const update_project_languages_route = protectedAdminProcedure
   .mutation(async ({ input }) => {
     const { user_id, project_id, languages_id } = input;
     await delay(400);
-    await db.transaction(async (tx) => {
-      const languages_current = await get_languages_for_project_user(user_id, project_id, tx);
+    await runAppEffect(
+      withTransaction('project.update_languages', async (tx) => {
+        const languages_current = await get_languages_for_project_user(user_id, project_id, tx);
 
-      const current_set = new Set(languages_current.map((lang) => lang.lang_id));
-      const target_set = new Set(languages_id);
+        const current_set = new Set(languages_current.map((lang) => lang.lang_id));
+        const target_set = new Set(languages_id);
 
-      await Promise.all([
-        // deletion
-        ...languages_current
-          .filter((lang) => !target_set.has(lang.lang_id))
-          .map((lang) =>
-            tx
-              .delete(user_project_language_join)
-              .where(
-                and(
-                  eq(user_project_language_join.user_id, user_id),
-                  eq(user_project_language_join.project_id, project_id),
-                  eq(user_project_language_join.language_id, lang.lang_id)
+        await Promise.all([
+          // deletion
+          ...languages_current
+            .filter((lang) => !target_set.has(lang.lang_id))
+            .map((lang) =>
+              tx
+                .delete(user_project_language_join)
+                .where(
+                  and(
+                    eq(user_project_language_join.user_id, user_id),
+                    eq(user_project_language_join.project_id, project_id),
+                    eq(user_project_language_join.language_id, lang.lang_id)
+                  )
                 )
-              )
-          ),
-        // insertions
-        ...Array.from(target_set)
-          .filter((lang_id) => !current_set.has(lang_id))
-          .map((lang_id) =>
-            tx.insert(user_project_language_join).values({
-              user_id,
-              project_id,
-              language_id: lang_id
-            })
-          )
-      ]);
-    });
+            ),
+          // insertions
+          ...Array.from(target_set)
+            .filter((lang_id) => !current_set.has(lang_id))
+            .map((lang_id) =>
+              tx.insert(user_project_language_join).values({
+                user_id,
+                project_id,
+                language_id: lang_id
+              })
+            )
+        ]);
+      })
+    );
 
     await runAppEffect(redis_del_effect(REDIS_CACHE_KEYS.user_project_info(user_id, project_id)));
 
@@ -158,8 +169,12 @@ export const user_project_info_route = protectedProcedure
   .query(async ({ input: { project_id }, ctx: { user } }) => {
     await delay(550);
 
-    const languages = await get_languages_for_project_user(user.id, project_id, db);
-    return { languages };
+    return runAppEffect(
+      withDb('project.user_project_info', async (db) => {
+        const languages = await get_languages_for_project_user(user.id, project_id, db);
+        return { languages };
+      })
+    );
   });
 
 const get_project_list_input = z.object({
@@ -200,35 +215,39 @@ const get_project_list_route = protectedProcedure
     const whereClause = and(searchCondition, listedCondition);
     const offset = (input.page - 1) * input.size;
 
-    const [countResult, list] = await Promise.all([
-      db.select({ count: count() }).from(projects).where(whereClause),
-      db
-        .select({
-          id: projects.id,
-          name: projects.name,
-          name_dev: projects.name_dev,
-          description: projects.description,
-          key: projects.key,
-          listed: projects.listed
-        })
-        .from(projects)
-        .where(whereClause)
-        .orderBy(asc(projects.id))
-        .limit(input.size)
-        .offset(offset)
-    ]);
+    return runAppEffect(
+      withDb('project.get_project_list', async (db) => {
+        const [countResult, list] = await Promise.all([
+          db.select({ count: count() }).from(projects).where(whereClause),
+          db
+            .select({
+              id: projects.id,
+              name: projects.name,
+              name_dev: projects.name_dev,
+              description: projects.description,
+              key: projects.key,
+              listed: projects.listed
+            })
+            .from(projects)
+            .where(whereClause)
+            .orderBy(asc(projects.id))
+            .limit(input.size)
+            .offset(offset)
+        ]);
 
-    const total = Number(countResult[0]?.count ?? 0);
-    const pageCount = Math.max(1, Math.ceil(total / input.size));
+        const total = Number(countResult[0]?.count ?? 0);
+        const pageCount = Math.max(1, Math.ceil(total / input.size));
 
-    return {
-      list,
-      total,
-      page: input.page,
-      pageCount,
-      hasPrev: input.page > 1,
-      hasNext: input.page < pageCount
-    };
+        return {
+          list,
+          total,
+          page: input.page,
+          pageCount,
+          hasPrev: input.page > 1,
+          hasNext: input.page < pageCount
+        };
+      })
+    );
   });
 
 const get_project_map_route = protectedProcedure

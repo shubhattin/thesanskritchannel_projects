@@ -13,8 +13,8 @@ import {
   image_gen_route_schema
 } from '~/api/routes/ai/ai_types';
 import { user_project_language_join } from '~/db/schema';
-import { db } from '~/db/db';
 import { and, eq } from 'drizzle-orm';
+import { runAppEffect, withDb } from '~/server/effect';
 
 auth.configure({
   secretKey: env.TRIGGER_SECRET_KEY
@@ -25,17 +25,21 @@ const translate_route = protectedAppScopeProcedure_ProjectsPortal
   .mutation(
     async ({ ctx: { user }, input: { lang_id, model, text_name, text_data, project_id } }) => {
       if (user.role !== 'admin') {
-        const languages = await db
-          .select({
-            lang_id: user_project_language_join.language_id
-          })
-          .from(user_project_language_join)
-          .where(
-            and(
-              eq(user_project_language_join.user_id, user.id),
-              eq(user_project_language_join.project_id, project_id)
-            )
-          );
+        const languages = await runAppEffect(
+          withDb('ai.translate.auth', (db) =>
+            db
+              .select({
+                lang_id: user_project_language_join.language_id
+              })
+              .from(user_project_language_join)
+              .where(
+                and(
+                  eq(user_project_language_join.user_id, user.id),
+                  eq(user_project_language_join.project_id, project_id)
+                )
+              )
+          )
+        );
         const allowed_langs = languages.map((lang) => lang.lang_id);
         if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
       }

@@ -1,16 +1,16 @@
 import { eq, inArray } from 'drizzle-orm';
 import type { transactionType } from '~/db/db';
 import { media_attachment, project_paths, texts, translations } from '~/db/schema';
-import type { DeletePathCompaction } from './map_path_delete.server';
+import type { DeletePathCompaction } from './path-delete.server';
 import {
   buildRedisKeysForPathSwapInvalidation,
   type PathSwapInvalidation
-} from './map_path_swap_db.server';
+} from './path-swap-db.server';
 import {
   countExactPathResources,
   listProjectPathsAtOrUnderPrefixes
-} from './project_paths_db.server';
-import { remapDbPathPrefix } from './map_path_swap';
+} from '../project/paths-db.server';
+import { remapDbPathPrefix } from './path-swap';
 
 export const collectDeleteInvalidation = async (
   tx: transactionType,

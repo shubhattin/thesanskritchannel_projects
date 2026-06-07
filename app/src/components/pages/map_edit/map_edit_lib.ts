@@ -839,7 +839,7 @@ export type MetadataUndoEntry = {
 /** Inverse patches that reverse one order edit, plus swaps and selection to restore. */
 export type OrderUndoEntry = {
   inversePatches: Patch[];
-  pendingSwaps: import('~/server/map_path_swap').PathSwapEdit[];
+  pendingSwaps: import('~/server/map/path-swap').PathSwapEdit[];
   selectedNodePath: MapPath;
 };
 

@@ -3,9 +3,9 @@ import {
   applyDeletePathCompactionsToPath,
   buildDeletePathCompactions,
   type DeletePathCompaction
-} from './map_path_delete.server';
-import { buildRedisKeysForDeleteInvalidation } from './map_path_delete_db.server';
-import { mergePathSwapInvalidation } from './map_path_swap_db.server';
+} from './path-delete.server';
+import { buildRedisKeysForDeleteInvalidation } from './path-delete-db.server';
+import { mergePathSwapInvalidation } from './path-swap-db.server';
 import type { recursive_list_type } from '~/state/data_types';
 
 const sample_map = (): recursive_list_type => ({

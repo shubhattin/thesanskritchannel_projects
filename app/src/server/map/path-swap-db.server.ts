@@ -8,8 +8,8 @@ import {
   dbPathToPathParams,
   toTempDbPath,
   type PathSwapEdit
-} from './map_path_swap';
-import { listProjectPathsAtOrUnderPrefixes } from './project_paths_db.server';
+} from './path-swap';
+import { listProjectPathsAtOrUnderPrefixes } from '../project/paths-db.server';
 
 const assertNoRowsAtPrefix = async (
   tx: transactionType,

@@ -1,13 +1,13 @@
 export * from '@tsc/server-data/project-list';
 import ms from 'ms';
-import { type recursive_list_type } from '../state/data_types';
+import { type recursive_list_type } from '../../state/data_types';
 import {
   build_project_registry,
   build_project_info,
   type project_info_type,
   type project_registry_type,
   type project_type
-} from '../state/project_list';
+} from '../../state/project_list';
 import { type db_options, get_project_list_func, get_project_map_func } from './cached_loader';
 
 export type defer_promise_type = (promise: Promise<unknown>) => void;

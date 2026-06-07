@@ -1,18 +1,18 @@
 import { z } from 'zod';
 import { t, publicProcedure, protectedAdminProcedure } from '../trpc_init';
-import { db } from '~/db/db';
-import { REDIS_CACHE_KEYS } from '~/db/redis';
 import { media_attachment, project_paths } from '~/db/schema';
 import ms from 'ms';
 import { eq } from 'drizzle-orm';
 import { get_path_params } from '~/state/project_list';
-import { requireProjectPath } from '~/server/project_paths_db.server';
+import { requireProjectPath } from '~/server/project/paths-db.server';
 import {
   get_project_info_by_id_effect,
+  REDIS_CACHE_KEYS,
   redis_del_effect,
   redis_get_effect,
   redis_set_effect,
-  runAppEffect
+  runAppEffect,
+  withDb
 } from '~/server/effect';
 
 /** DB root path is `''`; cache keys use `[]`, not `[0]` from `''.split(':')`. */
@@ -41,17 +41,21 @@ const get_media_list_route = publicProcedure
     if (cache) return cache;
 
     const path = path_params.join(':');
-    const projectPath = await requireProjectPath(db, project_id, path);
-    const media_list = await db
-      .select({
-        id: media_attachment.id,
-        link: media_attachment.link,
-        media_type: media_attachment.media_type,
-        lang_id: media_attachment.lang_id,
-        name: media_attachment.name
+    const media_list = await runAppEffect(
+      withDb('media.get_media_list', async (db) => {
+        const projectPath = await requireProjectPath(db, project_id, path);
+        return db
+          .select({
+            id: media_attachment.id,
+            link: media_attachment.link,
+            media_type: media_attachment.media_type,
+            lang_id: media_attachment.lang_id,
+            name: media_attachment.name
+          })
+          .from(media_attachment)
+          .where(eq(media_attachment.project_path_id, projectPath.id));
       })
-      .from(media_attachment)
-      .where(eq(media_attachment.project_path_id, projectPath.id));
+    );
     await runAppEffect(redis_set_effect(cacheKey, media_list, { ex: ms('30days') / 1000 }));
 
     return media_list satisfies return_type;
@@ -72,19 +76,21 @@ const add_media_link_route = protectedAdminProcedure
     async ({ input: { project_id, lang_id, link, media_type, selected_text_levels, name } }) => {
       const { levels } = await runAppEffect(get_project_info_by_id_effect(project_id));
       const path_params = get_path_params(selected_text_levels, levels);
-      const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
-      const [inserted] = await Promise.all([
-        db
-          .insert(media_attachment)
-          .values({
-            project_path_id: projectPath.id,
-            lang_id,
-            link,
-            media_type,
-            name
-          })
-          .returning()
-      ]);
+      const inserted = await runAppEffect(
+        withDb('media.add_media_link', async (db) => {
+          const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
+          return db
+            .insert(media_attachment)
+            .values({
+              project_path_id: projectPath.id,
+              lang_id,
+              link,
+              media_type,
+              name
+            })
+            .returning();
+        })
+      );
       await Promise.allSettled([
         runAppEffect(redis_del_effect(REDIS_CACHE_KEYS.media_links(project_id, path_params)))
       ]);
@@ -108,22 +114,24 @@ const update_media_link_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { id, lang_id, link, media_type, name } }) => {
-    const existing = await db
-      .select({ project_id: project_paths.project_id, path: project_paths.path })
-      .from(media_attachment)
-      .innerJoin(project_paths, eq(media_attachment.project_path_id, project_paths.id))
-      .where(eq(media_attachment.id, id))
-      .limit(1);
-    const row = existing[0];
-    if (!row) throw new Error('Media link not found');
+    const row = await runAppEffect(
+      withDb('media.update_media_link', async (db) => {
+        const existing = await db
+          .select({ project_id: project_paths.project_id, path: project_paths.path })
+          .from(media_attachment)
+          .innerJoin(project_paths, eq(media_attachment.project_path_id, project_paths.id))
+          .where(eq(media_attachment.id, id))
+          .limit(1);
+        const found = existing[0];
+        if (!found) throw new Error('Media link not found');
+        await db
+          .update(media_attachment)
+          .set({ link, media_type, name, lang_id })
+          .where(eq(media_attachment.id, id));
+        return found;
+      })
+    );
     const path_params = path_params_from_db_path(row.path);
-
-    await Promise.all([
-      db
-        .update(media_attachment)
-        .set({ link, media_type, name, lang_id })
-        .where(eq(media_attachment.id, id))
-    ]);
     await Promise.allSettled([
       runAppEffect(redis_del_effect(REDIS_CACHE_KEYS.media_links(row.project_id, path_params)))
     ]);
@@ -141,17 +149,21 @@ const delete_media_link_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { link_id } }) => {
-    const existing = await db
-      .select({ project_id: project_paths.project_id, path: project_paths.path })
-      .from(media_attachment)
-      .innerJoin(project_paths, eq(media_attachment.project_path_id, project_paths.id))
-      .where(eq(media_attachment.id, link_id))
-      .limit(1);
-    const row = existing[0];
-    if (!row) throw new Error('Media link not found');
+    const row = await runAppEffect(
+      withDb('media.delete_media_link', async (db) => {
+        const existing = await db
+          .select({ project_id: project_paths.project_id, path: project_paths.path })
+          .from(media_attachment)
+          .innerJoin(project_paths, eq(media_attachment.project_path_id, project_paths.id))
+          .where(eq(media_attachment.id, link_id))
+          .limit(1);
+        const found = existing[0];
+        if (!found) throw new Error('Media link not found');
+        await db.delete(media_attachment).where(eq(media_attachment.id, link_id));
+        return found;
+      })
+    );
     const path_params = path_params_from_db_path(row.path);
-
-    await Promise.allSettled([db.delete(media_attachment).where(eq(media_attachment.id, link_id))]);
     await Promise.allSettled([
       runAppEffect(redis_del_effect(REDIS_CACHE_KEYS.media_links(row.project_id, path_params)))
     ]);

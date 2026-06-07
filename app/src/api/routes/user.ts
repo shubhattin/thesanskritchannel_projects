@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { protectedAdminProcedure, protectedProcedure } from '../trpc_init';
-import { db } from '~/db/db';
 import { delay } from '~/tools/delay';
+import { runAppEffect, withDb, withTransaction } from '~/server/effect';
 import { user_project_join, user_project_language_join } from '~/db/schema';
 import { eq } from 'drizzle-orm';
 import { t } from '../trpc_init';
@@ -24,28 +24,32 @@ const get_user_info_route = protectedProcedure
       return { projects: [], current_app_scope: false };
     }
 
-    const projects_info = await db
-      .select({
-        project_id: user_project_join.project_id
-      })
-      .from(user_project_join)
-      .where(eq(user_project_join.user_id, user_id));
+    return runAppEffect(
+      withDb('user.user_info', async (db) => {
+        const projects_info = await db
+          .select({
+            project_id: user_project_join.project_id
+          })
+          .from(user_project_join)
+          .where(eq(user_project_join.user_id, user_id));
 
-    const projects = await Promise.all(
-      projects_info.map(async (project_info) => {
-        const languages = await get_languages_for_project_user(
-          user_id,
-          project_info.project_id,
-          db
+        const projects = await Promise.all(
+          projects_info.map(async (project_info) => {
+            const languages = await get_languages_for_project_user(
+              user_id,
+              project_info.project_id,
+              db
+            );
+            return {
+              ...project_info,
+              langugae_ids: languages.map((lang) => lang.lang_id)
+            };
+          })
         );
-        return {
-          ...project_info,
-          langugae_ids: languages.map((lang) => lang.lang_id)
-        };
+
+        return { projects };
       })
     );
-
-    return { projects };
   });
 
 const remove_user_from_app_scope_route = protectedAdminProcedure
@@ -68,14 +72,16 @@ const remove_user_from_app_scope_route = protectedAdminProcedure
     if (!res.ok) return { success: false };
 
     if (scope === APP_SCOPE_ID_PROJECT_PORTAL) {
-      await db.transaction(async (tx) => {
-        await Promise.all([
-          tx.delete(user_project_join).where(eq(user_project_join.user_id, user_id)),
-          tx
-            .delete(user_project_language_join)
-            .where(eq(user_project_language_join.user_id, user_id))
-        ]);
-      });
+      await runAppEffect(
+        withTransaction('user.remove_app_scope', async (tx) => {
+          await Promise.all([
+            tx.delete(user_project_join).where(eq(user_project_join.user_id, user_id)),
+            tx
+              .delete(user_project_language_join)
+              .where(eq(user_project_language_join.user_id, user_id))
+          ]);
+        })
+      );
     }
 
     return { success: true };

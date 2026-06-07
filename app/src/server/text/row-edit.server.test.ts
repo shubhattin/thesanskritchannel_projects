@@ -8,7 +8,7 @@ import {
   remapTranslationsForTextRows,
   type ExistingTranslationRow,
   type TextEditorRowInput
-} from './text_row_edit.server';
+} from './row-edit.server';
 
 const rows = (...items: TextEditorRowInput[]) => items;
 

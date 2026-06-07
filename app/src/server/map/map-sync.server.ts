@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { recursive_list_schema } from '~/state/data_types';
-import { ROOT_DB_PATH, validateDbPath } from './map_path_swap';
+import { ROOT_DB_PATH, validateDbPath } from './path-swap';
 
 export const sort_db_paths_by_depth = (paths: Iterable<string>): string[] =>
   [...paths].sort(

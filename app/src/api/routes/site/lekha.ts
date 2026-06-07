@@ -3,8 +3,6 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { waitUntil } from '@vercel/functions';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
-import { db } from '~/db/db';
-import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import { site_lekhas } from '~/db/schema';
 import { SiteLekhaSchemaZod } from '~/db/schema_zod';
 import { delay } from '~/tools/delay';
@@ -13,7 +11,7 @@ import {
   normalizeLekhaTextFields,
   sanitizeAndFormatLekhaMarkdownForStorage
 } from '~/lib/carta_markdown/markdown';
-import { redis_del_effect, runAppEffect } from '~/server/effect';
+import { REDIS_CACHE_KEYS, redis_del_effect, runAppEffect, withDb } from '~/server/effect';
 
 const lekha_post_input = SiteLekhaSchemaZod.omit({
   id: true,
@@ -47,11 +45,13 @@ const add_lekha_route = protectedAdminProcedure
   .mutation(async ({ input: { post_data } }) => {
     // on add the lekha is always a draft
     const normalized = await normalizeLekhaPostForStorage({ ...post_data, draft: true });
-    const lekha = await db.insert(site_lekhas).values(normalized).returning();
+    const lekha = await runAppEffect(
+      withDb('lekha.add', (db) => db.insert(site_lekhas).values(normalized).returning())
+    );
     const id = lekha[0].id;
 
-    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(lekha[0].url_slug))));
-    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS_CLIENT.site_lekha_list())));
+    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS.site_lekha_data(lekha[0].url_slug))));
+    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS.site_lekha_list())));
 
     return {
       id
@@ -67,20 +67,24 @@ const edit_lekha_route = protectedAdminProcedure
   )
   .mutation(async ({ input: { id, post_data } }) => {
     await delay(1000);
-    const existing = await db.query.site_lekhas.findFirst({
-      where: (tbl, { eq: eqId }) => eqId(tbl.id, id)
-    });
-    if (!existing) {
-      throw new TRPCError({ code: 'NOT_FOUND', message: 'Lekha not found' });
-    }
     const normalized = await normalizeLekhaPostForStorage(post_data);
-    const setPublishedNow = existing.draft === true && post_data.draft === false;
-    const lekha = await db
-      .update(site_lekhas)
-      .set({ ...normalized, ...(setPublishedNow ? { published_at: new Date() } : {}) })
-      .where(eq(site_lekhas.id, id))
-      .returning();
-    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(lekha[0].url_slug))));
+    const lekha = await runAppEffect(
+      withDb('lekha.edit', async (db) => {
+        const existing = await db.query.site_lekhas.findFirst({
+          where: (tbl, { eq: eqId }) => eqId(tbl.id, id)
+        });
+        if (!existing) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Lekha not found' });
+        }
+        const setPublishedNow = existing.draft === true && post_data.draft === false;
+        return db
+          .update(site_lekhas)
+          .set({ ...normalized, ...(setPublishedNow ? { published_at: new Date() } : {}) })
+          .where(eq(site_lekhas.id, id))
+          .returning();
+      })
+    );
+    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS.site_lekha_data(lekha[0].url_slug))));
 
     return {
       id: lekha[0]?.id ?? id,
@@ -94,18 +98,21 @@ const delete_lekha_route = protectedAdminProcedure
   .mutation(async ({ input: { id } }) => {
     await delay(1000);
 
-    const prev_data = await db.query.site_lekhas.findFirst({
-      where: (tbl, { eq: eqId }) => eqId(tbl.id, id),
-      columns: { url_slug: true }
-    });
-    if (!prev_data) {
-      throw new TRPCError({ code: 'NOT_FOUND', message: 'Lekha not found' });
-    }
-    const url_slug = prev_data.url_slug;
-
-    await db.delete(site_lekhas).where(eq(site_lekhas.id, id));
-    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(url_slug))));
-    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS_CLIENT.site_lekha_list())));
+    const url_slug = await runAppEffect(
+      withDb('lekha.delete', async (db) => {
+        const prev_data = await db.query.site_lekhas.findFirst({
+          where: (tbl, { eq: eqId }) => eqId(tbl.id, id),
+          columns: { url_slug: true }
+        });
+        if (!prev_data) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Lekha not found' });
+        }
+        await db.delete(site_lekhas).where(eq(site_lekhas.id, id));
+        return prev_data.url_slug;
+      })
+    );
+    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS.site_lekha_data(url_slug))));
+    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS.site_lekha_list())));
     return {
       id: id
     };
@@ -140,38 +147,42 @@ const list_lekhas_route = protectedAdminProcedure
       input.sort_by === 'updated_at' ? site_lekhas.updated_at : site_lekhas.published_at;
     const orderFn = input.order_by === 'asc' ? asc : desc;
 
-    const [countResult, list] = await Promise.all([
-      db.select({ count: count() }).from(site_lekhas).where(whereClause),
-      db
-        .select({
-          id: site_lekhas.id,
-          title: site_lekhas.title,
-          description: site_lekhas.description,
-          tags: site_lekhas.tags,
-          published_at: site_lekhas.published_at,
-          updated_at: site_lekhas.updated_at,
-          draft: site_lekhas.draft,
-          listed: site_lekhas.listed,
-          search_indexed: site_lekhas.search_indexed
-        })
-        .from(site_lekhas)
-        .where(whereClause)
-        .orderBy(orderFn(sortColumn), desc(site_lekhas.id))
-        .limit(input.limit)
-        .offset(offset)
-    ]);
+    return runAppEffect(
+      withDb('lekha.list', async (db) => {
+        const [countResult, list] = await Promise.all([
+          db.select({ count: count() }).from(site_lekhas).where(whereClause),
+          db
+            .select({
+              id: site_lekhas.id,
+              title: site_lekhas.title,
+              description: site_lekhas.description,
+              tags: site_lekhas.tags,
+              published_at: site_lekhas.published_at,
+              updated_at: site_lekhas.updated_at,
+              draft: site_lekhas.draft,
+              listed: site_lekhas.listed,
+              search_indexed: site_lekhas.search_indexed
+            })
+            .from(site_lekhas)
+            .where(whereClause)
+            .orderBy(orderFn(sortColumn), desc(site_lekhas.id))
+            .limit(input.limit)
+            .offset(offset)
+        ]);
 
-    const total = Number(countResult[0]?.count ?? 0);
-    const pageCount = Math.max(1, Math.ceil(total / input.limit));
+        const total = Number(countResult[0]?.count ?? 0);
+        const pageCount = Math.max(1, Math.ceil(total / input.limit));
 
-    return {
-      list,
-      total,
-      page: input.page,
-      pageCount,
-      hasPrev: input.page > 1,
-      hasNext: input.page < pageCount
-    };
+        return {
+          list,
+          total,
+          page: input.page,
+          pageCount,
+          hasPrev: input.page > 1,
+          hasNext: input.page < pageCount
+        };
+      })
+    );
   });
 
 const check_url_slug_route = protectedAdminProcedure
@@ -183,14 +194,18 @@ const check_url_slug_route = protectedAdminProcedure
   )
   .query(async ({ input: { url_slug, exclude_id } }) => {
     const normalized = lekhaUrlSlugify(url_slug);
-    const lekha = await db.query.site_lekhas.findFirst({
-      where: (tbl, { eq, ne }) =>
-        exclude_id != null
-          ? and(eq(tbl.url_slug, normalized), ne(tbl.id, exclude_id))
-          : eq(tbl.url_slug, normalized),
-      columns: { id: true }
-    });
-    return { exists: !!lekha };
+    return runAppEffect(
+      withDb('lekha.check_url_slug', async (db) => {
+        const lekha = await db.query.site_lekhas.findFirst({
+          where: (tbl, { eq, ne }) =>
+            exclude_id != null
+              ? and(eq(tbl.url_slug, normalized), ne(tbl.id, exclude_id))
+              : eq(tbl.url_slug, normalized),
+          columns: { id: true }
+        });
+        return { exists: !!lekha };
+      })
+    );
   });
 
 export const lekha_router = t.router({

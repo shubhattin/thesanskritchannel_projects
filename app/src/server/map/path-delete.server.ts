@@ -9,7 +9,7 @@ import {
   DB_PATH_RE,
   dbPathMatchesPrefix,
   type PathSwapStep
-} from './map_path_swap';
+} from './path-swap';
 
 export type DeletePathCompaction = {
   deleted_path: string;

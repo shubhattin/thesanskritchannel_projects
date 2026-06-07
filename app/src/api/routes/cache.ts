@@ -1,7 +1,6 @@
 import { protectedAdminProcedure, t } from '../trpc_init';
-import { getKeysWithPattern } from '~/db/redis';
 import { z } from 'zod';
-import { redis_del_effect, runAppEffect } from '~/server/effect';
+import { get_keys_with_pattern_effect, redis_del_effect, runAppEffectTrpc } from '~/server/effect';
 
 const invalidate_cache_route = protectedAdminProcedure
   .input(
@@ -10,7 +9,7 @@ const invalidate_cache_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { cache_keys } }) => {
-    const code = await runAppEffect(redis_del_effect(...cache_keys));
+    const code = await runAppEffectTrpc(redis_del_effect(...cache_keys));
     return { success: true, code };
   });
 
@@ -21,8 +20,7 @@ const list_cache_keys_route = protectedAdminProcedure
     })
   )
   .query(async ({ input: { pattern } }) => {
-    const keys = await getKeysWithPattern(pattern);
-    return keys;
+    return runAppEffectTrpc(get_keys_with_pattern_effect(pattern));
   });
 
 export const cache_router = t.router({

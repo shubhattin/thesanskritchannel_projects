@@ -63,7 +63,7 @@
         "svelte-turnstile": "^0.10.0",
         "tailwind-merge": "^3.6.0",
         "tailwindcss": "^4.3.0",
-        "trpc-tanstack-svelte-query": "link:trpc-tanstack-svelte-query",
+        "trpc-tanstack-svelte-query": "0.1.1",
         "unified": "^11.0.5",
         "vitest": "^3.2.4",
         "ws": "^8.20.1",
@@ -2183,7 +2183,7 @@
 
     "trough": ["trough@2.2.0", "", {}, "sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw=="],
 
-    "trpc-tanstack-svelte-query": ["trpc-tanstack-svelte-query@link:trpc-tanstack-svelte-query", {}],
+    "trpc-tanstack-svelte-query": ["trpc-tanstack-svelte-query@0.1.1", "", { "peerDependencies": { "@tanstack/svelte-query": ">=6", "@trpc/client": ">=11.17.0", "@trpc/server": ">=11.17.0", "svelte": ">=5.25.0", "typescript": ">=5.7.2" } }, "sha512-KbKbAqaZ4pgDAuxQAdphCQimLC4w0ycCXmMxPU0OmOltJ4CGD2DuosuCuIbHSRDEiM1bGf2ySVLvUBIT9aAurA=="],
 
     "tsafe": ["tsafe@1.8.12", "", {}, "sha512-nFRqW0ttu/2o6XTXsHiVZWJBCOaxhVqZLg7dgs3coZNsCMPXPfwz+zPHAQA+70fNnVJLAPg1EgGIqK9Q84tvAw=="],
 

@@ -11,14 +11,14 @@
 
   const session = useSession();
 
-  const project_list_q = $derived(createQuery(project_list_q_options()));
+  const project_list_q = createQuery(() => project_list_q_options());
 
   const is_admin = $derived($session.data?.user.role === 'admin');
 
   const project = $derived.by(() => {
     const projectId = $project_state?.project_id;
     if (projectId == null) return undefined;
-    return get_project_from_id(projectId, $project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
+    return get_project_from_id(projectId, project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
   });
 
   let settings_open = $state(false);

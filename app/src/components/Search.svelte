@@ -4,7 +4,6 @@
   import { client } from '~/api/client';
   import { get_project_from_id, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import { project_list_q_options } from '~/state/main_app/data.svelte';
-  import { queryClient } from '~/state/queryClient';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
@@ -40,51 +39,46 @@
     return nums.length ? nums : undefined;
   };
 
-  const project_list_q = $derived(createQuery(project_list_q_options()));
+  const project_list_q = createQuery(() => project_list_q_options());
 
-  const project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
+  const project_registry = $derived(project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
 
   const get_project_key_from_id = (id: number) => get_project_from_id(id, project_registry)?.key;
   const get_project_name_from_id = (id: number) =>
     get_project_from_id(id, project_registry)?.name ?? `Project ${id}`;
 
-  const search_q = $derived(
-    createQuery(
-      {
-        queryKey: [
-          'text_search',
-          submitted_project_id === 0 ? undefined : submitted_project_id,
-          submitted_path_filter,
-          submitted_search_text,
-          offset,
-          LIMIT
-        ],
-        enabled: false,
-        placeholderData: (prev) => prev,
-        queryFn: async () => {
-          const q = submitted_search_text.trim();
-          if (q.length < 1) {
-            return {
-              items: [],
-              page: { limit: LIMIT, offset, nextOffset: null, hasMore: false, totalCount: 0 }
-            };
-          }
+  const search_q = createQuery(() => ({
+    queryKey: [
+      'text_search',
+      submitted_project_id === 0 ? undefined : submitted_project_id,
+      submitted_path_filter,
+      submitted_search_text,
+      offset,
+      LIMIT
+    ],
+    enabled: false,
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const q = submitted_search_text.trim();
+      if (q.length < 1) {
+        return {
+          items: [],
+          page: { limit: LIMIT, offset, nextOffset: null, hasMore: false, totalCount: 0 }
+        };
+      }
 
-          const project_key = get_project_key_from_id(submitted_project_id);
-          const path_params = parse_path_params(submitted_path_filter);
+      const project_key = get_project_key_from_id(submitted_project_id);
+      const path_params = parse_path_params(submitted_path_filter);
 
-          return await client.text.search_text_in_texts.query({
-            project_key,
-            path_params,
-            search_text: q,
-            limit: LIMIT,
-            offset
-          });
-        }
-      },
-      queryClient
-    )
-  );
+      return await client.text.search_text_in_texts.query({
+        project_key,
+        path_params,
+        search_text: q,
+        limit: LIMIT,
+        offset
+      });
+    }
+  }));
 
   const submit_search = async (args?: {
     q?: string;
@@ -108,7 +102,7 @@
 
     // ensure query key updates before refetch
     await tick();
-    await $search_q.refetch();
+    await search_q.refetch();
   };
 
   const go_to_page = async (pageNumber: number) => {
@@ -116,22 +110,22 @@
     const nextOffset = Math.max(0, (pageNumber - 1) * LIMIT);
     offset = nextOffset;
     await tick();
-    await $search_q.refetch();
+    await search_q.refetch();
   };
 
   const go_to_offset = async (nextOffset: number) => {
     if (!started) return;
     offset = Math.max(0, nextOffset);
     await tick();
-    await $search_q.refetch();
+    await search_q.refetch();
   };
 
   const currentPage = $derived(Math.floor(offset / LIMIT) + 1);
   const totalPages = $derived(
-    Math.max(0, Math.ceil((($search_q.data?.page.totalCount as number | undefined) ?? 0) / LIMIT))
+    Math.max(0, Math.ceil(((search_q.data?.page.totalCount as number | undefined) ?? 0) / LIMIT))
   );
   const showingStart = $derived(started ? offset + 1 : 0);
-  const showingEnd = $derived(offset + ($search_q.data?.items.length ?? 0));
+  const showingEnd = $derived(offset + (search_q.data?.items.length ?? 0));
 
   // Lipi-Lekhika typing (Sanskrit / Devanagari)
   let typing_enabled = $state(true);
@@ -170,7 +164,7 @@
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div class="space-y-2">
           <Label for="project-select" class="text-sm font-medium">Project</Label>
-          {#if $project_list_q.isPending}
+          {#if project_list_q.isPending}
             <Skeleton class="h-10 w-full" />
           {:else}
             <Select.Root
@@ -248,14 +242,14 @@
         <div class="text-sm">
           {#if validation_error}
             <span class="text-destructive">{validation_error}</span>
-          {:else if started && $search_q.isFetching}
+          {:else if started && search_q.isFetching}
             <span class="text-muted-foreground">Searching…</span>
           {:else}
             <span class="text-muted-foreground">&nbsp;</span>
           {/if}
         </div>
-        <Button type="submit" disabled={$search_q.isFetching}>
-          {$search_q.isFetching ? 'Searching…' : 'Search'}
+        <Button type="submit" disabled={search_q.isFetching}>
+          {search_q.isFetching ? 'Searching…' : 'Search'}
         </Button>
       </div>
     </form>
@@ -267,11 +261,11 @@
       <h2 class="text-xl font-semibold">Results</h2>
       <div class="text-sm text-muted-foreground">
         {#if started}
-          {#if $search_q.isFetching}
+          {#if search_q.isFetching}
             <span class="animate-pulse">Loading...</span>
-          {:else if $search_q.isSuccess}
+          {:else if search_q.isSuccess}
             <span
-              >{$search_q.data.items.length} result{$search_q.data.items.length !== 1 ? 's' : ''} on this
+              >{search_q.data.items.length} result{search_q.data.items.length !== 1 ? 's' : ''} on this
               page</span
             >
           {/if}
@@ -281,7 +275,7 @@
       </div>
     </div>
 
-    {#if started && ($search_q.data || $search_q.isSuccess)}
+    {#if started && (search_q.data || search_q.isSuccess)}
       <div
         class="flex flex-col items-center justify-between gap-3 rounded-lg border bg-muted/50 p-3 sm:flex-row"
       >
@@ -291,12 +285,12 @@
           {:else}
             <span class="font-medium">Page {currentPage}</span>
           {/if}
-          {#if $search_q.data}
+          {#if search_q.data}
             <span class="mx-2 opacity-50">•</span>
             <span>
               Showing {showingStart}-{showingEnd}
-              {#if $search_q.data.page.totalCount}
-                of <span class="font-medium">{$search_q.data.page.totalCount}</span>
+              {#if search_q.data.page.totalCount}
+                of <span class="font-medium">{search_q.data.page.totalCount}</span>
               {/if}
             </span>
           {/if}
@@ -306,7 +300,7 @@
             type="button"
             variant="outline"
             size="sm"
-            disabled={offset === 0 || $search_q.isFetching}
+            disabled={offset === 0 || search_q.isFetching}
             onclick={() => go_to_offset(offset - LIMIT)}
           >
             Prev
@@ -319,7 +313,7 @@
                 const p = parseInt(v);
                 if (Number.isFinite(p)) go_to_page(p);
               }}
-              disabled={$search_q.isFetching}
+              disabled={search_q.isFetching}
             >
               <Select.Trigger class="w-28" aria-label="Jump to page">
                 Page {currentPage}
@@ -335,9 +329,9 @@
             type="button"
             variant="outline"
             size="sm"
-            disabled={$search_q.isFetching ||
-              (totalPages > 0 ? currentPage >= totalPages : !$search_q.data?.page.hasMore)}
-            onclick={() => go_to_offset($search_q.data?.page.nextOffset ?? offset + LIMIT)}
+            disabled={search_q.isFetching ||
+              (totalPages > 0 ? currentPage >= totalPages : !search_q.data?.page.hasMore)}
+            onclick={() => go_to_offset(search_q.data?.page.nextOffset ?? offset + LIMIT)}
           >
             Next
           </Button>
@@ -352,7 +346,7 @@
             <p class="text-sm">Enter a query and click Search to begin</p>
           </div>
         </div>
-      {:else if $search_q.isFetching}
+      {:else if search_q.isFetching}
         <div class="space-y-3">
           {#each Array(6) as _, i (i)}
             <div class="rounded-lg border bg-card p-4">
@@ -362,13 +356,13 @@
             </div>
           {/each}
         </div>
-      {:else if $search_q.isError}
+      {:else if search_q.isError}
         <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
           <div class="font-semibold text-destructive">Search failed</div>
-          <div class="mt-1 text-sm text-destructive/80">{String($search_q.error)}</div>
+          <div class="mt-1 text-sm text-destructive/80">{String(search_q.error)}</div>
         </div>
-      {:else if $search_q.isSuccess}
-        {#if $search_q.data.items.length === 0}
+      {:else if search_q.isSuccess}
+        {#if search_q.data.items.length === 0}
           <div class="flex h-64 items-center justify-center rounded-lg border">
             <div class="text-center text-muted-foreground">
               <p class="text-sm">No results found</p>
@@ -377,7 +371,7 @@
           </div>
         {:else}
           <div class="space-y-3">
-            {#each $search_q.data.items as row (row.project_id + ':' + row.path + ':' + row.index)}
+            {#each search_q.data.items as row (row.project_id + ':' + row.path + ':' + row.index)}
               <div class="rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50">
                 <div class="mb-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
                   <span class="rounded-md bg-muted px-2 py-0.5"

@@ -49,40 +49,34 @@
   import { copy_plain_object, deepCopy } from '~/tools/kry';
   import { FiEdit, FiSave } from 'svelte-icons-pack/fi';
   import { CgClose } from 'svelte-icons-pack/cg';
-
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Textarea } from '$lib/components/ui/textarea';
   import ImageColorField from './ImageColorField.svelte';
-  import type { Snippet } from 'svelte';
   import {
     clearTypingContextOnKeyDown,
     createTypingContext,
     handleTypingBeforeInputEvent
   } from 'lipilekhika/typing';
 
-  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+  const project_map_q = createQuery(() => project_map_q_options($project_state));
 
-  const image_text_data_q = $derived(
-    createQuery(
-      image_text_data_q_options($image_selected_levels, $project_state, $text_data_present)
-    )
+  const image_text_data_q = createQuery(() =>
+    image_text_data_q_options($image_selected_levels, $project_state, $text_data_present)
   );
 
-  const image_trans_data_q = $derived(
-    createQuery(
-      image_trans_data_q_options(
-        $image_selected_levels,
-        $image_lang,
-        $project_state,
-        $text_data_present
-      )
+  const image_trans_data_q = createQuery(() =>
+    image_trans_data_q_options(
+      $image_selected_levels,
+      $image_lang,
+      $project_state,
+      $text_data_present
     )
   );
 
   let total_count = $derived(
-    $project_map_q.isSuccess
-      ? get_total_count($image_selected_levels, $project_map_q.data, $project_state?.levels ?? 0)
+    project_map_q.isSuccess
+      ? get_total_count($image_selected_levels, project_map_q.data, $project_state?.levels ?? 0)
       : 0
   );
 
@@ -115,9 +109,9 @@
     $main_text_font_configs = copy_plain_object(DEFAULT_MAIN_TEXT_FONT_CONFIGS);
     $trans_text_font_configs = copy_plain_object(DEFAULT_TRANS_TEXT_FONT_CONFIGS);
     $image_render_colors = copy_plain_object(DEFAULT_IMAGE_TEXT_RENDER_COLORS);
-    $image_shloka_data = deepCopy($image_text_data_q.data![$image_shloka]);
-    if ($image_trans_data_q.data?.has($image_shloka)) {
-      const translation = $image_trans_data_q.data.get($image_shloka)!;
+    $image_shloka_data = deepCopy(image_text_data_q.data![$image_shloka]);
+    if (image_trans_data_q.data?.has($image_shloka)) {
+      const translation = image_trans_data_q.data.get($image_shloka)!;
       trans_text_data = translation;
       $image_trans_text = translation;
     } else {
@@ -135,7 +129,7 @@
       shloka_defaults_initialized = true;
       return;
     }
-    if (!$image_text_data_q.isSuccess || $image_text_data_q.isFetching) return;
+    if (!image_text_data_q.isSuccess || image_text_data_q.isFetching) return;
     reset_func();
   });
 
@@ -149,17 +143,17 @@
   $effect(() => {
     $image_shloka;
     $image_lang;
-    if ($image_trans_data_q.isSuccess && $image_trans_data_q.data) {
-      const translation = $image_trans_data_q.data.get($image_shloka) ?? '';
+    if (image_trans_data_q.isSuccess && image_trans_data_q.data) {
+      const translation = image_trans_data_q.data.get($image_shloka) ?? '';
       trans_text_data = translation;
       $image_trans_text = translation;
-      trans_text_available = $image_trans_data_q.data.has($image_shloka);
+      trans_text_available = image_trans_data_q.data.has($image_shloka);
       trans_textarea_disabled = true;
     }
   });
 </script>
 
-{#snippet option_panel(title: string, description: string | undefined, content: Snippet)}
+{#snippet option_panel(title: string, description: string | undefined, content: any)}
   <section class="rounded-lg border border-border bg-muted/30 p-4">
     <div class="mb-3">
       <h3 class="text-sm font-semibold">{title}</h3>
@@ -373,15 +367,15 @@
       disabled={$image_rendering_state}
     >
       <Select.Trigger class="inline-flex w-20 p-1 text-sm">
-        {$image_shloka}{$image_text_data_q.data?.[$image_shloka]?.shloka_num &&
-          ` - ${$image_text_data_q.data![$image_shloka].shloka_num}`}
+        {$image_shloka}{image_text_data_q.data?.[$image_shloka]?.shloka_num &&
+          ` - ${image_text_data_q.data![$image_shloka].shloka_num}`}
       </Select.Trigger>
       <Select.Content>
-        {#if $image_text_data_q.isSuccess && !$image_text_data_q.isFetching}
+        {#if image_text_data_q.isSuccess && !image_text_data_q.isFetching}
           {#each Array(total_count) as _, index (index)}
             <Select.Item value={index.toString()}>
-              {index}{$image_text_data_q.data![index]?.shloka_num &&
-                ` - ${$image_text_data_q.data![index].shloka_num}`}
+              {index}{image_text_data_q.data![index]?.shloka_num &&
+                ` - ${image_text_data_q.data![index].shloka_num}`}
             </Select.Item>
           {/each}
         {/if}
@@ -408,7 +402,7 @@
       onValueChange={(v) => {
         $image_lang = parseInt(v) || lang_list_obj.English;
       }}
-      disabled={$image_trans_data_q.isFetching || !$image_trans_data_q.isSuccess}
+      disabled={image_trans_data_q.isFetching || !image_trans_data_q.isSuccess}
     >
       <Select.Trigger class="inline-flex w-24 p-1 text-sm">
         {current_lang ?? 'English'}

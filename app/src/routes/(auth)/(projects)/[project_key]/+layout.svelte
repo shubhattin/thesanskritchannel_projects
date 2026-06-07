@@ -28,23 +28,23 @@
 
   const session = useSession();
 
-  const project_list_q = $derived(createQuery(project_list_q_options()));
-  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+  const project_list_q = createQuery(() => project_list_q_options());
+  const project_map_q = createQuery(() => project_map_q_options($project_state));
 
   $effect(() => {
     $text_data_present = compute_text_data_present(
       $project_state,
       $selected_text_levels,
-      $project_map_q.data,
-      $project_map_q.isSuccess
+      project_map_q.data,
+      project_map_q.isSuccess
     );
   });
 
   const project_key = $derived(page.params.project_key ?? '');
-  const project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
+  const project_registry = $derived(project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
   const current_project = $derived(get_project_from_key(project_key, project_registry));
   const project_queries_ready = $derived(
-    $project_list_q.isSuccess && $project_map_q.isSuccess && !!current_project
+    project_list_q.isSuccess && project_map_q.isSuccess && !!current_project
   );
   const nav_disabled = $derived($editing_mode !== 'none' || $map_edit_dirty);
   const is_admin = $derived($session.data?.user.role === 'admin');
@@ -77,13 +77,13 @@
 </script>
 
 <div class="mt-2 space-y-2.5 sm:mt-4 sm:space-y-4">
-  {#if $project_list_q.isPending || $project_map_q.isPending}
+  {#if project_list_q.isPending || project_map_q.isPending}
     <div class="flex items-center justify-between">
       <Skeleton class="h-8 w-48" />
       <Skeleton class="h-8 w-24" />
     </div>
     <Skeleton class="h-9 w-44" />
-  {:else if $project_list_q.isError || $project_map_q.isError || !current_project}
+  {:else if project_list_q.isError || project_map_q.isError || !current_project}
     <div
       class="mx-auto max-w-xl rounded-xl border border-destructive/50 bg-destructive/10 px-6 py-6 text-center text-destructive"
       role="alert"

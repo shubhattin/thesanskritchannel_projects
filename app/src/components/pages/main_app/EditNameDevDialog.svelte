@@ -48,7 +48,7 @@
   let typing_ctx = $derived(createTypingContext('Devanagari'));
 
   const has_change = $derived(draft.trim() !== original.trim());
-  const can_save = $derived(has_change && !$save_mut.isPending);
+  const can_save = $derived(has_change && !save_mut.isPending);
 
   $effect(() => {
     typing_ctx.ready;
@@ -92,7 +92,7 @@
       value: draft.trim()
     };
     try {
-      await $save_mut.mutateAsync({
+      await save_mut.mutateAsync({
         project_id,
         map: apply_map_metadata_patch(target.map, patch),
         to_add_paths: []
@@ -127,7 +127,7 @@
             <Switch
               id={name_dev_typing_switch_id}
               bind:checked={typing_enabled}
-              disabled={$save_mut.isPending}
+              disabled={save_mut.isPending}
               title="Devanagari transliteration typing (Alt+X / Alt+C)"
             />
           </div>
@@ -138,7 +138,7 @@
           placeholder="Name in देवनागरी"
           autocomplete="off"
           class="font-sans"
-          disabled={$save_mut.isPending}
+          disabled={save_mut.isPending}
           onbeforeinput={(e) =>
             handleTypingBeforeInputEvent(typing_ctx, e, (v) => (draft = v), typing_enabled)}
           onblur={() => typing_ctx.clearContext()}
@@ -151,11 +151,11 @@
     {/if}
 
     <Dialog.Footer class="gap-2 sm:gap-0">
-      <Button type="button" variant="outline" onclick={close} disabled={$save_mut.isPending}>
+      <Button type="button" variant="outline" onclick={close} disabled={save_mut.isPending}>
         Cancel
       </Button>
       <Button type="button" disabled={!can_save} onclick={request_save}>
-        {#if $save_mut.isPending}
+        {#if save_mut.isPending}
           <Loader2 class="size-4 animate-spin" />
         {/if}
         Save
@@ -171,9 +171,9 @@
       <AlertDialog.Description>Are you sure you want to save changes?</AlertDialog.Description>
     </AlertDialog.Header>
     <AlertDialog.Footer>
-      <AlertDialog.Cancel disabled={$save_mut.isPending}>Cancel</AlertDialog.Cancel>
-      <AlertDialog.Action disabled={$save_mut.isPending} onclick={confirm_save}>
-        {#if $save_mut.isPending}
+      <AlertDialog.Cancel disabled={save_mut.isPending}>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Action disabled={save_mut.isPending} onclick={confirm_save}>
+        {#if save_mut.isPending}
           <Loader2 class="size-4 animate-spin" />
         {/if}
         Confirm

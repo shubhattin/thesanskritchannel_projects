@@ -83,43 +83,39 @@
     }
   });
 
-  let usage_table = $derived(
-    createQuery({
-      queryKey: ['usage_table', typing_assistance_lang],
-      enabled: modal_opened,
-      queryFn: async () => {
-        await delay(700);
-        const script_data_load_promise = preloadScriptData(
-          typing_assistance_lang as ScriptLangType
-        );
-        const IMAGE_URLS = import.meta.glob('/src/tools/converter/resources/images/*.png', {
-          eager: true,
-          query: '?url'
+  let usage_table = createQuery(() => ({
+    queryKey: ['usage_table', typing_assistance_lang],
+    enabled: modal_opened,
+    queryFn: async () => {
+      await delay(700);
+      const script_data_load_promise = preloadScriptData(typing_assistance_lang as ScriptLangType);
+      const IMAGE_URLS = import.meta.glob('/src/tools/converter/resources/images/*.png', {
+        eager: true,
+        query: '?url'
+      });
+      const image_lang =
+        typing_assistance_lang === 'Devanagari' ? 'Sanskrit' : typing_assistance_lang;
+      const url = (IMAGE_URLS[`/src/tools/converter/resources/images/${image_lang}.png`] as any)
+        .default as string;
+      const get_image_dimensiona = async (url: string) => {
+        return new Promise<{ width: number; height: number }>((resolve, reject) => {
+          let img = new Image();
+          img.onload = function () {
+            resolve({
+              // @ts-ignore
+              width: this.width * ONE_PX * IMAGE_SCALING,
+              // @ts-ignore
+              height: this.height * ONE_PX * IMAGE_SCALING
+            });
+          };
+          img.src = url;
         });
-        const image_lang =
-          typing_assistance_lang === 'Devanagari' ? 'Sanskrit' : typing_assistance_lang;
-        const url = (IMAGE_URLS[`/src/tools/converter/resources/images/${image_lang}.png`] as any)
-          .default as string;
-        const get_image_dimensiona = async (url: string) => {
-          return new Promise<{ width: number; height: number }>((resolve, reject) => {
-            let img = new Image();
-            img.onload = function () {
-              resolve({
-                // @ts-ignore
-                width: this.width * ONE_PX * IMAGE_SCALING,
-                // @ts-ignore
-                height: this.height * ONE_PX * IMAGE_SCALING
-              });
-            };
-            img.src = url;
-          });
-        };
-        const { height, width } = await get_image_dimensiona(url);
-        await Promise.all([script_data_load_promise]);
-        return { url, height, width };
-      }
-    })
-  );
+      };
+      const { height, width } = await get_image_dimensiona(url);
+      await Promise.all([script_data_load_promise]);
+      return { url, height, width };
+    }
+  }));
   onDestroy(() => {
     modal_opened = false;
   });
@@ -158,22 +154,22 @@
           <div
             class={cn(
               'max-w-full',
-              !$usage_table.isFetching ? 'min-h-[580px] min-w-[560px]' : 'h-[580px] w-[560px]'
+              !usage_table.isFetching ? 'min-h-[580px] min-w-[560px]' : 'h-[580px] w-[560px]'
             )}
             style="
-            min-height: {!$usage_table.isFetching ? `${HEIGHT}px` : 'auto'};
-            min-width: {!$usage_table.isFetching ? `${WIDTH}px` : 'auto'};
-            height: {$usage_table.isFetching ? `${HEIGHT}px` : 'auto'};
-            width: {$usage_table.isFetching ? `${WIDTH}px` : 'auto'};
+            min-height: {!usage_table.isFetching ? `${HEIGHT}px` : 'auto'};
+            min-width: {!usage_table.isFetching ? `${WIDTH}px` : 'auto'};
+            height: {usage_table.isFetching ? `${HEIGHT}px` : 'auto'};
+            width: {usage_table.isFetching ? `${WIDTH}px` : 'auto'};
             "
           >
-            {#if $usage_table.isFetching}
+            {#if usage_table.isFetching}
               <div class="h-full w-full space-y-1">
                 <Skeleton class="h-full w-full rounded-lg bg-muted" />
                 <Skeleton class="h-4 bg-muted" />
               </div>
-            {:else if $usage_table.isSuccess}
-              {@const { url, height, width } = $usage_table.data}
+            {:else if usage_table.isSuccess}
+              {@const { url, height, width } = usage_table.data}
               <img
                 style:height={`${height}px`}
                 style:width={`${width}px`}

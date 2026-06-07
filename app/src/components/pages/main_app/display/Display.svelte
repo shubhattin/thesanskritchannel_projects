@@ -87,14 +87,12 @@
 
   const query_client = useQueryClient();
 
-  const text_data_q = $derived(
-    createQuery(
-      active_text_data_q_options(
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const text_data_q = createQuery(() =>
+    active_text_data_q_options(
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
@@ -106,29 +104,25 @@
     )
   );
 
-  const trans_slot_1_data_q = $derived(
-    createQuery(
-      trans_slot_data_q_options(
-        0,
-        $selected_translation_lang_ids,
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const trans_slot_1_data_q = createQuery(() =>
+    trans_slot_data_q_options(
+      0,
+      $selected_translation_lang_ids,
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
-  const trans_slot_2_data_q = $derived(
-    createQuery(
-      trans_slot_data_q_options(
-        1,
-        $selected_translation_lang_ids,
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const trans_slot_2_data_q = createQuery(() =>
+    trans_slot_data_q_options(
+      1,
+      $selected_translation_lang_ids,
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
@@ -166,7 +160,7 @@
       : $selected_translation_lang_ids[active_translation_slot]
   );
   const active_translation_query = $derived(
-    active_translation_slot === 0 ? $trans_slot_1_data_q : $trans_slot_2_data_q
+    active_translation_slot === 0 ? trans_slot_1_data_q : trans_slot_2_data_q
   );
   const active_translation_name = $derived(
     active_translation_lang_id === null
@@ -226,7 +220,7 @@
 
   $effect(() => {
     transliterate_custom(
-      $text_data_q.data?.map((v) => v.text) ?? [],
+      text_data_q.data?.map((v) => v.text) ?? [],
       BASE_SCRIPT,
       $viewing_script
     ).then((data) => {
@@ -239,13 +233,13 @@
   });
 
   $effect(() => {
-    if ($editing_mode !== 'text' || !$text_data_q.isSuccess || !$text_data_q.data) {
+    if ($editing_mode !== 'text' || !text_data_q.isSuccess || !text_data_q.data) {
       if ($editing_mode !== 'text') text_session_key = '';
       return;
     }
-    const key = `${build_content_session_scope($project_state!.project_id, $selected_text_levels, $project_state!.levels)}:${JSON.stringify($text_data_q.data)}`;
+    const key = `${build_content_session_scope($project_state!.project_id, $selected_text_levels, $project_state!.levels)}:${JSON.stringify(text_data_q.data)}`;
     if (text_session_key === key) return;
-    text_rows = $text_data_q.data.map((row) => ({
+    text_rows = text_data_q.data.map((row) => ({
       client_id: crypto.randomUUID(),
       source_index: row.index,
       text: row.text,
@@ -260,16 +254,16 @@
     if (
       !($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') ||
       active_translation_lang_id === null ||
-      !$text_data_q.isSuccess ||
+      !text_data_q.isSuccess ||
       !active_translation_query.isSuccess
     ) {
       if (!($editing_mode === '1st_lang' || $editing_mode === '2nd_lang'))
         translation_session_key = '';
       return;
     }
-    const key = `${build_content_session_scope($project_state!.project_id, $selected_text_levels, $project_state!.levels)}:${$editing_mode}:${active_translation_lang_id}:${JSON.stringify($text_data_q.data)}`;
+    const key = `${build_content_session_scope($project_state!.project_id, $selected_text_levels, $project_state!.levels)}:${$editing_mode}:${active_translation_lang_id}:${JSON.stringify(text_data_q.data)}`;
     if (translation_session_key === key) return;
-    translation_rows = ($text_data_q.data ?? []).map((row) => {
+    translation_rows = (text_data_q.data ?? []).map((row) => {
       const original = active_translation_query.data.get(row.index) ?? null;
       return {
         index: row.index,
@@ -377,19 +371,19 @@
   };
 
   const copy_sarga_with_transliteration_and_translation = async () => {
-    if (!$text_data_q.data) return;
+    if (!text_data_q.data) return;
     const normal_shlokas = await transliterate_custom(
-      $text_data_q.data.map((d) => d.text),
+      text_data_q.data.map((d) => d.text),
       BASE_SCRIPT,
       'Normal'
     );
     const texts_to_copy = transliterated_data.map((shloka_lines, i) => {
       const parts = [`${shloka_lines}\n${normal_shlokas[i]}`];
-      const persisted_index = $text_data_q.data[i]?.index;
+      const persisted_index = text_data_q.data[i]?.index;
       const first =
-        persisted_index === undefined ? undefined : $trans_slot_1_data_q.data?.get(persisted_index);
+        persisted_index === undefined ? undefined : trans_slot_1_data_q.data?.get(persisted_index);
       const second =
-        persisted_index === undefined ? undefined : $trans_slot_2_data_q.data?.get(persisted_index);
+        persisted_index === undefined ? undefined : trans_slot_2_data_q.data?.get(persisted_index);
       if (first) parts.push(first);
       if (second) parts.push(second);
       return parts.join('\n\n');
@@ -588,7 +582,7 @@
     if (moved) await focus_text_row_at(index);
   };
 
-  const save_text_mut = createMutation({
+  const save_text_mut = createMutation(() => ({
     mutationKey: ['text', 'save_text_rows'],
     mutationFn: async () =>
       client.text.save_text_rows.mutate({
@@ -612,9 +606,9 @@
     onError: (err) => {
       toast.error(err.message || 'Failed to save text');
     }
-  });
+  }));
 
-  const save_translation_mut = createMutation({
+  const save_translation_mut = createMutation(() => ({
     mutationKey: ['translation', 'save_slot_translation'],
     mutationFn: async () => {
       if (active_translation_lang_id === null) return { success: false };
@@ -644,9 +638,9 @@
     onError: (err) => {
       toast.error(err.message || 'Failed to save translation');
     }
-  });
+  }));
 
-  const save_pending = $derived($save_text_mut.isPending || $save_translation_mut.isPending);
+  const save_pending = $derived(save_text_mut.isPending || save_translation_mut.isPending);
   const save_confirm_description = $derived(
     pending_save_kind === 'text'
       ? 'Your text edits will be saved to the server.'
@@ -656,8 +650,8 @@
   );
 
   const confirm_save = () => {
-    if (pending_save_kind === 'text') $save_text_mut.mutate();
-    else if (pending_save_kind === 'translation') $save_translation_mut.mutate();
+    if (pending_save_kind === 'text') save_text_mut.mutate();
+    else if (pending_save_kind === 'translation') save_translation_mut.mutate();
   };
 
   $effect(() => {
@@ -775,9 +769,9 @@
       if (!copy_btn_popup_state) text_portion_hovered = false;
     }}
   >
-    {#if !$text_data_q.data}
+    {#if !text_data_q.data}
       <Skeleton class="m-2 h-[80vh] w-[calc(100%-1rem)] rounded-lg" />
-    {:else if $text_data_q.isSuccess && $text_data_q.data}
+    {:else if text_data_q.isSuccess && text_data_q.data}
       <div transition:fade={{ duration: 250 }} class="flex flex-col gap-[0.15rem]">
         {#each transliterated_data as shloka_lines, i (i)}
           {@const is_spacing_allowed =
@@ -786,12 +780,12 @@
             i < transliterated_data.length - 2}
           <div class="rounded-lg px-2 py-0.5 hover:bg-gray-200 dark:hover:bg-gray-800">
             <div class="flex gap-2">
-              {#if $text_data_q.data[i]?.shloka_num || is_spacing_allowed}
+              {#if text_data_q.data[i]?.shloka_num || is_spacing_allowed}
                 <div
                   class="flex items-center align-top text-[0.75rem] leading-6 text-gray-500 select-none dark:text-gray-300"
                 >
-                  {#if $text_data_q.data[i]?.shloka_num}
-                    {$text_data_q.data[i].shloka_num}
+                  {#if text_data_q.data[i]?.shloka_num}
+                    {text_data_q.data[i].shloka_num}
                   {:else if is_spacing_allowed}
                     <span class="inline-block w-11"></span>
                   {/if}
@@ -837,7 +831,7 @@
 {/snippet}
 
 {#snippet edit_context_translation_line(data_index: number | null, slot: 0 | 1)}
-  {@const query = slot === 0 ? $trans_slot_1_data_q : $trans_slot_2_data_q}
+  {@const query = slot === 0 ? trans_slot_1_data_q : trans_slot_2_data_q}
   {@const font_info = slot === 0 ? first_trans_font_info : second_trans_font_info}
   {#if data_index !== null && query.isSuccess && query.data?.has(data_index)}
     <div
@@ -881,8 +875,8 @@
 {/snippet}
 
 {#snippet translation_display_line(i: number, slot: 0 | 1)}
-  {@const persisted_index = $text_data_q.data?.[i]?.index}
-  {@const query = slot === 0 ? $trans_slot_1_data_q : $trans_slot_2_data_q}
+  {@const persisted_index = text_data_q.data?.[i]?.index}
+  {@const query = slot === 0 ? trans_slot_1_data_q : trans_slot_2_data_q}
   {@const font_info = slot === 0 ? first_trans_font_info : second_trans_font_info}
   {#if persisted_index !== undefined && query.isSuccess && query.data?.has(persisted_index)}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -948,14 +942,14 @@
         size="sm"
         onclick={() => request_save(kind)}
         disabled={!editor_has_unsaved_changes ||
-          (kind === 'text' ? $save_text_mut.isPending : $save_translation_mut.isPending)}
+          (kind === 'text' ? save_text_mut.isPending : save_translation_mut.isPending)}
       >
         <Save data-icon="inline-start" />
         {kind === 'text'
-          ? $save_text_mut.isPending
+          ? save_text_mut.isPending
             ? 'Saving...'
             : 'Save'
-          : $save_translation_mut.isPending
+          : save_translation_mut.isPending
             ? 'Saving...'
             : 'Save'}
       </Button>
@@ -981,7 +975,7 @@
         </span>
       </div>
     {/if}
-    {#if !$text_data_q.isSuccess}
+    {#if !text_data_q.isSuccess}
       <Skeleton class="h-[80vh] w-full rounded-lg" />
     {:else}
       <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-xl border p-2">
@@ -1115,7 +1109,7 @@
 {#snippet translation_editor()}
   <div class="flex h-screen flex-col gap-3">
     {@render editor_toolbar('translation')}
-    {#if !active_translation_query.isSuccess || !$text_data_q.isSuccess}
+    {#if !active_translation_query.isSuccess || !text_data_q.isSuccess}
       <Skeleton class="h-[80vh] w-full rounded-lg" />
     {:else}
       <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-xl border p-2">

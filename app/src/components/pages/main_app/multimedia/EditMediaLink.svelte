@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { client_q, client } from '~/api/client';
+  import { client, useTRPC } from '~/api/client';
   import { MEDIA_TYPE_LIST, type media_list_type } from './index';
   import { lang_list_obj } from '~/state/lang_list';
   import { z } from 'zod';
   import Icon from '~/tools/Icon.svelte';
-  import { useQueryClient } from '@tanstack/svelte-query';
+  import { createMutation, useQueryClient } from '@tanstack/svelte-query';
   import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
   import MediaTypeIcon from './MediaTypeIcon.svelte';
   import { AiOutlineDelete } from 'svelte-icons-pack/ai';
@@ -26,51 +26,44 @@
   } = $props();
 
   const quert_client = useQueryClient();
+  const trpc = useTRPC();
 
-  const del_media_link_mut = client_q.media.delete_media_link.mutation({
-    onSuccess() {
-      quert_client.invalidateQueries({
-        queryKey: [
-          ['media', 'get_media_list'],
-          {
-            input: {
-              project_id: $project_state!.project_id,
-              selected_text_levels: $selected_text_levels
-            },
-            type: 'query'
-          }
-        ],
-        exact: true
-      });
-      modal_open_state = false;
-    },
-    onError: (err) => {
-      toast.error(err.message || 'Failed to delete media link');
-    }
-  });
+  const del_media_link_mut = createMutation(() =>
+    trpc.media.delete_media_link.mutationOptions({
+      onSuccess() {
+        quert_client.invalidateQueries({
+          queryKey: trpc.media.get_media_list.queryKey({
+            project_id: $project_state!.project_id,
+            selected_text_levels: $selected_text_levels
+          }),
+          exact: true
+        });
+        modal_open_state = false;
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to delete media link');
+      }
+    })
+  );
 
-  const update_media_link_mut = client_q.media.update_media_link.mutation({
-    onSuccess() {
-      toast.success('Media link updated');
-      quert_client.invalidateQueries({
-        queryKey: [
-          ['media', 'get_media_list'],
-          {
-            input: {
-              project_id: $project_state!.project_id,
-              selected_text_levels: $selected_text_levels
-            },
-            type: 'query'
-          }
-        ],
-        exact: true
-      });
-      modal_open_state = false;
-    },
-    onError: (err) => {
-      toast.error(err.message || 'Failed to update media link');
-    }
-  });
+  const update_media_link_mut = createMutation(() =>
+    trpc.media.update_media_link.mutationOptions({
+      onSuccess() {
+        toast.success('Media link updated');
+        quert_client.invalidateQueries({
+          queryKey: trpc.media.get_media_list.queryKey({
+            project_id: $project_state!.project_id,
+            selected_text_levels: $selected_text_levels
+          }),
+          exact: true
+        });
+        modal_open_state = false;
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to update media link');
+      }
+    })
+  );
 
   const LANG_NONE = '';
 
@@ -89,7 +82,7 @@
       : (Object.entries(lang_list_obj).find(([, langId]) => langId === id)?.[0] ?? '--');
 
   const del_link_func = () => {
-    $del_media_link_mut.mutate({
+    del_media_link_mut.mutate({
       project_id: $project_state!.project_id,
       selected_text_levels: $selected_text_levels,
       link_id: link_info.id
@@ -99,7 +92,7 @@
   const update_link_func = (e: Event) => {
     e.preventDefault();
     if (url === '' || !z.string().url().safeParse(url).success || name === '') return;
-    $update_media_link_mut.mutate({
+    update_media_link_mut.mutate({
       project_id: $project_state!.project_id,
       selected_text_levels: $selected_text_levels,
       media_type,
@@ -123,12 +116,7 @@
       close_on_confirm={true}
       confirm_func={del_link_func}
     >
-      <Button
-        type="button"
-        disabled={$del_media_link_mut.isPending}
-        variant="destructive"
-        size="sm"
-      >
+      <Button type="button" disabled={del_media_link_mut.isPending} variant="destructive" size="sm">
         <Icon src={AiOutlineDelete} class="text-xl" />
         <span>Delete Link</span>
       </Button>
@@ -201,7 +189,7 @@
     />
   </div>
 
-  <Button disabled={$update_media_link_mut.isPending} type="submit" class="w-full">
+  <Button disabled={update_media_link_mut.isPending} type="submit" class="w-full">
     Update Link
   </Button>
 </form>

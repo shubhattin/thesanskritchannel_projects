@@ -7,9 +7,8 @@
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { get } from 'svelte/store';
-  import { useQueryClient } from '@tanstack/svelte-query';
-  import { client_q } from '~/api/client';
+  import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
+  import { useTRPC } from '~/api/client';
   import { Debounced } from 'runed';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
@@ -63,6 +62,7 @@
     lekha_id?: number;
     initial?: Omit<SiteLekha, 'id'>;
   } = $props();
+  const trpc = useTRPC();
 
   let ctx = $derived(createTypingContext('Devanagari'));
   let typing_enabled = $state(false);
@@ -165,8 +165,8 @@
     slug_effective.length > 0 && !debounced_pend && debounced_val === slug_effective
   );
 
-  const slug_check_q = $derived(
-    client_q.site.lekha.check_url_slug.query({
+  const slug_check_q = createQuery(() =>
+    trpc.site.lekha.check_url_slug.queryOptions({
       url_slug: slug_check_inputs.url_slug,
       exclude_id: slug_check_inputs.exclude_id
     })
@@ -201,33 +201,39 @@
     });
   }
 
-  const add_mut = client_q.site.lekha.add_lekha.mutation({
-    onSuccess: async ({ id }) => {
-      await invalidateLekhaList();
-      await goto(`/lekha/edit/${id}`);
-    }
-  });
+  const add_mut = createMutation(() =>
+    trpc.site.lekha.add_lekha.mutationOptions({
+      onSuccess: async ({ id }) => {
+        await invalidateLekhaList();
+        await goto(`/lekha/edit/${id}`);
+      }
+    })
+  );
 
-  const edit_mut = client_q.site.lekha.edit_lekha.mutation({
-    onSuccess: async (res, vars) => {
-      await invalidateLekhaList();
-      if (res.draft != null) is_draft = res.draft;
-      if (res.published_at) published_at_shown = new Date(res.published_at);
-      const normalized = normalizeLekhaTextFields(vars.post_data);
-      title = normalized.title;
-      description = normalized.description;
-      tags = normalized.tags;
-      content = await sanitizeAndFormatLekhaMarkdownForStorage(normalized.content);
-      toast.success('Lekha updated successfully');
-    }
-  });
+  const edit_mut = createMutation(() =>
+    trpc.site.lekha.edit_lekha.mutationOptions({
+      onSuccess: async (res, vars) => {
+        await invalidateLekhaList();
+        if (res.draft != null) is_draft = res.draft;
+        if (res.published_at) published_at_shown = new Date(res.published_at);
+        const normalized = normalizeLekhaTextFields(vars.post_data);
+        title = normalized.title;
+        description = normalized.description;
+        tags = normalized.tags;
+        content = await sanitizeAndFormatLekhaMarkdownForStorage(normalized.content);
+        toast.success('Lekha updated successfully');
+      }
+    })
+  );
 
-  const delete_mut = client_q.site.lekha.delete_lekha.mutation({
-    onSuccess: async () => {
-      await invalidateLekhaList();
-      await goto('/lekha');
-    }
-  });
+  const delete_mut = createMutation(() =>
+    trpc.site.lekha.delete_lekha.mutationOptions({
+      onSuccess: async () => {
+        await invalidateLekhaList();
+        await goto('/lekha');
+      }
+    })
+  );
 
   $effect(() => {
     if (!browser || editor_section !== 'preview') return;
@@ -280,7 +286,7 @@
   }
 
   async function formatMarkdown() {
-    if (format_busy || $add_mut.isPending || $edit_mut.isPending) return;
+    if (format_busy || add_mut.isPending || edit_mut.isPending) return;
     form_error = null;
     format_busy = true;
     try {
@@ -316,7 +322,7 @@
       return 'Please wait for the URL slug to finish updating before saving.';
     }
     if (browser && slug_effective) {
-      const chk = get(slug_check_q);
+      const chk = slug_check_q;
       if (chk.isError) {
         return 'Could not verify the URL slug. Check your connection and try again.';
       }
@@ -340,13 +346,13 @@
     }
     const post_data = buildPostData(mode === 'create' || is_draft);
     if (mode === 'create') {
-      $add_mut.mutate({ post_data });
+      add_mut.mutate({ post_data });
     } else {
       if (lekha_id == null) {
         form_error = 'Missing post id.';
         return;
       }
-      $edit_mut.mutate({ id: lekha_id, post_data });
+      edit_mut.mutate({ id: lekha_id, post_data });
     }
   };
 
@@ -362,7 +368,7 @@
       return;
     }
     const post_data = buildPostData(false);
-    $edit_mut.mutate(
+    edit_mut.mutate(
       { id: lekha_id, post_data },
       {
         onSuccess: () => {
@@ -376,13 +382,13 @@
 {#snippet slug_status_icon()}
   {#if !slug_effective}
     <span class="sr-only">Enter a title or slug to check availability</span>
-  {:else if !slug_in_sync || $slug_check_q.isPending || $slug_check_q.isFetching}
+  {:else if !slug_in_sync || slug_check_q.isPending || slug_check_q.isFetching}
     <Loader2 class="size-5 shrink-0 animate-spin text-muted-foreground" aria-hidden="true" />
     <span class="sr-only">Checking whether this URL slug is available…</span>
-  {:else if $slug_check_q.isError}
+  {:else if slug_check_q.isError}
     <CircleAlert class="size-5 shrink-0 text-destructive" aria-hidden="true" />
     <span class="sr-only">Could not verify URL slug</span>
-  {:else if $slug_check_q.data?.exists}
+  {:else if slug_check_q.data?.exists}
     <CircleAlert class="size-5 shrink-0 text-destructive" aria-hidden="true" />
     <span class="sr-only">This URL slug is already in use</span>
   {:else}
@@ -419,7 +425,7 @@
                 variant="destructive"
                 class="shrink-0"
                 data-testid="lekha-delete"
-                disabled={$delete_mut.isPending}
+                disabled={delete_mut.isPending}
               >
                 Delete
               </Button>
@@ -434,9 +440,9 @@
                 will stop working.
               </AlertDialog.Description>
             </AlertDialog.Header>
-            {#if $delete_mut.isError}
+            {#if delete_mut.isError}
               <p class="px-6 text-sm text-destructive" role="alert">
-                {String($delete_mut.error)}
+                {String(delete_mut.error)}
               </p>
             {/if}
             <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
@@ -445,14 +451,14 @@
                 type="button"
                 variant="destructive"
                 class="shrink-0"
-                disabled={$delete_mut.isPending}
+                disabled={delete_mut.isPending}
                 onclick={() => {
                   if (lekha_id != null) {
-                    $delete_mut.mutate({ id: lekha_id });
+                    delete_mut.mutate({ id: lekha_id });
                   }
                 }}
               >
-                {$delete_mut.isPending ? 'Deleting…' : 'Delete permanently'}
+                {delete_mut.isPending ? 'Deleting…' : 'Delete permanently'}
               </Button>
             </AlertDialog.Footer>
           </AlertDialog.Content>
@@ -463,19 +469,19 @@
       {/if}
       <Button
         type="submit"
-        disabled={$add_mut.isPending ||
-          $edit_mut.isPending ||
-          $delete_mut.isPending ||
+        disabled={add_mut.isPending ||
+          edit_mut.isPending ||
+          delete_mut.isPending ||
           (browser &&
             !!slug_effective &&
             (!slug_in_sync ||
-              $slug_check_q.isError ||
-              $slug_check_q.isPending ||
-              $slug_check_q.isFetching ||
-              $slug_check_q.data?.exists !== false))}
+              slug_check_q.isError ||
+              slug_check_q.isPending ||
+              slug_check_q.isFetching ||
+              slug_check_q.data?.exists !== false))}
         data-testid="lekha-save"
       >
-        {$add_mut.isPending || $edit_mut.isPending ? 'Saving…' : 'Save'}
+        {add_mut.isPending || edit_mut.isPending ? 'Saving…' : 'Save'}
       </Button>
     </div>
   </div>
@@ -496,7 +502,7 @@
                 variant="secondary"
                 class="shrink-0"
                 data-testid="lekha-publish"
-                disabled={$edit_mut.isPending || $delete_mut.isPending}
+                disabled={edit_mut.isPending || delete_mut.isPending}
               >
                 Publish
               </Button>
@@ -515,11 +521,11 @@
               <Button
                 type="button"
                 class="shrink-0"
-                disabled={$edit_mut.isPending}
+                disabled={edit_mut.isPending}
                 onclick={confirmPublish}
                 data-testid="lekha-publish-confirm"
               >
-                {$edit_mut.isPending ? 'Publishing…' : 'Publish'}
+                {edit_mut.isPending ? 'Publishing…' : 'Publish'}
               </Button>
             </AlertDialog.Footer>
           </AlertDialog.Content>
@@ -542,14 +548,14 @@
   {#if form_error}
     <p class="text-sm text-destructive" role="alert">{form_error}</p>
   {/if}
-  {#if $add_mut.isError}
-    <p class="text-sm text-destructive" role="alert">{String($add_mut.error)}</p>
+  {#if add_mut.isError}
+    <p class="text-sm text-destructive" role="alert">{String(add_mut.error)}</p>
   {/if}
-  {#if $edit_mut.isError}
-    <p class="text-sm text-destructive" role="alert">{String($edit_mut.error)}</p>
+  {#if edit_mut.isError}
+    <p class="text-sm text-destructive" role="alert">{String(edit_mut.error)}</p>
   {/if}
-  {#if $delete_mut.isError && !delete_dialog_open}
-    <p class="text-sm text-destructive" role="alert">{String($delete_mut.error)}</p>
+  {#if delete_mut.isError && !delete_dialog_open}
+    <p class="text-sm text-destructive" role="alert">{String(delete_mut.error)}</p>
   {/if}
 
   <div class="grid gap-3 sm:grid-cols-1">
@@ -687,7 +693,7 @@
       <Checkbox
         id="cb-listed"
         bind:checked={listed}
-        disabled={$add_mut.isPending || $edit_mut.isPending}
+        disabled={add_mut.isPending || edit_mut.isPending}
       />
       <Label for="cb-listed" class="cursor-pointer text-sm leading-none font-normal">Listed</Label>
       <Popover.Root>
@@ -709,7 +715,7 @@
       <Checkbox
         id="cb-search"
         bind:checked={search_indexed}
-        disabled={$add_mut.isPending || $edit_mut.isPending}
+        disabled={add_mut.isPending || edit_mut.isPending}
       />
       <Label for="cb-search" class="cursor-pointer text-sm leading-none font-normal"
         >Search indexed</Label
@@ -750,7 +756,7 @@
             <Switch
               id="lekha-typing-enabled"
               bind:checked={typing_enabled}
-              disabled={$add_mut.isPending || $edit_mut.isPending}
+              disabled={add_mut.isPending || edit_mut.isPending}
               title="Transliteration typing (Alt+X)"
             />
           </div>
@@ -759,7 +765,7 @@
             variant="outline"
             size="sm"
             class="shrink-0 gap-1.5"
-            disabled={format_busy || $add_mut.isPending || $edit_mut.isPending}
+            disabled={format_busy || add_mut.isPending || edit_mut.isPending}
             onclick={() => void formatMarkdown()}
           >
             {#if format_busy}
@@ -775,9 +781,9 @@
         {#if browser && editor_ready}
           <div
             class="lekha-carta"
-            class:pointer-events-none={$add_mut.isPending || $edit_mut.isPending}
-            class:opacity-60={$add_mut.isPending || $edit_mut.isPending}
-            aria-busy={$add_mut.isPending || $edit_mut.isPending}
+            class:pointer-events-none={add_mut.isPending || edit_mut.isPending}
+            class:opacity-60={add_mut.isPending || edit_mut.isPending}
+            aria-busy={add_mut.isPending || edit_mut.isPending}
           >
             <MarkdownEditor
               {carta}

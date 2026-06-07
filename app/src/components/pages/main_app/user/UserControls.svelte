@@ -14,7 +14,7 @@
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import * as Popover from '$lib/components/ui/popover';
   import { get_lang_from_id } from '~/state/lang_list';
-  import { client, client_q } from '~/api/client';
+  import { useTRPC } from '~/api/client';
   import { cn } from '$lib/utils';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { goto } from '$app/navigation';
@@ -31,19 +31,20 @@
   } = $props();
 
   const session = useSession();
+  const trpc = useTRPC();
 
   let user_info = $derived($session.data?.user);
 
-  const user_project_info_q = $derived(
-    createQuery(user_project_info_q_options($session.data?.user?.id, $project_state))
+  const user_project_info_q = createQuery(() =>
+    user_project_info_q_options($session.data?.user?.id, $project_state)
   );
 
-  const user_scopes_q = $derived(
-    client_q.user.list_user_app_scopes.query({ user_id: user_info?.id ?? '' })
+  const user_scopes_q = createQuery(() =>
+    trpc.user.list_user_app_scopes.queryOptions({ user_id: user_info?.id ?? '' })
   );
 
   const has_projects_portal_scope = $derived(
-    $user_scopes_q.isSuccess && $user_scopes_q.data.scopes.includes(APP_SCOPE_ID_PROJECT_PORTAL)
+    user_scopes_q.isSuccess && user_scopes_q.data.scopes.includes(APP_SCOPE_ID_PROJECT_PORTAL)
   );
 
   const show_projects_scope_info = $derived(
@@ -105,19 +106,19 @@
           <button
             class={cn(
               'mb-1 block p-0 text-sm outline-none select-none hover:text-muted-foreground',
-              $user_project_info_q.isFetching && 'animate-spin'
+              user_project_info_q.isFetching && 'animate-spin'
             )}
             onclick={() => {
-              $user_project_info_q.refetch();
+              user_project_info_q.refetch();
             }}
-            disabled={$user_project_info_q.isFetching}
+            disabled={user_project_info_q.isFetching}
           >
             <Icon src={LuRefreshCw} class="text-lg" />
           </button>
-          {#if $user_scopes_q.isFetching || $user_project_info_q.isFetching}
+          {#if user_scopes_q.isFetching || user_project_info_q.isFetching}
             <Skeleton class="h-5 w-full bg-muted" />
-          {:else if $user_scopes_q.isSuccess && has_projects_portal_scope && $user_project_info_q.isSuccess}
-            {@const langs = $user_project_info_q.data.languages!}
+          {:else if user_scopes_q.isSuccess && has_projects_portal_scope && user_project_info_q.isSuccess}
+            {@const langs = user_project_info_q.data.languages!}
             {#if langs && langs.length > 0}
               <div>
                 <Icon class="text-xl" src={LanguageIcon} /> :
@@ -128,7 +129,7 @@
             {:else}
               <div class="text-sm text-amber-600 dark:text-amber-500">No languages assigned</div>
             {/if}
-          {:else if $user_scopes_q.isSuccess && !has_projects_portal_scope}
+          {:else if user_scopes_q.isSuccess && !has_projects_portal_scope}
             <div class="text-sm text-amber-600 dark:text-amber-500">
               Your account is not added to {APP_SCOPE_IDENTIFIERS[APP_SCOPE_ID_PROJECT_PORTAL]} scope
               by Admin

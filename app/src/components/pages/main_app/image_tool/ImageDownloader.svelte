@@ -33,11 +33,11 @@
   import { ProgressRing } from '$lib/components/ui/progress-ring';
   import { get_path_params } from '~/state/project_list';
 
-  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+  const project_map_q = createQuery(() => project_map_q_options($project_state));
 
   let total_count = $derived(
-    $project_map_q.isSuccess
-      ? get_total_count($image_selected_levels, $project_map_q.data, $project_state?.levels ?? 0)
+    project_map_q.isSuccess
+      ? get_total_count($image_selected_levels, project_map_q.data, $project_state?.levels ?? 0)
       : 0
   );
   let image_loc = $derived(

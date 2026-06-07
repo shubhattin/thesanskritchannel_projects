@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { client_q } from '~/api/client';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { useTRPC } from '~/api/client';
   import * as InputGroup from '$lib/components/ui/input-group';
   import { Button } from '$lib/components/ui/button';
   import * as Select from '$lib/components/ui/select';
@@ -12,6 +13,7 @@
   import SearchX from '@lucide/svelte/icons/search-x';
 
   let { draft }: { draft: boolean } = $props();
+  const trpc = useTRPC();
 
   let page = $state(1);
   let submitted_search = $state('');
@@ -21,8 +23,8 @@
 
   let search_input = $state('');
 
-  let list_q = $derived(
-    client_q.site.lekha.list_lekhas.query({
+  let list_q = createQuery(() =>
+    trpc.site.lekha.list_lekhas.queryOptions({
       draft,
       page,
       limit,
@@ -110,21 +112,21 @@
     </div>
   </div>
 
-  {#if $list_q.isFetching}
+  {#if list_q.isFetching}
     <div class="space-y-2">
       {#each Array(4) as _, i (i)}
         <Skeleton class="h-20 w-full rounded-lg" />
       {/each}
     </div>
-  {:else if $list_q.isError}
-    <p class="text-sm text-destructive">{String($list_q.error)}</p>
-  {:else if $list_q.data}
+  {:else if list_q.isError}
+    <p class="text-sm text-destructive">{String(list_q.error)}</p>
+  {:else if list_q.data}
     <p class="text-xs text-muted-foreground">
-      {$list_q.data.total} post{$list_q.data.total !== 1 ? 's' : ''} · Page {$list_q.data.page} of
-      {$list_q.data.pageCount}
+      {list_q.data.total} post{list_q.data.total !== 1 ? 's' : ''} · Page {list_q.data.page} of
+      {list_q.data.pageCount}
     </p>
     <ul class="flex flex-col gap-1.5">
-      {#each $list_q.data.list as row (row.id)}
+      {#each list_q.data.list as row (row.id)}
         <li
           class="flex flex-col gap-2 rounded-md border border-border/80 bg-card p-3 sm:flex-row sm:items-start sm:justify-between"
         >
@@ -198,7 +200,7 @@
         </li>
       {/each}
     </ul>
-    {#if $list_q.data.list.length === 0}
+    {#if list_q.data.list.length === 0}
       <p class="py-8 text-center text-sm text-muted-foreground">No posts in this view.</p>
     {/if}
     <div class="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
@@ -206,20 +208,20 @@
         type="button"
         variant="outline"
         size="sm"
-        disabled={!$list_q.data.hasPrev}
-        onclick={() => (page = $list_q.data!.page - 1)}
+        disabled={!list_q.data.hasPrev}
+        onclick={() => (page = list_q.data!.page - 1)}
       >
         Previous
       </Button>
       <span class="text-xs text-muted-foreground">
-        Page {$list_q.data.page} / {$list_q.data.pageCount}
+        Page {list_q.data.page} / {list_q.data.pageCount}
       </span>
       <Button
         type="button"
         variant="outline"
         size="sm"
-        disabled={!$list_q.data.hasNext}
-        onclick={() => (page = $list_q.data!.page + 1)}
+        disabled={!list_q.data.hasNext}
+        onclick={() => (page = list_q.data!.page + 1)}
       >
         Next
       </Button>

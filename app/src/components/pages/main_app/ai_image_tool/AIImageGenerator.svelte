@@ -54,26 +54,22 @@
     additional_prompt_info: string;
   };
 
-  const project_list_q = $derived(createQuery(project_list_q_options()));
-  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
-  const text_data_q = $derived(
-    createQuery(
-      active_text_data_q_options(
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const project_list_q = createQuery(() => project_list_q_options());
+  const project_map_q = createQuery(() => project_map_q_options($project_state));
+  const text_data_q = createQuery(() =>
+    active_text_data_q_options(
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
-  const trans_en_data_q = $derived(
-    createQuery(
-      active_trans_en_data_q_options(
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const trans_en_data_q = createQuery(() =>
+    active_trans_en_data_q_options(
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
@@ -82,7 +78,7 @@
   $effect(() => {
     const projectId = $project_state?.project_id;
     if (projectId == null) return;
-    const project = get_project_from_id(projectId, $project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
+    const project = get_project_from_id(projectId, project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
     if (!project) return;
     base_prompt_text = format_string_text(base_prompts.main_prompt[0].content, {
       text_name: project.name
@@ -90,8 +86,8 @@
   });
 
   let total_count = $derived(
-    $project_map_q.isSuccess
-      ? get_total_count($selected_text_levels, $project_map_q.data, $project_state?.levels ?? 0)
+    project_map_q.isSuccess
+      ? get_total_count($selected_text_levels, project_map_q.data, $project_state?.levels ?? 0)
       : 0
   );
 
@@ -152,7 +148,7 @@
     if (!$project_state) return '';
     const project = get_project_from_id(
       $project_state.project_id,
-      $project_list_q.data ?? EMPTY_PROJECT_REGISTRY
+      project_list_q.data ?? EMPTY_PROJECT_REGISTRY
     );
     if (!project) return '';
     const { levels, level_names } = $project_state;
@@ -171,14 +167,14 @@
   });
 
   $effect(() => {
-    !$trans_en_data_q.isFetching &&
-      $trans_en_data_q.isSuccess &&
-      !$text_data_q.isFetching &&
-      $text_data_q.isSuccess &&
+    !trans_en_data_q.isFetching &&
+      trans_en_data_q.isSuccess &&
+      !text_data_q.isFetching &&
+      text_data_q.isSuccess &&
       (async () => {
-        const shloka_text = $text_data_q.data![$index].text;
+        const shloka_text = text_data_q.data![$index].text;
         let prompt = shloka_text;
-        const trans_en_all = $trans_en_data_q.data!;
+        const trans_en_all = trans_en_data_q.data!;
         if (trans_en_all.has($index)) prompt += '\n\n' + trans_en_all.get($index);
         $shloka_text_prompt = prompt;
       })();
@@ -205,48 +201,42 @@
         return;
       }
     }, 1000);
-    await $image_q.refetch();
+    await image_q.refetch();
   };
 
-  const image_prompt_q = $derived(
-    createQuery({
-      queryKey: [
-        'shloka_text_prompt',
-        ...$selected_text_levels.slice(0, ($project_state?.levels ?? 1) - 1).reverse(),
-        $index
-      ],
-      queryFn: async () => {
-        show_prompt_time_status = false;
-        auto_image_generated = false;
-        if (import.meta.env.DEV && load_ai_sample_data) {
-          await delay(1000);
-          const { ai_sample_data } = await import('./ai_sample_data');
-          return { image_prompt: ai_sample_data.sample_text_prompt, time_taken: 0 };
-        }
-        return await client.ai.get_image_prompt.query({
-          messages: [
-            {
-              role: 'user',
-              content: base_prompt_text + additional_prompt_info + '\n\n' + $shloka_text_prompt
-            }
-          ],
-          model: selected_text_model
-        });
-      },
-      enabled: false,
-      placeholderData: undefined,
-      staleTime: ms('30mins')
-    })
-  );
+  const image_prompt_q = createQuery(() => ({
+    queryKey: [
+      'shloka_text_prompt',
+      ...$selected_text_levels.slice(0, ($project_state?.levels ?? 1) - 1).reverse(),
+      $index
+    ],
+    queryFn: async () => {
+      show_prompt_time_status = false;
+      auto_image_generated = false;
+      if (import.meta.env.DEV && load_ai_sample_data) {
+        await delay(1000);
+        const { ai_sample_data } = await import('./ai_sample_data');
+        return { image_prompt: ai_sample_data.sample_text_prompt, time_taken: 0 };
+      }
+      return await client.ai.get_image_prompt.query({
+        messages: [
+          {
+            role: 'user',
+            content: base_prompt_text + additional_prompt_info + '\n\n' + $shloka_text_prompt
+          }
+        ],
+        model: selected_text_model
+      });
+    },
+    enabled: false,
+    placeholderData: undefined,
+    staleTime: ms('30mins')
+  }));
   let auto_image_generated = false;
   $effect(() => {
-    if (
-      !$image_prompt_q.isFetching &&
-      $image_prompt_q.isSuccess &&
-      $image_prompt_q.data.image_prompt
-    )
+    if (!image_prompt_q.isFetching && image_prompt_q.isSuccess && image_prompt_q.data.image_prompt)
       untrack(() => {
-        $image_prompt = $image_prompt_q.data.image_prompt!;
+        $image_prompt = image_prompt_q.data.image_prompt!;
         if (!auto_image_generated && $auto_gen_image) {
           generate_image();
           auto_image_generated = true;
@@ -257,62 +247,60 @@
     else image_prompt_request_error = true;
   });
 
-  const image_q = $derived(
-    createQuery({
-      queryKey: [
-        'shloka_image',
-        ...$selected_text_levels.slice(0, ($project_state?.levels ?? 1) - 1).reverse(),
-        $index
-      ],
-      queryFn: async () => {
-        show_image_time_status = false;
-        if (import.meta.env.DEV && load_ai_sample_data) {
-          await delay(2000);
-          const list: {
-            url: string;
-            created: number;
-            prompt: string;
-            file_format: 'png';
-            model: 'dall-e-3';
-            out_format: 'url';
-          }[] = [];
-          const permutation = get_permutations([1, 4], 1)[0];
-          const { ai_sample_data } = await import('./ai_sample_data');
-          for (let i = 0; i < NUMBER_OF_IMAGES; i++) {
-            const image_index = permutation[i] - 1;
-            list.push({
-              url: ai_sample_data.sample_images[image_index],
-              created: new Date().getTime(),
-              prompt: `Sample Image ${image_index + 1}`,
-              file_format: 'png', // although its webp
-              model: 'dall-e-3',
-              out_format: 'url'
-            });
-          }
-          return { images: list, time_taken: 0 };
+  const image_q = createQuery(() => ({
+    queryKey: [
+      'shloka_image',
+      ...$selected_text_levels.slice(0, ($project_state?.levels ?? 1) - 1).reverse(),
+      $index
+    ],
+    queryFn: async () => {
+      show_image_time_status = false;
+      if (import.meta.env.DEV && load_ai_sample_data) {
+        await delay(2000);
+        const list: {
+          url: string;
+          created: number;
+          prompt: string;
+          file_format: 'png';
+          model: 'dall-e-3';
+          out_format: 'url';
+        }[] = [];
+        const permutation = get_permutations([1, 4], 1)[0];
+        const { ai_sample_data } = await import('./ai_sample_data');
+        for (let i = 0; i < NUMBER_OF_IMAGES; i++) {
+          const image_index = permutation[i] - 1;
+          list.push({
+            url: ai_sample_data.sample_images[image_index],
+            created: new Date().getTime(),
+            prompt: `Sample Image ${image_index + 1}`,
+            file_format: 'png', // although its webp
+            model: 'dall-e-3',
+            out_format: 'url'
+          });
         }
-        // const { run_id, output_type } = await client.ai.trigger_funcs.generate_image_trigger.query({
-        //   image_prompt: $image_prompt,
-        //   number_of_images: NUMBER_OF_IMAGES,
-        //   image_model
-        // });
+        return { images: list, time_taken: 0 };
+      }
+      // const { run_id, output_type } = await client.ai.trigger_funcs.generate_image_trigger.query({
+      //   image_prompt: $image_prompt,
+      //   number_of_images: NUMBER_OF_IMAGES,
+      //   image_model
+      // });
 
-        // return await get_result_from_trigger_run_id<typeof output_type>(run_id!, 2);
-        const out = await client.ai.gen_image.query({
-          image_prompt: $image_prompt,
-          number_of_images: NUMBER_OF_IMAGES,
-          image_model
-        });
-        if (!out.success) throw new Error('Image generation failed');
-        return out;
-      },
-      enabled: false,
-      placeholderData: undefined,
-      staleTime: ms('30mins')
-    })
-  );
+      // return await get_result_from_trigger_run_id<typeof output_type>(run_id!, 2);
+      const out = await client.ai.gen_image.query({
+        image_prompt: $image_prompt,
+        number_of_images: NUMBER_OF_IMAGES,
+        image_model
+      });
+      if (!out.success) throw new Error('Image generation failed');
+      return out;
+    },
+    enabled: false,
+    placeholderData: undefined,
+    staleTime: ms('30mins')
+  }));
   $effect(() => {
-    if (!$image_q.isFetching && $image_q.isSuccess) {
+    if (!image_q.isFetching && image_q.isSuccess) {
       show_image_time_status = true;
       if (image_gen_interval_obj)
         untrack(() => {
@@ -375,18 +363,18 @@
       onValueChange={(v) => {
         $index = parseInt(v) || 0;
       }}
-      disabled={$text_data_q.isFetching}
+      disabled={text_data_q.isFetching}
     >
       <Select.Trigger class="inline-flex w-20 px-1 text-sm">
-        {$index}{$text_data_q.data?.[$index]?.shloka_num &&
-          ` - ${$text_data_q.data[$index].shloka_num}`}
+        {$index}{text_data_q.data?.[$index]?.shloka_num &&
+          ` - ${text_data_q.data[$index].shloka_num}`}
       </Select.Trigger>
       <Select.Content>
         {#each Array(total_count) as _, index}
-          {#if !$text_data_q.isFetching && $text_data_q.isSuccess}
+          {#if !text_data_q.isFetching && text_data_q.isSuccess}
             <Select.Item value={index.toString()}>
-              {index}{$text_data_q.data[index]?.shloka_num &&
-                ` - ${$text_data_q.data[index].shloka_num}`}
+              {index}{text_data_q.data[index]?.shloka_num &&
+                ` - ${text_data_q.data[index].shloka_num}`}
             </Select.Item>
           {/if}
         {/each}
@@ -404,10 +392,10 @@
   </span>
   <Button
     onclick={async () => {
-      await $image_prompt_q.refetch();
+      await image_prompt_q.refetch();
       // ^ this refetch is not a reliable alternative to onSuccess
     }}
-    disabled={$image_prompt_q.isFetching}
+    disabled={image_prompt_q.isFetching}
     size="sm"
   >
     Generate Image Prompt
@@ -433,10 +421,10 @@
   >
     <Icon src={CgClose} class="text-xl" />
   </Button>
-  {#if show_prompt_time_status && $image_prompt_q.isSuccess && $image_prompt_q.data.image_prompt}
+  {#if show_prompt_time_status && image_prompt_q.isSuccess && image_prompt_q.data.image_prompt}
     <span class="ml-4 text-xs text-stone-500 select-none dark:text-stone-300">
       <Icon src={OiStopwatch16} class="text-base" />
-      {pretty_ms($image_prompt_q.data.time_taken)}
+      {pretty_ms(image_prompt_q.data.time_taken)}
     </span>
   {/if}
 </div>
@@ -488,13 +476,13 @@
   <Switch id="auto_image" bind:checked={$auto_gen_image} />
   <label for="auto_image" class="text-sm">Auto Generate Image</label>
 </div>
-{#if $image_prompt_q.data !== undefined || $image_prompt_q.isFetching}
-  {#if $image_prompt_q.isFetching || !$image_prompt_q.isSuccess}
+{#if image_prompt_q.data !== undefined || image_prompt_q.isFetching}
+  {#if image_prompt_q.isFetching || !image_prompt_q.isSuccess}
     <Skeleton class="h-80" />
   {:else}
     <div class="space-x-3">
       <span class="font-bold">Image Prompt</span>
-      <Button disabled={$image_q.isFetching} onclick={generate_image} size="sm" variant="secondary"
+      <Button disabled={image_q.isFetching} onclick={generate_image} size="sm" variant="secondary"
         >Generate Image</Button
       >
       <Button
@@ -505,7 +493,7 @@
       >
         <Icon src={BsCopy} class="text-lg" />
       </Button>
-      {#if $image_q.isFetching}
+      {#if image_q.isFetching}
         <ProgressRing
           value={(image_gen_time_taken / IMAGE_MODELS[image_model][2]) * 100}
           max={100}
@@ -515,10 +503,10 @@
           meterClass="stroke-primary"
           trackClass="stroke-primary/30"
         />
-      {:else if show_image_time_status && $image_q.isSuccess}
+      {:else if show_image_time_status && image_q.isSuccess}
         <span class="ml-4 text-xs text-stone-500 select-none dark:text-stone-300">
           <Icon src={OiStopwatch16} class="text-base" />
-          {pretty_ms($image_q.data.time_taken)}
+          {pretty_ms(image_q.data.time_taken)}
         </span>
       {/if}
     </div>
@@ -527,13 +515,13 @@
       spellcheck="false"
       bind:value={$image_prompt}
     />
-    {#if $image_q.data}
-      {#if $image_q.isFetching || !$image_q.isSuccess}
+    {#if image_q.data}
+      {#if image_q.isFetching || !image_q.isSuccess}
         <Skeleton class="h-96" />
       {:else}
         <div>
           <section class="mb-10 grid grid-cols-2 gap-3">
-            {#each $image_q.data.images as image}
+            {#each image_q.data.images as image}
               {#if image}
                 <div class="space-y-1">
                   <img

@@ -37,16 +37,14 @@
 
   const query_client = useQueryClient();
 
-  const project_list_q = $derived(createQuery(project_list_q_options()));
+  const project_list_q = createQuery(() => project_list_q_options());
 
-  const text_data_q = $derived(
-    createQuery(
-      active_text_data_q_options(
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const text_data_q = createQuery(() =>
+    active_text_data_q_options(
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
@@ -58,40 +56,34 @@
     )
   );
 
-  const trans_slot_1_data_q = $derived(
-    createQuery(
-      trans_slot_data_q_options(
-        0,
-        $selected_translation_lang_ids,
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const trans_slot_1_data_q = createQuery(() =>
+    trans_slot_data_q_options(
+      0,
+      $selected_translation_lang_ids,
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
-  const trans_slot_2_data_q = $derived(
-    createQuery(
-      trans_slot_data_q_options(
-        1,
-        $selected_translation_lang_ids,
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const trans_slot_2_data_q = createQuery(() =>
+    trans_slot_data_q_options(
+      1,
+      $selected_translation_lang_ids,
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
-  const trans_en_data_q = $derived(
-    createQuery(
-      active_trans_en_data_q_options(
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const trans_en_data_q = createQuery(() =>
+    active_trans_en_data_q_options(
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
@@ -123,7 +115,7 @@
   );
 
   const active_translation_query = $derived(
-    active_translation_slot === 0 ? $trans_slot_1_data_q : $trans_slot_2_data_q
+    active_translation_slot === 0 ? trans_slot_1_data_q : trans_slot_2_data_q
   );
 
   const active_translation_name = $derived(
@@ -137,7 +129,7 @@
   );
 
   const english_context_available = $derived(
-    $trans_en_data_q.isSuccess && ($trans_en_data_q.data?.size ?? 0) > 0
+    trans_en_data_q.isSuccess && (trans_en_data_q.data?.size ?? 0) > 0
   );
 
   function open_translate_dialog() {
@@ -148,7 +140,7 @@
   }
 
   function handle_dialog_open_change(open: boolean) {
-    if (!open && $translate_sarga_mut.isPending) return;
+    if (!open && translate_sarga_mut.isPending) return;
     dialog_open = open;
     if (!open) {
       translate_error = null;
@@ -160,8 +152,8 @@
 
   const can_show_translate_ui = $derived.by(() => {
     if (active_translation_slot === null || active_translation_lang_id === null) return false;
-    if (!$project_state?.project_id || !$project_list_q.isSuccess) return false;
-    if (!$text_data_q.isSuccess || !$text_data_q.data?.length) return false;
+    if (!$project_state?.project_id || !project_list_q.isSuccess) return false;
+    if (!text_data_q.isSuccess || !text_data_q.data?.length) return false;
     return active_translation_query.isSuccess;
   });
 
@@ -173,7 +165,7 @@
     !has_existing_translations || overwrite_confirmed === 'yes'
   );
 
-  const translate_sarga_mut = createMutation({
+  const translate_sarga_mut = createMutation(() => ({
     mutationFn: async (
       input: Parameters<typeof client.ai.trigger_funcs.translate_trigger.mutate>[0]
     ) => {
@@ -192,7 +184,7 @@
       if (slot === null) return;
 
       const translations = response.translations;
-      const text_data = $text_data_q.data;
+      const text_data = text_data_q.data;
       if (
         !text_data ||
         translations.length !== text_data.length ||
@@ -204,7 +196,7 @@
         return;
       }
 
-      const slot_query = slot === 0 ? $trans_slot_1_data_q : $trans_slot_2_data_q;
+      const slot_query = slot === 0 ? trans_slot_1_data_q : trans_slot_2_data_q;
       const new_data = new Map(slot_query.data);
       for (const translation of translations) {
         const positional_index = translation.index;
@@ -226,28 +218,28 @@
     onError(err) {
       translate_error = err.message || 'Translation failed';
     }
-  });
+  }));
 
   async function translate_sarga_func() {
     const slot = active_translation_slot;
     const lang_id = active_translation_lang_id;
     const project_id = $project_state?.project_id;
-    if (slot === null || lang_id === null || !project_id || !$text_data_q.data) return;
-    if (!$project_list_q.isSuccess || !$project_list_q.data) {
+    if (slot === null || lang_id === null || !project_id || !text_data_q.data) return;
+    if (!project_list_q.isSuccess || !project_list_q.data) {
       translate_error = 'Project list is not loaded yet';
       return;
     }
 
-    const project = get_project_from_id(project_id, $project_list_q.data);
+    const project = get_project_from_id(project_id, project_list_q.data);
     if (!project) {
       translate_error = 'Project not found';
       return;
     }
 
     const english_data =
-      include_english_context && is_non_english_target ? $trans_en_data_q.data : undefined;
+      include_english_context && is_non_english_target ? trans_en_data_q.data : undefined;
 
-    const texts_obj_list = $text_data_q.data.map((shloka_line) => {
+    const texts_obj_list = text_data_q.data.map((shloka_line) => {
       let english_translation: string | undefined;
       if (english_data?.has(shloka_line.index))
         english_translation = english_data.get(shloka_line.index)!;
@@ -258,7 +250,7 @@
       };
     });
 
-    await $translate_sarga_mut.mutateAsync({
+    await translate_sarga_mut.mutateAsync({
       project_id,
       lang_id,
       model: selected_model,
@@ -274,7 +266,7 @@
       variant="secondary"
       size="sm"
       class="h-7 px-2 text-xs"
-      disabled={$translate_sarga_mut.isPending}
+      disabled={translate_sarga_mut.isPending}
       onclick={open_translate_dialog}
     >
       <Icon src={AIIcon} class="-mt-0.5 mr-1 text-lg" />
@@ -282,12 +274,12 @@
     </Button>
     <Dialog.Content
       class="max-w-md"
-      showCloseButton={!$translate_sarga_mut.isPending}
+      showCloseButton={!translate_sarga_mut.isPending}
       onInteractOutside={(e) => {
-        if ($translate_sarga_mut.isPending) e.preventDefault();
+        if (translate_sarga_mut.isPending) e.preventDefault();
       }}
     >
-      {#if $translate_sarga_mut.isPending}
+      {#if translate_sarga_mut.isPending}
         <div class="flex flex-col items-center gap-3 py-6 text-center">
           <LoaderCircle class="size-8 animate-spin text-muted-foreground" />
           <p class="text-sm font-medium">Currently translating to {active_translation_name}…</p>
@@ -378,9 +370,9 @@
       {/each}
     </Select.Content>
   </Select.Root>
-{:else if $translate_sarga_mut.isSuccess && show_time_status}
+{:else if translate_sarga_mut.isSuccess && show_time_status}
   <span class="text-xs text-stone-500 select-none dark:text-stone-300">
     <Icon src={OiStopwatch16} class="text-base" />
-    {pretty_ms($translate_sarga_mut.data.time_taken)}
+    {pretty_ms(translate_sarga_mut.data.time_taken)}
   </span>
 {/if}

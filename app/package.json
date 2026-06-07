@@ -23,6 +23,7 @@
     "sync": "svelte-kit sync"
   },
   "dependencies": {
+    "trpc-tanstack-svelte-query": "link:trpc-tanstack-svelte-query",
     "@cartamd/plugin-code": "^4.2.0",
     "@floating-ui/dom": "^1.7.6",
     "@fontsource/roboto": "^5.2.10",

@@ -37,7 +37,7 @@
   let confirmed = $state<'yes' | 'no'>('no');
 
   const has_change = $derived(draft.trim() !== original.trim());
-  const can_save = $derived(has_change && confirmed === 'yes' && !$save_mut.isPending);
+  const can_save = $derived(has_change && confirmed === 'yes' && !save_mut.isPending);
 
   $effect(() => {
     if (open && target) {
@@ -60,7 +60,7 @@
       value: draft.trim()
     };
     try {
-      await $save_mut.mutateAsync({
+      await save_mut.mutateAsync({
         project_id,
         map: apply_map_metadata_patch(target.map, patch),
         to_add_paths: []
@@ -101,7 +101,7 @@
           id="edit-list-name-input"
           bind:value={draft}
           autocomplete="off"
-          disabled={$save_mut.isPending}
+          disabled={save_mut.isPending}
         />
       </div>
 
@@ -125,11 +125,11 @@
     {/if}
 
     <Dialog.Footer class="gap-2 sm:gap-0">
-      <Button type="button" variant="outline" onclick={close} disabled={$save_mut.isPending}>
+      <Button type="button" variant="outline" onclick={close} disabled={save_mut.isPending}>
         Cancel
       </Button>
       <Button type="button" disabled={!can_save} onclick={submit}>
-        {#if $save_mut.isPending}
+        {#if save_mut.isPending}
           <Loader2 class="size-4 animate-spin" />
         {/if}
         Save

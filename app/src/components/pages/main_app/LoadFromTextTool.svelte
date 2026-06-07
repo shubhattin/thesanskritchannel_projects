@@ -57,18 +57,16 @@
         : `${selected_normalization_keys.length} selected`
   );
 
-  const text_data_q = $derived(
-    createQuery(
-      active_text_data_q_options(
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const text_data_q = createQuery(() =>
+    active_text_data_q_options(
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
-  const existing_rows = $derived($text_data_q.data ?? []);
+  const existing_rows = $derived(text_data_q.data ?? []);
   const existing_text_exists = $derived(existing_rows.length > 0);
   const parsed_result = $derived(
     parse_import_text(import_text, {
@@ -132,7 +130,7 @@
     return Array.from({ length: count }, (_, i) => i);
   };
 
-  const save_import_mut = createMutation({
+  const save_import_mut = createMutation(() => ({
     mutationKey: ['text', 'load_from_text'],
     mutationFn: async () => {
       if (!$project_state) throw new Error('Project is not selected');
@@ -178,7 +176,7 @@
     onError: (err) => {
       toast.error(err.message || 'Failed to import text');
     }
-  });
+  }));
 </script>
 
 <Dialog.Root bind:open>
@@ -369,13 +367,13 @@
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
         <Button
-          disabled={$save_import_mut.isPending ||
+          disabled={save_import_mut.isPending ||
             reviewed_output !== 'yes' ||
             parsed_rows.length === 0 ||
             translation_count_invalid}
-          onclick={() => $save_import_mut.mutate()}
+          onclick={() => save_import_mut.mutate()}
         >
-          {$save_import_mut.isPending ? 'Saving...' : 'Save'}
+          {save_import_mut.isPending ? 'Saving...' : 'Save'}
         </Button>
       </div>
     </Dialog.Footer>

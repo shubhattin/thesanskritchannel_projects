@@ -18,7 +18,7 @@
 </script>
 
 <QueryClientProvider client={queryClient}>
-  <TRPCProvider trpcClient={client} queryClient={queryClient}>
+  <TRPCProvider trpcClient={client} {queryClient}>
     <ModeWatcher />
     <div class="contaiiner mx-auto mb-12 max-w-5xl">
       <TopAppBar />

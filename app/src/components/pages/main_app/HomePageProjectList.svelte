@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { client_q } from '~/api/client';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { useTRPC } from '~/api/client';
   import { Skeleton } from '~/lib/components/ui/skeleton';
   import { Button } from '~/lib/components/ui/button';
   import * as InputGroup from '$lib/components/ui/input-group';
@@ -12,6 +13,7 @@
   import { useSession } from '~/lib/auth-client';
 
   const session = useSession();
+  const trpc = useTRPC();
 
   const DEFAULT_PAGE_SIZE = 15;
   const is_admin = $derived($session.data?.user.role === 'admin');
@@ -27,8 +29,8 @@
     is_admin ? (listed_filter === 'all' ? undefined : listed_filter === 'listed') : true
   );
 
-  let project_list_q = $derived(
-    client_q.project.get_project_list.query({
+  let project_list_q = createQuery(() =>
+    trpc.project.get_project_list.queryOptions({
       page,
       size,
       search: submitted_search || undefined,
@@ -103,30 +105,30 @@
     <ProjectAddNewDialog bind:open={add_project_open} />
   {/if}
 
-  {#if $project_list_q.isPending}
+  {#if project_list_q.isPending}
     <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4">
       {#each Array(8) as _, i (i)}
         <Skeleton class="h-24 w-full rounded-lg" />
       {/each}
     </div>
-  {:else if $project_list_q.isError}
+  {:else if project_list_q.isError}
     <div
       class="mx-auto max-w-xl rounded-xl border border-destructive/50 bg-destructive/10 px-6 py-6 text-center text-destructive"
       role="alert"
     >
       Failed to load projects. Please refresh the page.
     </div>
-  {:else if $project_list_q.data}
+  {:else if project_list_q.data}
     <p class="text-xs text-muted-foreground">
-      {$project_list_q.data.total} project{$project_list_q.data.total !== 1 ? 's' : ''} · Page
-      {$project_list_q.data.page} of {$project_list_q.data.pageCount}
+      {project_list_q.data.total} project{project_list_q.data.total !== 1 ? 's' : ''} · Page
+      {project_list_q.data.page} of {project_list_q.data.pageCount}
     </p>
 
-    {#if $project_list_q.data.list.length === 0}
+    {#if project_list_q.data.list.length === 0}
       <p class="py-8 text-center text-sm text-muted-foreground">No projects match your filters.</p>
     {:else}
       <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4">
-        {#each $project_list_q.data.list as project (project.id)}
+        {#each project_list_q.data.list as project (project.id)}
           <a
             href={'/' + project.key}
             class="group block rounded-lg border border-border bg-card px-4 py-3 shadow-sm transition-colors duration-150 hover:border-secondary/80 hover:bg-muted/25 focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none"
@@ -174,20 +176,20 @@
         type="button"
         variant="outline"
         size="sm"
-        disabled={!$project_list_q.data.hasPrev}
-        onclick={() => (page = $project_list_q.data!.page - 1)}
+        disabled={!project_list_q.data.hasPrev}
+        onclick={() => (page = project_list_q.data!.page - 1)}
       >
         Previous
       </Button>
       <span class="text-xs text-muted-foreground">
-        Page {$project_list_q.data.page} / {$project_list_q.data.pageCount}
+        Page {project_list_q.data.page} / {project_list_q.data.pageCount}
       </span>
       <Button
         type="button"
         variant="outline"
         size="sm"
-        disabled={!$project_list_q.data.hasNext}
-        onclick={() => (page = $project_list_q.data!.page + 1)}
+        disabled={!project_list_q.data.hasNext}
+        onclick={() => (page = project_list_q.data!.page + 1)}
       >
         Next
       </Button>

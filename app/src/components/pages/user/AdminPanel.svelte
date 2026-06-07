@@ -22,32 +22,30 @@
 
   const session = useSession();
 
-  const users_list = $derived(
-    createQuery({
-      queryKey: ['users_list', $session.data?.user?.id],
-      queryFn: async () => {
-        type res_type = {
-          email: string;
-          id: string;
-          name: string;
-          role: string | null;
-          app_scopes: {
-            scope: string;
-          }[];
+  const users_list = createQuery(() => ({
+    queryKey: ['users_list', $session.data?.user?.id],
+    queryFn: async () => {
+      type res_type = {
+        email: string;
+        id: string;
+        name: string;
+        role: string | null;
+        app_scopes: {
+          scope: string;
         }[];
-        const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/user/list_users`, {
-          params: {
-            user_id: $session.data?.user?.id ?? ''
-          },
-          credentials: 'include'
-        });
-        if (!res.ok) return [];
-        const users = (await res.json()) as res_type;
-        return users;
-      },
-      enabled: !!$session.data?.user?.id
-    })
-  );
+      }[];
+      const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/user/list_users`, {
+        params: {
+          user_id: $session.data?.user?.id ?? ''
+        },
+        credentials: 'include'
+      });
+      if (!res.ok) return [];
+      const users = (await res.json()) as res_type;
+      return users;
+    },
+    enabled: !!$session.data?.user?.id
+  }));
 
   $effect(() => {
     if ($selected_user_type) $selected_user_id = null;
@@ -58,7 +56,7 @@
   });
 
   const get_filtered_users = () => {
-    const users = $users_list.data!;
+    const users = users_list.data!;
 
     if ($selected_user_type === 'admin') {
       return users.filter((user) => user.role === 'admin');
@@ -72,7 +70,7 @@
   };
 </script>
 
-{#if !$users_list.isFetching && $users_list.isSuccess}
+{#if !users_list.isFetching && users_list.isSuccess}
   <Tabs.Root bind:value={$selected_user_type} class="mt-6">
     <Tabs.List>
       <Tabs.Trigger value="admin" class="rounded-md font-semibold">Admin</Tabs.Trigger>

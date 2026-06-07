@@ -59,7 +59,11 @@
     createTypingContext,
     handleTypingBeforeInputEvent
   } from 'lipilekhika/typing';
-  import { main_app_content_edit_dirty } from '~/state/main_app_content_edit_dirty.svelte';
+  import {
+    main_app_ai_translate_in_progress,
+    main_app_blocks_navigation,
+    main_app_content_edit_dirty
+  } from '~/state/main_app_content_edit_dirty.svelte';
   import { cn } from '$lib/utils';
   import Label from '~/lib/components/ui/label/label.svelte';
   import {
@@ -336,7 +340,7 @@
     if (!browser) return;
 
     const on_beforeunload = (e: BeforeUnloadEvent) => {
-      if (!get(main_app_content_edit_dirty)) return;
+      if (!main_app_blocks_navigation()) return;
       e.preventDefault();
       e.returnValue = '';
     };
@@ -346,8 +350,16 @@
   });
 
   beforeNavigate(({ cancel }) => {
-    if (!get(main_app_content_edit_dirty) || leave_confirmed) return;
-    const ok = confirm('You have unsaved text or translation edits. Leave and discard them?');
+    if (!main_app_blocks_navigation() || leave_confirmed) return;
+    const dirty = get(main_app_content_edit_dirty);
+    const ai_translating = get(main_app_ai_translate_in_progress);
+    const message =
+      dirty && ai_translating
+        ? 'You have unsaved edits and an AI translation in progress. Leave anyway?'
+        : ai_translating
+          ? 'AI translation is in progress. Leave and discard it?'
+          : 'You have unsaved text or translation edits. Leave and discard them?';
+    const ok = confirm(message);
     if (!ok) cancel();
     else {
       leave_confirmed = true;

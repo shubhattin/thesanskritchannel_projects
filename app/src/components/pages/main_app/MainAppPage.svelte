@@ -243,6 +243,13 @@
     const next = [...$selected_translation_lang_ids] as [number | null, number | null];
     next[slot] = lang_id;
     $selected_translation_lang_ids = next;
+
+    const editing_translation = $editing_mode === '1st_lang' || $editing_mode === '2nd_lang';
+    const is_active_edit_slot =
+      ($editing_mode === '1st_lang' && slot === 0) || ($editing_mode === '2nd_lang' && slot === 1);
+    // Other-slot changes during translation edit only affect Show context, not viewing script.
+    if (editing_translation && !is_active_edit_slot) return;
+
     if (!mounted || !browser || lang_id === null || lang_id === lang_list_obj.English) return;
     await delay(300);
     const script = get_script_for_lang_id(lang_id);
@@ -554,9 +561,8 @@
               onValueChange={(v) => {
                 set_translation_slot_lang(slot as 0 | 1, v === 'none' ? null : Number(v));
               }}
-              disabled={$editing_mode === '1st_lang' ||
-                $editing_mode === '2nd_lang' ||
-                viewing_script_mut.isPending}
+              disabled={($editing_mode === '1st_lang' && slot === 0) ||
+                ($editing_mode === '2nd_lang' && slot === 1)}
             >
               <Select.Trigger class="inline-flex h-7 w-full max-w-34 px-2 text-xs">
                 {slot_lang_id === null ? 'None' : LANG_LIST[LANG_LIST_IDS.indexOf(slot_lang_id)]}

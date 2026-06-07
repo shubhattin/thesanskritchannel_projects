@@ -23,7 +23,7 @@
   import pretty_ms from 'pretty-ms';
   import { OiStopwatch16 } from 'svelte-icons-pack/oi';
   import { onDestroy } from 'svelte';
-  import { get } from 'svelte/store';
+  import { main_app_ai_translate_in_progress } from '~/state/main_app_content_edit_dirty.svelte';
   import { LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
   import { get_project_from_id } from '~/state/project_list';
   import { Button } from '$lib/components/ui/button';
@@ -95,6 +95,7 @@
 
   onDestroy(() => {
     show_time_status = false;
+    main_app_ai_translate_in_progress.set(false);
   });
 
   $effect(() => {
@@ -219,6 +220,10 @@
       translate_error = err.message || 'Translation failed';
     }
   }));
+
+  $effect(() => {
+    main_app_ai_translate_in_progress.set(translate_sarga_mut.isPending);
+  });
 
   async function translate_sarga_func() {
     const slot = active_translation_slot;

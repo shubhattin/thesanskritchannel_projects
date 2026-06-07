@@ -22,6 +22,10 @@
     goto(`/${newKey}`);
   };
 
+  const on_project_saved = () => {
+    open = false;
+  };
+
   const on_project_deleted = () => {
     open = false;
     goto('/');
@@ -44,7 +48,7 @@
         <Tabs.Trigger value="delete">Delete</Tabs.Trigger>
       </Tabs.List>
       <Tabs.Content value="name" class="mt-4">
-        <ProjectSettingsNameTab {project} />
+        <ProjectSettingsNameTab {project} onSaved={on_project_saved} />
       </Tabs.Content>
       <Tabs.Content value="listed-slug" class="mt-4">
         <ProjectSettingsListedSlugTab {project} onSlugChanged={on_slug_changed} />

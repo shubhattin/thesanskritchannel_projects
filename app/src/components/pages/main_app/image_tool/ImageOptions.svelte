@@ -24,7 +24,12 @@
     set_image_text_color,
     translation_bounding_coords
   } from './image_state';
-  import { LANG_LIST, LANG_LIST_IDS, type lang_list_type } from '~/state/lang_list';
+  import {
+    LANG_LIST,
+    LANG_LIST_IDS,
+    lang_list_obj,
+    type lang_list_type
+  } from '~/state/lang_list';
   import Icon from '~/tools/Icon.svelte';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
   import { LanguageIcon } from '~/components/icons';
@@ -94,7 +99,10 @@
   let trans_textarea_disabled = $state(true);
   let trans_text_available = $state(false);
 
-  const current_lang = $derived(LANG_LIST[LANG_LIST_IDS.indexOf($image_lang)] as lang_list_type);
+  const image_lang_id = $derived($image_lang ?? lang_list_obj.English);
+  const current_lang = $derived(
+    LANG_LIST[LANG_LIST_IDS.indexOf(image_lang_id)] as lang_list_type
+  );
 
   let shloka_typing_ctx = $derived(
     createTypingContext('Devanagari', {
@@ -390,9 +398,9 @@
     <Icon src={LanguageIcon} class="text-xl" />
     <Select.Root
       type="single"
-      value={$image_lang.toString()}
+      value={image_lang_id.toString()}
       onValueChange={(v) => {
-        $image_lang = parseInt(v) || 0;
+        $image_lang = parseInt(v) || lang_list_obj.English;
       }}
       disabled={$image_trans_data_q.isFetching || !$image_trans_data_q.isSuccess}
     >

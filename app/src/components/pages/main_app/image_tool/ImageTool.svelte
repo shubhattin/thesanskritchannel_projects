@@ -148,7 +148,7 @@
   // in our case we dont need to initialize inside of onMount
   $image_selected_levels = $selected_text_levels;
   $image_script = $viewing_script;
-  if ($trans_lang !== 0) $image_lang = $trans_lang;
+  if ($trans_lang != null && $trans_lang !== 0) $image_lang = $trans_lang;
 
   const levels = $derived($project_state?.levels ?? 0);
   const level_names = $derived($project_state?.level_names ?? []);

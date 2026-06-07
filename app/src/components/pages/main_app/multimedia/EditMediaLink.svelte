@@ -25,13 +25,13 @@
     link_info: link_info_type;
   } = $props();
 
-  const quert_client = useQueryClient();
+  const query_client = useQueryClient();
   const trpc = useTRPC();
 
   const del_media_link_mut = createMutation(() =>
     trpc.media.delete_media_link.mutationOptions({
       onSuccess() {
-        quert_client.invalidateQueries({
+        query_client.invalidateQueries({
           queryKey: trpc.media.get_media_list.queryKey({
             project_id: $project_state!.project_id,
             selected_text_levels: $selected_text_levels
@@ -50,7 +50,7 @@
     trpc.media.update_media_link.mutationOptions({
       onSuccess() {
         toast.success('Media link updated');
-        quert_client.invalidateQueries({
+        query_client.invalidateQueries({
           queryKey: trpc.media.get_media_list.queryKey({
             project_id: $project_state!.project_id,
             selected_text_levels: $selected_text_levels

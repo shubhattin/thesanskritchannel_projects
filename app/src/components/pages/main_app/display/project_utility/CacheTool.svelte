@@ -179,7 +179,7 @@
     {#if list_cache_q.isFetching}
       <Skeleton class="h-36 w-full" />
     {:else if list_cache_q.isSuccess}
-      {@const cache_list = list_cache_q.data.sort()}
+      {@const cache_list = [...(list_cache_q.data ?? [])].sort()}
       {#if cache_list.length > 0}
         <div class="max-h-[60%] space-y-1 overflow-scroll px-0.5 text-sm">
           {#each cache_list as cache_key (cache_key)}

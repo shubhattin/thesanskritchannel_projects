@@ -124,8 +124,9 @@
   const totalPages = $derived(
     Math.max(0, Math.ceil(((search_q.data?.page.totalCount as number | undefined) ?? 0) / LIMIT))
   );
-  const showingStart = $derived(started ? offset + 1 : 0);
-  const showingEnd = $derived(offset + (search_q.data?.items.length ?? 0));
+  const itemCount = $derived(search_q.data?.items.length ?? 0);
+  const showingStart = $derived(itemCount === 0 ? 0 : started ? offset + 1 : 0);
+  const showingEnd = $derived(itemCount === 0 ? 0 : offset + itemCount);
 
   // Lipi-Lekhika typing (Sanskrit / Devanagari)
   let typing_enabled = $state(true);

@@ -247,7 +247,7 @@
     await delay(300);
     const script = get_script_for_lang_id(lang_id);
     if (script) {
-      await viewing_script_mut.mutateAsync({ script, update_viewing_script_selection: true });
+      $viewing_script_selection = script;
     }
   };
 

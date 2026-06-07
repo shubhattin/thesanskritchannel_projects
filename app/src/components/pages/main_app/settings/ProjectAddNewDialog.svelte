@@ -117,7 +117,7 @@
       name: name.trim(),
       name_dev: name_dev.trim(),
       description: description.trim() || null,
-      slug: slug.trim()
+      slug: slug_effective
     });
   };
 </script>

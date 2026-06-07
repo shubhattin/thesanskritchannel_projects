@@ -24,9 +24,15 @@
       });
     },
     onSuccess: () => {
+      is_edited = false;
       update_name_modal_status = false;
     }
   }));
+
+  const close_update_name_modal = () => {
+    is_edited = false;
+    update_name_modal_status = false;
+  };
 
   const update_user_name_func = () => {
     if (is_edited) update_name_mut.mutate(user_name);
@@ -64,7 +70,7 @@
         >
         <button
           class="rounded-lg bg-destructive px-3 py-1.5 text-sm font-semibold text-destructive-foreground hover:bg-destructive/90"
-          onclick={() => (update_name_modal_status = false)}>Cancel</button
+          onclick={close_update_name_modal}>Cancel</button
         >
       </div>
     </div>

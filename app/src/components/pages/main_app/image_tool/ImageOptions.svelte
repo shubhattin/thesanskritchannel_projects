@@ -101,7 +101,16 @@
     shloka_typing_ctx.ready;
   });
 
+  const can_reset_defaults = $derived(
+    image_text_data_q.isSuccess &&
+      !image_text_data_q.isFetching &&
+      image_text_data_q.data?.[$image_shloka] != null
+  );
+
   const reset_func = () => {
+    const text_row = image_text_data_q.data?.[$image_shloka];
+    if (!text_row) return;
+
     $shloka_configs = copy_plain_object(DEFAULT_SHLOKA_CONFIG);
     $translation_bounding_coords = copy_plain_object(DEFAULT_TRANSLATION_BOUNDING_COORDS);
     $SPACE_ABOVE_REFERENCE_LINE = DEFAULT_SHLOKA_CONFIG_SHARED.SPACE_ABOVE_REFERENCE_LINE;
@@ -109,7 +118,7 @@
     $main_text_font_configs = copy_plain_object(DEFAULT_MAIN_TEXT_FONT_CONFIGS);
     $trans_text_font_configs = copy_plain_object(DEFAULT_TRANS_TEXT_FONT_CONFIGS);
     $image_render_colors = copy_plain_object(DEFAULT_IMAGE_TEXT_RENDER_COLORS);
-    $image_shloka_data = deepCopy(image_text_data_q.data![$image_shloka]);
+    $image_shloka_data = deepCopy(text_row);
     if (image_trans_data_q.data?.has($image_shloka)) {
       const translation = image_trans_data_q.data.get($image_shloka)!;
       trans_text_data = translation;
@@ -424,7 +433,13 @@
     </Label>
   </div>
 
-  <Button onclick={reset_func} variant="outline" size="sm" class="h-7 px-2 text-xs font-semibold">
+  <Button
+    onclick={reset_func}
+    disabled={!can_reset_defaults}
+    variant="outline"
+    size="sm"
+    class="h-7 px-2 text-xs font-semibold"
+  >
     Reset defaults
   </Button>
 </div>

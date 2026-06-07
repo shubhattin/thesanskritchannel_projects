@@ -99,7 +99,7 @@
         .default as string;
       const get_image_dimensiona = async (url: string) => {
         return new Promise<{ width: number; height: number }>((resolve, reject) => {
-          let img = new Image();
+          const img = new Image();
           img.onload = function () {
             resolve({
               // @ts-ignore
@@ -108,6 +108,7 @@
               height: this.height * ONE_PX * IMAGE_SCALING
             });
           };
+          img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
           img.src = url;
         });
       };

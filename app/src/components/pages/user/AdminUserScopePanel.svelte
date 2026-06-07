@@ -60,8 +60,8 @@
     })
   );
 
-  const add_user_app_scope = async () => {
-    await add_user_app_scope_mut.mutateAsync({
+  const add_user_app_scope = () => {
+    add_user_app_scope_mut.mutate({
       user_id: user_info.id,
       scope: scope_id
     });
@@ -75,12 +75,16 @@
         });
         query_client.invalidateQueries({ queryKey: ['user_info', user_info.id] });
         query_client.invalidateQueries({ queryKey: ['users_list'] });
+      },
+      onError(error) {
+        console.error('remove_user_from_app_scope failed:', error);
+        toast.error(`Could not remove user from ${scope_label} scope`);
       }
     })
   );
 
-  const remove_user_from_app_scope = async () => {
-    await remove_user_from_app_scope_mut.mutateAsync({
+  const remove_user_from_app_scope = () => {
+    remove_user_from_app_scope_mut.mutate({
       user_id: user_info.id,
       scope: scope_id
     });

@@ -70,8 +70,8 @@
   });
   let is_fetching = $derived(
     user.role === 'admin'
-      ? !!users_list_is_fetching
-      : !!user_info_is_fetching || !!user_scopes_q.isFetching
+      ? users_list_is_fetching.current > 0
+      : user_info_is_fetching.current > 0 || user_scopes_q.isFetching
   );
 </script>
 

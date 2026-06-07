@@ -201,7 +201,14 @@
         return;
       }
     }, 1000);
-    await image_q.refetch();
+    try {
+      await image_q.refetch();
+    } finally {
+      if (image_gen_interval_obj) {
+        clearInterval(image_gen_interval_obj);
+        image_gen_interval_obj = null!;
+      }
+    }
   };
 
   const image_prompt_q = createQuery(() => ({

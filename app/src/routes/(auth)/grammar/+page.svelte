@@ -190,7 +190,8 @@
 
   $effect(() => {
     if (text_data_present && text_data_q.isSuccess) {
-      shloka = text_data_q.data[shloka_number].text;
+      const row = text_data_q.data?.[shloka_number];
+      shloka = row?.text ?? '';
     }
   });
 </script>
@@ -383,9 +384,11 @@
         </button>
       </div>
       <div transition:slide>
-        {#each text_data_q.data[shloka_number].text.split('\n') as line}
-          <div>{line}</div>
-        {/each}
+        {#if text_data_q.data?.[shloka_number]?.text}
+          {#each text_data_q.data[shloka_number].text.split('\n') as line}
+            <div>{line}</div>
+          {/each}
+        {/if}
       </div>
     {/if}
   {/if}

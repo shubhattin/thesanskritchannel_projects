@@ -44,6 +44,19 @@
     <div class="flex justify-center">
       <Skeleton class="h-10 w-full" />
     </div>
+  {:else if !is_admin && list_scopes_q.isError}
+    <div
+      class="mx-auto max-w-xl rounded-xl border border-border bg-card px-6 py-6 text-center text-card-foreground shadow-sm"
+      role="alert"
+    >
+      <p class="text-sm text-destructive">Failed to load your portal permissions.</p>
+      <button
+        class="mt-3 rounded-md bg-muted px-3 py-1.5 text-sm font-semibold hover:bg-muted/80"
+        onclick={() => list_scopes_q.refetch()}
+      >
+        Retry
+      </button>
+    </div>
   {:else if is_admin || (list_scopes_q.isSuccess && list_scopes_q.data.scopes.includes(APP_SCOPE_ID_PROJECT_PORTAL))}
     <HomePageProjectList />
   {:else}
@@ -93,6 +106,19 @@
   {#if is_scope_loading}
     <div class="mt-4 flex justify-center">
       <Skeleton class="h-10 w-full" />
+    </div>
+  {:else if !is_admin && list_scopes_q.isError}
+    <div
+      class="mx-auto mt-6 max-w-xl rounded-xl border border-border bg-card px-6 py-6 text-center text-card-foreground shadow-sm"
+      role="alert"
+    >
+      <p class="text-sm text-destructive">Failed to load your Lekha permissions.</p>
+      <button
+        class="mt-3 rounded-md bg-muted px-3 py-1.5 text-sm font-semibold hover:bg-muted/80"
+        onclick={() => list_scopes_q.refetch()}
+      >
+        Retry
+      </button>
     </div>
   {:else if is_admin || (list_scopes_q.isSuccess && list_scopes_q.data.scopes.includes(APP_SCOPE_ID_LEKHA))}
     <div class="mt-4 flex justify-center">

@@ -147,6 +147,11 @@
 
     const rows = text_data_q.data.slice(0, PREVIEW_SHLOKA_COUNT);
     const translationReady = !with_translation || translation_q.isSuccess;
+    if (with_translation && translation_q.isError) {
+      preview_loading = false;
+      preview_text = '';
+      return;
+    }
     if (!translationReady) {
       preview_loading = true;
       return;
@@ -273,6 +278,8 @@
         <ScrollArea class="h-44 rounded-md border bg-muted/30 p-3">
           {#if !text_data_q.isSuccess}
             <Skeleton class="h-32 w-full" />
+          {:else if include_translation && translation_q.isError}
+            <p class="text-sm text-destructive">Failed to load translation preview.</p>
           {:else if preview_loading || (include_translation && translation_q.isLoading)}
             <div class="flex h-32 items-center justify-center">
               <Skeleton class="h-24 w-full" />

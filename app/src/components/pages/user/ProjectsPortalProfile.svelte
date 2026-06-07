@@ -47,16 +47,10 @@
 
   const projects_info = createQuery(() => ({
     queryKey: ['user_info', user_info.id],
-    queryFn: async () => {
-      try {
-        const data = await client.user.user_info.query({
-          user_id: user_info.id
-        });
-        return data;
-      } catch {
-        return null;
-      }
-    },
+    queryFn: () =>
+      client.user.user_info.query({
+        user_id: user_info.id
+      }),
     staleTime: ms('5mins')
   }));
 
@@ -166,7 +160,19 @@
   };
 </script>
 
-{#if !projects_info.isFetching && projects_info.isSuccess && projects_info.data}
+{#if projects_info.isFetching}
+  <Skeleton class="h-40 w-full" />
+{:else if projects_info.isError}
+  <div class="space-y-2 text-destructive">
+    <p class="text-sm">Failed to load project assignments.</p>
+    <button
+      class="rounded-md bg-muted px-2 py-1 text-sm font-semibold hover:bg-muted/80"
+      onclick={() => projects_info.refetch()}
+    >
+      Retry
+    </button>
+  </div>
+{:else if projects_info.isSuccess && projects_info.data}
   {@const data = projects_info.data}
   {#if admin_edit}
     <div class="text-base font-semibold">{user_info.name}</div>

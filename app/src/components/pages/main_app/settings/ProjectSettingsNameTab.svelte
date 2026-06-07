@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { client_q } from '~/api/client';
+  import { createMutation } from '@tanstack/svelte-query';
+  import { useTRPC } from '~/api/client';
   import { invalidate_project_registry_queries } from '~/state/main_app/data.svelte';
   import type { project_type } from '~/state/project_list';
   import { Button } from '$lib/components/ui/button';
@@ -15,6 +16,7 @@
   import { toast } from 'svelte-sonner';
 
   let { project }: { project: project_type } = $props();
+  const trpc = useTRPC();
 
   let name = $state('');
   let name_dev = $state('');
@@ -44,15 +46,17 @@
     description = project.description ?? '';
   });
 
-  const save_mut = client_q.project.edit.update_name_description.mutation({
-    onSuccess: async () => {
-      await invalidate_project_registry_queries(project.id);
-      toast.success('Project details saved');
-    },
-    onError: (err) => {
-      toast.error(err.message || 'Failed to save project details');
-    }
-  });
+  const save_mut = createMutation(() =>
+    trpc.project.edit.update_name_description.mutationOptions({
+      onSuccess: async () => {
+        await invalidate_project_registry_queries(project.id);
+        toast.success('Project details saved');
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to save project details');
+      }
+    })
+  );
 
   const save = () => {
     const trimmed_name = name.trim();
@@ -65,7 +69,7 @@
       toast.error('Name in Devanagari is required');
       return;
     }
-    $save_mut.mutate({
+    save_mut.mutate({
       project_id: project.id,
       name: trimmed_name,
       name_dev: trimmed_name_dev,
@@ -127,8 +131,8 @@
     />
   </div>
   <div class="flex justify-end">
-    <Button type="button" disabled={$save_mut.isPending} onclick={save}>
-      {$save_mut.isPending ? 'Saving…' : 'Save'}
+    <Button type="button" disabled={save_mut.isPending} onclick={save}>
+      {save_mut.isPending ? 'Saving…' : 'Save'}
     </Button>
   </div>
 </div>

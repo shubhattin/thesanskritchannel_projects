@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { client_q } from '~/api/client';
+  import { createMutation, createQuery } from '@tanstack/svelte-query';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { REDIS_CACHE_KEYS_CLIENT, REDIS_CACHES_ARGUMENTS_LIST } from '~/db/redis_shared';
+  import { useTRPC } from '~/api/client';
   import { get_path_params } from '~/state/project_list';
   import { selected_text_levels, project_state } from '~/state/main_app/state.svelte';
   import { writable } from 'svelte/store';
@@ -14,13 +15,17 @@
   import * as Select from '$lib/components/ui/select';
   import { Skeleton } from '$lib/components/ui/skeleton';
 
-  const current_text_cache_invalidate_mut = client_q.cache.invalidate_cache.mutation({
-    onSuccess() {
-      setTimeout(() => {
-        window.location.reload();
-      }, 600);
-    }
-  });
+  const trpc = useTRPC();
+
+  const current_text_cache_invalidate_mut = createMutation(() =>
+    trpc.cache.invalidate_cache.mutationOptions({
+      onSuccess() {
+        setTimeout(() => {
+          window.location.reload();
+        }, 600);
+      }
+    })
+  );
 
   let invalidate_cache_confirm_modal_state = $state(false);
 
@@ -54,8 +59,8 @@
       $cache_arguments.every((arg) => arg !== null && arg.trim() !== '')
   );
 
-  const list_cache_q = $derived(
-    client_q.cache.list_cache_keys.query(
+  const list_cache_q = createQuery(() =>
+    trpc.cache.list_cache_keys.queryOptions(
       {
         pattern: cache_arguments_valid_status ? get_cache_key(selected_cache_name) : ''
       },
@@ -68,16 +73,18 @@
   const selected_cache_keys = writable<string[]>([]);
   $effect(() => {
     selected_cache_name;
-    if (!$list_cache_q.isFetching && $list_cache_q.isSuccess) {
+    if (!list_cache_q.isFetching && list_cache_q.isSuccess) {
       $selected_cache_keys = [];
     }
   });
 
-  const invalidate_cache_mut = client_q.cache.invalidate_cache.mutation({
-    onSuccess() {
-      $list_cache_q.refetch();
-    }
-  });
+  const invalidate_cache_mut = createMutation(() =>
+    trpc.cache.invalidate_cache.mutationOptions({
+      onSuccess() {
+        list_cache_q.refetch();
+      }
+    })
+  );
 </script>
 
 <div class="dark:text-warning-500 text-center text-lg font-bold text-amber-700">
@@ -118,7 +125,7 @@
     return `This will invalidate the text data cache for "${current_cache_key}" `;
   }}
   confirm_func={async () => {
-    await $current_text_cache_invalidate_mut.mutateAsync({
+    await current_text_cache_invalidate_mut.mutateAsync({
       cache_keys: [current_cache_key]
     });
   }}
@@ -157,9 +164,9 @@
           <Button
             variant="ghost"
             size="sm"
-            disabled={$list_cache_q.isFetching}
+            disabled={list_cache_q.isFetching}
             onclick={() => {
-              $list_cache_q.refetch();
+              list_cache_q.refetch();
             }}
           >
             <Icon src={BiSearchAlt} /> Search
@@ -169,10 +176,10 @@
     </div>
   {/if}
   <div class="mt-2">
-    {#if $list_cache_q.isFetching}
+    {#if list_cache_q.isFetching}
       <Skeleton class="h-36 w-full" />
-    {:else if $list_cache_q.isSuccess}
-      {@const cache_list = $list_cache_q.data.sort()}
+    {:else if list_cache_q.isSuccess}
+      {@const cache_list = [...(list_cache_q.data ?? [])].sort()}
       {#if cache_list.length > 0}
         <div class="max-h-[60%] space-y-1 overflow-scroll px-0.5 text-sm">
           {#each cache_list as cache_key (cache_key)}
@@ -192,11 +199,11 @@
           {/each}
           <Button
             ondblclick={() => {
-              $invalidate_cache_mut.mutate({
+              invalidate_cache_mut.mutate({
                 cache_keys: $selected_cache_keys
               });
             }}
-            disabled={$selected_cache_keys.length === 0 || $invalidate_cache_mut.isPending}
+            disabled={$selected_cache_keys.length === 0 || invalidate_cache_mut.isPending}
             class="mt-1.5"
             size="sm"
           >

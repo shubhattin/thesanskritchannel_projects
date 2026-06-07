@@ -1,4 +1,5 @@
-import { client_q } from '~/api/client';
+import { createMutation } from '@tanstack/svelte-query';
+import { client } from '~/api/client';
 import { clone_recursive_list } from '~/components/pages/map_edit/map_edit_lib';
 import type { recursive_list_type } from '~/state/data_types';
 import { invalidate_project_registry_queries } from '~/state/main_app/data.svelte';
@@ -52,7 +53,9 @@ export function create_map_metadata_save_mutation(
   getProjectId: () => number | undefined,
   options?: { onMapSaved?: (map: recursive_list_type) => void }
 ) {
-  return client_q.project.map_edit.update.mutation({
+  return createMutation(() => ({
+    mutationFn: (input: Parameters<typeof client.project.map_edit.update.mutate>[0]) =>
+      client.project.map_edit.update.mutate(input),
     onSuccess: async ({ map }, variables) => {
       const mutation_project_id = variables.project_id;
       await invalidate_project_registry_queries(mutation_project_id);
@@ -75,5 +78,5 @@ export function create_map_metadata_save_mutation(
     onError: (err) => {
       toast.error(err.message || 'Failed to update map');
     }
-  });
+  }));
 }

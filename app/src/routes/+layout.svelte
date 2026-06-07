@@ -11,20 +11,24 @@
   import PostHogInit from '~/components/tags/PostHogInit.svelte';
   import { Toaster } from '$lib/components/ui/sonner/index.js';
   import CookieCacheRefresh from '$lib/CookieCacheRefresh.svelte';
+  import TRPCProvider from 'trpc-tanstack-svelte-query/TRPCContext.svelte';
+  import { client } from '~/api/client';
 
   let { children }: { children: Snippet } = $props();
 </script>
 
 <QueryClientProvider client={queryClient}>
-  <ModeWatcher />
-  <div class="contaiiner mx-auto mb-12 max-w-5xl">
-    <TopAppBar />
-    <div class="mx-2 mt-4">
-      <CookieCacheRefresh />
-      {@render children()}
+  <TRPCProvider trpcClient={client} {queryClient}>
+    <ModeWatcher />
+    <div class="contaiiner mx-auto mb-12 max-w-5xl">
+      <TopAppBar />
+      <div class="mx-2 mt-4">
+        <CookieCacheRefresh />
+        {@render children()}
+      </div>
     </div>
-  </div>
-  <SvelteQueryDevtools initialIsOpen={false} />
-  <Toaster position="top-right" richColors={true} />
+    <SvelteQueryDevtools initialIsOpen={false} />
+    <Toaster position="top-right" richColors={true} />
+  </TRPCProvider>
 </QueryClientProvider>
 <PostHogInit />

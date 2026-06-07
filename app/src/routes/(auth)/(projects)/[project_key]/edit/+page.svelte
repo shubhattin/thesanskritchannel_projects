@@ -12,14 +12,14 @@
 
   let { data }: { data: PageData } = $props();
 
-  const project_list_q = $derived(createQuery(project_list_q_options()));
-  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+  const project_list_q = createQuery(() => project_list_q_options());
+  const project_map_q = createQuery(() => project_map_q_options($project_state));
 
   const project_key = $derived(data.project_key);
-  const project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
+  const project_registry = $derived(project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
   const current_project = $derived(get_project_from_key(project_key, project_registry));
   const project_queries_ready = $derived(
-    $project_list_q.isSuccess && $project_map_q.isSuccess && !!current_project
+    project_list_q.isSuccess && project_map_q.isSuccess && !!current_project
   );
 
   function sync_project_state() {
@@ -54,7 +54,7 @@
 
 <MetaTags title={`${data.project_name_dev} | Edit Map`} />
 
-{#if $project_list_q.isPending || $project_map_q.isPending}
+{#if project_list_q.isPending || project_map_q.isPending}
   <Skeleton class="h-12 w-full" />
   <Skeleton class="h-[60vh] w-full rounded-lg" />
 {:else if project_queries_ready && current_project}

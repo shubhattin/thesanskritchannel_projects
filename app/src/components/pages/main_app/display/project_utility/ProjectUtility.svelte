@@ -36,16 +36,14 @@
   const session = useSession();
   let user_info = $derived($session.data?.user);
 
-  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+  const project_map_q = createQuery(() => project_map_q_options($project_state));
 
-  const text_data_q = $derived(
-    createQuery(
-      active_text_data_q_options(
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const text_data_q = createQuery(() =>
+    active_text_data_q_options(
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
@@ -56,7 +54,7 @@
   const get_lowest_selected = (levels: (number | null)[]) =>
     levels.find((v): v is number => typeof v === 'number') ?? null;
 
-  const download_excel_file = createMutation({
+  const download_excel_file = createMutation(() => ({
     mutationKey: ['chapter', 'download_excel_data'],
     mutationFn: async () => {
       if (!browser) return;
@@ -77,11 +75,11 @@
       });
       const total_count = get_total_count(
         $selected_text_levels,
-        $project_map_q.data,
+        project_map_q.data,
         $project_state?.levels ?? 0
       );
-      for (let i = 0; i < $text_data_q.data!.length; i++) {
-        worksheet.getCell(i + COLUMN_FOR_DEV, TEXT_START_ROW).value = $text_data_q.data![i].text;
+      for (let i = 0; i < text_data_q.data!.length; i++) {
+        worksheet.getCell(i + COLUMN_FOR_DEV, TEXT_START_ROW).value = text_data_q.data![i].text;
         worksheet.getCell(i + COLUMN_FOR_DEV, 1).value = i === total_count + 1 ? -1 : i;
       }
       await transliterate_xlxs_file(
@@ -104,7 +102,7 @@
       const name = await transliterate_custom(
         get_last_level_name(
           $selected_text_levels,
-          $project_map_q.data,
+          project_map_q.data,
           $project_state?.levels ?? 0
         ).split('\n')[0],
         BASE_SCRIPT,
@@ -116,7 +114,7 @@
       current_workbook = workbook;
       excel_preview_opened = true;
     }
-  });
+  }));
 
   let utility_popover_state = $state(false);
   let download_text_tool_opened = $state(false);
@@ -141,7 +139,7 @@
       <button
         class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
         onclick={() => {
-          $download_excel_file.mutate();
+          download_excel_file.mutate();
           utility_popover_state = false;
         }}
       >

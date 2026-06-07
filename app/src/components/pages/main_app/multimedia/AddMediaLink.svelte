@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { client_q } from '~/api/client';
+  import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+  import { useTRPC } from '~/api/client';
   import { MEDIA_TYPE_LIST, type media_list_type } from './index';
   import { lang_list_obj } from '~/state/lang_list';
   import { z } from 'zod';
   import Icon from '~/tools/Icon.svelte';
   import { RiSystemAddLargeFill } from 'svelte-icons-pack/ri';
-  import { useQueryClient } from '@tanstack/svelte-query';
   import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
   import MediaTypeIcon from './MediaTypeIcon.svelte';
   import { Button } from '$lib/components/ui/button';
@@ -17,29 +17,26 @@
   let { modal_open_state = $bindable() }: { modal_open_state: boolean } = $props();
 
   const quert_client = useQueryClient();
+  const trpc = useTRPC();
 
-  const add_media_link_mut = client_q.media.add_media_link.mutation({
-    onSuccess() {
-      toast.success('Media link added');
-      quert_client.invalidateQueries({
-        queryKey: [
-          ['media', 'get_media_list'],
-          {
-            input: {
-              project_id: $project_state!.project_id,
-              selected_text_levels: $selected_text_levels
-            },
-            type: 'query'
-          }
-        ],
-        exact: true
-      });
-      modal_open_state = false;
-    },
-    onError: (err) => {
-      toast.error(err.message || 'Failed to add media link');
-    }
-  });
+  const add_media_link_mut = createMutation(() =>
+    trpc.media.add_media_link.mutationOptions({
+      onSuccess() {
+        toast.success('Media link added');
+        quert_client.invalidateQueries({
+          queryKey: trpc.media.get_media_list.queryKey({
+            project_id: $project_state!.project_id,
+            selected_text_levels: $selected_text_levels
+          }),
+          exact: true
+        });
+        modal_open_state = false;
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to add media link');
+      }
+    })
+  );
 
   const LANG_NONE = '';
 
@@ -56,7 +53,7 @@
   const add_link_func = (e: Event) => {
     e.preventDefault();
     if (url === '' || !z.string().url().safeParse(url).success || name === '') return;
-    $add_media_link_mut.mutate({
+    add_media_link_mut.mutate({
       project_id: $project_state!.project_id,
       selected_text_levels: $selected_text_levels,
       media_type,
@@ -137,7 +134,7 @@
     />
   </div>
 
-  <Button disabled={$add_media_link_mut.isPending} type="submit" class="w-full">
+  <Button disabled={add_media_link_mut.isPending} type="submit" class="w-full">
     <Icon src={RiSystemAddLargeFill} class="-mt-1 text-xl" />
     Add Link
   </Button>

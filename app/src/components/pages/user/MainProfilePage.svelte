@@ -9,7 +9,7 @@
   import Icon from '~/tools/Icon.svelte';
   import NonAdminInfo from './NonAdminInfo.svelte';
   import AdminPanel from './AdminPanel.svelte';
-  import { useQueryClient, useIsFetching } from '@tanstack/svelte-query';
+  import { createQuery, useQueryClient, useIsFetching } from '@tanstack/svelte-query';
   import { LuRefreshCw } from 'svelte-icons-pack/lu';
   import { cn } from '$lib/utils';
   import UpdateName from './UpdateName.svelte';
@@ -18,9 +18,10 @@
     APP_SCOPE_ID_PROJECT_PORTAL,
     type AppScopeEnum
   } from '~/state/data_types';
-  import { client_q } from '~/api/client';
+  import { useTRPC } from '~/api/client';
 
   const query_client = useQueryClient();
+  const trpc = useTRPC();
 
   type SessionType = typeof authClient.$Infer.Session;
 
@@ -48,7 +49,7 @@
         queryKey: ['user_info']
       }),
       query_client.invalidateQueries({
-        queryKey: [['user', 'list_user_app_scopes'], { input: { user_id: user.id }, type: 'query' }]
+        queryKey: trpc.user.list_user_app_scopes.queryKey({ user_id: user.id })
       }),
       user.role === 'admin' &&
         query_client.invalidateQueries({
@@ -57,7 +58,9 @@
     ]);
   };
 
-  const user_scopes_q = $derived(client_q.user.list_user_app_scopes.query({ user_id: user.id }));
+  const user_scopes_q = createQuery(() =>
+    trpc.user.list_user_app_scopes.queryOptions({ user_id: user.id })
+  );
 
   const user_info_is_fetching = useIsFetching({
     queryKey: ['user_info']
@@ -67,8 +70,8 @@
   });
   let is_fetching = $derived(
     user.role === 'admin'
-      ? !!$users_list_is_fetching
-      : !!$user_info_is_fetching || !!$user_scopes_q.isFetching
+      ? users_list_is_fetching.current > 0
+      : user_info_is_fetching.current > 0 || user_scopes_q.isFetching
   );
 </script>
 

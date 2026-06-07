@@ -1,8 +1,9 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
+  import { createMutation, createQuery } from '@tanstack/svelte-query';
   import { Debounced } from 'runed';
-  import { client_q } from '~/api/client';
+  import { useTRPC } from '~/api/client';
   import { invalidate_project_list_queries } from '~/state/main_app/data.svelte';
   import { lekhaUrlSlugify } from '~/lib/carta_markdown/markdown';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -22,6 +23,7 @@
   import Check from '@lucide/svelte/icons/check';
 
   let { open = $bindable(false) }: { open?: boolean } = $props();
+  const trpc = useTRPC();
 
   let name = $state('');
   let name_dev = $state('');
@@ -62,8 +64,8 @@
     slug_effective.length > 0 && !slug_debounce_pending && slug_check_slug === slug_effective
   );
 
-  const slug_check_q = $derived(
-    client_q.project.edit.check_project_slug.query(
+  const slug_check_q = createQuery(() =>
+    trpc.project.edit.check_project_slug.queryOptions(
       { slug: slug_check_slug },
       { enabled: browser && slug_check_slug.length > 0 }
     )
@@ -71,10 +73,10 @@
 
   const slug_available = $derived(
     slug_in_sync &&
-      !$slug_check_q.isPending &&
-      !$slug_check_q.isFetching &&
-      !$slug_check_q.isError &&
-      $slug_check_q.data?.available === true
+      !slug_check_q.isPending &&
+      !slug_check_q.isFetching &&
+      !slug_check_q.isError &&
+      slug_check_q.data?.available === true
   );
 
   const can_submit = $derived(
@@ -95,25 +97,27 @@
     if (!open) reset_form();
   });
 
-  const add_mut = client_q.project.edit.add_new_project.mutation({
-    onSuccess: async (data) => {
-      await invalidate_project_list_queries();
-      open = false;
-      toast.success('Project created');
-      await goto(`/${data.project.key}`);
-    },
-    onError: (err) => {
-      toast.error(err.message || 'Failed to create project');
-    }
-  });
+  const add_mut = createMutation(() =>
+    trpc.project.edit.add_new_project.mutationOptions({
+      onSuccess: async (data) => {
+        await invalidate_project_list_queries();
+        open = false;
+        toast.success('Project created');
+        await goto(`/${data.project.key}`);
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to create project');
+      }
+    })
+  );
 
   const submit = () => {
     if (!can_submit) return;
-    $add_mut.mutate({
+    add_mut.mutate({
       name: name.trim(),
       name_dev: name_dev.trim(),
       description: description.trim() || null,
-      slug: slug.trim()
+      slug: slug_effective
     });
   };
 </script>
@@ -208,16 +212,16 @@
           <div class="flex w-9 shrink-0 items-center justify-center self-center" aria-live="polite">
             {#if !slug_effective}
               <span class="sr-only">Enter a slug to check availability</span>
-            {:else if !slug_in_sync || $slug_check_q.isPending || $slug_check_q.isFetching}
+            {:else if !slug_in_sync || slug_check_q.isPending || slug_check_q.isFetching}
               <Loader2
                 class="size-5 shrink-0 animate-spin text-muted-foreground"
                 aria-hidden="true"
               />
               <span class="sr-only">Checking slug availability…</span>
-            {:else if $slug_check_q.isError}
+            {:else if slug_check_q.isError}
               <CircleAlert class="size-5 shrink-0 text-destructive" aria-hidden="true" />
               <span class="sr-only">Could not verify slug</span>
-            {:else if !$slug_check_q.data?.available}
+            {:else if !slug_check_q.data?.available}
               <CircleAlert class="size-5 shrink-0 text-destructive" aria-hidden="true" />
               <span class="sr-only">This slug is already in use</span>
             {:else}
@@ -235,8 +239,8 @@
 
       <div class="flex justify-end gap-2 border-t border-border/60 pt-3">
         <Button type="button" variant="ghost" onclick={() => (open = false)}>Cancel</Button>
-        <Button type="submit" disabled={!can_submit || $add_mut.isPending}>
-          {$add_mut.isPending ? 'Creating…' : 'Create project'}
+        <Button type="submit" disabled={!can_submit || add_mut.isPending}>
+          {add_mut.isPending ? 'Creating…' : 'Create project'}
         </Button>
       </div>
     </form>

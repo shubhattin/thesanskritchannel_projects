@@ -17,11 +17,11 @@
 
   let { start, headline, end }: { start?: Snippet; headline?: Snippet; end?: Snippet } = $props();
 
-  const project_list_q = $derived(createQuery(project_list_q_options()));
+  const project_list_q = createQuery(() => project_list_q_options());
 
   let pathname = $derived(page.url.pathname);
   let page_title = $derived(
-    get_page_title_info(pathname, ($project_list_q.data ?? EMPTY_PROJECT_REGISTRY).list)
+    get_page_title_info(pathname, (project_list_q.data ?? EMPTY_PROJECT_REGISTRY).list)
   );
 
   let app_bar_popover_status = $state(false);

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { client, client_q } from '~/api/client';
-  import { createQuery, useQueryClient } from '@tanstack/svelte-query';
+  import { client, useTRPC } from '~/api/client';
+  import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
   import ConfirmPopover from '~/components/PopoverModals/ConfirmPopover.svelte';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { get_lang_from_id, LANG_LIST, LANG_LIST_IDS } from '~/state/lang_list';
@@ -22,8 +22,9 @@
   import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
 
   const query_client = useQueryClient();
-  const project_list_q = $derived(createQuery(project_list_q_options()));
-  const project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
+  const trpc = useTRPC();
+  const project_list_q = createQuery(() => project_list_q_options());
+  const project_registry = $derived(project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
 
   let {
     user_info,
@@ -44,27 +45,19 @@
   let add_project_popup = $state(false);
   let approve_remove_project_popup = $state(false);
 
-  const projects_info = $derived(
-    createQuery({
-      queryKey: ['user_info', user_info.id],
-      queryFn: async () => {
-        try {
-          const data = await client.user.user_info.query({
-            user_id: user_info.id
-          });
-          return data;
-        } catch {
-          return null;
-        }
-      },
-      staleTime: ms('5mins')
-    })
-  );
+  const projects_info = createQuery(() => ({
+    queryKey: ['user_info', user_info.id],
+    queryFn: () =>
+      client.user.user_info.query({
+        user_id: user_info.id
+      }),
+    staleTime: ms('5mins')
+  }));
 
   $effect(() => {
-    if (!$projects_info.isSuccess) return;
+    if (!projects_info.isSuccess) return;
     if (!selected_project_id || selected_project_id === '') return;
-    const data = $projects_info.data;
+    const data = projects_info.data;
     selected_langs_ids = [];
     const languages = data!.projects.find(
       (p) => p.project_id === parseInt(selected_project_id)
@@ -77,84 +70,89 @@
   let last_seeded_user_id = $state<string | null>(null);
 
   $effect(() => {
-    if (!$projects_info.isSuccess) return;
-    if ($projects_info.data?.projects.length === 0) return;
+    if (!projects_info.isSuccess) return;
+    if (projects_info.data?.projects.length === 0) return;
     if (last_seeded_user_id === user_info.id) return;
-    selected_project_id = $projects_info.data!.projects[0]?.project_id.toString();
+    selected_project_id = projects_info.data!.projects[0]?.project_id.toString();
     last_seeded_user_id = user_info.id;
   });
 
-  const remove_user_from_app_scope_mut = client_q.user.remove_user_from_app_scope.mutation({
-    onSuccess() {
-      query_client.invalidateQueries({
-        queryKey: ['user_info', user_info.id],
-        exact: true
-      });
-      query_client.invalidateQueries({
-        queryKey: ['users_list'],
-        exact: true
-      });
-      query_client.invalidateQueries({
-        queryKey: [
-          ['user', 'list_user_app_scopes'],
-          { input: { user_id: user_info.id }, type: 'query' }
-        ]
-      });
-    }
-  });
+  const remove_user_from_app_scope_mut = createMutation(() =>
+    trpc.user.remove_user_from_app_scope.mutationOptions({
+      onSuccess() {
+        query_client.invalidateQueries({
+          queryKey: ['user_info', user_info.id],
+          exact: true
+        });
+        query_client.invalidateQueries({
+          queryKey: ['users_list'],
+          exact: true
+        });
+        query_client.invalidateQueries({
+          queryKey: trpc.user.list_user_app_scopes.queryKey({ user_id: user_info.id })
+        });
+      }
+    })
+  );
 
   const remove_user_from_app_scope = async () => {
-    await $remove_user_from_app_scope_mut.mutateAsync({
+    await remove_user_from_app_scope_mut.mutateAsync({
       user_id: user_info.id,
       scope: APP_SCOPE_ID_PROJECT_PORTAL
     });
   };
 
-  const add_project_mut = client_q.project.add_to_project.mutation({
-    onSuccess() {
-      query_client.invalidateQueries({
-        queryKey: ['user_info', user_info.id],
-        exact: true
-      });
-    }
-  });
+  const add_project_mut = createMutation(() =>
+    trpc.project.add_to_project.mutationOptions({
+      onSuccess() {
+        query_client.invalidateQueries({
+          queryKey: ['user_info', user_info.id],
+          exact: true
+        });
+      }
+    })
+  );
 
   const add_project_for_user = async (project_id: number) => {
     add_project_popup = false;
-    await $add_project_mut.mutateAsync({
+    await add_project_mut.mutateAsync({
       user_id: user_info.id,
       project_id
     });
   };
 
-  const project_remove_mut = client_q.project.remove_from_project.mutation({
-    onSuccess() {
-      query_client.invalidateQueries({
-        queryKey: ['user_info', user_info.id],
-        exact: true
-      });
-    }
-  });
+  const project_remove_mut = createMutation(() =>
+    trpc.project.remove_from_project.mutationOptions({
+      onSuccess() {
+        query_client.invalidateQueries({
+          queryKey: ['user_info', user_info.id],
+          exact: true
+        });
+      }
+    })
+  );
 
   const project_remove = async (project_id: number) => {
     approve_remove_project_popup = false;
-    await $project_remove_mut.mutateAsync({
+    await project_remove_mut.mutateAsync({
       user_id: user_info.id,
       project_id
     });
   };
 
-  const add_language_mut = client_q.project.update_project_languages.mutation({
-    onSuccess() {
-      query_client.invalidateQueries({
-        queryKey: ['user_info', user_info.id],
-        exact: true
-      });
-    }
-  });
+  const add_language_mut = createMutation(() =>
+    trpc.project.update_project_languages.mutationOptions({
+      onSuccess() {
+        query_client.invalidateQueries({
+          queryKey: ['user_info', user_info.id],
+          exact: true
+        });
+      }
+    })
+  );
 
   const add_language_to_project = async (project_id: number, languages_id: number[]) => {
-    await $add_language_mut.mutateAsync({
+    await add_language_mut.mutateAsync({
       user_id: user_info.id,
       project_id,
       languages_id
@@ -162,8 +160,20 @@
   };
 </script>
 
-{#if !$projects_info.isFetching && $projects_info.isSuccess && $projects_info.data}
-  {@const data = $projects_info.data}
+{#if projects_info.isFetching}
+  <Skeleton class="h-40 w-full" />
+{:else if projects_info.isError}
+  <div class="space-y-2 text-destructive">
+    <p class="text-sm">Failed to load project assignments.</p>
+    <button
+      class="rounded-md bg-muted px-2 py-1 text-sm font-semibold hover:bg-muted/80"
+      onclick={() => projects_info.refetch()}
+    >
+      Retry
+    </button>
+  </div>
+{:else if projects_info.isSuccess && projects_info.data}
+  {@const data = projects_info.data}
   {#if admin_edit}
     <div class="text-base font-semibold">{user_info.name}</div>
     <a class="text-xs text-muted-foreground sm:text-sm" href={`mailto:${user_info.email}`}
@@ -219,7 +229,7 @@
           description="Sure to unassign this Project ?"
           class="text-sm"
         >
-          <button disabled={$project_remove_mut.isPending} class="ml-2 hover:text-destructive">
+          <button disabled={project_remove_mut.isPending} class="ml-2 hover:text-destructive">
             <Icon src={CgClose} class="text-xl" />
           </button>
         </ConfirmPopover>
@@ -280,7 +290,7 @@
         popup_state={false}
       >
         <button
-          disabled={$remove_user_from_app_scope_mut.isPending}
+          disabled={remove_user_from_app_scope_mut.isPending}
           class="rounded-md bg-destructive px-2 py-1 text-xs text-destructive-foreground"
         >
           Remove User from Projects Portal Scope
@@ -293,7 +303,7 @@
 {/if}
 
 {#snippet add_project(new_list = false)}
-  {#if $project_list_q.isSuccess && $projects_info.data!.projects.length !== project_registry.list.length}
+  {#if project_list_q.isSuccess && projects_info.data!.projects.length !== project_registry.list.length}
     <Popover.Root bind:open={add_project_popup}>
       <Popover.Trigger class="ml-1">
         <span
@@ -310,7 +320,7 @@
       </Popover.Trigger>
       <Popover.Content side={new_list ? 'right' : 'bottom'} class="space-y-1 p-2 sm:space-y-1.5">
         {#each project_registry.list as project (project.id)}
-          {#if !$projects_info.data!.projects.find((p) => p.project_id === project.id)}
+          {#if !projects_info.data!.projects.find((p) => p.project_id === project.id)}
             <div class="block w-full">
               <ConfirmPopover
                 popup_state={false}

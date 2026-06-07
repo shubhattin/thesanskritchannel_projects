@@ -5,7 +5,7 @@
   import { beforeNavigate } from '$app/navigation';
   import { onDestroy, onMount, untrack } from 'svelte';
   import { get } from 'svelte/store';
-  import { client_q } from '~/api/client';
+  import { useTRPC } from '~/api/client';
   import {
     invalidate_project_content_queries,
     invalidate_project_map_queries,
@@ -13,7 +13,7 @@
     project_map_q_options
   } from '~/state/main_app/data.svelte';
   import { project_state } from '~/state/main_app/state.svelte';
-  import { createQuery } from '@tanstack/svelte-query';
+  import { createMutation, createQuery } from '@tanstack/svelte-query';
   import { map_edit_dirty } from '~/state/map_edit_dirty.svelte';
   import type { recursive_list_type } from '~/state/data_types';
   import { Button } from '$lib/components/ui/button';
@@ -78,7 +78,9 @@
     project_name_dev: string;
   } = $props();
 
-  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+  const trpc = useTRPC();
+
+  const project_map_q = createQuery(() => project_map_q_options($project_state));
 
   let baselineMap = $state<recursive_list_type | null>(null);
   let workingMap = $state<MapNodeWithClientId | null>(null);
@@ -233,7 +235,7 @@
   let last_synced_map_key = '';
 
   $effect(() => {
-    const map = $project_map_q.data;
+    const map = project_map_q.data;
     if (!map || metadata_dirty || order_dirty || delete_dirty) return;
     const map_key = JSON.stringify(map);
     if (last_synced_map_key === map_key) return;
@@ -276,47 +278,53 @@
     finishing_save = false;
   };
 
-  const save_mut = client_q.project.map_edit.update.mutation({
-    onSuccess: async (data) => {
-      await finish_save(data.map, {
-        invalidateContent: false,
-        successMessage: 'Project map saved'
-      });
-    },
-    onError: (err) => {
-      finishing_save = false;
-      toast.error(err.message || 'Failed to save project map');
-    }
-  });
+  const save_mut = createMutation(() =>
+    trpc.project.map_edit.update.mutationOptions({
+      onSuccess: async (data) => {
+        await finish_save(data.map, {
+          invalidateContent: false,
+          successMessage: 'Project map saved'
+        });
+      },
+      onError: (err) => {
+        finishing_save = false;
+        toast.error(err.message || 'Failed to save project map');
+      }
+    })
+  );
 
-  const save_order_mut = client_q.project.map_edit.save_order.mutation({
-    onSuccess: async (data) => {
-      await finish_save(data.map, {
-        invalidateContent: true,
-        successMessage: 'List order saved'
-      });
-    },
-    onError: (err) => {
-      finishing_save = false;
-      toast.error(err.message || 'Failed to save list order');
-    }
-  });
+  const save_order_mut = createMutation(() =>
+    trpc.project.map_edit.save_order.mutationOptions({
+      onSuccess: async (data) => {
+        await finish_save(data.map, {
+          invalidateContent: true,
+          successMessage: 'List order saved'
+        });
+      },
+      onError: (err) => {
+        finishing_save = false;
+        toast.error(err.message || 'Failed to save list order');
+      }
+    })
+  );
 
-  const save_delete_mut = client_q.project.map_edit.delete_nodes.mutation({
-    onSuccess: async (data) => {
-      await finish_save(data.map, {
-        invalidateContent: true,
-        successMessage: 'Deleted nodes saved'
-      });
-    },
-    onError: (err) => {
-      finishing_save = false;
-      toast.error(err.message || 'Failed to delete map nodes');
-    }
-  });
+  const save_delete_mut = createMutation(() =>
+    trpc.project.map_edit.delete_nodes.mutationOptions({
+      onSuccess: async (data) => {
+        await finish_save(data.map, {
+          invalidateContent: true,
+          successMessage: 'Deleted nodes saved'
+        });
+      },
+      onError: (err) => {
+        finishing_save = false;
+        toast.error(err.message || 'Failed to delete map nodes');
+      }
+    })
+  );
 
   const save_in_flight = $derived(
-    $save_mut.isPending || $save_order_mut.isPending || $save_delete_mut.isPending || finishing_save
+    save_mut.isPending || save_order_mut.isPending || save_delete_mut.isPending || finishing_save
   );
 
   function reset_from_server(map: recursive_list_type) {
@@ -852,7 +860,7 @@
     );
     finishing_save = true;
     try {
-      await $save_delete_mut.mutateAsync({
+      await save_delete_mut.mutateAsync({
         project_id,
         deleted_paths: deletedDbPaths
       });
@@ -867,7 +875,7 @@
     }
     finishing_save = true;
     try {
-      await $save_order_mut.mutateAsync({
+      await save_order_mut.mutateAsync({
         project_id,
         root_path: [...order_root_path!],
         edits: pending_swaps,
@@ -894,7 +902,7 @@
     if (!workingMap || save_in_flight) return;
     finishing_save = true;
     try {
-      await $save_mut.mutateAsync({
+      await save_mut.mutateAsync({
         project_id,
         map: strip_client_ids(workingMap),
         to_add_paths: metadata_to_add_paths

@@ -1,27 +1,29 @@
 <script lang="ts">
+  import { createQuery } from '@tanstack/svelte-query';
   import UserControls from '~/components/pages/main_app/user/UserControls.svelte';
   import MetaTags from '~/components/tags/MetaTags.svelte';
   import PenLine from '@lucide/svelte/icons/pen-line';
   import Search from '@lucide/svelte/icons/search';
   import Button from '~/lib/components/ui/button/button.svelte';
   import { useSession } from '~/lib/auth-client';
-  import { client_q } from '~/api/client';
+  import { useTRPC } from '~/api/client';
   import { APP_SCOPE_ID_PROJECT_PORTAL, APP_SCOPE_ID_LEKHA } from '~/state/data_types';
   import { Skeleton } from '~/lib/components/ui/skeleton';
   import HomePageProjectList from '~/components/pages/main_app/HomePageProjectList.svelte';
 
   const session = useSession();
+  const trpc = useTRPC();
 
   const is_admin = $derived($session.data?.user.role === 'admin');
-  let list_scopes_q = $derived(
-    client_q.user.list_user_app_scopes.query(
+  let list_scopes_q = createQuery(() =>
+    trpc.user.list_user_app_scopes.queryOptions(
       { user_id: $session.data?.user.id ?? '' },
       {
         enabled: !is_admin
       }
     )
   );
-  let is_scope_loading = $derived(is_admin ? false : $list_scopes_q.isFetching);
+  let is_scope_loading = $derived(is_admin ? false : list_scopes_q.isFetching);
   const main_origin = String(import.meta.env.VITE_MAIN_SITE_URL ?? '')
     .trim()
     .replace(/\/+$/, '');
@@ -42,7 +44,20 @@
     <div class="flex justify-center">
       <Skeleton class="h-10 w-full" />
     </div>
-  {:else if is_admin || ($list_scopes_q.isSuccess && $list_scopes_q.data.scopes.includes(APP_SCOPE_ID_PROJECT_PORTAL))}
+  {:else if !is_admin && list_scopes_q.isError}
+    <div
+      class="mx-auto max-w-xl rounded-xl border border-border bg-card px-6 py-6 text-center text-card-foreground shadow-sm"
+      role="alert"
+    >
+      <p class="text-sm text-destructive">Failed to load your portal permissions.</p>
+      <button
+        class="mt-3 rounded-md bg-muted px-3 py-1.5 text-sm font-semibold hover:bg-muted/80"
+        onclick={() => list_scopes_q.refetch()}
+      >
+        Retry
+      </button>
+    </div>
+  {:else if is_admin || (list_scopes_q.isSuccess && list_scopes_q.data.scopes.includes(APP_SCOPE_ID_PROJECT_PORTAL))}
     <HomePageProjectList />
   {:else}
     <div
@@ -92,7 +107,20 @@
     <div class="mt-4 flex justify-center">
       <Skeleton class="h-10 w-full" />
     </div>
-  {:else if is_admin || ($list_scopes_q.isSuccess && $list_scopes_q.data.scopes.includes(APP_SCOPE_ID_LEKHA))}
+  {:else if !is_admin && list_scopes_q.isError}
+    <div
+      class="mx-auto mt-6 max-w-xl rounded-xl border border-border bg-card px-6 py-6 text-center text-card-foreground shadow-sm"
+      role="alert"
+    >
+      <p class="text-sm text-destructive">Failed to load your Lekha permissions.</p>
+      <button
+        class="mt-3 rounded-md bg-muted px-3 py-1.5 text-sm font-semibold hover:bg-muted/80"
+        onclick={() => list_scopes_q.refetch()}
+      >
+        Retry
+      </button>
+    </div>
+  {:else if is_admin || (list_scopes_q.isSuccess && list_scopes_q.data.scopes.includes(APP_SCOPE_ID_LEKHA))}
     <div class="mt-4 flex justify-center">
       <a href="/lekha" aria-label="Browse Lekha writings">
         <Button variant="outline" size="lg">

@@ -38,32 +38,28 @@
 
   const query_client = useQueryClient();
 
-  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+  const project_map_q = createQuery(() => project_map_q_options($project_state));
 
   const trans_lang_data_query_key = $derived(
     get_trans_lang_data_query_key($trans_lang, $selected_text_levels, $project_state)
   );
 
-  const trans_lang_data_q = $derived(
-    createQuery(
-      active_trans_lang_data_q_options(
-        $trans_lang,
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const trans_lang_data_q = createQuery(() =>
+    active_trans_lang_data_q_options(
+      $trans_lang,
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
-  const trans_en_data_q = $derived(
-    createQuery(
-      active_trans_en_data_q_options(
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const trans_en_data_q = createQuery(() =>
+    active_trans_en_data_q_options(
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
@@ -85,10 +81,10 @@
   let total_count = $state(0);
 
   $effect(() => {
-    if (!$project_map_q.isSuccess) return;
+    if (!project_map_q.isSuccess) return;
     total_count = get_total_count(
       $selected_text_levels,
-      $project_map_q.data,
+      project_map_q.data,
       $project_state?.levels ?? 0
     );
   });
@@ -101,7 +97,7 @@
   $effect(() => {
     if (!$bulk_text_edit_status) {
       $bulk_text_data = trans_map_to_text(
-        $english_edit_status ? $trans_en_data_q.data! : $trans_lang_data_q.data!,
+        $english_edit_status ? trans_en_data_q.data! : trans_lang_data_q.data!,
         total_count
       );
     }
@@ -110,7 +106,7 @@
   const sync_text_data_to_main = async () => {
     const trans_text_map = text_to_trans_map($bulk_text_data, total_count);
     const trans_data = new Map(
-      $english_edit_status ? $trans_en_data_q.data! : $trans_lang_data_q.data!
+      $english_edit_status ? trans_en_data_q.data! : trans_lang_data_q.data!
     );
     trans_text_map.forEach((text, index) => {
       const prev_text = trans_data.get(index)!;

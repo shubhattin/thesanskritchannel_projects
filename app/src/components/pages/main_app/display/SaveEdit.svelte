@@ -32,30 +32,26 @@
     get_trans_lang_data_query_key($trans_lang, $selected_text_levels, $project_state)
   );
 
-  const trans_lang_data_q = $derived(
-    createQuery(
-      active_trans_lang_data_q_options(
-        $trans_lang,
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const trans_lang_data_q = createQuery(() =>
+    active_trans_lang_data_q_options(
+      $trans_lang,
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
-  const trans_en_data_q = $derived(
-    createQuery(
-      active_trans_en_data_q_options(
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const trans_en_data_q = createQuery(() =>
+    active_trans_en_data_q_options(
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
-  const save_data = createMutation({
+  const save_data = createMutation(() => ({
     mutationKey: ['chapter', 'save_edited_data'],
     mutationFn: async ({
       added_indexes,
@@ -64,10 +60,9 @@
       added_indexes: number[];
       edited_indexes: number[];
     }) => {
-      if (!$english_edit_status ? !$trans_lang_data_q.isSuccess : !$trans_en_data_q.isSuccess)
-        return;
+      if (!$english_edit_status ? !trans_lang_data_q.isSuccess : !trans_en_data_q.isSuccess) return;
       await delay(400);
-      const data_source = $english_edit_status ? $trans_en_data_q : $trans_lang_data_q;
+      const data_source = $english_edit_status ? trans_en_data_q : trans_lang_data_q;
       const indexes = added_indexes.concat(edited_indexes);
       const data = indexes.map((index) => data_source.data?.get(index)!);
       const res = await client.translation.edit_translation.mutate({
@@ -83,19 +78,18 @@
         $editing_mode = 'none';
       }
     }
-  });
+  }));
   const save_data_func = () => {
     if ($edited_translations_indexes.size + $added_translations_indexes.length === 0) return;
     const added_indexes = $added_translations_indexes.map((index) => index);
     const edited_indexes = Array.from($edited_translations_indexes).map((index) => index);
-    $save_data.mutate({ added_indexes, edited_indexes });
+    save_data.mutate({ added_indexes, edited_indexes });
   };
 
-  const cancel_edit_data = createMutation({
+  const cancel_edit_data = createMutation(() => ({
     mutationKey: ['chapter', 'cancel_edit_data'],
     mutationFn: async () => {
-      if (!$english_edit_status ? !$trans_lang_data_q.isSuccess : !$trans_en_data_q.isSuccess)
-        return;
+      if (!$english_edit_status ? !trans_lang_data_q.isSuccess : !trans_en_data_q.isSuccess) return;
       await delay(500);
       await query_client.invalidateQueries({
         queryKey: !$english_edit_status
@@ -107,16 +101,16 @@
       $editing_mode = 'none';
       // ^ reset the data
     }
-  });
+  }));
 
   const cancel_edit_func = () => {
     if ($edited_translations_indexes.size + $added_translations_indexes.length === 0) {
-      $cancel_edit_data.mutate();
+      cancel_edit_data.mutate();
       return;
     }
     // const added_indexes = $added_translations_indexes.map((index) => index);
     // const edited_indexes = Array.from($edited_translations_indexes).map((index) => index);
-    $cancel_edit_data.mutate();
+    cancel_edit_data.mutate();
   };
 
   let cancel_popup_state = $state(false);
@@ -145,7 +139,7 @@
 </ConfirmModal>
 <Button
   variant="default"
-  disabled={$save_data.isPending ||
+  disabled={save_data.isPending ||
     $added_translations_indexes.length + $edited_translations_indexes.size === 0}
   class="btn bg-primary-700 dark:bg-primary-700 rounded-lg px-1 py-1 text-white"
   onclick={() => (save_popup_state = true)}
@@ -174,11 +168,11 @@
 <Button
   variant="destructive"
   size="sm"
-  disabled={$cancel_edit_data.isPending}
+  disabled={cancel_edit_data.isPending}
   class="btn bg-error-700 dark:bg-error-600 ml-3 rounded-lg px-1 py-1 font-semibold text-white"
   onclick={() => {
     if ($edited_translations_indexes.size + $added_translations_indexes.length === 0) {
-      $cancel_edit_data.mutate();
+      cancel_edit_data.mutate();
       return;
     }
     cancel_popup_state = true;

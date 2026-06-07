@@ -95,23 +95,21 @@
 
   $effect(() => {
     // loading project map
-    $project_map_q.data;
+    project_map_q.data;
   });
 
   const session = useSession();
 
-  const project_list_q = $derived(createQuery(project_list_q_options()));
-  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
-  const user_project_info_q = $derived(
-    createQuery(user_project_info_q_options($session.data?.user?.id, $project_state))
+  const project_list_q = createQuery(() => project_list_q_options());
+  const project_map_q = createQuery(() => project_map_q_options($project_state));
+  const user_project_info_q = createQuery(() =>
+    user_project_info_q_options($session.data?.user?.id, $project_state)
   );
-  const langs_with_translations_q = $derived(
-    createQuery(
-      active_langs_with_translations_q_options(
-        $selected_text_levels,
-        $project_state,
-        $text_data_present
-      )
+  const langs_with_translations_q = createQuery(() =>
+    active_langs_with_translations_q_options(
+      $selected_text_levels,
+      $project_state,
+      $text_data_present
     )
   );
 
@@ -167,10 +165,10 @@
   };
 
   const derived_list_count = $derived.by(() => {
-    if (!$project_map_q.isSuccess) return null;
+    if (!project_map_q.isSuccess) return null;
     const dynamic_path = get_path_params_from_selected($selected_text_levels, levels);
     if (dynamic_path.length === 0) return null;
-    return get_list_length_for_last_param($project_map_q.data, dynamic_path);
+    return get_list_length_for_last_param(project_map_q.data, dynamic_path);
   });
 
   const get_initial_option_for_state_index = (
@@ -216,7 +214,7 @@
     update_viewing_script_selection: z.boolean().default(true)
   });
   let viewing_script_selection = writable(BASE_SCRIPT);
-  let viewing_script_mut = createMutation({
+  let viewing_script_mut = createMutation(() => ({
     mutationKey: ['viewing_script'],
     mutationFn: async (params: z.infer<typeof params_viewing_script_mut_schema>) => {
       // viewing script should not be directly changed as the resoucres for that
@@ -232,9 +230,9 @@
       $viewing_script = script;
       if (update_viewing_script_selection) $viewing_script_selection = script;
     }
-  });
+  }));
   $effect(() => {
-    const _viewing_script_mut = untrack(() => $viewing_script_mut);
+    const _viewing_script_mut = untrack(() => viewing_script_mut);
     _viewing_script_mut.mutate({
       script: $viewing_script_selection,
       update_viewing_script_selection: false
@@ -249,7 +247,7 @@
     await delay(300);
     const script = get_script_for_lang_id(lang_id);
     if (script) {
-      await $viewing_script_mut.mutateAsync({ script, update_viewing_script_selection: true });
+      $viewing_script_selection = script;
     }
   };
 
@@ -264,8 +262,8 @@
   const can_edit_language = (lang_id: number | null) => {
     if (lang_id === null || !user_info) return false;
     if (user_info.role === 'admin') return true;
-    if (!$user_project_info_q.isSuccess) return false;
-    return $user_project_info_q.data.languages?.map((l) => l.lang_id).includes(lang_id) ?? false;
+    if (!user_project_info_q.isSuccess) return false;
+    return user_project_info_q.data.languages?.map((l) => l.lang_id).includes(lang_id) ?? false;
   };
 
   type lang_option = { lang: string; id: number };
@@ -314,23 +312,21 @@
   });
 
   // Language Typing for Schwa Deletion
-  let sanskrit_mode_texts = $derived(
-    createQuery({
-      queryKey: ['sanskrit_mode_texts', active_translation_lang_id],
-      enabled:
-        browser &&
-        ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') &&
-        active_translation_lang_id !== null &&
-        active_translation_lang_id !== lang_list_obj.English,
-      queryFn: () =>
-        transliterate_custom(
-          ['राम्', 'राम'],
-          BASE_SCRIPT,
-          LANG_LIST[LANG_LIST_IDS.indexOf(active_translation_lang_id!)] as ScriptLangType
-        ),
-      placeholderData: ['राम्', 'राम']
-    })
-  );
+  let sanskrit_mode_texts = createQuery(() => ({
+    queryKey: ['sanskrit_mode_texts', active_translation_lang_id],
+    enabled:
+      browser &&
+      ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') &&
+      active_translation_lang_id !== null &&
+      active_translation_lang_id !== lang_list_obj.English,
+    queryFn: () =>
+      transliterate_custom(
+        ['राम्', 'राम'],
+        BASE_SCRIPT,
+        LANG_LIST[LANG_LIST_IDS.indexOf(active_translation_lang_id!)] as ScriptLangType
+      ),
+    placeholderData: ['राम्', 'राम']
+  }));
   const SPECIFIC_SCHWA = {
     scripts: [
       script_list_obj.Bengali,
@@ -344,8 +340,8 @@
     (async () => {
       if (
         !($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') ||
-        $sanskrit_mode_texts.isFetching ||
-        !$sanskrit_mode_texts.isSuccess
+        sanskrit_mode_texts.isFetching ||
+        !sanskrit_mode_texts.isSuccess
       )
         return;
       if (
@@ -374,7 +370,7 @@
     type="single"
     bind:value={$viewing_script_selection as any}
     disabled={$editing_mode === 'text' ||
-      ($viewing_script_selection !== BASE_SCRIPT && $viewing_script_mut.isPending)}
+      ($viewing_script_selection !== BASE_SCRIPT && viewing_script_mut.isPending)}
   >
     <Select.Trigger class="inline-flex h-10 w-32 px-2 py-1 text-sm sm:h-12 sm:w-40 sm:text-base">
       {$viewing_script_selection}
@@ -388,7 +384,7 @@
 </label>
 {#each { length: levels - 1 } as _, i}
   {@const text_level_state_index = levels - i - 2}
-  {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
+  {@const map_root = project_map_q.isSuccess && project_map_q.data}
   {@const initial_option_base = get_initial_option_for_state_index(
     levels,
     text_level_state_index,
@@ -550,7 +546,7 @@
             {@const other_lang_id = $selected_translation_lang_ids[slot === 0 ? 1 : 0]}
             {@const { available, unavailable } = get_grouped_lang_options(
               other_lang_id,
-              $langs_with_translations_q.data
+              langs_with_translations_q.data
             )}
             <Select.Root
               type="single"
@@ -560,7 +556,7 @@
               }}
               disabled={$editing_mode === '1st_lang' ||
                 $editing_mode === '2nd_lang' ||
-                $viewing_script_mut.isPending}
+                viewing_script_mut.isPending}
             >
               <Select.Trigger class="inline-flex h-7 w-full max-w-34 px-2 text-xs">
                 {slot_lang_id === null ? 'None' : LANG_LIST[LANG_LIST_IDS.indexOf(slot_lang_id)]}
@@ -656,7 +652,7 @@
       />
       <Icon src={BsKeyboard} class="text-4xl" />
     </Label>
-    {#if $sanskrit_mode_texts.isSuccess && !$sanskrit_mode_texts.isFetching}
+    {#if sanskrit_mode_texts.isSuccess && !sanskrit_mode_texts.isFetching}
       <Select.Root
         type="single"
         value={String($sanskrit_mode ?? 0)}
@@ -668,12 +664,12 @@
       >
         <Select.Trigger class="w-28 text-sm">
           {$sanskrit_mode === 1
-            ? 'rAm ➔ ' + $sanskrit_mode_texts.data[0]
-            : 'rAm ➔ ' + $sanskrit_mode_texts.data[1]}
+            ? 'rAm ➔ ' + sanskrit_mode_texts.data[0]
+            : 'rAm ➔ ' + sanskrit_mode_texts.data[1]}
         </Select.Trigger>
         <Select.Content>
-          <Select.Item value="1">rAm ➔ {$sanskrit_mode_texts.data[0]}</Select.Item>
-          <Select.Item value="0">rAm ➔ {$sanskrit_mode_texts.data[1]}</Select.Item>
+          <Select.Item value="1">rAm ➔ {sanskrit_mode_texts.data[0]}</Select.Item>
+          <Select.Item value="0">rAm ➔ {sanskrit_mode_texts.data[1]}</Select.Item>
         </Select.Content>
       </Select.Root>
     {/if}

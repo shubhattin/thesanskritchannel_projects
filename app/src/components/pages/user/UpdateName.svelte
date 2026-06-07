@@ -17,19 +17,25 @@
     if (user_info && user_info.name) user_name = user_info.name;
   });
 
-  const update_name_mut = createMutation({
+  const update_name_mut = createMutation(() => ({
     mutationFn: async (name: string) => {
       await authClient.updateUser({
         name: name
       });
     },
     onSuccess: () => {
+      is_edited = false;
       update_name_modal_status = false;
     }
-  });
+  }));
+
+  const close_update_name_modal = () => {
+    is_edited = false;
+    update_name_modal_status = false;
+  };
 
   const update_user_name_func = () => {
-    if (is_edited) $update_name_mut.mutate(user_name);
+    if (is_edited) update_name_mut.mutate(user_name);
   };
 </script>
 
@@ -58,13 +64,13 @@
       </label>
       <div class="flex gap-2">
         <button
-          disabled={!is_edited || $update_name_mut.isPending}
+          disabled={!is_edited || update_name_mut.isPending}
           class="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           onclick={update_user_name_func}>Update</button
         >
         <button
           class="rounded-lg bg-destructive px-3 py-1.5 text-sm font-semibold text-destructive-foreground hover:bg-destructive/90"
-          onclick={() => (update_name_modal_status = false)}>Cancel</button
+          onclick={close_update_name_modal}>Cancel</button
         >
       </div>
     </div>

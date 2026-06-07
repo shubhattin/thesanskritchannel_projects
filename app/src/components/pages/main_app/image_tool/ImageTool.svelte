@@ -62,22 +62,18 @@
 
   let { onClose }: Props = $props();
 
-  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+  const project_map_q = createQuery(() => project_map_q_options($project_state));
 
-  const image_text_data_q = $derived(
-    createQuery(
-      image_text_data_q_options($image_selected_levels, $project_state, $text_data_present)
-    )
+  const image_text_data_q = createQuery(() =>
+    image_text_data_q_options($image_selected_levels, $project_state, $text_data_present)
   );
 
-  const image_trans_data_q = $derived(
-    createQuery(
-      image_trans_data_q_options(
-        $image_selected_levels,
-        $image_lang,
-        $project_state,
-        $text_data_present
-      )
+  const image_trans_data_q = createQuery(() =>
+    image_trans_data_q_options(
+      $image_selected_levels,
+      $image_lang,
+      $project_state,
+      $text_data_present
     )
   );
 
@@ -201,8 +197,8 @@
   });
 
   $effect(() => {
-    if (mounted && !$image_text_data_q.isFetching && $image_text_data_q.isSuccess) {
-      $image_shloka_data = deepCopy($image_text_data_q.data![$image_shloka]);
+    if (mounted && !image_text_data_q.isFetching && image_text_data_q.isSuccess) {
+      $image_shloka_data = deepCopy(image_text_data_q.data![$image_shloka]);
     }
   });
 
@@ -211,10 +207,10 @@
     if (
       !mounted ||
       !$fonts_loaded ||
-      $image_text_data_q.isFetching ||
-      !$image_text_data_q.isSuccess ||
-      $image_trans_data_q.isFetching ||
-      !$image_trans_data_q.isSuccess ||
+      image_text_data_q.isFetching ||
+      !image_text_data_q.isSuccess ||
+      image_trans_data_q.isFetching ||
+      !image_trans_data_q.isSuccess ||
       !$image_selected_levels ||
       !$shloka_configs ||
       !$normal_text_font_config ||
@@ -282,7 +278,7 @@
         <div class="inline-block space-x-1">
           {#each { length: levels - 1 } as _, i}
             {@const text_level_state_index = levels - i - 2}
-            {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
+            {@const map_root = project_map_q.isSuccess && project_map_q.data}
             {@const fallback_level_name = level_names[levels - i - 1]}
             {@const level_name =
               map_root && levels > 0

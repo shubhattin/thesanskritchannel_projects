@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { client_q } from '~/api/client';
+  import { createMutation } from '@tanstack/svelte-query';
+  import { useTRPC } from '~/api/client';
   import { invalidate_project_list_queries } from '~/state/main_app/data.svelte';
   import { project_state } from '~/state/main_app/state.svelte';
   import type { project_type } from '~/state/project_list';
@@ -17,6 +18,7 @@
     project: project_type;
     onSlugChanged?: (newKey: string) => void;
   } = $props();
+  const trpc = useTRPC();
 
   let slug_edit_unlocked = $state(false);
   let slug_draft = $state('');
@@ -29,34 +31,38 @@
     if (!slug_edit_unlocked) slug_draft = project.key;
   });
 
-  const slug_mut = client_q.project.edit.edit_project_slug.mutation({
-    onSuccess: async (_data, variables) => {
-      const key = lekhaUrlSlugify(variables.key);
-      await invalidate_project_list_queries();
-      slug_edit_unlocked = false;
-      save_confirm_open = false;
-      if ($project_state) $project_state = { ...$project_state, project_key: key };
-      toast.success('Project slug updated');
-      onSlugChanged?.(key);
-    },
-    onError: (err) => {
-      toast.error(err.message || 'Failed to update project slug');
-    }
-  });
+  const slug_mut = createMutation(() =>
+    trpc.project.edit.edit_project_slug.mutationOptions({
+      onSuccess: async (_data, variables) => {
+        const key = lekhaUrlSlugify(variables.key);
+        await invalidate_project_list_queries();
+        slug_edit_unlocked = false;
+        save_confirm_open = false;
+        if ($project_state) $project_state = { ...$project_state, project_key: key };
+        toast.success('Project slug updated');
+        onSlugChanged?.(key);
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to update project slug');
+      }
+    })
+  );
 
-  const listed_mut = client_q.project.edit.update_listed.mutation({
-    onSuccess: async (_data, variables) => {
-      await invalidate_project_list_queries();
-      unpublish_dialog_open = false;
-      if ($project_state) $project_state = { ...$project_state, listed: variables.listed };
-      toast.success(
-        variables.listed ? 'Project is now listed on the public site' : 'Project unpublished'
-      );
-    },
-    onError: (err) => {
-      toast.error(err.message || 'Failed to update listed status');
-    }
-  });
+  const listed_mut = createMutation(() =>
+    trpc.project.edit.update_listed.mutationOptions({
+      onSuccess: async (_data, variables) => {
+        await invalidate_project_list_queries();
+        unpublish_dialog_open = false;
+        if ($project_state) $project_state = { ...$project_state, listed: variables.listed };
+        toast.success(
+          variables.listed ? 'Project is now listed on the public site' : 'Project unpublished'
+        );
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to update listed status');
+      }
+    })
+  );
 
   const cancel_slug_edit = () => {
     slug_draft = project.key;
@@ -77,18 +83,18 @@
   };
 
   const confirm_slug_save = () => {
-    $slug_mut.mutate({
+    slug_mut.mutate({
       project_id: project.id,
       key: slug_draft
     });
   };
 
   const list_project = () => {
-    $listed_mut.mutate({ project_id: project.id, listed: true });
+    listed_mut.mutate({ project_id: project.id, listed: true });
   };
 
   const unpublish_project = () => {
-    $listed_mut.mutate({ project_id: project.id, listed: false });
+    listed_mut.mutate({ project_id: project.id, listed: false });
   };
 </script>
 
@@ -153,7 +159,7 @@
           type="button"
           variant="secondary"
           size="sm"
-          disabled={$slug_mut.isPending}
+          disabled={slug_mut.isPending}
           onclick={request_slug_save}
         >
           Save
@@ -162,7 +168,7 @@
           type="button"
           variant="ghost"
           size="sm"
-          disabled={$slug_mut.isPending}
+          disabled={slug_mut.isPending}
           onclick={cancel_slug_edit}
         >
           Cancel
@@ -183,8 +189,8 @@
         </AlertDialog.Header>
         <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
           <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-          <AlertDialog.Action disabled={$slug_mut.isPending} onclick={confirm_slug_save}>
-            {$slug_mut.isPending ? 'Saving…' : 'Save slug'}
+          <AlertDialog.Action disabled={slug_mut.isPending} onclick={confirm_slug_save}>
+            {slug_mut.isPending ? 'Saving…' : 'Save slug'}
           </AlertDialog.Action>
         </AlertDialog.Footer>
       </AlertDialog.Content>
@@ -212,7 +218,7 @@
               type="button"
               variant="destructive"
               size="sm"
-              disabled={$listed_mut.isPending}
+              disabled={listed_mut.isPending}
             >
               Unpublish project
             </Button>
@@ -228,8 +234,8 @@
           </AlertDialog.Header>
           <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
             <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-            <AlertDialog.Action disabled={$listed_mut.isPending} onclick={unpublish_project}>
-              {$listed_mut.isPending ? 'Updating…' : 'Unpublish'}
+            <AlertDialog.Action disabled={listed_mut.isPending} onclick={unpublish_project}>
+              {listed_mut.isPending ? 'Updating…' : 'Unpublish'}
             </AlertDialog.Action>
           </AlertDialog.Footer>
         </AlertDialog.Content>
@@ -239,10 +245,10 @@
         type="button"
         variant="default"
         size="sm"
-        disabled={$listed_mut.isPending}
+        disabled={listed_mut.isPending}
         onclick={list_project}
       >
-        {$listed_mut.isPending ? 'Updating…' : 'List on public site'}
+        {listed_mut.isPending ? 'Updating…' : 'List on public site'}
       </Button>
     {/if}
   </section>

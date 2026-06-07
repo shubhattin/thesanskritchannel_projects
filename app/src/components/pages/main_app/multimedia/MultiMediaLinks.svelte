@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { createQuery } from '@tanstack/svelte-query';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Popover from '$lib/components/ui/popover';
   import { CgAdd } from 'svelte-icons-pack/cg';
-  import { client_q } from '~/api/client';
+  import { useTRPC } from '~/api/client';
   import { MultimediaIcon } from '~/components/icons';
   import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
   import { useSession } from '~/lib/auth-client';
@@ -15,8 +16,9 @@
   import Button from '~/lib/components/ui/button/button.svelte';
   import { Skeleton } from '$lib/components/ui/skeleton';
 
-  const media_list_q = $derived(
-    client_q.media.get_media_list.query({
+  const trpc = useTRPC();
+  const media_list_q = createQuery(() =>
+    trpc.media.get_media_list.queryOptions({
       project_id: $project_state!.project_id,
       selected_text_levels: $selected_text_levels
     })
@@ -26,7 +28,7 @@
 
   let link_add_modal_opened = $state(false);
   let link_edit_modal_opened = $state(false);
-  let selected_edit_item = $state<NonNullable<typeof $media_list_q.data>[0] | null>(null!);
+  let selected_edit_item = $state<NonNullable<typeof media_list_q.data>[0] | null>(null!);
 
   const session = useSession();
 
@@ -43,10 +45,10 @@
     side="bottom"
     class="max-h-96 w-96 space-y-1 overflow-y-auto overscroll-contain p-1.5"
   >
-    {#if $media_list_q.isFetching}
+    {#if media_list_q.isFetching}
       <Skeleton class="h-15 w-30 bg-muted" />
-    {:else if !$media_list_q.isFetching && $media_list_q.isSuccess}
-      {@const media_list = $media_list_q.data}
+    {:else if !media_list_q.isFetching && media_list_q.isSuccess}
+      {@const media_list = media_list_q.data}
       {#if media_list.length === 0}
         <div class="text-amber-600 dark:text-amber-500">No multimedia links found</div>
       {:else}

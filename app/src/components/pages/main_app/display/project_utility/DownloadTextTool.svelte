@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import { createQuery, type CreateQueryResult } from '@tanstack/svelte-query';
+  import { createQuery } from '@tanstack/svelte-query';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -22,10 +22,8 @@
     text_data_present
   } from '~/state/main_app/state.svelte';
   import { get_lang_from_id, SCRIPT_LIST, type script_list_type } from '~/state/lang_list';
-  import { queryClient } from '~/state/queryClient';
   import { download_file_in_browser } from '~/tools/download_file_browser';
   import { transliterate_custom } from '~/tools/converter';
-  import { derived, writable } from 'svelte/store';
   import {
     format_download_text,
     PREVIEW_SHLOKA_COUNT,
@@ -38,41 +36,30 @@
   let text_script = $state<script_list_type>(BASE_SCRIPT);
   let include_normal = $state(true);
   let include_translation = $state(true);
-  let selected_lang_id = writable<number | null>(null);
-  const include_translation_store = writable(false);
-  const dialog_open_store = writable(false);
+  let selected_lang_id = $state<number | null>(null);
   let preview_text = $state('');
   let preview_loading = $state(false);
   let downloading = $state(false);
 
-  $effect(() => {
-    include_translation_store.set(include_translation);
-    dialog_open_store.set(open);
-  });
-
   const show_normal_option = $derived(should_show_normal_transliteration(text_script));
   const effective_include_normal = $derived(show_normal_option && include_normal);
 
-  const langs_with_translations_q = $derived(
-    createQuery(
-      active_langs_with_translations_q_options(
-        $selected_text_levels,
-        $project_state,
-        $text_data_present
-      )
+  const langs_with_translations_q = createQuery(() =>
+    active_langs_with_translations_q_options(
+      $selected_text_levels,
+      $project_state,
+      $text_data_present
     )
   );
 
-  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+  const project_map_q = createQuery(() => project_map_q_options($project_state));
 
-  const text_data_q = $derived(
-    createQuery({
-      ...text_data_q_options($selected_text_levels, $project_state),
-      enabled: $text_data_present && $project_state !== null
-    })
-  );
+  const text_data_q = createQuery(() => ({
+    ...text_data_q_options($selected_text_levels, $project_state),
+    enabled: $text_data_present && $project_state !== null
+  }));
 
-  const available_lang_ids = $derived($langs_with_translations_q.data ?? []);
+  const available_lang_ids = $derived(langs_with_translations_q.data ?? []);
 
   const lang_options = $derived(
     available_lang_ids
@@ -84,40 +71,25 @@
       .sort((a, b) => a.label.localeCompare(b.label))
   );
 
-  const translation_q: CreateQueryResult<Map<number, string>, Error> = derived(
-    [
-      project_state,
-      selected_text_levels,
-      selected_lang_id,
-      include_translation_store,
-      dialog_open_store
-    ],
-    ([project_state_, selected_text_levels_, lang_id, include_translation_, is_open], set) => {
-      const query = createQuery(
-        {
-          ...trans_lang_data_q_options(lang_id ?? -1, selected_text_levels_, project_state_),
-          enabled: browser && is_open && include_translation_ && lang_id !== null && lang_id !== 0
-        },
-        queryClient
-      );
-      const unsub = query.subscribe((state) => set(state));
-      return () => unsub();
-    }
-  );
+  const translation_q = createQuery(() => ({
+    ...trans_lang_data_q_options(selected_lang_id ?? -1, $selected_text_levels, $project_state),
+    enabled:
+      browser && open && include_translation && selected_lang_id !== null && selected_lang_id !== 0
+  }));
 
   const selected_lang_label = $derived(
-    $selected_lang_id === null
+    selected_lang_id === null
       ? 'Select language'
-      : (get_lang_from_id($selected_lang_id) ?? 'Language')
+      : (get_lang_from_id(selected_lang_id) ?? 'Language')
   );
 
   $effect(() => {
     if (!include_translation) {
-      $selected_lang_id = null;
+      selected_lang_id = null;
       return;
     }
-    if ($selected_lang_id !== null && available_lang_ids.includes($selected_lang_id)) return;
-    $selected_lang_id = lang_options[0]?.id ?? null;
+    if (selected_lang_id !== null && available_lang_ids.includes(selected_lang_id)) return;
+    selected_lang_id = lang_options[0]?.id ?? null;
   });
 
   const get_lowest_selected = (levels: (number | null)[]) =>
@@ -126,7 +98,7 @@
   const build_download_filename = async () => {
     const name_first_line = get_last_level_name(
       $selected_text_levels,
-      $project_map_q.data,
+      project_map_q.data,
       $project_state?.levels ?? 0
     )
       .split('\n')[0]
@@ -141,7 +113,7 @@
     );
   };
 
-  const build_text_content = async (rows: NonNullable<typeof $text_data_q.data>) => {
+  const build_text_content = async (rows: NonNullable<typeof text_data_q.data>) => {
     const texts = rows.map((row) => row.text);
     const indices = rows.map((row) => row.index);
     const { scriptTexts, normalTexts } = await transliterate_text_batch(
@@ -150,8 +122,8 @@
       effective_include_normal
     );
     const translationMap =
-      include_translation && $translation_q.isSuccess
-        ? ($translation_q.data as Map<number, string>)
+      include_translation && translation_q.isSuccess
+        ? (translation_q.data as Map<number, string>)
         : null;
 
     return format_download_text(scriptTexts, normalTexts, indices, translationMap, {
@@ -165,16 +137,21 @@
     const script = text_script;
     const with_normal = effective_include_normal;
     const with_translation = include_translation;
-    const translation_data = $translation_q.data;
+    const translation_data = translation_q.data;
 
-    if (!open || !$text_data_q.isSuccess || !$text_data_q.data) {
+    if (!open || !text_data_q.isSuccess || !text_data_q.data) {
       preview_text = '';
       preview_loading = false;
       return;
     }
 
-    const rows = $text_data_q.data.slice(0, PREVIEW_SHLOKA_COUNT);
-    const translationReady = !with_translation || $translation_q.isSuccess;
+    const rows = text_data_q.data.slice(0, PREVIEW_SHLOKA_COUNT);
+    const translationReady = !with_translation || translation_q.isSuccess;
+    if (with_translation && translation_q.isError) {
+      preview_loading = false;
+      preview_text = '';
+      return;
+    }
     if (!translationReady) {
       preview_loading = true;
       return;
@@ -210,12 +187,12 @@
   });
 
   const download_text_file = async () => {
-    if (!browser || !$text_data_q.isSuccess || !$text_data_q.data) return;
-    if (include_translation && !$translation_q.isSuccess) return;
+    if (!browser || !text_data_q.isSuccess || !text_data_q.data) return;
+    if (include_translation && !translation_q.isSuccess) return;
 
     downloading = true;
     try {
-      const text = await build_text_content($text_data_q.data);
+      const text = await build_text_content(text_data_q.data);
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       download_file_in_browser(url, await build_download_filename(), true);
@@ -268,7 +245,7 @@
         {#if include_translation}
           <div class="flex flex-col gap-1.5 pl-6">
             <Label for="download-text-translation-lang">Translation language</Label>
-            {#if $langs_with_translations_q.isLoading}
+            {#if langs_with_translations_q.isLoading}
               <Skeleton class="h-10 w-full" />
             {:else if lang_options.length === 0}
               <p class="text-sm text-muted-foreground">
@@ -277,9 +254,9 @@
             {:else}
               <Select.Root
                 type="single"
-                value={$selected_lang_id === null ? undefined : String($selected_lang_id)}
+                value={selected_lang_id === null ? undefined : String(selected_lang_id)}
                 onValueChange={(value) => {
-                  $selected_lang_id = value ? Number(value) : null;
+                  selected_lang_id = value ? Number(value) : null;
                 }}
               >
                 <Select.Trigger id="download-text-translation-lang" class="w-full">
@@ -299,9 +276,11 @@
       <div class="flex flex-col gap-1.5">
         <Label>Preview (first {PREVIEW_SHLOKA_COUNT} shlokas)</Label>
         <ScrollArea class="h-44 rounded-md border bg-muted/30 p-3">
-          {#if !$text_data_q.isSuccess}
+          {#if !text_data_q.isSuccess}
             <Skeleton class="h-32 w-full" />
-          {:else if preview_loading || (include_translation && $translation_q.isLoading)}
+          {:else if include_translation && translation_q.isError}
+            <p class="text-sm text-destructive">Failed to load translation preview.</p>
+          {:else if preview_loading || (include_translation && translation_q.isLoading)}
             <div class="flex h-32 items-center justify-center">
               <Skeleton class="h-24 w-full" />
             </div>
@@ -318,9 +297,9 @@
       <Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
       <Button
         disabled={downloading ||
-          !$text_data_q.isSuccess ||
+          !text_data_q.isSuccess ||
           (include_translation &&
-            (lang_options.length === 0 || $translation_q.isLoading || !$translation_q.isSuccess))}
+            (lang_options.length === 0 || translation_q.isLoading || !translation_q.isSuccess))}
         onclick={download_text_file}
       >
         {downloading ? 'Downloading...' : 'Download'}

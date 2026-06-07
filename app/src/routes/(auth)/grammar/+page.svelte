@@ -81,9 +81,9 @@
   let load_text_source = $state(true);
   let selected_project_key = $state<string | null>(null);
 
-  const project_list_q = $derived(createQuery(project_list_q_options()));
+  const project_list_q = createQuery(() => project_list_q_options());
 
-  let project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
+  let project_registry = $derived(project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
   let project = $derived(
     selected_project_key ? get_project_from_key(selected_project_key!, project_registry) : null
   );
@@ -101,18 +101,18 @@
     };
   });
 
-  let project_map_q = $derived(createQuery(project_map_q_options(grammar_map_project_state)));
+  let project_map_q = createQuery(() => project_map_q_options(grammar_map_project_state));
   let selected_text_levels = $state<(number | null)[]>([]);
 
   const levels = $derived.by(() => {
-    if (!selected_project_key || !$project_map_q.isSuccess) return 0;
-    return clamp_levels_for_route(get_levels_from_map($project_map_q.data));
+    if (!selected_project_key || !project_map_q.isSuccess) return 0;
+    return clamp_levels_for_route(get_levels_from_map(project_map_q.data));
   });
 
   const level_names = $derived.by(() => {
-    if (!selected_project_key || !$project_map_q.isSuccess) return [] as string[];
-    const lvls = clamp_levels_for_route(get_levels_from_map($project_map_q.data));
-    return get_level_names_from_map($project_map_q.data).slice(0, lvls);
+    if (!selected_project_key || !project_map_q.isSuccess) return [] as string[];
+    const lvls = clamp_levels_for_route(get_levels_from_map(project_map_q.data));
+    return get_level_names_from_map(project_map_q.data).slice(0, lvls);
   });
 
   const grammar_project_state = $derived.by((): ProjectState | null => {
@@ -163,17 +163,15 @@
     return true;
   });
 
-  let text_data_q = $derived(
-    createQuery({
-      ...text_data_q_options(selected_text_levels, grammar_project_state),
-      enabled: text_data_present && !!selected_project_key && !!levels
-    })
-  );
+  let text_data_q = createQuery(() => ({
+    ...text_data_q_options(selected_text_levels, grammar_project_state),
+    enabled: text_data_present && !!selected_project_key && !!levels
+  }));
 
   let shloka_number = $state(0);
   let total_count = $derived.by(() => {
-    if (!levels || !$project_map_q.isSuccess) return 0;
-    const project_map = $project_map_q.data;
+    if (!levels || !project_map_q.isSuccess) return 0;
+    const project_map = project_map_q.data;
     return get_total_count_from_map(levels, project_map, selected_text_levels);
   });
 
@@ -191,8 +189,9 @@
   });
 
   $effect(() => {
-    if (text_data_present && $text_data_q.isSuccess) {
-      shloka = $text_data_q.data[shloka_number].text;
+    if (text_data_present && text_data_q.isSuccess) {
+      const row = text_data_q.data?.[shloka_number];
+      shloka = row?.text ?? '';
     }
   });
 </script>
@@ -240,7 +239,7 @@
     <div class="flex items-center justify-start space-x-6">
       <label class="flex items-center gap-2">
         <span class="text-base font-semibold">Project</span>
-        {#if $project_list_q.isPending}
+        {#if project_list_q.isPending}
           <Skeleton class="h-10 w-44" />
         {:else}
           <Select.Root type="single" bind:value={selected_project_key as any}>
@@ -258,11 +257,11 @@
         {/if}
       </label>
     </div>
-    {#if selected_project_key && project && $project_map_q.isSuccess && levels > 0}
+    {#if selected_project_key && project && project_map_q.isSuccess && levels > 0}
       <div class="flex items-center justify-start space-x-4">
         {#each { length: levels - 1 } as _, i}
           {@const text_level_state_index = levels - i - 2}
-          {@const map_root = $project_map_q.isSuccess && $project_map_q.data}
+          {@const map_root = project_map_q.isSuccess && project_map_q.data}
           {@const fallback_level_name = level_names[levels - i - 1]}
           {@const level_name =
             map_root && levels > 0
@@ -339,11 +338,11 @@
         {/snippet}
       </div>
     {/if}
-    {#if text_data_present && $text_data_q.isSuccess}
+    {#if text_data_present && text_data_q.isSuccess}
       <div class="block space-x-2" transition:slide>
         <button
           class="btn p-0"
-          disabled={shloka_number === 0 || $text_data_q.isFetching}
+          disabled={shloka_number === 0 || text_data_q.isFetching}
           onclick={() => {
             shloka_number--;
           }}
@@ -356,19 +355,19 @@
           onValueChange={(v) => {
             shloka_number = parseInt(v) || 0;
           }}
-          disabled={$text_data_q.isFetching}
+          disabled={text_data_q.isFetching}
         >
           <Select.Trigger class="inline-flex h-9 w-20 p-1 text-sm">
-            {shloka_number}{$text_data_q.isSuccess && $text_data_q.data?.[shloka_number]?.shloka_num
-              ? ` - ${$text_data_q.data[shloka_number].shloka_num}`
+            {shloka_number}{text_data_q.isSuccess && text_data_q.data?.[shloka_number]?.shloka_num
+              ? ` - ${text_data_q.data[shloka_number].shloka_num}`
               : ''}
           </Select.Trigger>
           <Select.Content>
-            {#if $text_data_q.isSuccess && !$text_data_q.isFetching}
+            {#if text_data_q.isSuccess && !text_data_q.isFetching}
               {#each Array(total_count) as _, index}
                 <Select.Item value={index.toString()}>
-                  {index}{$text_data_q.data![index]?.shloka_num &&
-                    ` - ${$text_data_q.data![index].shloka_num}`}
+                  {index}{text_data_q.data![index]?.shloka_num &&
+                    ` - ${text_data_q.data![index].shloka_num}`}
                 </Select.Item>
               {/each}
             {/if}
@@ -379,19 +378,21 @@
           onclick={() => {
             shloka_number++;
           }}
-          disabled={shloka_number === total_count - 1 || $text_data_q.isFetching}
+          disabled={shloka_number === total_count - 1 || text_data_q.isFetching}
         >
           <Icon src={TiArrowForwardOutline} class="-mt-1 text-lg" />
         </button>
       </div>
       <div transition:slide>
-        {#each $text_data_q.data[shloka_number].text.split('\n') as line}
-          <div>{line}</div>
-        {/each}
+        {#if text_data_q.data?.[shloka_number]?.text}
+          {#each text_data_q.data[shloka_number].text.split('\n') as line}
+            <div>{line}</div>
+          {/each}
+        {/if}
       </div>
     {/if}
   {/if}
-  {#if !load_text_source || (load_text_source && text_data_present && $text_data_q.isSuccess)}
+  {#if !load_text_source || (load_text_source && text_data_present && text_data_q.isSuccess)}
     <button
       transition:fly
       class="btn preset-filled-primary-200-800 font-semibold"

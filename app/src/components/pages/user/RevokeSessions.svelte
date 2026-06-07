@@ -11,20 +11,18 @@
 
   let { user_id }: { user_id: string } = $props();
 
-  const userSessions_q = $derived(
-    createQuery({
-      queryKey: ['user_sessions', user_id],
-      queryFn: async () => {
-        const { data } = await authClient.admin.listUserSessions({
-          userId: user_id
-        });
-        return data?.sessions;
-      },
-      enabled: user_info?.is_maintainer ?? false
-    })
-  );
+  const userSessions_q = createQuery(() => ({
+    queryKey: ['user_sessions', user_id],
+    queryFn: async () => {
+      const { data } = await authClient.admin.listUserSessions({
+        userId: user_id
+      });
+      return data?.sessions;
+    },
+    enabled: user_info?.is_maintainer ?? false
+  }));
 
-  const revoke_user_session_mut = createMutation({
+  const revoke_user_session_mut = createMutation(() => ({
     mutationFn: async () => {
       await authClient.admin.revokeUserSessions({
         userId: user_id
@@ -35,10 +33,10 @@
         queryKey: ['user_sessions', user_id]
       });
     }
-  });
+  }));
 
   const revoke_user_sessions_func = async () => {
-    await $revoke_user_session_mut.mutateAsync();
+    await revoke_user_session_mut.mutateAsync();
   };
 </script>
 
@@ -47,8 +45,8 @@
     <div class="mb-1.5 text-base font-semibold text-amber-700 dark:text-amber-400">
       User Sessions
     </div>
-    {#if !$userSessions_q.isFetching && $userSessions_q.isSuccess}
-      {@const sessions = $userSessions_q.data}
+    {#if !userSessions_q.isFetching && userSessions_q.isSuccess}
+      {@const sessions = userSessions_q.data}
       {#if sessions && sessions.length > 0}
         <div>
           User has {sessions.length} sessions
@@ -56,7 +54,7 @@
         <Button
           variant="destructive"
           size="sm"
-          disabled={$revoke_user_session_mut.isPending}
+          disabled={revoke_user_session_mut.isPending}
           ondblclick={revoke_user_sessions_func}
           class="mt-1"
         >

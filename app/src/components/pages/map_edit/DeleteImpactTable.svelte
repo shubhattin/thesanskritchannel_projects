@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { client_q } from '~/api/client';
+  import { createQuery } from '@tanstack/svelte-query';
   import * as Table from '$lib/components/ui/table';
+  import { useTRPC } from '~/api/client';
   import { map_path_to_db_path, type DeleteReviewRow } from './map_edit_lib';
   import DeleteImpactRow from './DeleteImpactRow.svelte';
 
@@ -15,13 +16,14 @@
   } = $props();
 
   const db_paths = $derived([...new Set(rows.map((row) => map_path_to_db_path(row.path)))]);
-  const counts_q = $derived(
-    client_q.project.map_edit.get_delete_node_resource_counts.query({
+  const trpc = useTRPC();
+  const counts_q = createQuery(() =>
+    trpc.project.map_edit.get_delete_node_resource_counts.queryOptions({
       project_id,
       paths: db_paths
     })
   );
-  const counts_state = $derived($counts_q);
+  const counts_state = $derived(counts_q);
 </script>
 
 {#if rows.length === 0}

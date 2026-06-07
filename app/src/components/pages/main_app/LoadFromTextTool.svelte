@@ -57,18 +57,16 @@
         : `${selected_normalization_keys.length} selected`
   );
 
-  const text_data_q = $derived(
-    createQuery(
-      active_text_data_q_options(
-        $selected_text_levels,
-        $project_state,
-        $text_data_present,
-        $editing_mode
-      )
+  const text_data_q = createQuery(() =>
+    active_text_data_q_options(
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
     )
   );
 
-  const existing_rows = $derived($text_data_q.data ?? []);
+  const existing_rows = $derived(text_data_q.data ?? []);
   const existing_text_exists = $derived(existing_rows.length > 0);
   const parsed_result = $derived(
     parse_import_text(import_text, {
@@ -132,20 +130,29 @@
     return Array.from({ length: count }, (_, i) => i);
   };
 
-  const save_import_mut = createMutation({
+  const save_import_mut = createMutation(() => ({
     mutationKey: ['text', 'load_from_text'],
     mutationFn: async () => {
-      if (!$project_state) throw new Error('Project is not selected');
-      if (parsed_rows.length === 0) throw new Error('No valid rows parsed');
+      const project = $project_state;
+      const selected_levels = $selected_text_levels;
+      const mode = save_mode;
+      const with_translation = include_translation;
+      const lang_id = selected_lang_id;
+      const parsed = parsed_rows;
+      const transformed = transformed_rows;
+      const existing = existing_rows;
+
+      if (!project) throw new Error('Project is not selected');
+      if (parsed.length === 0) throw new Error('No valid rows parsed');
       if (translation_count_invalid) {
         throw new Error('Translation row count cannot be greater than the target text row count');
       }
 
-      if (save_mode === 'overwrite') {
+      if (mode === 'overwrite') {
         await client.text.save_text_rows.mutate({
-          project_id: $project_state.project_id,
-          selected_text_levels: $selected_text_levels,
-          rows: transformed_rows.map((row) => ({
+          project_id: project.project_id,
+          selected_text_levels: selected_levels,
+          rows: transformed.map((row) => ({
             source_index: null,
             text: row.text,
             shloka_type: false
@@ -153,17 +160,17 @@
         });
       }
 
-      if (include_translation) {
+      if (with_translation) {
         const target_indexes =
-          save_mode === 'use-existing'
-            ? existing_rows.slice(0, parsed_rows.length).map((row) => row.index)
-            : parsed_rows.map((_, index) => index);
+          mode === 'use-existing'
+            ? existing.slice(0, parsed.length).map((row) => row.index)
+            : parsed.map((_, index) => index);
         await client.translation.edit_translation.mutate({
-          project_id: $project_state.project_id,
-          lang_id: selected_lang_id,
-          selected_text_levels: $selected_text_levels,
+          project_id: project.project_id,
+          lang_id,
+          selected_text_levels: selected_levels,
           indexes: target_indexes,
-          data: parsed_rows.map((row) => row.translation ?? null)
+          data: parsed.map((row) => row.translation ?? null)
         });
       }
     },
@@ -178,7 +185,7 @@
     onError: (err) => {
       toast.error(err.message || 'Failed to import text');
     }
-  });
+  }));
 </script>
 
 <Dialog.Root bind:open>
@@ -369,13 +376,13 @@
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
         <Button
-          disabled={$save_import_mut.isPending ||
+          disabled={save_import_mut.isPending ||
             reviewed_output !== 'yes' ||
             parsed_rows.length === 0 ||
             translation_count_invalid}
-          onclick={() => $save_import_mut.mutate()}
+          onclick={() => save_import_mut.mutate()}
         >
-          {$save_import_mut.isPending ? 'Saving...' : 'Save'}
+          {save_import_mut.isPending ? 'Saving...' : 'Save'}
         </Button>
       </div>
     </Dialog.Footer>

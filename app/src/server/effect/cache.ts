@@ -1,13 +1,18 @@
-import { Context, Layer } from 'effect';
-import { cache_db_options_app } from '../cache/cache_db_options';
+import { Context, Effect, Layer } from 'effect';
+import { create_cache_db_options_app } from '../cache/cache_db_options';
+import type { db_options } from '../cache/cached_loader';
 
 export class CacheService extends Context.Tag('CacheService')<
   CacheService,
   {
-    readonly options: typeof cache_db_options_app;
+    readonly options: db_options;
   }
 >() {}
 
-export const CacheServiceLive = Layer.succeed(CacheService, {
-  options: cache_db_options_app
-});
+export const CacheServiceLive = Layer.effect(
+  CacheService,
+  Effect.gen(function* () {
+    const options = yield* Effect.promise(() => create_cache_db_options_app());
+    return { options };
+  })
+);

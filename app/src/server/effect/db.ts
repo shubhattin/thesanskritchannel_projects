@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from 'effect';
-import { db, type drizzleDbType, type transactionType } from '~/db/db';
+import { initDb, type drizzleDbType, type transactionType } from '~/db/db';
 import { tryPromise } from './try-promise';
 
 export type { transactionType, TxOrDb } from '~/db/db';
@@ -14,11 +14,17 @@ export class DbService extends Context.Tag('DbService')<
   DbService,
   {
     readonly db: drizzleDbType;
-    readonly transaction: typeof db.transaction;
+    readonly transaction: drizzleDbType['transaction'];
   }
 >() {}
 
-export const DbServiceLive = Layer.succeed(DbService, {
-  db,
-  transaction: db.transaction.bind(db)
-});
+export const DbServiceLive = Layer.effect(
+  DbService,
+  Effect.gen(function* () {
+    const db = yield* Effect.promise(() => initDb());
+    return {
+      db,
+      transaction: db.transaction.bind(db)
+    };
+  })
+);

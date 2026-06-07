@@ -17,7 +17,6 @@ import {
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { projects } from '~/db/schema';
-import { redis } from '~/db/redis';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import {
   clear_server_project_info_cache,
@@ -51,6 +50,7 @@ import {
   validate_explicit_to_add_paths
 } from '~/server/project_map_sync.server';
 import { TEXT_EDIT_LOCK_NAMESPACE } from '~/server/text_row_edit.server';
+import { redis_del_effect, runAppEffect } from '~/server/effect';
 
 const project_id_input = z.object({
   project_id: z.int()
@@ -71,7 +71,7 @@ const invalidate_project_caches = async (
     ...redisKeys
   ];
   await Promise.all([
-    redis.del(...keys),
+    runAppEffect(redis_del_effect(...keys)),
     notify_site_invalidate_project_map_cache(cookie, project_id),
     notify_site_invalidate_project_list_caches(cookie)
   ]);

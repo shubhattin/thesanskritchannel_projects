@@ -1,0 +1,22 @@
+{
+  "name": "@tsc/db-schema",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./schema-zod": "./src/schema-zod.ts",
+    "./db-types": "./src/db-types.ts",
+    "./db-utils": "./src/db-utils.ts"
+  },
+  "dependencies": {
+    "@tsc/core": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "drizzle-zod": "^0.8.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

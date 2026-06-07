@@ -5,14 +5,19 @@ import { protectedAppScopeProcedure_ProjectsPortal, publicProcedure, t } from '~
 import { db } from '~/db/db';
 import { project_paths, texts, translations } from '~/db/schema';
 import { delay } from '~/tools/delay';
-import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
+import { REDIS_CACHE_KEYS } from '~/db/redis';
 import { cache_db_options_app } from '~/server/cache_db_options';
-import { get_project_by_key, get_project_info_by_id } from '~/server/project_list.server';
+import { get_project_by_key } from '~/server/project_list.server';
 import { get_languages_for_project_user } from './project/project';
 import { get_path_params } from '~/state/project_list';
-import { get_translation_data_func } from '~/server/cached_loader';
 import { requireProjectPath } from '~/server/project_paths_db.server';
 import { TEXT_EDIT_LOCK_NAMESPACE } from '~/server/text_row_edit.server';
+import {
+  get_project_info_by_id_effect,
+  get_translation_data_effect,
+  redis_del_effect,
+  runAppEffect
+} from '~/server/effect';
 
 const edit_translation_input = z
   .object({
@@ -38,12 +43,7 @@ const get_translation_route = publicProcedure
     })
   )
   .query(async ({ input: { project_id, lang_id, selected_text_levels } }) => {
-    return get_translation_data_func(
-      project_id,
-      lang_id,
-      selected_text_levels,
-      cache_db_options_app
-    );
+    return runAppEffect(get_translation_data_effect(project_id, lang_id, selected_text_levels));
   });
 
 const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
@@ -53,7 +53,7 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
       ctx: { user },
       input: { project_id, lang_id, selected_text_levels, data, indexes }
     }) => {
-      const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
+      const { levels } = await runAppEffect(get_project_info_by_id_effect(project_id));
       const path_params = get_path_params(selected_text_levels, levels);
       if (levels > 1 && path_params.length === 0) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });
@@ -152,7 +152,7 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
         }
       });
 
-      await redis.del(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params));
+      await runAppEffect(redis_del_effect(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params)));
 
       return {
         success: true
@@ -194,7 +194,7 @@ const get_all_langs_translation_route = protectedAppScopeProcedure_ProjectsPorta
   .query(async ({ input: { project_id, selected_text_levels } }) => {
     await delay(400);
 
-    const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
+    const { levels } = await runAppEffect(get_project_info_by_id_effect(project_id));
     const path_params = get_path_params(selected_text_levels, levels);
     if (levels > 1 && path_params.length === 0) {
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });

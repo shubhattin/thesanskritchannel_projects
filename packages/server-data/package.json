@@ -1,0 +1,27 @@
+{
+  "name": "@tsc/server-data",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "exports": {
+    ".": "./src/index.ts",
+    "./runtime": "./src/runtime.ts",
+    "./cached-loader": "./src/cached-loader.ts",
+    "./project-list": "./src/project-list.ts",
+    "./project-paths-db": "./src/project-paths-db.ts"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@tsc/core": "workspace:*",
+    "@tsc/db-schema": "workspace:*",
+    "@upstash/redis": "^1.38.0",
+    "drizzle-orm": "^0.45.2",
+    "ms": "^2.1.3",
+    "postgres": "^3.4.9",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/ms": "^2.1.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -5,7 +5,7 @@
     LANG_LIST_IDS,
     get_script_for_lang_id,
     get_script_id
-  } from '$app/state/lang_list';
+  } from '@tsc/core/lang-list';
   import { DEFAULT_LANG_ID, LANG_ID_COOKIE_NAME, SCRIPT_ID_COOKIE_NAME } from '~/lib/cookies';
   import { reload_current_page } from '~/lib/main_text/reload-page';
   import * as Select from '$lib/components/ui/select';

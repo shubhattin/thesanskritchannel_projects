@@ -1,4 +1,4 @@
-import type { db_options } from '$app/server/cached_loader';
+import type { db_options } from '@tsc/server-data/cached-loader';
 import { waitUntil } from '@vercel/functions';
 import { db, redis } from './site_db';
 
@@ -6,5 +6,6 @@ import { db, redis } from './site_db';
 export const cache_db_options_site: db_options = {
   defer: waitUntil,
   db,
-  redis
+  redis,
+  isProd: import.meta.env.PROD
 };

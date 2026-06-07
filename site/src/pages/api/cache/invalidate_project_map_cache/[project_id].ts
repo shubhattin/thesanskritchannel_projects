@@ -1,10 +1,10 @@
 import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
-import { projects } from '$app/db/schema';
+import { projects } from '@tsc/db-schema/schema';
 import {
   clear_server_project_info_cache,
   clear_server_project_map_cache
-} from '$app/server/project_list.server';
+} from '@tsc/server-data/project-list';
 import { db } from '~/db/site_db';
 import { verify_jwt_token } from '~/lib/get_auth_from_cookie';
 

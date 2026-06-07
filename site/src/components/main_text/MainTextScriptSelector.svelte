@@ -6,7 +6,7 @@
     SCRIPT_LIST_IDS,
     get_script_from_id,
     type script_list_type
-  } from '$app/state/lang_list';
+  } from '@tsc/core/lang-list';
   import { SCRIPT_ID_COOKIE_NAME } from '~/lib/cookies';
   import { reload_current_page } from '~/lib/main_text/reload-page';
   import { type ScriptListType } from 'lipilekhika';

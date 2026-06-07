@@ -2,7 +2,7 @@
   import * as NavigationMenu from '~/lib/components/ui/navigation-menu';
   import * as Collapsible from '~/lib/components/ui/collapsible';
   import { navigationMenuTriggerStyle } from '~/lib/components/ui/navigation-menu/navigation-menu-trigger.svelte';
-  import type { project_type } from '$app/state/project_list';
+  import type { project_type } from '@tsc/core/project-list';
   import ThemeSwitcher from './ThemeSwitcher.svelte';
   import Menu from '@lucide/svelte/icons/menu';
   import X from '@lucide/svelte/icons/x';
@@ -12,7 +12,7 @@
   import ChevronRight from '@lucide/svelte/icons/chevron-right';
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import { cn } from '~/lib/utils';
-  import { ContributeIcon } from '$app/components/icons';
+  import { ContributeIcon } from './icons';
   import { Icon } from 'svelte-icons-pack';
 
   let {

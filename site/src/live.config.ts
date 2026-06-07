@@ -1,6 +1,6 @@
 import { defineLiveCollection } from 'astro/content/config';
 import { lekhaDbLiveLoader } from './loaders/lekha-db-live';
-import { SiteLekhaSchemaZod } from '$app/db/schema_zod';
+import { SiteLekhaSchemaZod } from '@tsc/db-schema/schema-zod';
 
 const lekha = defineLiveCollection({
   loader: lekhaDbLiveLoader(),

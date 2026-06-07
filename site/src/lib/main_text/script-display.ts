@@ -1,5 +1,5 @@
-import { get_script_from_id } from '$app/state/lang_list';
-import { transliterate_custom } from '$app/tools/converter';
+import { get_script_from_id } from '@tsc/core/lang-list';
+import { transliterate_custom } from '@tsc/core/converter';
 import { DEFAULT_SCRIPT_ID } from '../cookies';
 import { transliterate_node } from 'lipilekhika/node';
 

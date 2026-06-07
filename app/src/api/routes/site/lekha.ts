@@ -4,7 +4,6 @@ import { z } from 'zod';
 import { waitUntil } from '@vercel/functions';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
-import { redis } from '~/db/redis';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import { site_lekhas } from '~/db/schema';
 import { SiteLekhaSchemaZod } from '~/db/schema_zod';
@@ -14,6 +13,7 @@ import {
   normalizeLekhaTextFields,
   sanitizeAndFormatLekhaMarkdownForStorage
 } from '~/lib/carta_markdown/markdown';
+import { redis_del_effect, runAppEffect } from '~/server/effect';
 
 const lekha_post_input = SiteLekhaSchemaZod.omit({
   id: true,
@@ -50,8 +50,8 @@ const add_lekha_route = protectedAdminProcedure
     const lekha = await db.insert(site_lekhas).values(normalized).returning();
     const id = lekha[0].id;
 
-    waitUntil(redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(lekha[0].url_slug)));
-    waitUntil(redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_list()));
+    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(lekha[0].url_slug))));
+    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS_CLIENT.site_lekha_list())));
 
     return {
       id
@@ -80,7 +80,7 @@ const edit_lekha_route = protectedAdminProcedure
       .set({ ...normalized, ...(setPublishedNow ? { published_at: new Date() } : {}) })
       .where(eq(site_lekhas.id, id))
       .returning();
-    waitUntil(redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(lekha[0].url_slug)));
+    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(lekha[0].url_slug))));
 
     return {
       id: lekha[0]?.id ?? id,
@@ -104,8 +104,8 @@ const delete_lekha_route = protectedAdminProcedure
     const url_slug = prev_data.url_slug;
 
     await db.delete(site_lekhas).where(eq(site_lekhas.id, id));
-    waitUntil(redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(url_slug)));
-    waitUntil(redis.del(REDIS_CACHE_KEYS_CLIENT.site_lekha_list()));
+    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS_CLIENT.site_lekha_data(url_slug))));
+    waitUntil(runAppEffect(redis_del_effect(REDIS_CACHE_KEYS_CLIENT.site_lekha_list())));
     return {
       id: id
     };

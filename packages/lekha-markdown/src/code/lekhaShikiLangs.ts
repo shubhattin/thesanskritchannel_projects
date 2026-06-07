@@ -1,0 +1,47 @@
+/**
+ * Langs bundled into the singleton highlighter for lekha (editor + SSR).
+ * Keep broadly useful; unknown fences fall back via rehype `fallbackLanguage`.
+ */
+
+export const LEKHA_SHIKI_LANGS = [
+  'astro',
+  'bash',
+  'bat',
+  'c',
+  'cpp',
+  'csharp',
+  'css',
+  'diff',
+  'dockerfile',
+  'go',
+  'graphql',
+  'html',
+  'ini',
+  'java',
+  'javascript',
+  'json',
+  'jsonc',
+  'jsx',
+  'kotlin',
+  'lua',
+  'markdown',
+  'mdx',
+  'php',
+  'powershell',
+  'python',
+  'ruby',
+  'rust',
+  'scss',
+  'shellsession',
+  'shellscript',
+  'sql',
+  'svelte',
+  'swift',
+  'toml',
+  'tsx',
+  'typescript',
+  'vue',
+  'xml',
+  'yaml',
+  'zig'
+] as const;

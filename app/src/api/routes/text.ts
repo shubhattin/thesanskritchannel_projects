@@ -5,7 +5,6 @@ import { db } from '~/db/db';
 import { project_paths, projects, texts, translations } from '~/db/schema';
 import { delay } from '~/tools/delay';
 import { cache_db_options_app } from '~/server/cache_db_options';
-import { get_text_data_func } from '~/server/cached_loader';
 import {
   clear_server_project_info_cache,
   clear_server_project_map_cache,
@@ -17,7 +16,6 @@ import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
 import { and, eq, like, or, sql } from 'drizzle-orm';
 import { get_path_params } from '~/state/project_list';
 import { requireProjectPath } from '~/server/project_paths_db.server';
-import { redis } from '~/db/redis';
 import {
   buildTextEditRedisKeys,
   buildTextRowsForSave,
@@ -26,6 +24,7 @@ import {
   remapTranslationsForTextRows,
   TEXT_EDIT_LOCK_NAMESPACE
 } from '~/server/text_row_edit.server';
+import { get_text_data_effect, redis_del_effect, runAppEffect } from '~/server/effect';
 
 const get_text_data_route = publicProcedure
   .input(
@@ -36,7 +35,7 @@ const get_text_data_route = publicProcedure
   )
   .query(async ({ input: { project_key, path_params } }) => {
     await delay(350);
-    const data = await get_text_data_func(project_key, path_params, cache_db_options_app);
+    const data = await runAppEffect(get_text_data_effect(project_key, path_params));
     return data;
   });
 
@@ -185,7 +184,7 @@ const save_text_rows_route = protectedAdminProcedure
     });
 
     if (redisKeys.length > 0) {
-      await redis.del(...redisKeys);
+      await runAppEffect(redis_del_effect(...redisKeys));
     }
     if (mapChanged) {
       clear_server_project_map_cache(project_id);

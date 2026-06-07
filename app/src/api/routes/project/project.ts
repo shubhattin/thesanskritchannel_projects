@@ -5,22 +5,27 @@ import { delay } from '~/tools/delay';
 import { projects, user_project_join, user_project_language_join } from '~/db/schema';
 import { and, asc, count, eq, ilike, or } from 'drizzle-orm';
 import { t } from '../../trpc_init';
-import { redis, REDIS_CACHE_KEYS, deleteKeysWithPattern } from '~/db/redis';
+import { REDIS_CACHE_KEYS, deleteKeysWithPattern } from '~/db/redis';
 import ms from 'ms';
 import { waitUntil } from '@vercel/functions';
-import { cache_db_options_app } from '~/server/cache_db_options';
-import { get_project_list, get_project_map_by_id } from '~/server/project_list.server';
 import { project_edit_router } from './project_edit';
 import { project_map_edit_router } from './project_map_edit';
+import {
+  get_project_list_effect,
+  get_project_map_by_id_effect,
+  redis_del_effect,
+  redis_get_effect,
+  redis_set_effect,
+  runAppEffect
+} from '~/server/effect';
 
 export const get_languages_for_project_user = async (
   user_id: string,
   project_id: number,
   db_instance: transactionType
 ) => {
-  const cache = await redis.get<{ lang_id: number }[]>(
-    REDIS_CACHE_KEYS.user_project_info(user_id, project_id)
-  );
+  const cacheKey = REDIS_CACHE_KEYS.user_project_info(user_id, project_id);
+  const cache = await runAppEffect(redis_get_effect<{ lang_id: number }[]>(cacheKey));
   if (cache) return cache;
 
   const langugaes = await db_instance
@@ -36,9 +41,7 @@ export const get_languages_for_project_user = async (
     );
 
   waitUntil(
-    redis.set(REDIS_CACHE_KEYS.user_project_info(user_id, project_id), langugaes, {
-      ex: ms('20days') / 1000
-    })
+    runAppEffect(redis_set_effect(cacheKey, langugaes, { ex: ms('20days') / 1000 }))
   );
 
   return langugaes;
@@ -141,7 +144,7 @@ const update_project_languages_route = protectedAdminProcedure
       ]);
     });
 
-    await redis.del(REDIS_CACHE_KEYS.user_project_info(user_id, project_id));
+    await runAppEffect(redis_del_effect(REDIS_CACHE_KEYS.user_project_info(user_id, project_id)));
 
     return { success: true };
   });
@@ -175,9 +178,8 @@ const get_project_list_route = protectedProcedure
     const is_admin = user.role === 'admin';
 
     if (input.all) {
-      const list = await get_project_list(
-        cache_db_options_app,
-        is_admin ? undefined : { listed_only: true }
+      const list = await runAppEffect(
+        get_project_list_effect(is_admin ? undefined : { listed_only: true })
       );
       return { list, total: list.length, page: 1, pageCount: 1, hasPrev: false, hasNext: false };
     }
@@ -232,7 +234,7 @@ const get_project_list_route = protectedProcedure
 const get_project_map_route = protectedProcedure
   .input(z.object({ project_id: z.int() }))
   .query(async ({ input: { project_id } }) => {
-    return get_project_map_by_id(project_id, cache_db_options_app);
+    return runAppEffect(get_project_map_by_id_effect(project_id));
   });
 
 export const project_router = t.router({

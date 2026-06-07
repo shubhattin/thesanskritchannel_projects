@@ -1,8 +1,8 @@
 import type { LiveLoader } from 'astro/loaders';
 import { transliterate_node } from 'lipilekhika/node';
-import { get_script_from_id, type script_list_type } from '$app/state/lang_list';
-import { get_site_lekha_data_func, get_site_lekha_list_func } from '$app/server/cached_loader';
-import { renderLekhaMarkdownToHtml } from '$app/lib/carta_markdown/markdown';
+import { get_script_from_id, type script_list_type } from '@tsc/core/lang-list';
+import { get_site_lekha_data_func, get_site_lekha_list_func } from '@tsc/server-data/cached-loader';
+import { renderLekhaMarkdownToHtml } from '@tsc/lekha-markdown';
 import { cache_db_options_site } from '~/db/cache_db_options';
 import { DEFAULT_SCRIPT_ID } from '~/lib/cookies';
 

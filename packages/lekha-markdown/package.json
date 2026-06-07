@@ -1,0 +1,29 @@
+{
+  "name": "@tsc/lekha-markdown",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "exports": {
+    ".": "./src/markdown.ts",
+    "./code/shiki-theme.css": "./src/code/shiki-theme.css"
+  },
+  "dependencies": {
+    "@cartamd/plugin-code": "^4.2.0",
+    "@shikijs/rehype": "^4.0.2",
+    "@tsc/core": "workspace:*",
+    "carta-md": "^4.11.2",
+    "dompurify": "^3.4.3",
+    "linkedom": "^0.18.12",
+    "lipilekhika": "^1.0.13",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "remark-stringify": "^11.0.0",
+    "shiki": "^4.0.2",
+    "unified": "^11.0.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

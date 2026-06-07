@@ -1,29 +1,14 @@
 import { env } from '$env/dynamic/private';
-import * as schema from './schema';
-import { drizzle as drizzle_neon } from 'drizzle-orm/neon-serverless';
-import { Pool } from '@neondatabase/serverless';
-import { get_db_url } from './db_utils';
+import { createDb } from '@tsc/server-data/runtime';
 import type { pgTransactionType } from './db_types';
+import ws from 'ws';
 
 export type { drizzleDbType, pgTransactionType, TxOrDb } from './db_types';
 
-const DB_URL = get_db_url(env);
-
-const get_drizzle_instance_dev = async () => {
-  // using local postgres to allow edge environment in the edge
-  const postgres = await import('postgres');
-  const { drizzle } = await import('drizzle-orm/postgres-js');
-  return drizzle(postgres.default(DB_URL), { schema });
-};
-
-export const db = import.meta.env.DEV
-  ? await get_drizzle_instance_dev()
-  : // using neon websocket adapter
-    drizzle_neon(new Pool({ connectionString: DB_URL }), { schema });
+export const db = await createDb(env, {
+  isDev: import.meta.env.DEV,
+  // fix for neon websocket adapter error
+  webSocketConstructor: ws
+});
 
 export type transactionType = pgTransactionType | typeof db;
-
-// fix for neon websocket adapter error
-import { neonConfig } from '@neondatabase/serverless';
-import ws from 'ws';
-neonConfig.webSocketConstructor = ws;

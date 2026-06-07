@@ -1,6 +1,7 @@
 import { protectedAdminProcedure, t } from '../trpc_init';
-import { redis, getKeysWithPattern } from '~/db/redis';
+import { getKeysWithPattern } from '~/db/redis';
 import { z } from 'zod';
+import { redis_del_effect, runAppEffect } from '~/server/effect';
 
 const invalidate_cache_route = protectedAdminProcedure
   .input(
@@ -9,7 +10,7 @@ const invalidate_cache_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { cache_keys } }) => {
-    const code = await redis.del(...cache_keys);
+    const code = await runAppEffect(redis_del_effect(...cache_keys));
     return { success: true, code };
   });
 

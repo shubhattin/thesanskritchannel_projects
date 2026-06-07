@@ -12,6 +12,7 @@
   "workspaces": [
     "app",
     "site",
-    "redirect"
+    "redirect",
+    "packages/*"
   ]
 }

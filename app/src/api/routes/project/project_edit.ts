@@ -12,7 +12,6 @@ import {
   user_project_join,
   user_project_language_join
 } from '~/db/schema';
-import { redis } from '~/db/redis';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import { lekhaUrlSlugify } from '~/lib/carta_markdown/markdown';
 import {
@@ -24,6 +23,7 @@ import { countResourcesForProject, insertProjectPaths } from '~/server/project_p
 import { ROOT_DB_PATH } from '~/server/map_path_swap';
 import { delay } from '~/tools/delay';
 import { type recursive_list_type, recursive_list_schema } from '~/state/data_types';
+import { redis_del_effect, runAppEffect } from '~/server/effect';
 
 const project_id_input = z.object({
   project_id: z.int()
@@ -32,7 +32,7 @@ const project_id_input = z.object({
 const invalidate_project_list_caches = async (cookie: string) => {
   clear_project_registry_cache();
   await Promise.all([
-    redis.del(REDIS_CACHE_KEYS_CLIENT.project_list()),
+    runAppEffect(redis_del_effect(REDIS_CACHE_KEYS_CLIENT.project_list())),
     notify_site_invalidate_project_list_caches(cookie)
   ]);
 };

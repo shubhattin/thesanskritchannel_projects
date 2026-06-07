@@ -7,5 +7,6 @@ import { waitUntil } from '@vercel/functions';
 export const cache_db_options_app: db_options = {
   defer: waitUntil,
   db,
-  redis
+  redis,
+  isProd: import.meta.env.PROD
 };

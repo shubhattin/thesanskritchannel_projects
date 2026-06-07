@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { clear_project_registry_cache } from '$app/server/project_list.server';
+import { clear_project_registry_cache } from '@tsc/server-data/project-list';
 import { verify_jwt_token } from '~/lib/get_auth_from_cookie';
 
 export const GET: APIRoute = async ({ request }) => {

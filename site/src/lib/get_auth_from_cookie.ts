@@ -1,5 +1,18 @@
-import type { authClient } from '$app/lib/auth-client';
 import { z } from 'zod';
+
+export type SiteAuthSession = {
+  user: {
+    id: string;
+    email: string;
+    name?: string | null;
+    role?: string | null;
+  };
+  session: {
+    id: string;
+    userId: string;
+    expiresAt: string | Date;
+  };
+};
 
 export const get_session_from_cookie = async (cookie: string) => {
   try {
@@ -12,7 +25,7 @@ export const get_session_from_cookie = async (cookie: string) => {
     if (!res.ok) {
       throw new Error(`Failed to fetch session: ${res.statusText}`);
     }
-    const session = (await res.json()) as typeof authClient.$Infer.Session;
+    const session = (await res.json()) as SiteAuthSession;
     return session;
   } catch (e) {
     return null;

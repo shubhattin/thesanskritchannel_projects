@@ -1,15 +1,15 @@
-import type { recursive_list_type } from '../../../app/src/state/data_types';
+import type { recursive_list_type } from '@tsc/core/data-types';
 import {
   get_list_name_for_path_param_index,
   get_node_at_path,
   is_child_nav_disabled,
   list_item_path_value
-} from '$app/state/project_list';
+} from '@tsc/core/project-list';
 import {
   get_project_by_key,
   get_project_info_by_key,
   get_project_map_by_key
-} from '$app/server/project_list.server';
+} from '@tsc/server-data/project-list';
 import { cache_db_options_site } from '~/db/cache_db_options';
 
 const NUMERIC_SEGMENT_RE = /^[1-9]\d*$/;

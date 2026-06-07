@@ -2,7 +2,7 @@
   import * as Select from '~/lib/components/ui/select';
   import * as Avatar from '~/lib/components/ui/avatar';
   import { getScriptAvatar } from '$components/utils/script_avatar';
-  import { type script_list_type } from '$app/state/lang_list';
+  import { type script_list_type } from '@tsc/core/lang-list';
 
   let {
     script = $bindable(),

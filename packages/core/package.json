@@ -1,0 +1,21 @@
+{
+  "name": "@tsc/core",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "exports": {
+    ".": "./src/index.ts",
+    "./data-types": "./src/data-types.ts",
+    "./project-list": "./src/project-list.ts",
+    "./lang-list": "./src/lang-list/index.ts",
+    "./converter": "./src/converter.ts",
+    "./redis-keys": "./src/redis-keys.ts"
+  },
+  "dependencies": {
+    "lipilekhika": "^1.0.13",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

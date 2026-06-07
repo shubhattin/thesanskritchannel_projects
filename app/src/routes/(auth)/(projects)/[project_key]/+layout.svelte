@@ -15,10 +15,30 @@
   import { editing_mode, text_data_present } from '~/state/main_app/state.svelte';
   import { map_edit_dirty } from '~/state/map_edit_dirty.svelte';
   import { get_project_from_key, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
-  import { project_list_q, project_map_q } from '~/state/main_app/data.svelte';
-  import { user_info } from '~/state/user.svelte';
+  import { createQuery } from '@tanstack/svelte-query';
+  import {
+    compute_text_data_present,
+    project_list_q_options,
+    project_map_q_options
+  } from '~/state/main_app/data.svelte';
+  import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
+  import { useSession } from '~/lib/auth-client';
 
   let { children }: { children: Snippet } = $props();
+
+  const session = useSession();
+
+  const project_list_q = $derived(createQuery(project_list_q_options()));
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+
+  $effect(() => {
+    $text_data_present = compute_text_data_present(
+      $project_state,
+      $selected_text_levels,
+      $project_map_q.data,
+      $project_map_q.isSuccess
+    );
+  });
 
   const project_key = $derived(page.params.project_key ?? '');
   const project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
@@ -27,7 +47,7 @@
     $project_list_q.isSuccess && $project_map_q.isSuccess && !!current_project
   );
   const nav_disabled = $derived($editing_mode !== 'none' || $map_edit_dirty);
-  const is_admin = $derived($user_info?.role === 'admin');
+  const is_admin = $derived($session.data?.user.role === 'admin');
   const active_tab = $derived(
     page.url.pathname.includes(`/${project_key}/edit`) ? 'edit-map' : 'texts'
   );

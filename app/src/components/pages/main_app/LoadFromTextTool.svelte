@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createMutation } from '@tanstack/svelte-query';
+  import { createMutation, createQuery } from '@tanstack/svelte-query';
   import { toast } from 'svelte-sonner';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
@@ -12,11 +12,16 @@
   import * as Tabs from '$lib/components/ui/tabs';
   import { client } from '~/api/client';
   import {
+    active_text_data_q_options,
     invalidate_project_content_queries,
-    invalidate_project_map_queries,
-    text_data_q
+    invalidate_project_map_queries
   } from '~/state/main_app/data.svelte';
-  import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
+  import {
+    project_state,
+    selected_text_levels,
+    editing_mode,
+    text_data_present
+  } from '~/state/main_app/state.svelte';
   import { LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
   import { parse_import_text } from './display/project_utility/download_text_format';
   import {
@@ -50,6 +55,17 @@
       : selected_normalization_keys.length === normalization_options.length
         ? 'All transformations'
         : `${selected_normalization_keys.length} selected`
+  );
+
+  const text_data_q = $derived(
+    createQuery(
+      active_text_data_q_options(
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
   );
 
   const existing_rows = $derived($text_data_q.data ?? []);
@@ -119,7 +135,7 @@
   const save_import_mut = createMutation({
     mutationKey: ['text', 'load_from_text'],
     mutationFn: async () => {
-      if (!$project_state.project_id) throw new Error('Project is not selected');
+      if (!$project_state) throw new Error('Project is not selected');
       if (parsed_rows.length === 0) throw new Error('No valid rows parsed');
       if (translation_count_invalid) {
         throw new Error('Translation row count cannot be greater than the target text row count');
@@ -153,8 +169,8 @@
     },
     onSuccess: async () => {
       await Promise.all([
-        invalidate_project_content_queries($project_state.project_id ?? undefined),
-        invalidate_project_map_queries($project_state.project_id ?? undefined)
+        invalidate_project_content_queries($project_state?.project_id ?? undefined),
+        invalidate_project_map_queries($project_state?.project_id ?? undefined)
       ]);
       toast.success('Text imported');
       open = false;

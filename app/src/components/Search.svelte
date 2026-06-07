@@ -3,7 +3,7 @@
   import { tick } from 'svelte';
   import { client } from '~/api/client';
   import { get_project_from_id, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
-  import { project_list_q } from '~/state/main_app/data.svelte';
+  import { project_list_q_options } from '~/state/main_app/data.svelte';
   import { queryClient } from '~/state/queryClient';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
@@ -39,6 +39,8 @@
     const nums = matches.map((v) => parseInt(v, 10)).filter((n) => Number.isFinite(n));
     return nums.length ? nums : undefined;
   };
+
+  const project_list_q = $derived(createQuery(project_list_q_options()));
 
   const project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
 

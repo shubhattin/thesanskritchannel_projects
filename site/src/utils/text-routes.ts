@@ -9,7 +9,7 @@ import {
   get_project_by_key,
   get_project_info_by_key,
   get_project_map_by_key
-} from '$app/server/project_list.server';
+} from '$app/utils/project/list.server';
 import { cache_db_options_site } from '~/db/cache_db_options';
 
 const NUMERIC_SEGMENT_RE = /^[1-9]\d*$/;

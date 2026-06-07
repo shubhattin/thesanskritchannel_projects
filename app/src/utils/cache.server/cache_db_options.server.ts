@@ -1,6 +1,6 @@
 import { db } from '~/db/db';
 import { redis } from '~/db/redis';
-import type { db_options } from './cached_loader';
+import type { db_options } from './cached_loader.server';
 import { waitUntil } from '@vercel/functions';
 
 /** App runtime cache/db bundle for shared server loaders. */

@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { and, count, eq, inArray, or, sql, type SQL } from 'drizzle-orm';
-import type { TxOrDb } from '../db/db_types';
-import { media_attachment, project_paths, texts, translations } from '../db/schema';
+import type { TxOrDb } from '../../db/db_types';
+import { media_attachment, project_paths, texts, translations } from '../../db/schema';
 
 export type ProjectPathRow = {
   id: number;

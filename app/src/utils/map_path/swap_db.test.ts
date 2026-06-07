@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { applyPathSwapEditsToPath, dbPathMatchesPrefix, remapDbPathPrefix } from './map_path_swap';
-import {
-  buildRedisKeysForPathSwapInvalidation,
-  mergePathSwapInvalidation
-} from './map_path_swap_db.server';
+import { applyPathSwapEditsToPath, dbPathMatchesPrefix, remapDbPathPrefix } from './swap';
+import { buildRedisKeysForPathSwapInvalidation, mergePathSwapInvalidation } from './swap_db.server';
 
 describe('map_path_swap_db', () => {
   it('matches exact paths and deep descendants on segment boundaries only', () => {

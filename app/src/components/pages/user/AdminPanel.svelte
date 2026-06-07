@@ -12,7 +12,7 @@
     type AppScopeEnum
   } from '~/state/data_types';
   import { fetch_get } from '~/tools/fetch';
-  import { user_info } from '~/state/user.svelte';
+  import { useSession } from '~/lib/auth-client';
   import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
   import { Skeleton } from '$lib/components/ui/skeleton';
 
@@ -20,29 +20,34 @@
 
   let active_scope_tab = $state<AppScopeEnum>(APP_SCOPE_ID_PROJECT_PORTAL);
 
-  const users_list = createQuery({
-    queryKey: ['users_list'],
-    queryFn: async () => {
-      type res_type = {
-        email: string;
-        id: string;
-        name: string;
-        role: string | null;
-        app_scopes: {
-          scope: string;
+  const session = useSession();
+
+  const users_list = $derived(
+    createQuery({
+      queryKey: ['users_list', $session.data?.user?.id],
+      queryFn: async () => {
+        type res_type = {
+          email: string;
+          id: string;
+          name: string;
+          role: string | null;
+          app_scopes: {
+            scope: string;
+          }[];
         }[];
-      }[];
-      const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/user/list_users`, {
-        params: {
-          user_id: $user_info?.id ?? ''
-        },
-        credentials: 'include'
-      });
-      if (!res.ok) return [];
-      const users = (await res.json()) as res_type;
-      return users;
-    }
-  });
+        const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/user/list_users`, {
+          params: {
+            user_id: $session.data?.user?.id ?? ''
+          },
+          credentials: 'include'
+        });
+        if (!res.ok) return [];
+        const users = (await res.json()) as res_type;
+        return users;
+      },
+      enabled: !!$session.data?.user?.id
+    })
+  );
 
   $effect(() => {
     if ($selected_user_type) $selected_user_id = null;

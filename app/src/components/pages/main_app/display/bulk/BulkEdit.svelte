@@ -8,32 +8,64 @@
     sanskrit_mode,
     edit_language_typer_status,
     added_translations_indexes,
-    edited_translations_indexes
+    edited_translations_indexes,
+    editing_mode,
+    text_data_present
   } from '~/state/main_app/state.svelte';
   import {
-    trans_en_data_q,
-    trans_lang_data_q,
+    active_trans_en_data_q_options,
+    active_trans_lang_data_q_options,
     english_edit_status,
     bulk_text_edit_status,
     bulk_text_data,
-    trans_lang_data_query_key,
+    get_trans_lang_data_query_key,
     QUERY_KEYS,
-    project_map_q,
+    project_map_q_options,
     get_total_count
   } from '~/state/main_app/data.svelte';
+  import { project_state } from '~/state/main_app/state.svelte';
   import { trans_map_to_text, text_to_trans_map } from './trans_bulk_funcs';
   import { get_font_family_and_size } from '~/tools/font_tools';
-  import { LANG_LIST, LANG_LIST_IDS, type lang_list_type } from '~/state/lang_list';
+  import { LANG_LIST, LANG_LIST_IDS, lang_list_obj, type lang_list_type } from '~/state/lang_list';
   import {
     clearTypingContextOnKeyDown,
     createTypingContext,
     handleTypingBeforeInputEvent
   } from 'lipilekhika/typing';
   import { OiSync16 } from 'svelte-icons-pack/oi';
-  import { useQueryClient } from '@tanstack/svelte-query';
+  import { useQueryClient, createQuery } from '@tanstack/svelte-query';
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
 
   const query_client = useQueryClient();
+
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+
+  const trans_lang_data_query_key = $derived(
+    get_trans_lang_data_query_key($trans_lang, $selected_text_levels, $project_state)
+  );
+
+  const trans_lang_data_q = $derived(
+    createQuery(
+      active_trans_lang_data_q_options(
+        $trans_lang,
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
+
+  const trans_en_data_q = $derived(
+    createQuery(
+      active_trans_en_data_q_options(
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
 
   let ctx = $derived(
     createTypingContext(
@@ -54,7 +86,11 @@
 
   $effect(() => {
     if (!$project_map_q.isSuccess) return;
-    total_count = get_total_count($selected_text_levels);
+    total_count = get_total_count(
+      $selected_text_levels,
+      $project_map_q.data,
+      $project_state?.levels ?? 0
+    );
   });
 
   let trans_text_font_info = $derived(
@@ -95,10 +131,10 @@
     $edited_translations_indexes = $edited_translations_indexes;
     // updating query data
     if (!$english_edit_status) {
-      await query_client.setQueryData($trans_lang_data_query_key, trans_data);
+      await query_client.setQueryData(trans_lang_data_query_key, trans_data);
     } else {
       await query_client.setQueryData(
-        QUERY_KEYS.trans_lang_data(1, $selected_text_levels),
+        QUERY_KEYS.trans_lang_data(lang_list_obj.English, $selected_text_levels, $project_state),
         trans_data
       );
     }

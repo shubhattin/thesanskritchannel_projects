@@ -4,16 +4,18 @@
   import PenLine from '@lucide/svelte/icons/pen-line';
   import Search from '@lucide/svelte/icons/search';
   import Button from '~/lib/components/ui/button/button.svelte';
-  import { user_info } from '~/state/user.svelte';
+  import { useSession } from '~/lib/auth-client';
   import { client_q } from '~/api/client';
   import { APP_SCOPE_ID_PROJECT_PORTAL, APP_SCOPE_ID_LEKHA } from '~/state/data_types';
   import { Skeleton } from '~/lib/components/ui/skeleton';
   import HomePageProjectList from '~/components/pages/main_app/HomePageProjectList.svelte';
 
-  const is_admin = $derived($user_info?.role === 'admin');
+  const session = useSession();
+
+  const is_admin = $derived($session.data?.user.role === 'admin');
   let list_scopes_q = $derived(
     client_q.user.list_user_app_scopes.query(
-      { user_id: $user_info?.id ?? '' },
+      { user_id: $session.data?.user.id ?? '' },
       {
         enabled: !is_admin
       }

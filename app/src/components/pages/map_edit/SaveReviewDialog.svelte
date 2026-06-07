@@ -3,7 +3,7 @@
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import { Label } from '$lib/components/ui/label';
   import { Button } from '$lib/components/ui/button';
-  import type { PathSwapEdit } from '~/server/map_path_swap';
+  import type { PathSwapEdit } from '~/utils/map_path/swap';
   import type { DeleteReviewRow, MapEditDiffState, MapNodeWithClientId } from './map_edit_lib';
   import ChangesPanel from './ChangesPanel.svelte';
   import DeleteImpactTable from './DeleteImpactTable.svelte';

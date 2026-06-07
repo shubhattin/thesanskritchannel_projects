@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
-  import { Stage, Layer, Line, Text, Image as KonvaImage, Transformer } from 'svelte-konva';
+  import { Stage, Layer, Line, Text, Image as KonvaImage } from 'svelte-konva';
   import type Konva from 'konva';
   import type { KonvaEventObject } from 'konva/lib/Node';
   import {
@@ -13,8 +13,8 @@
     image_script,
     image_lang,
     image_shloka,
-    image_text_data_q,
-    image_trans_data_q,
+    image_text_data_q_options,
+    image_trans_data_q_options,
     trans_text_font_configs,
     main_text_font_configs,
     normal_text_font_config,
@@ -25,7 +25,8 @@
     stage_node,
     fonts_loaded,
     show_image_on_top_right,
-    translation_bounding_coords
+    translation_bounding_coords,
+    image_drag_reset_nonce
   } from './image_state';
   import {
     selected_text_levels,
@@ -33,14 +34,16 @@
     trans_lang,
     editing_mode,
     project_state,
-    BASE_SCRIPT
+    BASE_SCRIPT,
+    text_data_present
   } from '~/state/main_app/state.svelte';
+  import { createQuery } from '@tanstack/svelte-query';
   import { get_script_for_lang, get_text_font_class } from '~/tools/font_tools';
   import { SCRIPT_LIST, type script_list_type } from '~/state/lang_list';
   import { current_shloka_type, shloka_configs, SPACE_ABOVE_REFERENCE_LINE } from './settings';
   import { compute_all_layouts, type CanvasLayoutResult } from './render_text';
   import ImageOptions from './ImageOptions.svelte';
-  import { get_starting_index, project_map_q } from '~/state/main_app/data.svelte';
+  import { get_starting_index, project_map_q_options } from '~/state/main_app/data.svelte';
   import { transliterate_custom } from '~/tools/converter';
   import { deepCopy } from '~/tools/kry';
   import * as Select from '$lib/components/ui/select';
@@ -58,6 +61,25 @@
   };
 
   let { onClose }: Props = $props();
+
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+
+  const image_text_data_q = $derived(
+    createQuery(
+      image_text_data_q_options($image_selected_levels, $project_state, $text_data_present)
+    )
+  );
+
+  const image_trans_data_q = $derived(
+    createQuery(
+      image_trans_data_q_options(
+        $image_selected_levels,
+        $image_lang,
+        $project_state,
+        $text_data_present
+      )
+    )
+  );
 
   let mounted = $state(false);
   let layout_el = $state<HTMLDivElement>(null!);
@@ -77,32 +99,6 @@
   /** Per-element position overrides from user drags. Keyed by element id. */
   let drag_offsets = $state<Record<string, { x: number; y: number }>>({});
 
-  /** Currently selected Konva node (for Transformer handles). */
-  let selected_node = $state<Konva.Node | null>(null);
-
-  /** Ref to the svelte-konva Transformer component. */
-  let transformer_ref = $state<{ node: Konva.Transformer } | null>(null);
-
-  /** Attach/detach the Transformer to the selected node. */
-  function update_transformer() {
-    if (!transformer_ref) return;
-    const tr = transformer_ref.node;
-    tr.nodes(selected_node ? [selected_node] : []);
-    tr.getLayer()?.batchDraw();
-  }
-
-  // When selected_node changes, update the transformer
-  $effect(() => {
-    void selected_node;
-    update_transformer();
-  });
-
-  function handle_text_click(e: KonvaEventObject<MouseEvent>) {
-    // Select the clicked text node
-    const node = e.target;
-    selected_node = node;
-  }
-
   function handle_dragend(
     e: KonvaEventObject<Event>,
     el_id: string,
@@ -117,20 +113,18 @@
     drag_offsets = { ...drag_offsets }; // trigger reactivity
   }
 
-  function handle_stage_click(e: KonvaEventObject<MouseEvent>) {
-    // Deselect when clicking on empty stage area
-    if (e.target === stage_component?.node) {
-      selected_node = null;
-    }
-  }
+  $effect(() => {
+    void $image_drag_reset_nonce;
+    drag_offsets = {};
+  });
 
   // in our case we dont need to initialize inside of onMount
   $image_selected_levels = $selected_text_levels;
   $image_script = $viewing_script;
-  if ($trans_lang !== 0) $image_lang = $trans_lang;
+  if ($trans_lang != null && $trans_lang !== 0) $image_lang = $trans_lang;
 
-  const levels = $derived($project_state.levels);
-  const level_names = $derived($project_state.level_names);
+  const levels = $derived($project_state?.levels ?? 0);
+  const level_names = $derived($project_state?.level_names ?? []);
   type option_type = { text?: string; value?: number };
 
   const transliterate_options = async (options: option_type[], script: script_list_type) => {
@@ -183,10 +177,8 @@
   });
 
   $effect(() => {
-    if ($image_selected_levels) {
-      $image_shloka = get_starting_index($project_state.project_key!, $image_selected_levels);
-      // reset after change
-    }
+    if (!$image_selected_levels || !$project_state) return;
+    $image_shloka = get_starting_index($project_state.project_key, $image_selected_levels);
   });
 
   function update_scaling_factor() {
@@ -250,9 +242,8 @@
     ].join('\x1e');
     void color_deps;
 
-    // Clear drag offsets and selection when layout recomputes
+    // Clear drag offsets when layout recomputes
     drag_offsets = {};
-    selected_node = null;
 
     let cancelled = false;
     (async () => {
@@ -405,7 +396,6 @@
         height={IMAGE_DIMENSIONS[1] * $scaling_factor}
         scaleX={$scaling_factor}
         scaleY={$scaling_factor}
-        onclick={handle_stage_click}
       >
         <!-- Background Layer -->
         <Layer listening={false}>
@@ -459,20 +449,9 @@
                 wrap={el.wrap}
                 lineHeight={el.lineHeight}
                 draggable={true}
-                onclick={handle_text_click}
                 ondragend={(e) => handle_dragend(e, el.id, el.x, el.y)}
               />
             {/each}
-            <Transformer
-              bind:this={transformer_ref}
-              rotateEnabled={false}
-              keepRatio={false}
-              boundBoxFunc={(_oldBox, newBox) => {
-                // Prevent too small
-                if (newBox.width < 10 || newBox.height < 10) return _oldBox;
-                return newBox;
-              }}
-            />
           </Layer>
         {/if}
       </Stage>

@@ -6,13 +6,13 @@ import { db } from '~/db/db';
 import { project_paths, texts, translations } from '~/db/schema';
 import { delay } from '~/tools/delay';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
-import { cache_db_options_app } from '~/server/cache_db_options';
-import { get_project_by_key, get_project_info_by_id } from '~/server/project_list.server';
+import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
+import { get_project_by_key, get_project_info_by_id } from '~/utils/project/list.server';
 import { get_languages_for_project_user } from './project/project';
 import { get_path_params } from '~/state/project_list';
-import { get_translation_data_func } from '~/server/cached_loader';
-import { requireProjectPath } from '~/server/project_paths_db.server';
-import { TEXT_EDIT_LOCK_NAMESPACE } from '~/server/text_row_edit.server';
+import { get_translation_data_func } from '~/utils/cache.server/cached_loader.server';
+import { requireProjectPath } from '~/utils/project/paths_db.server';
+import { TEXT_EDIT_LOCK_NAMESPACE } from '~/utils/text/row_edit.server';
 
 const edit_translation_input = z
   .object({

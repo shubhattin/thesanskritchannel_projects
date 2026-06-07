@@ -35,7 +35,7 @@
       await invalidate_project_list_queries();
       slug_edit_unlocked = false;
       save_confirm_open = false;
-      $project_state = { ...$project_state, project_key: key };
+      if ($project_state) $project_state = { ...$project_state, project_key: key };
       toast.success('Project slug updated');
       onSlugChanged?.(key);
     },
@@ -48,7 +48,7 @@
     onSuccess: async (_data, variables) => {
       await invalidate_project_list_queries();
       unpublish_dialog_open = false;
-      $project_state = { ...$project_state, listed: variables.listed };
+      if ($project_state) $project_state = { ...$project_state, listed: variables.listed };
       toast.success(
         variables.listed ? 'Project is now listed on the public site' : 'Project unpublished'
       );
@@ -199,7 +199,7 @@
       </p>
     </div>
 
-    {#if $project_state.listed}
+    {#if $project_state?.listed}
       <p class="text-sm text-amber-700 dark:text-amber-300">
         Unpublishing removes this project from the public site. Existing direct links may still work
         for users who know the URL.

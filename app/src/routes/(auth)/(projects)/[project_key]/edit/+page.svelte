@@ -4,12 +4,16 @@
   import ProjectMapEditor from '~/components/pages/map_edit/ProjectMapEditor.svelte';
   import { untrack } from 'svelte';
   import { get_project_from_key, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
-  import { project_list_q, project_map_q } from '~/state/main_app/data.svelte';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { project_list_q_options, project_map_q_options } from '~/state/main_app/data.svelte';
   import { project_state } from '~/state/main_app/state.svelte';
   import { get } from 'svelte/store';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
+
+  const project_list_q = $derived(createQuery(project_list_q_options()));
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
 
   const project_key = $derived(data.project_key);
   const project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
@@ -25,9 +29,9 @@
     const prev = untrack(() => get(project_state));
 
     if (
-      prev.project_key === project_key &&
-      prev.project_id === project.id &&
-      prev.listed === project.listed
+      prev?.project_key === project_key &&
+      prev?.project_id === project.id &&
+      prev?.listed === project.listed
     ) {
       return;
     }
@@ -36,8 +40,8 @@
       project_key,
       project_id: project.id,
       listed: project.listed,
-      levels: prev.levels,
-      level_names: prev.level_names
+      levels: prev?.levels ?? 0,
+      level_names: prev?.level_names ?? []
     });
   }
 

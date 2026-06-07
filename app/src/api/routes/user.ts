@@ -13,7 +13,7 @@ import {
   APP_SCOPES_ENUM,
   type AppScopeEnum
 } from '~/state/data_types';
-import { get_user_app_scope_status } from '~/utils/app_scope_utils.server';
+import { get_user_app_scope_status } from '~/utils/auth/app_scope_utils.server';
 
 const get_user_info_route = protectedProcedure
   .input(z.object({ user_id: z.string() }))

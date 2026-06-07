@@ -17,9 +17,10 @@
   } from '~/state/project_list';
   import { createQuery } from '@tanstack/svelte-query';
   import {
-    project_list_q,
+    project_list_q_options,
     project_map_q_options,
-    text_data_q_options
+    text_data_q_options,
+    type ProjectState
   } from '~/state/main_app/data.svelte';
   import Icon from '~/tools/Icon.svelte';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
@@ -80,18 +81,27 @@
   let load_text_source = $state(true);
   let selected_project_key = $state<string | null>(null);
 
+  const project_list_q = $derived(createQuery(project_list_q_options()));
+
   let project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
   let project = $derived(
     selected_project_key ? get_project_from_key(selected_project_key!, project_registry) : null
   );
 
   type option_type = { text?: string; value?: number };
-  let project_map_q = $derived(
-    createQuery({
-      ...project_map_q_options(project?.id!),
-      enabled: !!selected_project_key && !!project && $project_list_q.isSuccess
-    })
-  );
+
+  const grammar_map_project_state = $derived.by((): ProjectState | null => {
+    if (!project) return null;
+    return {
+      project_key: project.key,
+      project_id: project.id,
+      listed: project.listed,
+      levels: 0,
+      level_names: []
+    };
+  });
+
+  let project_map_q = $derived(createQuery(project_map_q_options(grammar_map_project_state)));
   let selected_text_levels = $state<(number | null)[]>([]);
 
   const levels = $derived.by(() => {
@@ -103,6 +113,17 @@
     if (!selected_project_key || !$project_map_q.isSuccess) return [] as string[];
     const lvls = clamp_levels_for_route(get_levels_from_map($project_map_q.data));
     return get_level_names_from_map($project_map_q.data).slice(0, lvls);
+  });
+
+  const grammar_project_state = $derived.by((): ProjectState | null => {
+    if (!project || !levels) return null;
+    return {
+      project_key: project.key,
+      project_id: project.id,
+      listed: project.listed,
+      levels,
+      level_names
+    };
   });
 
   const get_total_count_from_map = (
@@ -144,7 +165,7 @@
 
   let text_data_q = $derived(
     createQuery({
-      ...text_data_q_options(selected_text_levels, project?.key!, levels),
+      ...text_data_q_options(selected_text_levels, grammar_project_state),
       enabled: text_data_present && !!selected_project_key && !!levels
     })
   );

@@ -9,12 +9,18 @@
   import * as Select from '$lib/components/ui/select';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import {
+    active_langs_with_translations_q_options,
     get_last_level_name,
-    langs_with_translations_q,
-    text_data_q,
+    project_map_q_options,
+    text_data_q_options,
     trans_lang_data_q_options
   } from '~/state/main_app/data.svelte';
-  import { BASE_SCRIPT, project_state, selected_text_levels } from '~/state/main_app/state.svelte';
+  import {
+    BASE_SCRIPT,
+    project_state,
+    selected_text_levels,
+    text_data_present
+  } from '~/state/main_app/state.svelte';
   import { get_lang_from_id, SCRIPT_LIST, type script_list_type } from '~/state/lang_list';
   import { queryClient } from '~/state/queryClient';
   import { download_file_in_browser } from '~/tools/download_file_browser';
@@ -47,6 +53,25 @@
   const show_normal_option = $derived(should_show_normal_transliteration(text_script));
   const effective_include_normal = $derived(show_normal_option && include_normal);
 
+  const langs_with_translations_q = $derived(
+    createQuery(
+      active_langs_with_translations_q_options(
+        $selected_text_levels,
+        $project_state,
+        $text_data_present
+      )
+    )
+  );
+
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+
+  const text_data_q = $derived(
+    createQuery({
+      ...text_data_q_options($selected_text_levels, $project_state),
+      enabled: $text_data_present && $project_state !== null
+    })
+  );
+
   const available_lang_ids = $derived($langs_with_translations_q.data ?? []);
 
   const lang_options = $derived(
@@ -70,7 +95,7 @@
     ([project_state_, selected_text_levels_, lang_id, include_translation_, is_open], set) => {
       const query = createQuery(
         {
-          ...trans_lang_data_q_options(lang_id ?? -1, selected_text_levels_, project_state_.levels),
+          ...trans_lang_data_q_options(lang_id ?? -1, selected_text_levels_, project_state_),
           enabled: browser && is_open && include_translation_ && lang_id !== null && lang_id !== 0
         },
         queryClient
@@ -99,7 +124,13 @@
     levels.find((v): v is number => typeof v === 'number') ?? null;
 
   const build_download_filename = async () => {
-    const name_first_line = get_last_level_name($selected_text_levels).split('\n')[0].trim();
+    const name_first_line = get_last_level_name(
+      $selected_text_levels,
+      $project_map_q.data,
+      $project_state?.levels ?? 0
+    )
+      .split('\n')[0]
+      .trim();
     const sarga_name_normal = await transliterate_custom(name_first_line, BASE_SCRIPT, 'Normal');
     const sarga_name_script = await transliterate_custom(name_first_line, BASE_SCRIPT, text_script);
     const is_not_brahmic_script = ['Normal', 'Romanized'].includes(text_script);

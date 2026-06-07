@@ -5,8 +5,9 @@
   import { BiLogOut } from 'svelte-icons-pack/bi';
   import { AiOutlineUser } from 'svelte-icons-pack/ai';
   import { LanguageIcon } from '~/components/icons';
-  import { editing_mode } from '~/state/main_app/state.svelte';
-  import { user_project_info_q } from '~/state/main_app/data.svelte';
+  import { editing_mode, project_state } from '~/state/main_app/state.svelte';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { user_project_info_q_options } from '~/state/main_app/data.svelte';
   import { VscAccount } from 'svelte-icons-pack/vsc';
   import { OiLinkExternal16, OiSync16 } from 'svelte-icons-pack/oi';
   import { signOut, useSession } from '~/lib/auth-client';
@@ -32,6 +33,10 @@
   const session = useSession();
 
   let user_info = $derived($session.data?.user);
+
+  const user_project_info_q = $derived(
+    createQuery(user_project_info_q_options($session.data?.user?.id, $project_state))
+  );
 
   const user_scopes_q = $derived(
     client_q.user.list_user_app_scopes.query({ user_id: user_info?.id ?? '' })

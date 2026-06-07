@@ -1,19 +1,20 @@
 <script lang="ts">
-  import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+  import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
   import {
     selected_text_levels,
     trans_lang,
     editing_mode,
     added_translations_indexes,
     edited_translations_indexes,
-    project_state
+    project_state,
+    text_data_present
   } from '~/state/main_app/state.svelte';
   import {
-    trans_lang_data_q,
-    trans_lang_data_query_key,
+    active_trans_en_data_q_options,
+    active_trans_lang_data_q_options,
+    get_trans_lang_data_query_key,
     english_edit_status,
-    QUERY_KEYS,
-    trans_en_data_q
+    QUERY_KEYS
   } from '~/state/main_app/data.svelte';
   import { delay } from '~/tools/delay';
   import { client } from '~/api/client';
@@ -26,6 +27,33 @@
   import Button from '~/lib/components/ui/button/button.svelte';
 
   const query_client = useQueryClient();
+
+  const trans_lang_data_query_key = $derived(
+    get_trans_lang_data_query_key($trans_lang, $selected_text_levels, $project_state)
+  );
+
+  const trans_lang_data_q = $derived(
+    createQuery(
+      active_trans_lang_data_q_options(
+        $trans_lang,
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
+
+  const trans_en_data_q = $derived(
+    createQuery(
+      active_trans_en_data_q_options(
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
 
   const save_data = createMutation({
     mutationKey: ['chapter', 'save_edited_data'],
@@ -46,7 +74,7 @@
         data,
         indexes,
         selected_text_levels: $selected_text_levels,
-        project_id: $project_state.project_id!,
+        project_id: $project_state!.project_id,
         lang_id: $trans_lang !== 0 ? $trans_lang : lang_list_obj['English']
       });
       if (res.success) {
@@ -71,8 +99,8 @@
       await delay(500);
       await query_client.invalidateQueries({
         queryKey: !$english_edit_status
-          ? $trans_lang_data_query_key
-          : QUERY_KEYS.trans_lang_data(1, $selected_text_levels)
+          ? trans_lang_data_query_key
+          : QUERY_KEYS.trans_lang_data(lang_list_obj.English, $selected_text_levels, $project_state)
       });
       $added_translations_indexes = [];
       $edited_translations_indexes = new Set();

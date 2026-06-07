@@ -25,10 +25,12 @@
   let invalidate_cache_confirm_modal_state = $state(false);
 
   let current_cache_key = $derived(
-    REDIS_CACHE_KEYS_CLIENT.text_data(
-      $project_state.project_id!,
-      get_path_params($selected_text_levels, $project_state.levels)
-    )
+    $project_state
+      ? REDIS_CACHE_KEYS_CLIENT.text_data(
+          $project_state.project_id,
+          get_path_params($selected_text_levels, $project_state.levels)
+        )
+      : ''
   );
 
   let selected_cache_name: keyof typeof REDIS_CACHE_KEYS_CLIENT = $state('text_data');

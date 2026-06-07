@@ -1,17 +1,19 @@
 <script lang="ts">
   import {
+    active_text_data_q_options,
+    active_trans_en_data_q_options,
     get_starting_index,
     get_total_count,
-    project_list_q,
-    project_map_q,
-    text_data_q,
-    trans_en_data_q
+    project_list_q_options,
+    project_map_q_options
   } from '~/state/main_app/data.svelte';
   import {
     ai_tool_opened,
     project_state,
     selected_text_levels,
-    TEXT_MODEL_LIST
+    TEXT_MODEL_LIST,
+    editing_mode,
+    text_data_present
   } from '~/state/main_app/state.svelte';
   import Icon from '~/tools/Icon.svelte';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
@@ -52,18 +54,46 @@
     additional_prompt_info: string;
   };
 
+  const project_list_q = $derived(createQuery(project_list_q_options()));
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+  const text_data_q = $derived(
+    createQuery(
+      active_text_data_q_options(
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
+  const trans_en_data_q = $derived(
+    createQuery(
+      active_trans_en_data_q_options(
+        $selected_text_levels,
+        $project_state,
+        $text_data_present,
+        $editing_mode
+      )
+    )
+  );
+
   let base_prompt_text = $state('');
 
   $effect(() => {
+    const projectId = $project_state?.project_id;
+    if (projectId == null) return;
+    const project = get_project_from_id(projectId, $project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
+    if (!project) return;
     base_prompt_text = format_string_text(base_prompts.main_prompt[0].content, {
-      text_name: get_project_from_id(
-        $project_state.project_id!,
-        $project_list_q.data ?? EMPTY_PROJECT_REGISTRY
-      )!.name
+      text_name: project.name
     });
   });
 
-  let total_count = $derived($project_map_q.isSuccess ? get_total_count($selected_text_levels) : 0);
+  let total_count = $derived(
+    $project_map_q.isSuccess
+      ? get_total_count($selected_text_levels, $project_map_q.data, $project_state?.levels ?? 0)
+      : 0
+  );
 
   let selected_text_model: keyof typeof TEXT_MODEL_LIST = $state('gpt-5.2');
 
@@ -75,9 +105,8 @@
   });
 
   $effect(() => {
-    if ($selected_text_levels) {
-      $index = get_starting_index($project_state.project_key!, $selected_text_levels);
-    }
+    if (!$selected_text_levels || !$project_state) return;
+    $index = get_starting_index($project_state.project_key, $selected_text_levels);
   });
   let index = writable(1);
   let auto_gen_image = writable(false);
@@ -119,25 +148,27 @@
     'dall-e-3': ['DALL-E 3', '$0.04 (₹3.4) / image', 15 + ADDITIONAL_IMAGE_GEN_DELAY_S]
   };
 
-  let additional_prompt_info = $derived(
-    format_string_text(base_prompts.additional_prompt_info, {
-      text_info: (() => {
-        const { levels, level_names } = $project_state;
-        const path_params = $selected_text_levels.slice(0, levels - 1);
-        const list_level_names = level_names.slice(1);
-        return path_params
-          .map((param, index) => {
-            const level_name = list_level_names[index];
-            return `${level_name} ${param}`;
-          })
-          .join(', ');
-      })(),
-      text_name: get_project_from_id(
-        $project_state.project_id!,
-        $project_list_q.data ?? EMPTY_PROJECT_REGISTRY
-      )!.name
-    })
-  );
+  let additional_prompt_info = $derived.by(() => {
+    if (!$project_state) return '';
+    const project = get_project_from_id(
+      $project_state.project_id,
+      $project_list_q.data ?? EMPTY_PROJECT_REGISTRY
+    );
+    if (!project) return '';
+    const { levels, level_names } = $project_state;
+    const path_params = $selected_text_levels.slice(0, levels - 1);
+    const list_level_names = level_names.slice(1);
+    const text_info = path_params
+      .map((param, index) => {
+        const level_name = list_level_names[index];
+        return `${level_name} ${param}`;
+      })
+      .join(', ');
+    return format_string_text(base_prompts.additional_prompt_info, {
+      text_info,
+      text_name: project.name
+    });
+  });
 
   $effect(() => {
     !$trans_en_data_q.isFetching &&
@@ -181,7 +212,7 @@
     createQuery({
       queryKey: [
         'shloka_text_prompt',
-        ...$selected_text_levels.slice(0, $project_state.levels - 1).reverse(),
+        ...$selected_text_levels.slice(0, ($project_state?.levels ?? 1) - 1).reverse(),
         $index
       ],
       queryFn: async () => {
@@ -230,7 +261,7 @@
     createQuery({
       queryKey: [
         'shloka_image',
-        ...$selected_text_levels.slice(0, $project_state.levels - 1).reverse(),
+        ...$selected_text_levels.slice(0, ($project_state?.levels ?? 1) - 1).reverse(),
         $index
       ],
       queryFn: async () => {

@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { get_total_count, project_map_q } from '~/state/main_app/data.svelte';
+  import { get_total_count, project_map_q_options } from '~/state/main_app/data.svelte';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { project_state } from '~/state/main_app/state.svelte';
   import Konva from 'konva';
   import {
     image_selected_levels,
@@ -29,14 +31,17 @@
   import { Button } from '$lib/components/ui/button';
   import { Separator } from '$lib/components/ui/separator';
   import { ProgressRing } from '$lib/components/ui/progress-ring';
-  import { project_state } from '~/state/main_app/state.svelte';
   import { get_path_params } from '~/state/project_list';
 
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+
   let total_count = $derived(
-    $project_map_q.isSuccess ? get_total_count($image_selected_levels) : 0
+    $project_map_q.isSuccess
+      ? get_total_count($image_selected_levels, $project_map_q.data, $project_state?.levels ?? 0)
+      : 0
   );
   let image_loc = $derived(
-    get_path_params($image_selected_levels, $project_state.levels!).join('.')
+    get_path_params($image_selected_levels, $project_state?.levels ?? 0).join('.')
   );
 
   const get_image_name = (shloka_index: number, remove_background: boolean) =>
@@ -78,17 +83,12 @@
     // Optionally hide background
     if (remove_background) bg_layer?.hide();
 
-    // Hide the transformer temporarily
-    const transformer_nodes = text_layer?.find('Transformer') ?? [];
-    transformer_nodes.forEach((t) => t.hide());
-
     const url = stage.toDataURL({ pixelRatio: 1 / $scaling_factor });
     const name = get_image_name($image_shloka, remove_background);
 
     // Restore visibility
     lines_layer?.show();
     if (remove_background) bg_layer?.show();
-    transformer_nodes.forEach((t) => t.show());
 
     // Restore template background if it was swapped
     if (was_template && !remove_background) {

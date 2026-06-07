@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dbPathMatchesPrefix } from './map_path_swap';
+import { dbPathMatchesPrefix } from './swap';
 import {
   applyDeletePathCompactionsToPath,
   applyDeletedSubtreesToMap,
@@ -12,7 +12,7 @@ import {
   validateDeleteMapProposal,
   validateDeletedPathsInMap,
   remove_node_at_saved_map_path
-} from './map_path_delete.server';
+} from './delete.server';
 import type { recursive_list_type } from '~/state/data_types';
 import { get_node_at_path } from '~/state/project_list';
 

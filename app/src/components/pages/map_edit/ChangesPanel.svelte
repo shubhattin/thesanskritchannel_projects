@@ -1,6 +1,6 @@
 <script lang="ts">
   import * as Tooltip from '$lib/components/ui/tooltip';
-  import type { PathSwapEdit } from '~/server/map_path_swap';
+  import type { PathSwapEdit } from '~/utils/map_path/swap';
   import type {
     DeleteReviewRow,
     MapChangeKind,

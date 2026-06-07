@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { cache_db_options_app } from '~/server/cache_db_options';
-import { get_project_by_key } from '~/server/project_list.server';
+import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
+import { get_project_by_key } from '~/utils/project/list.server';
 
 export const load: PageServerLoad = async ({ parent, params }) => {
   const { user_info } = await parent();

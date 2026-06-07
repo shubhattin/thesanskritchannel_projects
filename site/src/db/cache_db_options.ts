@@ -1,4 +1,4 @@
-import type { db_options } from '$app/server/cached_loader';
+import type { db_options } from '$app/utils/cache.server/cached_loader.server';
 import { waitUntil } from '@vercel/functions';
 import { db, redis } from './site_db';
 

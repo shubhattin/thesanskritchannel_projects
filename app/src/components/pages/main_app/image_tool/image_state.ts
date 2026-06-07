@@ -1,9 +1,10 @@
 import { writable } from 'svelte/store';
-import { get_derived_query } from '~/tools/query';
 import { browser } from '$app/environment';
-import { trans_lang_data_q_options, text_data_q_options } from '~/state/main_app/data.svelte';
-import { createQuery } from '@tanstack/svelte-query';
-import { queryClient } from '~/state/queryClient';
+import {
+  trans_lang_data_q_options,
+  text_data_q_options,
+  type ProjectState
+} from '~/state/main_app/data.svelte';
 import background_image_url from './img/background_vr.png';
 import background_image_template_url from './img/background_vr_template.jpg';
 import {
@@ -21,7 +22,6 @@ import {
   IMAGE_RENDER_COLORS,
   type ImageTextRenderColors
 } from './settings';
-import { project_state, text_data_present } from '~/state/main_app/state.svelte';
 import type Konva from 'konva';
 
 /** Reference to the Konva Stage node — set by ImageTool once mounted. */
@@ -68,35 +68,32 @@ export function set_image_text_color(key: keyof ImageTextRenderColors, value: st
 
 export let zip_download_state = writable<[number, number] | null>(null);
 
-export const image_text_data_q = get_derived_query(
-  [image_selected_levels, text_data_present, project_state],
-  ([image_selected_levels_, text_data_present_, project_state_]) => {
-    return createQuery(
-      {
-        ...text_data_q_options(
-          image_selected_levels_,
-          project_state_.project_key!,
-          project_state_.levels!
-        ),
-        enabled: browser && text_data_present_,
-        placeholderData: []
-      },
-      queryClient
-    );
-  }
-);
-export const image_trans_data_q = get_derived_query(
-  [image_selected_levels, image_lang, text_data_present],
-  ([image_selected_levels_, image_lang_, text_data_present_]) => {
-    return createQuery(
-      {
-        ...trans_lang_data_q_options(image_lang_, image_selected_levels_),
-        enabled: browser && text_data_present_
-      },
-      queryClient
-    );
-  }
-);
+/** Bumped to clear per-element drag offsets in ImageTool. */
+export let image_drag_reset_nonce = writable(0);
+
+export const reset_image_drag_positions = () => {
+  image_drag_reset_nonce.update((n) => n + 1);
+};
+
+export const image_text_data_q_options = (
+  image_selected_levels: (number | null)[],
+  project: ProjectState | null,
+  text_data_present_: boolean
+) => ({
+  ...text_data_q_options(image_selected_levels, project),
+  enabled: browser && text_data_present_,
+  placeholderData: [] as shloka_list_type
+});
+
+export const image_trans_data_q_options = (
+  image_selected_levels: (number | null)[],
+  image_lang: number,
+  project: ProjectState | null,
+  text_data_present_: boolean
+) => ({
+  ...trans_lang_data_q_options(image_lang, image_selected_levels, project),
+  enabled: browser && text_data_present_
+});
 
 // Language and Script Specific Settings
 

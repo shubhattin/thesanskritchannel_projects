@@ -14,3 +14,6 @@ export const authClient = createAuthClient({
 });
 
 export const { useSession, signIn, signOut, signUp } = authClient;
+
+/** Session atom for store subscribers outside Svelte components. */
+export const sessionStore = authClient.useSession();

@@ -5,7 +5,7 @@
   import { client_q } from '~/api/client';
   import { MultimediaIcon } from '~/components/icons';
   import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
-  import { user_info } from '~/state/user.svelte';
+  import { useSession } from '~/lib/auth-client';
   import Icon from '~/tools/Icon.svelte';
   import AddMediaLinks from './AddMediaLink.svelte';
   import { type media_list_type } from './index';
@@ -17,7 +17,7 @@
 
   const media_list_q = $derived(
     client_q.media.get_media_list.query({
-      project_id: $project_state.project_id!,
+      project_id: $project_state!.project_id,
       selected_text_levels: $selected_text_levels
     })
   );
@@ -27,6 +27,10 @@
   let link_add_modal_opened = $state(false);
   let link_edit_modal_opened = $state(false);
   let selected_edit_item = $state<NonNullable<typeof $media_list_q.data>[0] | null>(null!);
+
+  const session = useSession();
+
+  const is_admin = $derived($session.data?.user.role === 'admin');
 </script>
 
 <Popover.Root bind:open={multimedia_popover_state}>
@@ -58,7 +62,7 @@
                 <MediaTypeIcon media_type={media.media_type as media_list_type} />
                 <span class="min-w-0 flex-1 truncate">{media.name}</span>
               </a>
-              {#if $user_info && $user_info.role === 'admin'}
+              {#if is_admin}
                 <button
                   onclick={() => {
                     multimedia_popover_state = false;
@@ -74,7 +78,7 @@
           {/each}
         </div>
       {/if}
-      {#if $user_info && $user_info.role === 'admin'}
+      {#if is_admin}
         <button
           onclick={() => {
             multimedia_popover_state = false;

@@ -4,19 +4,19 @@ import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { project_paths, projects, texts, translations } from '~/db/schema';
 import { delay } from '~/tools/delay';
-import { cache_db_options_app } from '~/server/cache_db_options';
-import { get_text_data_func } from '~/server/cached_loader';
+import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
+import { get_text_data_func } from '~/utils/cache.server/cached_loader.server';
 import {
   clear_server_project_info_cache,
   clear_server_project_map_cache,
   get_project_by_key,
   get_project_info_by_id
-} from '~/server/project_list.server';
-import { notify_site_invalidate_project_map_cache } from '~/server/invalidate_site_project_cache.server';
+} from '~/utils/project/list.server';
+import { notify_site_invalidate_project_map_cache } from '~/utils/cache.server/invalidate_site_project_cache.server';
 import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
 import { and, eq, like, or, sql } from 'drizzle-orm';
 import { get_path_params } from '~/state/project_list';
-import { requireProjectPath } from '~/server/project_paths_db.server';
+import { requireProjectPath } from '~/utils/project/paths_db.server';
 import { redis } from '~/db/redis';
 import {
   buildTextEditRedisKeys,
@@ -25,7 +25,7 @@ import {
   getAffectedTranslationLangIds,
   remapTranslationsForTextRows,
   TEXT_EDIT_LOCK_NAMESPACE
-} from '~/server/text_row_edit.server';
+} from '~/utils/text/row_edit.server';
 
 const get_text_data_route = publicProcedure
   .input(

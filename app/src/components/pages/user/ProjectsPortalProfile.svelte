@@ -5,7 +5,7 @@
   import ConfirmModal from '~/components/PopoverModals/ConfirmModal.svelte';
   import { get_lang_from_id, LANG_LIST, LANG_LIST_IDS } from '~/state/lang_list';
   import { get_project_from_id, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
-  import { project_list_q } from '~/state/main_app/data.svelte';
+  import { project_list_q_options } from '~/state/main_app/data.svelte';
   import Icon from '~/tools/Icon.svelte';
   import { BsPlusLg } from 'svelte-icons-pack/bs';
   import { cn } from '$lib/utils';
@@ -22,6 +22,7 @@
   import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
 
   const query_client = useQueryClient();
+  const project_list_q = $derived(createQuery(project_list_q_options()));
   const project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
 
   let {

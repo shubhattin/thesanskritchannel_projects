@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { get_total_count, project_map_q } from '~/state/main_app/data.svelte';
+  import { get_total_count, project_map_q_options } from '~/state/main_app/data.svelte';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { project_state, text_data_present } from '~/state/main_app/state.svelte';
   import {
     DEFAULT_MAIN_TEXT_FONT_CONFIGS,
     DEFAULT_TRANS_TEXT_FONT_CONFIGS,
@@ -8,21 +10,22 @@
     image_selected_levels,
     image_script,
     image_shloka,
-    image_trans_data_q,
+    image_text_data_q_options,
+    image_trans_data_q_options,
     main_text_font_configs,
     normal_text_font_config,
     shaded_background_image_status,
     show_image_on_top_right,
     trans_text_font_configs,
-    image_text_data_q,
     image_shloka_data,
     image_trans_text,
     image_render_colors,
     DEFAULT_IMAGE_TEXT_RENDER_COLORS,
     set_image_text_color,
-    translation_bounding_coords
+    translation_bounding_coords,
+    reset_image_drag_positions
   } from './image_state';
-  import { LANG_LIST, LANG_LIST_IDS, type lang_list_type } from '~/state/lang_list';
+  import { LANG_LIST, LANG_LIST_IDS, lang_list_obj, type lang_list_type } from '~/state/lang_list';
   import Icon from '~/tools/Icon.svelte';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
   import { LanguageIcon } from '~/components/icons';
@@ -58,8 +61,29 @@
     handleTypingBeforeInputEvent
   } from 'lipilekhika/typing';
 
+  const project_map_q = $derived(createQuery(project_map_q_options($project_state)));
+
+  const image_text_data_q = $derived(
+    createQuery(
+      image_text_data_q_options($image_selected_levels, $project_state, $text_data_present)
+    )
+  );
+
+  const image_trans_data_q = $derived(
+    createQuery(
+      image_trans_data_q_options(
+        $image_selected_levels,
+        $image_lang,
+        $project_state,
+        $text_data_present
+      )
+    )
+  );
+
   let total_count = $derived(
-    $project_map_q.isSuccess ? get_total_count($image_selected_levels) : 0
+    $project_map_q.isSuccess
+      ? get_total_count($image_selected_levels, $project_map_q.data, $project_state?.levels ?? 0)
+      : 0
   );
 
   let settings_tab: 'spacing' | 'text' | 'colors' | 'bounding' = $state('spacing');
@@ -71,7 +95,8 @@
   let trans_textarea_disabled = $state(true);
   let trans_text_available = $state(false);
 
-  const current_lang = $derived(LANG_LIST[LANG_LIST_IDS.indexOf($image_lang)] as lang_list_type);
+  const image_lang_id = $derived($image_lang ?? lang_list_obj.English);
+  const current_lang = $derived(LANG_LIST[LANG_LIST_IDS.indexOf(image_lang_id)] as lang_list_type);
 
   let shloka_typing_ctx = $derived(
     createTypingContext('Devanagari', {
@@ -100,7 +125,19 @@
       $image_trans_text = '';
     }
     trans_textarea_disabled = true;
+    reset_image_drag_positions();
   };
+
+  let shloka_defaults_initialized = false;
+  $effect(() => {
+    const shloka_index = $image_shloka;
+    if (!shloka_defaults_initialized) {
+      shloka_defaults_initialized = true;
+      return;
+    }
+    if (!$image_text_data_q.isSuccess || $image_text_data_q.isFetching) return;
+    reset_func();
+  });
 
   $effect(() => {
     if ($image_shloka_data) {
@@ -367,9 +404,9 @@
     <Icon src={LanguageIcon} class="text-xl" />
     <Select.Root
       type="single"
-      value={$image_lang.toString()}
+      value={image_lang_id.toString()}
       onValueChange={(v) => {
-        $image_lang = parseInt(v) || 0;
+        $image_lang = parseInt(v) || lang_list_obj.English;
       }}
       disabled={$image_trans_data_q.isFetching || !$image_trans_data_q.isSuccess}
     >

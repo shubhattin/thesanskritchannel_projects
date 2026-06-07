@@ -2,7 +2,7 @@
   import { Skeleton } from '$lib/components/ui/skeleton';
   import * as Table from '$lib/components/ui/table';
   import type { DeleteReviewRow } from './map_edit_lib';
-  import type { ExactPathResourceCounts } from '~/server/map_path_delete_db.server';
+  import type { ExactPathResourceCounts } from '~/utils/map_path/delete_db.server';
 
   let {
     row,

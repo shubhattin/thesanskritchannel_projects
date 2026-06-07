@@ -5,7 +5,7 @@ import { ClientRouter } from 'astro:transitions';
 import Posthog from './Posthog.astro';
 import Header from './Header.svelte';
 import Footer from './Footer.astro';
-import { get_project_list } from '$app/server/project_list.server';
+import { get_project_list } from '$app/utils/project/list.server';
 import { cache_db_options_site } from '~/db/cache_db_options';
 
 type Props = {

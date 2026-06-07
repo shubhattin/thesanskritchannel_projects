@@ -62,7 +62,7 @@
     map_path_to_db_path,
     collect_unsaved_added_db_paths
   } from './map_edit_lib';
-  import { buildAdjacentSwapEdits, type PathSwapEdit } from '~/server/map_path_swap';
+  import { buildAdjacentSwapEdits, type PathSwapEdit } from '~/utils/map_path/swap';
   import TreeEditPanel from './TreeEditPanel.svelte';
   import NodeEditor from './NodeEditor.svelte';
   import ChangesPanel from './ChangesPanel.svelte';

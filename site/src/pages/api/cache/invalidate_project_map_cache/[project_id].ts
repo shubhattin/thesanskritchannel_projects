@@ -4,7 +4,7 @@ import { projects } from '$app/db/schema';
 import {
   clear_server_project_info_cache,
   clear_server_project_map_cache
-} from '$app/server/project_list.server';
+} from '$app/utils/project/list.server';
 import { db } from '~/db/site_db';
 import { verify_jwt_token } from '~/lib/get_auth_from_cookie';
 

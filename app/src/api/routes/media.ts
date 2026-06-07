@@ -1,14 +1,14 @@
 import { z } from 'zod';
 import { t, publicProcedure, protectedAdminProcedure } from '../trpc_init';
-import { cache_db_options_app } from '~/server/cache_db_options';
-import { get_project_info_by_id } from '~/server/project_list.server';
+import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
+import { get_project_info_by_id } from '~/utils/project/list.server';
 import { db } from '~/db/db';
 import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { media_attachment, project_paths } from '~/db/schema';
 import ms from 'ms';
 import { eq } from 'drizzle-orm';
 import { get_path_params } from '~/state/project_list';
-import { requireProjectPath } from '~/server/project_paths_db.server';
+import { requireProjectPath } from '~/utils/project/paths_db.server';
 
 /** DB root path is `''`; cache keys use `[]`, not `[0]` from `''.split(':')`. */
 const path_params_from_db_path = (path: string): number[] =>

@@ -1,17 +1,17 @@
 import ms from 'ms';
-import { REDIS_CACHE_KEYS_CLIENT } from '../db/redis_shared';
-import type { recursive_list_type, shloka_list_type } from '../state/data_types';
-import { get_path_params } from '../state/project_list';
-import { get_project_by_key, get_project_info_by_id } from './project_list.server';
+import { REDIS_CACHE_KEYS_CLIENT } from '../../db/redis_shared';
+import type { recursive_list_type, shloka_list_type } from '../../state/data_types';
+import { get_path_params } from '../../state/project_list';
+import { get_project_by_key, get_project_info_by_id } from '../project/list.server';
 import type { Redis } from '@upstash/redis/cloudflare';
-import type { drizzleDbType } from '../db/db_types';
-import { SiteLekhaSchemaZod } from '../db/schema_zod';
+import type { drizzleDbType } from '../../db/db_types';
+import { SiteLekhaSchemaZod } from '../../db/schema_zod';
 import { waitUntil } from '@vercel/functions';
 import type z from 'zod';
-import type { project_type } from '../state/project_list';
+import type { project_type } from '../../state/project_list';
 import { and, eq } from 'drizzle-orm';
-import { texts, translations } from '../db/schema';
-import { requireProjectPath } from './project_paths_db.server';
+import { texts, translations } from '../../db/schema';
+import { requireProjectPath } from '../project/paths_db.server';
 
 export type defer_promise_type = (promise: Promise<unknown>) => void;
 

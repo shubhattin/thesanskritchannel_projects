@@ -3,13 +3,8 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { transactionType } from '~/db/db';
 import { media_attachment, project_paths, texts, translations } from '~/db/schema';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
-import {
-  buildPathSwapSteps,
-  dbPathToPathParams,
-  toTempDbPath,
-  type PathSwapEdit
-} from './map_path_swap';
-import { listProjectPathsAtOrUnderPrefixes } from './project_paths_db.server';
+import { buildPathSwapSteps, dbPathToPathParams, toTempDbPath, type PathSwapEdit } from './swap';
+import { listProjectPathsAtOrUnderPrefixes } from '../project/paths_db.server';
 
 const assertNoRowsAtPrefix = async (
   tx: transactionType,

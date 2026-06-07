@@ -6,14 +6,14 @@ import {
   buildRedisKeysForDeleteInvalidation,
   collectDeleteInvalidation,
   deleteResourcesAtPathPrefixes
-} from '~/server/map_path_delete_db.server';
+} from '~/utils/map_path/delete_db.server';
 import {
   applyDeletedSubtreesToMap,
   buildDeletePathCompactions,
   listDeleteCompactionPrefixes,
   minimizeDbPathPrefixes,
   validateDeletedPathsInMap
-} from '~/server/map_path_delete.server';
+} from '~/utils/map_path/delete.server';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { projects } from '~/db/schema';
@@ -23,17 +23,17 @@ import {
   clear_server_project_info_cache,
   clear_project_registry_cache,
   clear_server_project_map_cache
-} from '~/server/project_list.server';
+} from '~/utils/project/list.server';
 import {
   notify_site_invalidate_project_list_caches,
   notify_site_invalidate_project_map_cache
-} from '~/server/invalidate_site_project_cache.server';
+} from '~/utils/cache.server/invalidate_site_project_cache.server';
 import {
   applyOrderedDbPathSwaps,
   buildRedisKeysForPathSwapInvalidation,
   collectPathSwapInvalidation,
   mergePathSwapInvalidation
-} from '~/server/map_path_swap_db.server';
+} from '~/utils/map_path/swap_db.server';
 import {
   applyMetadataEditsToMap,
   applySwapEditsToMap,
@@ -42,15 +42,15 @@ import {
   validateSwapEditsRootScope,
   validateDbPath,
   ROOT_DB_PATH
-} from '~/server/map_path_swap';
+} from '~/utils/map_path/swap';
 import { delay } from '~/tools/delay';
 import { recursive_list_schema } from '~/state/data_types';
-import { countExactPathResources, insertProjectPaths } from '~/server/project_paths_db.server';
+import { countExactPathResources, insertProjectPaths } from '~/utils/project/paths_db.server';
 import {
   collect_db_paths_from_map,
   validate_explicit_to_add_paths
-} from '~/server/project_map_sync.server';
-import { TEXT_EDIT_LOCK_NAMESPACE } from '~/server/text_row_edit.server';
+} from '~/utils/project/map_sync.server';
+import { TEXT_EDIT_LOCK_NAMESPACE } from '~/utils/text/row_edit.server';
 
 const project_id_input = z.object({
   project_id: z.int()

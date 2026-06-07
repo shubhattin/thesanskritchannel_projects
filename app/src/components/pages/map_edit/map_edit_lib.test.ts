@@ -20,7 +20,7 @@ import {
   type BaselineNodeSnapshot,
   type MapNodeWithClientId
 } from './map_edit_lib';
-import { applyMetadataEditsToMap } from '~/server/map_path_swap';
+import { applyMetadataEditsToMap } from '~/utils/map_path/swap';
 import type { recursive_list_type } from '~/state/data_types';
 
 const base_map = (): recursive_list_type => ({

@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import { shloka_list_schema } from '~/state/data_types';
 import { remove_vedic_svara_chihnAni } from '~/utils/normalize_text';
-import { requireProjectPath } from '~/server/project_paths_db.server';
+import { requireProjectPath } from '~/utils/project/paths_db.server';
 
 const CACHE_KEY_DB_NAME = 'cache_verify_key';
 

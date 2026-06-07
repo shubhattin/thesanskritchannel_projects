@@ -68,7 +68,7 @@
   const text_data_q = $derived(
     createQuery({
       ...text_data_q_options($selected_text_levels, $project_state),
-      enabled: $text_data_present
+      enabled: $text_data_present && $project_state !== null
     })
   );
 

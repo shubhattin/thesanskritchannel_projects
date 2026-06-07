@@ -25,12 +25,7 @@
     translation_bounding_coords,
     reset_image_drag_positions
   } from './image_state';
-  import {
-    LANG_LIST,
-    LANG_LIST_IDS,
-    lang_list_obj,
-    type lang_list_type
-  } from '~/state/lang_list';
+  import { LANG_LIST, LANG_LIST_IDS, lang_list_obj, type lang_list_type } from '~/state/lang_list';
   import Icon from '~/tools/Icon.svelte';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
   import { LanguageIcon } from '~/components/icons';
@@ -101,9 +96,7 @@
   let trans_text_available = $state(false);
 
   const image_lang_id = $derived($image_lang ?? lang_list_obj.English);
-  const current_lang = $derived(
-    LANG_LIST[LANG_LIST_IDS.indexOf(image_lang_id)] as lang_list_type
-  );
+  const current_lang = $derived(LANG_LIST[LANG_LIST_IDS.indexOf(image_lang_id)] as lang_list_type);
 
   let shloka_typing_ctx = $derived(
     createTypingContext('Devanagari', {

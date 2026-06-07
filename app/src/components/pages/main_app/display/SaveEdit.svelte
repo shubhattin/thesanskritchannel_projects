@@ -100,7 +100,7 @@
       await query_client.invalidateQueries({
         queryKey: !$english_edit_status
           ? trans_lang_data_query_key
-          : QUERY_KEYS.trans_lang_data(1, $selected_text_levels, $project_state)
+          : QUERY_KEYS.trans_lang_data(lang_list_obj.English, $selected_text_levels, $project_state)
       });
       $added_translations_indexes = [];
       $edited_translations_indexes = new Set();

@@ -26,7 +26,7 @@
   import { project_state } from '~/state/main_app/state.svelte';
   import { trans_map_to_text, text_to_trans_map } from './trans_bulk_funcs';
   import { get_font_family_and_size } from '~/tools/font_tools';
-  import { LANG_LIST, LANG_LIST_IDS, type lang_list_type } from '~/state/lang_list';
+  import { LANG_LIST, LANG_LIST_IDS, lang_list_obj, type lang_list_type } from '~/state/lang_list';
   import {
     clearTypingContextOnKeyDown,
     createTypingContext,
@@ -134,7 +134,7 @@
       await query_client.setQueryData(trans_lang_data_query_key, trans_data);
     } else {
       await query_client.setQueryData(
-        QUERY_KEYS.trans_lang_data(1, $selected_text_levels, $project_state),
+        QUERY_KEYS.trans_lang_data(lang_list_obj.English, $selected_text_levels, $project_state),
         trans_data
       );
     }

@@ -52,7 +52,7 @@
     project_map_q,
     user_project_info_q
   } from '~/state/main_app/data.svelte';
-  import { user_info } from '~/state/user.svelte';
+  import { useSession } from '~/lib/auth-client';
   import { BiEdit, BiHelpCircle } from 'svelte-icons-pack/bi';
   import { Switch } from '$lib/components/ui/switch';
   import { BsKeyboard } from 'svelte-icons-pack/bs';
@@ -97,9 +97,12 @@
     $project_map_q.data;
   });
 
+  const session = useSession();
+
   const levels = $derived($project_state.levels);
   const level_names = $derived($project_state.level_names);
-  const is_admin = $derived($user_info?.role === 'admin');
+  const is_admin = $derived($session.data?.user.role === 'admin');
+  const user_info = $derived($session.data?.user);
   const project_id = $derived($project_state.project_id);
 
   const map_metadata_save_mut = create_map_metadata_save_mutation(
@@ -243,8 +246,8 @@
   );
 
   const can_edit_language = (lang_id: number | null) => {
-    if (lang_id === null || !$user_info) return false;
-    if ($user_info.role === 'admin') return true;
+    if (lang_id === null || !user_info) return false;
+    if (user_info.role === 'admin') return true;
     if (!$user_project_info_q.isSuccess) return false;
     return $user_project_info_q.data.languages?.map((l) => l.lang_id).includes(lang_id) ?? false;
   };
@@ -502,11 +505,11 @@
           </Button>
         </div>
       {/if}
-      {#if !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
+      {#if !($ai_tool_opened && is_admin)}
         {@render btn_multi()}
       {/if}
     </div>
-    {#if !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
+    {#if !($ai_tool_opened && is_admin)}
       <div class="flex flex-wrap items-end gap-x-4 gap-y-1">
         <div class="grid max-w-md grid-cols-2 gap-x-4 gap-y-0.5">
           {#each [0, 1] as slot (slot)}
@@ -627,7 +630,7 @@
   </div>
 {/if}
 <LoadFromTextTool bind:open={load_from_text_open} />
-{#if active_translation_lang_id !== null && active_translation_lang_id !== lang_list_obj.English && ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') && !($ai_tool_opened && $user_info && $user_info.role === 'admin')}
+{#if active_translation_lang_id !== null && active_translation_lang_id !== lang_list_obj.English && ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') && !($ai_tool_opened && is_admin)}
   <div class="flex gap-2.5 sm:gap-4">
     <Label class="flex items-center gap-2">
       <Switch

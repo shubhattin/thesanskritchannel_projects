@@ -8,11 +8,13 @@
   import Plus from '@lucide/svelte/icons/plus';
   import ListChecks from '@lucide/svelte/icons/list-checks';
   import ListX from '@lucide/svelte/icons/list-x';
-  import { user_info } from '~/state/user.svelte';
   import ProjectAddNewDialog from './settings/ProjectAddNewDialog.svelte';
+  import { useSession } from '~/lib/auth-client';
+
+  const session = useSession();
 
   const DEFAULT_PAGE_SIZE = 15;
-  const is_admin = $derived($user_info?.role === 'admin');
+  const is_admin = $derived($session.data?.user.role === 'admin');
   let add_project_open = $state(false);
 
   let page = $state(1);

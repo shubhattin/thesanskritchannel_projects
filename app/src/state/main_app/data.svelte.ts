@@ -16,7 +16,6 @@ import { delay } from '~/tools/delay';
 import { derived, get, writable } from 'svelte/store';
 import { lang_list_obj } from '../lang_list';
 import { get_node_at_path, build_project_registry } from '../project_list';
-import { user_info } from '../user.svelte';
 import type { shloka_list_type } from '~/state/data_types';
 import ms from 'ms';
 import { build_content_session_scope, get_dynamic_path_params } from './query_key_helpers';
@@ -93,22 +92,20 @@ export const invalidate_project_content_queries = async (project_id?: number) =>
   ]);
 };
 
-export const user_project_info_q = get_derived_query(
-  [project_state, user_info],
-  ([_prject_state, _user_info]) =>
-    createQuery(
-      {
-        queryKey: ['user_project_info', _prject_state.project_id!],
-        queryFn: async () => {
-          const data = await client.project.user_project_info.query({
-            project_id: _prject_state.project_id!
-          });
-          return data;
-        },
-        enabled: !!_user_info && !!_prject_state.project_id
+export const user_project_info_q = get_derived_query([project_state], ([_prject_state]) =>
+  createQuery(
+    {
+      queryKey: ['user_project_info', _prject_state.project_id!],
+      queryFn: async () => {
+        const data = await client.project.user_project_info.query({
+          project_id: _prject_state.project_id!
+        });
+        return data;
       },
-      queryClient
-    )
+      enabled: !!_prject_state.project_id
+    },
+    queryClient
+  )
 );
 
 export const project_map_q_options = (project_id: number) => {

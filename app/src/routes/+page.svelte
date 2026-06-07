@@ -1,10 +1,12 @@
 <script lang="ts">
   import Login from './Login.svelte';
   import Home from './Home.svelte';
-  import { user_info } from '~/state/user.svelte';
+  import { useSession } from '~/lib/auth-client';
+
+  const session = useSession();
 </script>
 
-{#if $user_info}
+{#if $session.data?.user}
   <Home />
 {:else}
   <Login />

@@ -12,13 +12,15 @@
     type AppScopeEnum
   } from '~/state/data_types';
   import { fetch_get } from '~/tools/fetch';
-  import { user_info } from '~/state/user.svelte';
+  import { useSession } from '~/lib/auth-client';
   import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
   import { Skeleton } from '$lib/components/ui/skeleton';
 
   const scope_ids = Object.keys(APP_SCOPE_IDENTIFIERS) as AppScopeEnum[];
 
   let active_scope_tab = $state<AppScopeEnum>(APP_SCOPE_ID_PROJECT_PORTAL);
+
+  const session = useSession();
 
   const users_list = createQuery({
     queryKey: ['users_list'],
@@ -34,7 +36,7 @@
       }[];
       const res = await fetch_get(`${PUBLIC_BETTER_AUTH_URL}/api/user/list_users`, {
         params: {
-          user_id: $user_info?.id ?? ''
+          user_id: $session.data?.user?.id ?? ''
         },
         credentials: 'include'
       });

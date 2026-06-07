@@ -16,9 +16,11 @@
   import { map_edit_dirty } from '~/state/map_edit_dirty.svelte';
   import { get_project_from_key, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import { project_list_q, project_map_q } from '~/state/main_app/data.svelte';
-  import { user_info } from '~/state/user.svelte';
+  import { useSession } from '~/lib/auth-client';
 
   let { children }: { children: Snippet } = $props();
+
+  const session = useSession();
 
   const project_key = $derived(page.params.project_key ?? '');
   const project_registry = $derived($project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
@@ -27,7 +29,7 @@
     $project_list_q.isSuccess && $project_map_q.isSuccess && !!current_project
   );
   const nav_disabled = $derived($editing_mode !== 'none' || $map_edit_dirty);
-  const is_admin = $derived($user_info?.role === 'admin');
+  const is_admin = $derived($session.data?.user.role === 'admin');
   const active_tab = $derived(
     page.url.pathname.includes(`/${project_key}/edit`) ? 'edit-map' : 'texts'
   );

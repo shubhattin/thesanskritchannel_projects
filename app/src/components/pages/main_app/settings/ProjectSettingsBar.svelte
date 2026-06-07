@@ -1,14 +1,16 @@
 <script lang="ts">
   import { project_state } from '~/state/main_app/state.svelte';
   import { project_list_q } from '~/state/main_app/data.svelte';
-  import { user_info } from '~/state/user.svelte';
+  import { useSession } from '~/lib/auth-client';
   import { EMPTY_PROJECT_REGISTRY, get_project_from_id } from '~/state/project_list';
   import { Button } from '$lib/components/ui/button';
   import Settings from '@lucide/svelte/icons/settings';
   import { cl_join } from '~/tools/cl_join';
   import ProjectSettingsDialog from './ProjectSettingsDialog.svelte';
 
-  const is_admin = $derived($user_info?.role === 'admin');
+  const session = useSession();
+
+  const is_admin = $derived($session.data?.user.role === 'admin');
 
   const project = $derived(
     $project_state.project_id

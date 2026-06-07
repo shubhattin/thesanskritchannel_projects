@@ -10,7 +10,6 @@
   import TopAppBar from '~/components/TopAppBar.svelte';
   import PostHogInit from '~/components/tags/PostHogInit.svelte';
   import { Toaster } from '$lib/components/ui/sonner/index.js';
-  import InitUserState from './InitUserState.svelte';
   import CookieCacheRefresh from '$lib/CookieCacheRefresh.svelte';
 
   let { children }: { children: Snippet } = $props();
@@ -21,7 +20,6 @@
   <div class="contaiiner mx-auto mb-12 max-w-5xl">
     <TopAppBar />
     <div class="mx-2 mt-4">
-      <InitUserState />
       <CookieCacheRefresh />
       {@render children()}
     </div>

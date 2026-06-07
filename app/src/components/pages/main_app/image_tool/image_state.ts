@@ -68,6 +68,13 @@ export function set_image_text_color(key: keyof ImageTextRenderColors, value: st
 
 export let zip_download_state = writable<[number, number] | null>(null);
 
+/** Bumped to clear per-element drag offsets in ImageTool. */
+export let image_drag_reset_nonce = writable(0);
+
+export const reset_image_drag_positions = () => {
+  image_drag_reset_nonce.update((n) => n + 1);
+};
+
 export const image_text_data_q_options = (
   image_selected_levels: (number | null)[],
   project: ProjectState | null,

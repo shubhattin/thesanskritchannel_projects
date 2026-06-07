@@ -83,17 +83,12 @@
     // Optionally hide background
     if (remove_background) bg_layer?.hide();
 
-    // Hide the transformer temporarily
-    const transformer_nodes = text_layer?.find('Transformer') ?? [];
-    transformer_nodes.forEach((t) => t.hide());
-
     const url = stage.toDataURL({ pixelRatio: 1 / $scaling_factor });
     const name = get_image_name($image_shloka, remove_background);
 
     // Restore visibility
     lines_layer?.show();
     if (remove_background) bg_layer?.show();
-    transformer_nodes.forEach((t) => t.show());
 
     // Restore template background if it was swapped
     if (was_template && !remove_background) {

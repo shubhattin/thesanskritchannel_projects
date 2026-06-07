@@ -22,7 +22,8 @@
     image_render_colors,
     DEFAULT_IMAGE_TEXT_RENDER_COLORS,
     set_image_text_color,
-    translation_bounding_coords
+    translation_bounding_coords,
+    reset_image_drag_positions
   } from './image_state';
   import {
     LANG_LIST,
@@ -131,7 +132,19 @@
       $image_trans_text = '';
     }
     trans_textarea_disabled = true;
+    reset_image_drag_positions();
   };
+
+  let shloka_defaults_initialized = false;
+  $effect(() => {
+    const shloka_index = $image_shloka;
+    if (!shloka_defaults_initialized) {
+      shloka_defaults_initialized = true;
+      return;
+    }
+    if (!$image_text_data_q.isSuccess || $image_text_data_q.isFetching) return;
+    reset_func();
+  });
 
   $effect(() => {
     if ($image_shloka_data) {

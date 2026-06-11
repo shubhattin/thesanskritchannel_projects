@@ -1,58 +1,51 @@
 # The Sanskrit Channel Projects
 
 <div align="center">
-  
+
 [![App Checks](https://github.com/shubhattin/thesanskritchannel_projects/actions/workflows/checks.yml/badge.svg)](https://github.com/shubhattin/thesanskritchannel_projects/actions/workflows/checks.yml)
 
-_A comprehensive digital platform for Sanskrit text management, translation, and preservation_
+_A platform for digitizing, managing, and sharing Sanskrit texts_
 
-**[🔧 Technical Details](./Technical_Details.md)** | **[🌐 Live Platform](https://projects.thesanskritchannel.org/)**
+**[🌐 Public Site](https://projects.thesanskritchannel.org/)**
 
 </div>
 
 ---
 
-## ✨ What is This Platform?
+## Repository layout
 
-Welcome to **The Sanskrit Channel Projects** - a modern, AI-powered portal designed to digitize, manage, and preserve ancient Sanskrit texts. Our platform serves as a unified interface for scholars, translators, and enthusiasts to collaborate on making timeless Sanskrit literature accessible to the world.
+| Path | Role |
+| --- | --- |
+| [`./site/`](./site/) | Public-facing **Astro** site — browse texts, read Lekha posts, discover learning tools |
+| [`./app/`](./app/) | Authenticated **SvelteKit** admin portal — manage content, translations, and project structure |
+| [`./redirect/`](./redirect/) | Lightweight redirect service for legacy URLs |
+| [`./data/`](./data/) | Source text data and extraction scripts |
 
-## 📚 Texts Collection
+The root package is a **Bun workspace**. Run checks across both apps with `bun run check`.
 
-Our platform currently hosts these revered Sanskrit texts:
+## What we host
 
-| Text                     | Sanskrit Name      | Description                     |
-| ------------------------ | ------------------ | ------------------------------- |
-| **Valmiki Ramayanam**    | श्रीमद्रामायणम्    | The epic tale of Lord Rama      |
-| **Bhagavad Gita**        | श्रीमद्भगवद्गीता   | The divine discourse of Krishna |
-| **Narayaneeyam**         | नारायणीयम्         | Devotional hymns to Lord Vishnu |
-| **Shiva Tandava Stotra** | शिवताण्डवस्तोत्रम् | The cosmic dance of Lord Shiva  |
-| **Saundarya Lahari**     | सौन्दर्यलहरी       | Hymns to the Divine Mother      |
+Classical Sanskrit texts such as Valmiki Ramayanam, Bhagavad Gita, Narayaneeyam, Shiva Tandava Stotra, and Saundarya Lahari — with translations and multi-script reading on the public site.
 
-## 🚀 Key Features
+## At a glance
 
-### 🤖 AI-Powered Tools
+**Public site** (`site/`) — clean reading experience, script switching, Lekha articles, and links to companion learning apps.
 
-- **Smart Translation**: Generate accurate translations using advanced language models
-- **Image Generation**: Create beautiful visual representations of shlokas with AI
-- **Content Processing**: Automated text analysis and formatting
+**Admin portal** (`app/`) — project & text editing, translation workflow, project map management, Lekha publishing, plus AI-assisted translation, AI image generation, and a shloka image tool.
 
-### 🔤 Lipi Parivartak (Script Transliteration)
+See each package README for details:
 
-- **Instant Conversion**: Transform text between multiple Indian scripts
-- **Real-time Preview**: See translations as you type
-- **Wide Script Support**: Devanagari, Telugu, Tamil, Bengali, and more
-- **Smart Input**: Intelligent typing assistance for Indian languages
+- [Admin portal →](./app/README.md)
+- [Public site →](./site/README.md)
 
-### 👥 Collaborative Platform
+## Development
 
-- **Role-Based Access**: Administrator and Collaborator roles for structured teamwork
-- **Project Management**: Organize texts by chapters, verses, and sections
-- **Translation Workflow**: Streamlined process for managing translations
-- **Version Control**: Track changes and maintain text integrity
+```bash
+bun install
 
-### 🎨 Rich Content Creation
+# Admin portal (SvelteKit)
+bun --cwd app dev
 
-- **Shloka Images**: Generate beautifully formatted verse images
-- **Multi-format Export**: Download content in various formats
-- **Custom Styling**: Beautiful typography for Sanskrit texts
-- **Modern UI**: Clean, responsive interface built with modern web technologies
+# Public site (Astro)
+bun --cwd site dev
+```

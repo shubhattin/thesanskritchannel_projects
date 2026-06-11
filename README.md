@@ -1,51 +1,26 @@
-# The Sanskrit Channel Projects
+# The Sanskrit Channel
 
-<div align="center">
+A platform to manage, create and publish for "The Sanskrit Channel" Website.
 
-[![App Checks](https://github.com/shubhattin/thesanskritchannel_projects/actions/workflows/checks.yml/badge.svg)](https://github.com/shubhattin/thesanskritchannel_projects/actions/workflows/checks.yml)
+🌐 **[thesanskritchannel.org](https://thesanskritchannel.org)**
 
-_A platform for digitizing, managing, and sharing Sanskrit texts_
+## Sanskrit Learning Tools
 
-**[🌐 Public Site](https://projects.thesanskritchannel.org/)**
+- [**Padavali**](https://krida.thesanskritchannel.org/padavali) — Sanskrit word game playable in multiple Indian scripts
+- [**Svara Darshini**](https://svara.thesanskritchannel.org/) — Visualize and practice Vedic pitch levels for chanting
+- [**Akshara**](https://akshara.thesanskritchannel.org/) — Interactive lessons to learn, read, and write Indian scripts
+- [**Lipi Lekhika**](https://lipilekhika.in/) — Convert text between Indian scripts
 
-</div>
+## Texts
 
----
+A growing collection of Sanskrit literature — from the Vedas, Valmiki Ramayanam, and Bhagavad Gita to shlokas like Shiva Tandava Stotra, Saundarya Lahari, and Narayaneeyam. All texts are available in 19 Indian scripts with multi-language translations.
 
-## Repository layout
+## Internal Admin Tools
 
-| Path | Role |
-| --- | --- |
-| [`./site/`](./site/) | Public-facing **Astro** site — browse texts, read Lekha posts, discover learning tools |
-| [`./app/`](./app/) | Authenticated **SvelteKit** admin portal — manage content, translations, and project structure |
-| [`./redirect/`](./redirect/) | Lightweight redirect service for legacy URLs |
-| [`./data/`](./data/) | Source text data and extraction scripts |
+The [admin portal](./app/) powers the content pipeline behind the site:
 
-The root package is a **Bun workspace**. Run checks across both apps with `bun run check`.
-
-## What we host
-
-Classical Sanskrit texts such as Valmiki Ramayanam, Bhagavad Gita, Narayaneeyam, Shiva Tandava Stotra, and Saundarya Lahari — with translations and multi-script reading on the public site.
-
-## At a glance
-
-**Public site** (`site/`) — clean reading experience, script switching, Lekha articles, and links to companion learning apps.
-
-**Admin portal** (`app/`) — project & text editing, translation workflow, project map management, Lekha publishing, plus AI-assisted translation, AI image generation, and a shloka image tool.
-
-See each package README for details:
-
-- [Admin portal →](./app/README.md)
-- [Public site →](./site/README.md)
-
-## Development
-
-```bash
-bun install
-
-# Admin portal (SvelteKit)
-bun --cwd app dev
-
-# Public site (Astro)
-bun --cwd site dev
-```
+- AI-assisted translation across 14 languages
+- Automated workflows via Trigger.dev for batch processing
+- AI image generation per shloka (DALL-E 3, GPT-Image-1)
+- AI-powered Sanskrit grammar analyzer
+- Canvas-based image tool for shareable shloka cards

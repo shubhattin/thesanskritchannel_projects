@@ -1,40 +1,48 @@
 # Public Site (`site/`)
 
-Astro site at [projects.thesanskritchannel.org](https://projects.thesanskritchannel.org/) — the reader-facing front door for Sanskrit texts and related resources.
+The public-facing website for The Sanskrit Channel, built with **Astro** and **Svelte 5** islands.
 
-## Features
+Presents the content managed through the [admin portal](../app/) in a clean, reader-friendly format with multi-script support.
 
-### Sacred texts
-- Browse listed projects (Ramayanam, Bhagavad Gita, and more)
-- Navigate the project map in a clean, distraction-free layout
-- Read shlokas with **translation** and **script switching** (Devanagari, Telugu, Tamil, Bengali, and others)
-- Preferences for language and script are remembered across visits
+🌐 **[thesanskritchannel.org](https://thesanskritchannel.org)**
 
-### Lekha
-- Published **Lekha** posts — short notes and articles from the team
-- Individual post pages with rendered markdown (shloka blocks, code, etc.)
+## Pages
 
-### Learning tools
-Curated links to companion apps on the homepage:
-- **Padavali** — Sanskrit word game
-- **Svara Darshini** — Vedic pitch visualization
-- **Akshara** — Indian script lessons
-- **Lipi Lekhika** — script transliteration
+- **Texts** — Browse and read Sanskrit/Vedic texts with translations and script switching across 15+ Indian scripts
+- **Lekha** — Blog posts and articles with markdown rendering and transliteration support
+- **Support** — Donation and membership options (UPI, Razorpay, PayPal, Patreon)
 
-### Other
-- **Support** page
-- Server-rendered routes with Redis-backed caching for fast loads
+## Highlights
 
-## Stack
+- **Multi-script reader** — switch between Devanagari, Telugu, Tamil, Bengali, Kannada, and more; preferences saved per user
+- **Pretty URLs** — `/ramayanam/kanda-1/sarga-5` with automatic redirects from numeric paths
+- **Server-rendered + cached** — SSR with Redis caching for fast loads
+- **Dark/light theme** with system preference detection
+- **View transitions** via Astro ClientRouter
 
-Astro 6 · Svelte islands · Drizzle ORM · lipilekhika · Tailwind CSS
+## Tech Stack
+
+| | |
+|---|---|
+| Framework | Astro 5, SSR mode |
+| UI Islands | Svelte 5 (`@astrojs/svelte`) |
+| Styling | TailwindCSS v4, `@tailwindcss/typography` |
+| UI Components | shadcn-svelte |
+| Database | Neon PostgreSQL + Drizzle ORM (shared with `app/`) |
+| Cache | Upstash Redis |
+| Fonts | 16+ Noto Sans packages for Indian scripts |
+| Analytics | PostHog |
+| Deploy | Vercel (Mumbai region) |
+
+## Code Sharing
+
+The site imports shared code from the admin app via the `$app/*` alias (resolves to `../app/src/*`) — database schemas, server loaders, types, and utilities. Content is created in the admin portal, stored in the shared database, and rendered read-only by this site.
 
 ## Development
 
 ```bash
-bun --cwd site dev      # http://localhost:4321
-bun --cwd site check    # astro check
-bun --cwd site build    # production build
+bun install
+bun run dev
 ```
 
-Content is managed in the [admin portal](../app/README.md); this app reads published data from the shared database.
+Runs on `localhost:4321` by default. Requires the same `.env` credentials as the admin app.

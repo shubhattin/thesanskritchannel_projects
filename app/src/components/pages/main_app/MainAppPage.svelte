@@ -57,7 +57,7 @@
     user_project_info_q_options
   } from '~/state/main_app/data.svelte';
   import { useSession } from '~/lib/auth-client';
-  import { BiEdit, BiHelpCircle } from 'svelte-icons-pack/bi';
+  import { BiHelpCircle } from 'svelte-icons-pack/bi';
   import { Switch } from '$lib/components/ui/switch';
   import { BsKeyboard } from 'svelte-icons-pack/bs';
   import { loadLocalConfig } from './load_local_config';
@@ -74,6 +74,7 @@
   import { create_map_metadata_save_mutation } from './map_metadata_save';
   import Label from '~/lib/components/ui/label/label.svelte';
   import AITranslate from './display/ai_translate/AITranslate.svelte';
+  import EditOptionsPopover from './display/EditOptionsPopover.svelte';
 
   let { path_params = [] }: { path_params?: number[] } = $props();
 
@@ -285,16 +286,6 @@
 
   const set_edit_context_visible = (key: 'text' | 'lang_1' | 'lang_2', checked: boolean) => {
     $edit_context_visible = { ...$edit_context_visible, [key]: checked };
-  };
-
-  const start_text_edit = () => {
-    $viewing_script_selection = BASE_SCRIPT;
-    $editing_mode = 'text';
-  };
-
-  const start_dual_edit = (slot: 0 | 1) => {
-    $viewing_script_selection = BASE_SCRIPT;
-    $editing_mode = slot === 0 ? 'text_1st_lang' : 'text_2nd_lang';
   };
 
   const get_grouped_lang_options = (
@@ -516,21 +507,25 @@
           </Button>
         {/if}
       {/if}
-      {#if $editing_mode === 'none' && is_admin}
-        <Button onclick={start_text_edit} variant="outline" size="sm">
-          <Icon src={BiEdit} class="text-xl sm:text-2xl" />
-          Edit Text
-        </Button>
-        <div class="ml-2 border-l pl-3">
-          <Button
-            onclick={() => (load_from_text_open = true)}
-            variant="secondary"
-            size="sm"
-            class="border border-amber-500/40"
-          >
-            Load from Text
-          </Button>
-        </div>
+      {#if $editing_mode === 'none'}
+        <EditOptionsPopover
+          disabled={$editing_mode !== 'none'}
+          {is_admin}
+          {can_edit_language}
+          {viewing_script_selection}
+        />
+        {#if is_admin}
+          <div class="ml-2 border-l pl-3">
+            <Button
+              onclick={() => (load_from_text_open = true)}
+              variant="secondary"
+              size="sm"
+              class="border border-amber-500/40"
+            >
+              Load from Text
+            </Button>
+          </div>
+        {/if}
       {/if}
       {#if !($ai_tool_opened && is_admin)}
         {@render btn_multi()}
@@ -540,31 +535,8 @@
       <div class="flex flex-wrap items-end gap-x-4 gap-y-1">
         <div class="grid max-w-md grid-cols-2 gap-x-4 gap-y-0.5">
           {#each [0, 1] as slot (slot)}
-            {@const slot_lang_id = $selected_translation_lang_ids[slot]}
-            <div class="flex items-center gap-1 text-xs text-muted-foreground">
+            <div class="text-xs text-muted-foreground">
               <span>Lang {slot + 1}</span>
-              {#if $editing_mode === 'none' && can_edit_language(slot_lang_id)}
-                <Button
-                  onclick={() => ($editing_mode = slot === 0 ? '1st_lang' : '2nd_lang')}
-                  variant="outline"
-                  size="sm"
-                  class="h-7 px-2 text-xs"
-                >
-                  <Icon src={BiEdit} class="text-base" />
-                  Edit
-                </Button>
-              {/if}
-              {#if $editing_mode === 'none' && is_admin && slot_lang_id !== null}
-                <Button
-                  onclick={() => start_dual_edit(slot as 0 | 1)}
-                  variant="outline"
-                  size="sm"
-                  class="h-7 px-2 text-xs"
-                >
-                  <Icon src={BiEdit} class="text-base" />
-                  Edit Text + {get_lang_slot_label(slot as 0 | 1)}
-                </Button>
-              {/if}
             </div>
           {/each}
           {#each [0, 1] as slot (slot)}

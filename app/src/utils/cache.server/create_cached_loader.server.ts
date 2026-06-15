@@ -21,7 +21,7 @@ export type CachedLoaderRefreshOptions = {
   deleteFirst?: boolean;
 };
 
-export type CachedLoader<TParams, TData> = CachedLoaderFn<TParams, TData> & {
+export type CachedLoader<TParams, TData> = {
   get: CachedLoaderFn<TParams, TData>;
   delete: (params: TParams, options: db_options) => Promise<void>;
   refresh: (
@@ -104,14 +104,12 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
     return to_return_value(fetched, config.transform);
   };
 
-  const loader = Object.assign(get, {
+  return {
     get,
     delete: delete_cache,
     refresh,
     key: resolve_key
-  });
-
-  return loader;
+  };
 }
 
 /** No-arg cache loaders use an empty params object. */

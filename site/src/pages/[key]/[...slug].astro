@@ -1,10 +1,7 @@
 ---
 import NotFoundPage from '$components/NotFoundPage.astro';
 import TextRoutePage from '$components/main_text/TextRoutePage.astro';
-import {
-  get_text_data_func,
-  get_translation_data_func
-} from '$app/utils/cache.server/cached_loader.server';
+import { CACHED } from '$app/utils/cache.server/cached_loader.server';
 import {
   get_child_route_items,
   get_selected_text_levels_from_path_params,
@@ -34,14 +31,22 @@ const selected_lang_id = parse_lang_id_cookie(Astro.cookies.get(LANG_ID_COOKIE_N
 const selected_script_id = parse_script_id_cookie(Astro.cookies.get(SCRIPT_ID_COOKIE_NAME)?.value);
 const text =
   resolved && resolved.node.info.type === 'shloka'
-    ? await get_text_data_func(resolved.project_key, resolved.path_params, cache_db_options_site)
+    ? await CACHED.text_data.get(
+        { key: resolved.project_key, path_params: resolved.path_params },
+        cache_db_options_site
+      )
     : null;
 const translation =
   resolved && resolved.node.info.type === 'shloka' && selected_lang_id !== -1
-    ? await get_translation_data_func(
-        resolved.project_id,
-        selected_lang_id,
-        get_selected_text_levels_from_path_params(resolved.path_params, resolved.levels),
+    ? await CACHED.translation.get(
+        {
+          project_id: resolved.project_id,
+          lang_id: selected_lang_id,
+          selected_text_levels: get_selected_text_levels_from_path_params(
+            resolved.path_params,
+            resolved.levels
+          )
+        },
         cache_db_options_site
       )
     : null;

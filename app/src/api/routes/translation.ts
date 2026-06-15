@@ -10,7 +10,7 @@ import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.serv
 import { get_project_by_key, get_project_info_by_id } from '~/utils/project/list.server';
 import { get_languages_for_project_user } from './project/project';
 import { get_path_params } from '~/state/project_list';
-import { get_translation_data_func } from '~/utils/cache.server/cached_loader.server';
+import { CACHED } from '~/utils/cache.server/cached_loader.server';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
 import { TEXT_EDIT_LOCK_NAMESPACE } from '~/utils/text/row_edit.server';
 
@@ -38,10 +38,8 @@ const get_translation_route = publicProcedure
     })
   )
   .query(async ({ input: { project_id, lang_id, selected_text_levels } }) => {
-    return get_translation_data_func(
-      project_id,
-      lang_id,
-      selected_text_levels,
+    return CACHED.translation.get(
+      { project_id, lang_id, selected_text_levels },
       cache_db_options_app
     );
   });

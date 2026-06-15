@@ -2,6 +2,8 @@
 import RootLayout from '$components/RootLayout.astro';
 import { get_project_list } from '$app/utils/project/list.server';
 import { cache_db_options_site } from '~/db/cache_db_options';
+import { CACHED } from '$app/utils/cache.server/cached_loader.server';
+import { NO_CACHE_PARAMS } from '$app/utils/cache.server/create_cached_loader.server';
 
 const projects = await get_project_list(cache_db_options_site, { listed_only: true });
 import Youtube from '@lucide/svelte/icons/youtube';
@@ -9,10 +11,8 @@ import ArrowRight from '@lucide/svelte/icons/arrow-right';
 import ExternalLink from '@lucide/svelte/icons/external-link';
 import Heart from '@lucide/svelte/icons/heart';
 import Icon from '~/components/utils/Icon.astro';
-import { get_site_lekha_list_func } from '$app/utils/cache.server/cached_loader.server';
 
-// TODO: shall use the cached loader later
-const latest_lekhas = await get_site_lekha_list_func(cache_db_options_site);
+const latest_lekhas = await CACHED.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_options_site);
 ---
 
 <RootLayout

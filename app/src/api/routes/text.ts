@@ -5,7 +5,7 @@ import { db } from '~/db/db';
 import { project_paths, projects, texts, translations } from '~/db/schema';
 import { delay } from '~/tools/delay';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
-import { get_text_data_func } from '~/utils/cache.server/cached_loader.server';
+import { CACHED } from '~/utils/cache.server/cached_loader.server';
 import {
   clear_server_project_info_cache,
   clear_server_project_map_cache,
@@ -36,7 +36,10 @@ const get_text_data_route = publicProcedure
   )
   .query(async ({ input: { project_key, path_params } }) => {
     await delay(350);
-    const data = await get_text_data_func(project_key, path_params, cache_db_options_app);
+    const data = await CACHED.text_data.get(
+      { key: project_key, path_params },
+      cache_db_options_app
+    );
     return data;
   });
 

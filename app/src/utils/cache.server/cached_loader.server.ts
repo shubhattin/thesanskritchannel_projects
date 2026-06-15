@@ -52,7 +52,7 @@ const load_text_data = createCachedLoader<text_data_params, shloka_list_type>({
 
 /** Cache loader for `texts` */
 export const get_text_data_func = (key: string, path_params: number[], options: db_options) =>
-  load_text_data({ key, path_params }, options);
+  load_text_data.get({ key, path_params }, options);
 
 type translation_row = { index: number; text: string };
 
@@ -107,7 +107,7 @@ export const get_translation_data_func = (
   lang_id: number,
   selected_text_levels: (number | null)[],
   options: db_options
-) => load_translation_data({ project_id, lang_id, selected_text_levels }, options);
+) => load_translation_data.get({ project_id, lang_id, selected_text_levels }, options);
 
 const load_site_lekha_data = createCachedLoader<{ url_slug: string }, lekhaType | null>({
   getKey: ({ url_slug }) => REDIS_CACHE_KEYS_CLIENT.site_lekha_data(url_slug),
@@ -123,7 +123,7 @@ const load_site_lekha_data = createCachedLoader<{ url_slug: string }, lekhaType 
 
 /** Cache loader for `site_lekhas` */
 export const get_site_lekha_data_func = (url_slug: string, options: db_options) =>
-  load_site_lekha_data({ url_slug }, options);
+  load_site_lekha_data.get({ url_slug }, options);
 
 /**
  * TODO : implement caching, paging and sorting
@@ -154,7 +154,7 @@ const load_site_lekha_list = createCachedLoader<NoCacheParams, lekhaListType>({
 });
 
 export const get_site_lekha_list_func = (options: db_options) =>
-  load_site_lekha_list(NO_CACHE_PARAMS, options);
+  load_site_lekha_list.get(NO_CACHE_PARAMS, options);
 
 const load_project_list = createCachedLoader<NoCacheParams, project_type[]>({
   getKey: () => REDIS_CACHE_KEYS_CLIENT.project_list(),
@@ -175,7 +175,7 @@ const load_project_list = createCachedLoader<NoCacheParams, project_type[]>({
 
 /** Cache loader for `project_list` */
 export const get_project_list_func = (options: db_options) =>
-  load_project_list(NO_CACHE_PARAMS, options);
+  load_project_list.get(NO_CACHE_PARAMS, options);
 
 const load_project_map = createCachedLoader<{ project_id: number }, recursive_list_type>({
   getKey: ({ project_id }) => REDIS_CACHE_KEYS_CLIENT.project_map(project_id),
@@ -195,7 +195,7 @@ const load_project_map = createCachedLoader<{ project_id: number }, recursive_li
 
 /** Cache loader for `project_map` */
 export const get_project_map_func = (project_id: number, options: db_options) =>
-  load_project_map({ project_id }, options);
+  load_project_map.get({ project_id }, options);
 
 /**
  * Typed registry of cache loaders keyed by `REDIS_CACHE_KEYS_CLIENT` name.
@@ -210,7 +210,7 @@ export type CacheLoaderRegistry = {
   translation: CachedLoader<translation_params, Map<number, string>>;
 };
 
-export const CACHED_LOADERS = {
+export const CACHED = {
   project_list: load_project_list,
   project_map: load_project_map,
   site_lekha_data: load_site_lekha_data,

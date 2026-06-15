@@ -28,7 +28,7 @@ export type CachedLoader<TParams, TData> = {
     params: TParams,
     options: db_options,
     opts?: CachedLoaderRefreshOptions
-  ) => Promise<TData>;
+  ) => Promise<void>;
   key: (params: TParams, options: db_options) => Promise<string>;
 };
 
@@ -89,19 +89,21 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
     options: db_options,
     { deleteFirst = true }: CachedLoaderRefreshOptions = {}
   ) => {
-    const { redis } = options;
-    const cache_key = await resolve_key(params, options);
-
-    const [, fetched] = await Promise.all([
-      deleteFirst ? redis.del(cache_key) : Promise.resolve(),
-      config.fetch(params, options)
-    ]);
-
-    if (import.meta.env.PROD && shouldCache(fetched)) {
-      await redis.set(cache_key, fetched, { ex: ttlSeconds });
+    if (deleteFirst) {
+      await delete_cache(params, options);
     }
 
-    return to_return_value(fetched, config.transform);
+    const repopulate = async () => {
+      if (!import.meta.env.PROD) return;
+
+      const cache_key = await resolve_key(params, options);
+      const fetched = await config.fetch(params, options);
+      if (shouldCache(fetched)) {
+        await options.redis.set(cache_key, fetched, { ex: ttlSeconds });
+      }
+    };
+
+    defer_promise(repopulate(), options.defer);
   };
 
   return {

@@ -3,7 +3,6 @@ import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import {
   applyDeletePathCompactions,
-  buildRedisKeysForDeleteInvalidation,
   collectDeleteInvalidation,
   deleteResourcesAtPathPrefixes
 } from '~/utils/map_path/delete_db.server';
@@ -17,8 +16,14 @@ import {
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { projects } from '~/db/schema';
-import { redis } from '~/db/redis';
-import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
+import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
+import {
+  CACHE,
+  invalidate_and_refresh_cached,
+  invalidate_path_caches,
+  NO_CACHE_PARAMS
+} from '~/utils/cache.server/cached_loader.server';
+import type { PathSwapInvalidation } from '~/utils/map_path/swap_db.server';
 import {
   clear_server_project_info_cache,
   clear_project_registry_cache,
@@ -30,7 +35,6 @@ import {
 } from '~/utils/cache.server/invalidate_site_project_cache.server';
 import {
   applyOrderedDbPathSwaps,
-  buildRedisKeysForPathSwapInvalidation,
   collectPathSwapInvalidation,
   mergePathSwapInvalidation
 } from '~/utils/map_path/swap_db.server';
@@ -60,18 +64,17 @@ const invalidate_project_caches = async (
   cookie: string,
   project_id: number,
   project_key: string,
-  redisKeys: string[] = []
+  pathInvalidation?: PathSwapInvalidation
 ) => {
   clear_project_registry_cache();
   clear_server_project_map_cache(project_id);
   clear_server_project_info_cache(project_key);
-  const keys = [
-    REDIS_CACHE_KEYS_CLIENT.project_map(project_id),
-    REDIS_CACHE_KEYS_CLIENT.project_list(),
-    ...redisKeys
-  ];
   await Promise.all([
-    redis.del(...keys),
+    invalidate_and_refresh_cached(CACHE.project_map, { project_id }, cache_db_options_app),
+    invalidate_and_refresh_cached(CACHE.project_list, NO_CACHE_PARAMS, cache_db_options_app),
+    pathInvalidation
+      ? invalidate_path_caches(project_id, project_key, pathInvalidation, cache_db_options_app)
+      : Promise.resolve(),
     notify_site_invalidate_project_map_cache(cookie, project_id),
     notify_site_invalidate_project_list_caches(cookie)
   ]);
@@ -163,7 +166,7 @@ const save_project_map_order = protectedAdminProcedure
     const {
       project,
       map: derivedMap,
-      redisKeys
+      pathInvalidation
     } = await db.transaction(async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
@@ -205,14 +208,11 @@ const save_project_map_order = protectedAdminProcedure
       return {
         project,
         map: derivedMap,
-        redisKeys: buildRedisKeysForPathSwapInvalidation(
-          project_id,
-          mergePathSwapInvalidation(invalidationBefore, invalidationAfter)
-        )
+        pathInvalidation: mergePathSwapInvalidation(invalidationBefore, invalidationAfter)
       };
     });
 
-    await invalidate_project_caches(cookie, project_id, project.key, redisKeys);
+    await invalidate_project_caches(cookie, project_id, project.key, pathInvalidation);
 
     return { success: true as const, swap_count: parsedEdits.length, map: derivedMap };
   });
@@ -231,7 +231,7 @@ const delete_project_map_nodes = protectedAdminProcedure
 
     await delay(400);
 
-    const { project, map, redisKeys } = await db.transaction(async (tx) => {
+    const { project, map, pathInvalidation } = await db.transaction(async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
       );
@@ -277,14 +277,11 @@ const delete_project_map_nodes = protectedAdminProcedure
       return {
         project,
         map: derivedMap,
-        redisKeys: buildRedisKeysForDeleteInvalidation(
-          project_id,
-          mergePathSwapInvalidation(invalidationBefore, invalidationAfter)
-        )
+        pathInvalidation: mergePathSwapInvalidation(invalidationBefore, invalidationAfter)
       };
     });
 
-    await invalidate_project_caches(cookie, project_id, project.key, redisKeys);
+    await invalidate_project_caches(cookie, project_id, project.key, pathInvalidation);
 
     return { success: true as const, deleted_count: minimized.length, map };
   });

@@ -12,8 +12,12 @@ import {
   user_project_join,
   user_project_language_join
 } from '~/db/schema';
-import { redis } from '~/db/redis';
-import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
+import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
+import {
+  CACHE,
+  invalidate_and_refresh_cached,
+  NO_CACHE_PARAMS
+} from '~/utils/cache.server/cached_loader.server';
 import { lekhaUrlSlugify } from '~/lib/carta_markdown/markdown';
 import {
   clear_server_project_map_cache,
@@ -32,7 +36,7 @@ const project_id_input = z.object({
 const invalidate_project_list_caches = async (cookie: string) => {
   clear_project_registry_cache();
   await Promise.all([
-    redis.del(REDIS_CACHE_KEYS_CLIENT.project_list()),
+    invalidate_and_refresh_cached(CACHE.project_list, NO_CACHE_PARAMS, cache_db_options_app),
     notify_site_invalidate_project_list_caches(cookie)
   ]);
 };

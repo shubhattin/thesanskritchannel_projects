@@ -9,6 +9,8 @@ import type { project_type } from '../../state/project_list';
 import { and, eq } from 'drizzle-orm';
 import { texts, translations } from '../../db/schema';
 import { requireProjectPath } from '../project/paths_db.server';
+import type { PathSwapInvalidation } from '../map_path/swap_db.server';
+import { dbPathToPathParams } from '../map_path/swap';
 import {
   createCachedLoader,
   NO_CACHE_PARAMS,
@@ -16,6 +18,8 @@ import {
   type NoCacheParams
 } from './create_cached_loader.server';
 import type { db_options } from './cache_db_options.server';
+
+export { NO_CACHE_PARAMS } from './create_cached_loader.server';
 
 const lekhaSchema = SiteLekhaSchemaZod;
 type lekhaType = z.infer<typeof lekhaSchema>;
@@ -210,7 +214,7 @@ export type CacheLoaderRegistry = {
   translation: CachedLoader<translation_params, Map<number, string>>;
 };
 
-export const CACHED = {
+export const CACHE = {
   project_list: load_project_list,
   project_map: load_project_map,
   site_lekha_data: load_site_lekha_data,
@@ -218,3 +222,55 @@ export const CACHED = {
   text_data: load_text_data,
   translation: load_translation_data
 } satisfies CacheLoaderRegistry;
+
+const path_params_to_selected_text_levels = (
+  path_params: number[],
+  levels: number
+): (number | null)[] => path_params.slice(0, levels - 1).reverse() as (number | null)[];
+
+/** Await cache delete, then warm cache in background (prod only, via waitUntil). */
+export const invalidate_and_refresh_cached = async <TParams, TData>(
+  loader: CachedLoader<TParams, TData>,
+  params: TParams,
+  options: db_options
+) => {
+  await loader.delete(params, options);
+  void loader.refresh(params, options, { deleteFirst: false });
+};
+
+/** Invalidate text/translation caches for map path edits; media_links keys are deleted only. */
+export const invalidate_path_caches = async (
+  project_id: number,
+  project_key: string,
+  invalidation: PathSwapInvalidation,
+  options: db_options
+) => {
+  const { levels } = await get_project_info_by_id(project_id, options);
+  const tasks: Promise<void>[] = [];
+
+  for (const path of invalidation.textAndMediaPaths) {
+    const path_params = dbPathToPathParams(path);
+    tasks.push(
+      invalidate_and_refresh_cached(
+        CACHE.text_data,
+        { key: project_key, path_params },
+        options
+      )
+    );
+    tasks.push(options.redis.del(REDIS_CACHE_KEYS_CLIENT.media_links(project_id, path_params)).then(() => { }));
+  }
+
+  for (const { lang_id, path } of invalidation.translationPaths) {
+    const path_params = dbPathToPathParams(path);
+    const selected_text_levels = path_params_to_selected_text_levels(path_params, levels);
+    tasks.push(
+      invalidate_and_refresh_cached(
+        CACHE.translation,
+        { project_id, lang_id, selected_text_levels },
+        options
+      )
+    );
+  }
+
+  await Promise.all(tasks);
+};

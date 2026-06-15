@@ -30,6 +30,10 @@
     edit_context_visible,
     edit_language_typer_status,
     editing_mode,
+    get_active_translation_slot,
+    is_dual_edit_mode,
+    is_editing_text,
+    is_editing_translation,
     project_state,
     sanskrit_mode,
     selected_text_levels,
@@ -85,6 +89,7 @@
     original: string | null;
     shloka_num: number | null;
   };
+  type DualUndoSnapshot = { text: TextDraftRow[]; translation: TranslationDraftRow[] };
 
   const normalize_translation_value = (value: string | null) =>
     value === null || value === '' ? null : value;
@@ -149,15 +154,16 @@
   let translation_rows = $state<TranslationDraftRow[]>([]);
   let translation_baseline = $state<TranslationDraftRow[]>([]);
   let translation_undo_stack = $state<TranslationDraftRow[][]>([]);
+  let dual_undo_stack = $state<DualUndoSnapshot[]>([]);
   let translation_focus_group_open = $state(false);
   let translation_session_key = $state('');
   let last_ai_query_revision = $state('');
   let edit_text_typer_status = $state(true);
   let initial_row_count = $state(1);
+  let translation_save_use_positional = $state(false);
+  let dual_save_in_progress = $state(false);
 
-  const active_translation_slot = $derived(
-    $editing_mode === '1st_lang' ? 0 : $editing_mode === '2nd_lang' ? 1 : null
-  );
+  const active_translation_slot = $derived(get_active_translation_slot($editing_mode));
   const active_translation_lang_id = $derived(
     active_translation_slot === null
       ? null
@@ -196,15 +202,19 @@
     });
   });
   const text_dirty = $derived(JSON.stringify(text_rows) !== JSON.stringify(text_baseline));
-  const translation_dirty = $derived(
-    translation_rows.some(
+  const translation_dirty = $derived.by(() => {
+    if (is_dual_edit_mode($editing_mode) && translation_rows.length !== text_rows.length) {
+      return true;
+    }
+    return translation_rows.some(
       (row) => normalize_translation_value(row.value) !== normalize_translation_value(row.original)
-    )
-  );
+    );
+  });
   /** Matches when the Save button in the editor toolbar would be enabled. */
   const editor_has_unsaved_changes = $derived.by(() => {
+    if (is_dual_edit_mode($editing_mode)) return text_dirty || translation_dirty;
     if ($editing_mode === 'text') return text_dirty;
-    if ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') return translation_dirty;
+    if (is_editing_translation($editing_mode)) return translation_dirty;
     return false;
   });
   const text_typing_enabled = $derived($viewing_script === BASE_SCRIPT);
@@ -222,6 +232,47 @@
   const editor_font_style = (font_info: { size: number; family: string }) =>
     `font-size: ${font_info.size}rem; font-family: ${font_info.family};`;
 
+  const empty_translation_row = (
+    textRow: TextDraftRow,
+    shloka_num: number | null
+  ): TranslationDraftRow => ({
+    index: textRow.source_index ?? -1,
+    source_text: textRow.text,
+    value: '',
+    original: null,
+    shloka_num
+  });
+
+  const build_translation_rows_from_text_rows = (): TranslationDraftRow[] => {
+    const query_data = active_translation_query.data;
+    let shloka_num = 0;
+    return text_rows.map((textRow) => {
+      const is_shloka = textRow.shloka_type;
+      if (is_shloka) shloka_num++;
+      const idx = textRow.source_index;
+      const original =
+        idx !== null && query_data ? (query_data.get(idx) ?? null) : null;
+      return {
+        index: idx ?? -1,
+        source_text: textRow.text,
+        value: original ?? '',
+        original,
+        shloka_num: is_shloka ? shloka_num : null
+      };
+    });
+  };
+
+  const hydrate_dual_translation_rows = () => {
+    translation_rows = build_translation_rows_from_text_rows();
+    translation_baseline = clone_translation_rows(translation_rows);
+    translation_undo_stack = [];
+    dual_undo_stack = [];
+    translation_focus_group_open = false;
+    if (active_translation_query.data) {
+      last_ai_query_revision = JSON.stringify([...active_translation_query.data.entries()]);
+    }
+  };
+
   $effect(() => {
     transliterate_custom(
       text_data_q.data?.map((v) => v.text) ?? [],
@@ -237,11 +288,11 @@
   });
 
   $effect(() => {
-    if ($editing_mode !== 'text' || !text_data_q.isSuccess || !text_data_q.data) {
-      if ($editing_mode !== 'text') text_session_key = '';
+    if (!is_editing_text($editing_mode) || !text_data_q.isSuccess || !text_data_q.data) {
+      if (!is_editing_text($editing_mode)) text_session_key = '';
       return;
     }
-    const key = `${build_content_session_scope($project_state!.project_id, $selected_text_levels, $project_state!.levels)}:${JSON.stringify(text_data_q.data)}`;
+    const key = `${build_content_session_scope($project_state!.project_id, $selected_text_levels, $project_state!.levels)}:${$editing_mode}:${JSON.stringify(text_data_q.data)}`;
     if (text_session_key === key) return;
     text_rows = text_data_q.data.map((row) => ({
       client_id: crypto.randomUUID(),
@@ -251,18 +302,30 @@
     }));
     text_baseline = clone_text_rows(text_rows);
     text_undo_stack = [];
+    dual_undo_stack = [];
     text_session_key = key;
+
+    if (
+      is_dual_edit_mode($editing_mode) &&
+      active_translation_lang_id !== null &&
+      active_translation_query.isSuccess
+    ) {
+      hydrate_dual_translation_rows();
+      translation_session_key = key;
+    }
   });
 
   $effect(() => {
     if (
-      !($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') ||
+      !is_editing_translation($editing_mode) ||
+      is_dual_edit_mode($editing_mode) ||
       active_translation_lang_id === null ||
       !text_data_q.isSuccess ||
       !active_translation_query.isSuccess
     ) {
-      if (!($editing_mode === '1st_lang' || $editing_mode === '2nd_lang'))
+      if (!is_editing_translation($editing_mode)) {
         translation_session_key = '';
+      }
       return;
     }
     const key = `${build_content_session_scope($project_state!.project_id, $selected_text_levels, $project_state!.levels)}:${$editing_mode}:${active_translation_lang_id}:${JSON.stringify(text_data_q.data)}`;
@@ -286,7 +349,22 @@
 
   $effect(() => {
     if (
-      !($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') ||
+      !is_dual_edit_mode($editing_mode) ||
+      text_session_key === '' ||
+      translation_session_key !== '' ||
+      active_translation_lang_id === null ||
+      !active_translation_query.isSuccess ||
+      text_rows.length === 0
+    ) {
+      return;
+    }
+    hydrate_dual_translation_rows();
+    translation_session_key = text_session_key;
+  });
+
+  $effect(() => {
+    if (
+      !is_editing_translation($editing_mode) ||
       active_translation_lang_id === null ||
       !active_translation_query.isSuccess ||
       !active_translation_query.data ||
@@ -302,16 +380,20 @@
       const ai_merges: { index: number; value: string }[] = [];
 
       for (const row of translation_rows) {
-        const from_query = query_data.get(row.index);
+        const from_query = row.index >= 0 ? query_data.get(row.index) : undefined;
         if (!from_query || from_query === row.value) continue;
         ai_merges.push({ index: row.index, value: from_query });
       }
 
       if (ai_merges.length > 0) {
-        translation_undo_stack = [
-          ...translation_undo_stack,
-          clone_translation_rows(translation_rows)
-        ];
+        if (is_dual_edit_mode($editing_mode)) {
+          push_dual_undo();
+        } else {
+          translation_undo_stack = [
+            ...translation_undo_stack,
+            clone_translation_rows(translation_rows)
+          ];
+        }
         translation_rows = translation_rows.map((row) => {
           const merge = ai_merges.find((entry) => entry.index === row.index);
           return merge ? { ...row, value: merge.value } : row;
@@ -405,7 +487,7 @@
 
   let discard_dialog_open = $state(false);
   let save_dialog_open = $state(false);
-  let pending_save_kind = $state<'text' | 'translation' | null>(null);
+  let pending_save_kind = $state<'text' | 'translation' | 'dual' | null>(null);
 
   const close_editor = () => {
     $editing_mode = 'none';
@@ -433,13 +515,19 @@
   };
 
   const confirm_discard = async () => {
-    const discarding_translation = $editing_mode === '1st_lang' || $editing_mode === '2nd_lang';
+    const mode = get(editing_mode);
     discard_dialog_open = false;
-    if (discarding_translation) await discard_active_translation_cache();
+    if (is_dual_edit_mode(mode)) {
+      text_rows = clone_text_rows(text_baseline);
+      translation_rows = clone_translation_rows(translation_baseline);
+      await discard_active_translation_cache();
+    } else if (is_editing_translation(mode)) {
+      await discard_active_translation_cache();
+    }
     close_editor();
   };
 
-  const request_save = (kind: 'text' | 'translation') => {
+  const request_save = (kind: 'text' | 'translation' | 'dual') => {
     pending_save_kind = kind;
     save_dialog_open = true;
   };
@@ -452,21 +540,53 @@
     translation_undo_stack = [...translation_undo_stack, clone_translation_rows(translation_rows)];
   };
 
+  const push_dual_undo = () => {
+    dual_undo_stack = [
+      ...dual_undo_stack,
+      {
+        text: clone_text_rows(text_rows),
+        translation: clone_translation_rows(translation_rows)
+      }
+    ];
+  };
+
+  const push_undo_for_text_mutation = () => {
+    if (is_dual_edit_mode(get(editing_mode))) push_dual_undo();
+    else push_text_undo();
+  };
+
   const update_text_row = (client_id: string, text: string) => {
     if (!text_focus_group_open) {
-      push_text_undo();
+      push_undo_for_text_mutation();
       text_focus_group_open = true;
     }
+    const row_index = text_rows.findIndex((row) => row.client_id === client_id);
     text_rows = text_rows.map((row) => (row.client_id === client_id ? { ...row, text } : row));
+    if (is_dual_edit_mode(get(editing_mode)) && row_index >= 0) {
+      translation_rows = translation_rows.map((row, i) =>
+        i === row_index ? { ...row, source_text: text } : row
+      );
+    }
   };
 
   const update_translation_row = (index: number, value: string) => {
     if (!translation_focus_group_open) {
-      push_translation_undo();
+      if (is_dual_edit_mode(get(editing_mode))) push_dual_undo();
+      else push_translation_undo();
       translation_focus_group_open = true;
     }
     translation_rows = translation_rows.map((row) =>
       row.index === index ? { ...row, value } : row
+    );
+  };
+
+  const update_translation_row_at = (position: number, value: string) => {
+    if (!translation_focus_group_open) {
+      push_dual_undo();
+      translation_focus_group_open = true;
+    }
+    translation_rows = translation_rows.map((row, i) =>
+      i === position ? { ...row, value } : row
     );
   };
 
@@ -484,40 +604,62 @@
     translation_undo_stack = translation_undo_stack.slice(0, -1);
   };
 
+  const undo_dual = () => {
+    const prev = dual_undo_stack.at(-1);
+    if (!prev) return;
+    text_rows = clone_text_rows(prev.text);
+    translation_rows = clone_translation_rows(prev.translation);
+    dual_undo_stack = dual_undo_stack.slice(0, -1);
+  };
+
   const add_text_row = (after_index: number) => {
-    push_text_undo();
+    push_undo_for_text_mutation();
     const next = clone_text_rows(text_rows);
-    next.splice(after_index + 1, 0, {
+    const new_text_row: TextDraftRow = {
       client_id: crypto.randomUUID(),
       source_index: null,
       text: '',
       shloka_type: false
-    });
+    };
+    next.splice(after_index + 1, 0, new_text_row);
     text_rows = next;
+    if (is_dual_edit_mode(get(editing_mode))) {
+      const next_trans = clone_translation_rows(translation_rows);
+      next_trans.splice(after_index + 1, 0, empty_translation_row(new_text_row, null));
+      translation_rows = next_trans;
+    }
   };
 
   const add_initial_text_rows = async () => {
     const count = Math.max(1, Math.floor(Number(initial_row_count)) || 1);
-    push_text_undo();
-    text_rows = Array.from({ length: count }, () => ({
+    push_undo_for_text_mutation();
+    const new_rows = Array.from({ length: count }, () => ({
       client_id: crypto.randomUUID(),
       source_index: null,
       text: '',
       shloka_type: false
     }));
+    text_rows = new_rows;
+    if (is_dual_edit_mode(get(editing_mode))) {
+      translation_rows = new_rows.map((row) => empty_translation_row(row, null));
+    }
     text_focus_group_open = false;
     initial_row_count = 1;
     await focus_text_row_at(0);
   };
 
   const delete_text_row = (client_id: string) => {
-    push_text_undo();
+    const row_index = text_rows.findIndex((row) => row.client_id === client_id);
+    push_undo_for_text_mutation();
     text_rows = text_rows.filter((row) => row.client_id !== client_id);
+    if (is_dual_edit_mode(get(editing_mode)) && row_index >= 0) {
+      translation_rows = translation_rows.filter((_, i) => i !== row_index);
+    }
   };
 
   const apply_text_normalization = (key: NormalizationKey) => {
     if (text_rows.length === 0) return;
-    push_text_undo();
+    push_undo_for_text_mutation();
     const text_indices = text_rows.map((_, index) => index);
     const updated_texts = apply_single_normalization_to_texts(
       text_rows.map((row) => row.text),
@@ -528,17 +670,33 @@
       ...row,
       text: updated_texts[index] ?? row.text
     }));
+    if (is_dual_edit_mode(get(editing_mode))) {
+      translation_rows = translation_rows.map((row, index) => ({
+        ...row,
+        source_text: updated_texts[index] ?? row.source_text
+      }));
+    }
     text_focus_group_open = false;
     text_actions_popover_open = false;
   };
 
+  const move_translation_row = (from: number, to: number) => {
+    const next = clone_translation_rows(translation_rows);
+    const [row] = next.splice(from, 1);
+    next.splice(to, 0, row!);
+    translation_rows = next;
+  };
+
   const move_text_row = (from: number, to: number) => {
     if (from === to || to < 0 || to >= text_rows.length) return false;
-    push_text_undo();
+    push_undo_for_text_mutation();
     const next = clone_text_rows(text_rows);
     const [row] = next.splice(from, 1);
     next.splice(to, 0, row!);
     text_rows = next;
+    if (is_dual_edit_mode(get(editing_mode))) {
+      move_translation_row(from, to);
+    }
     return true;
   };
 
@@ -611,23 +769,44 @@
         invalidate_project_content_queries($project_state?.project_id ?? undefined),
         invalidate_project_map_queries($project_state?.project_id ?? undefined)
       ]);
-      save_dialog_open = false;
-      toast.success('Text saved');
-      close_editor();
+      if (!dual_save_in_progress) {
+        save_dialog_open = false;
+        toast.success('Text saved');
+        close_editor();
+      }
     },
     onError: (err) => {
+      dual_save_in_progress = false;
       toast.error(err.message || 'Failed to save text');
     }
   }));
+
+  const build_translation_save_payload = () => {
+    const changed: { index: number; value: string }[] = [];
+    for (let i = 0; i < translation_rows.length; i++) {
+      const row = translation_rows[i]!;
+      if (
+        normalize_translation_value(row.value) === normalize_translation_value(row.original)
+      ) {
+        continue;
+      }
+      const index = translation_save_use_positional
+        ? i
+        : is_dual_edit_mode(get(editing_mode))
+          ? (text_rows[i]?.source_index ?? row.index)
+          : row.index;
+      if (index < 0) continue;
+      changed.push({ index, value: row.value });
+    }
+    return changed;
+  };
 
   const save_translation_mut = createMutation(() => ({
     mutationKey: ['translation', 'save_slot_translation'],
     mutationFn: async () => {
       if (active_translation_lang_id === null) return { success: false };
-      const changed = translation_rows.filter(
-        (row) =>
-          normalize_translation_value(row.value) !== normalize_translation_value(row.original)
-      );
+      const changed = build_translation_save_payload();
+      if (changed.length === 0) return { success: true };
       return client.translation.edit_translation.mutate({
         project_id: $project_state!.project_id,
         lang_id: active_translation_lang_id,
@@ -640,14 +819,18 @@
       if (!res.success) {
         toast.error('Permission denied for this language');
         save_dialog_open = false;
+        dual_save_in_progress = false;
         return;
       }
       await invalidate_project_content_queries($project_state?.project_id ?? undefined);
-      save_dialog_open = false;
-      toast.success('Translation saved');
-      close_editor();
+      if (!dual_save_in_progress) {
+        save_dialog_open = false;
+        toast.success('Translation saved');
+        close_editor();
+      }
     },
     onError: (err) => {
+      dual_save_in_progress = false;
       toast.error(err.message || 'Failed to save translation');
     }
   }));
@@ -658,12 +841,51 @@
       ? 'Your text edits will be saved to the server.'
       : pending_save_kind === 'translation'
         ? `Your ${active_translation_name} translation edits will be saved to the server.`
-        : ''
+        : pending_save_kind === 'dual'
+          ? `Your text and ${active_translation_name} translation edits will be saved to the server.`
+          : ''
   );
 
-  const confirm_save = () => {
-    if (pending_save_kind === 'text') save_text_mut.mutate();
-    else if (pending_save_kind === 'translation') save_translation_mut.mutate();
+  const confirm_save = async () => {
+    if (pending_save_kind === 'text') {
+      save_text_mut.mutate();
+      return;
+    }
+    if (pending_save_kind === 'translation') {
+      translation_save_use_positional = false;
+      save_translation_mut.mutate();
+      return;
+    }
+    if (pending_save_kind !== 'dual') return;
+
+    const was_text_dirty = text_dirty;
+    const was_translation_dirty = translation_dirty;
+    dual_save_in_progress = true;
+    try {
+      if (was_text_dirty) {
+        translation_save_use_positional = true;
+        await save_text_mut.mutateAsync();
+      } else {
+        translation_save_use_positional = false;
+      }
+      if (was_translation_dirty) {
+        await save_translation_mut.mutateAsync();
+      }
+      save_dialog_open = false;
+      if (was_text_dirty && was_translation_dirty) {
+        toast.success('Text and translation saved');
+      } else if (was_text_dirty) {
+        toast.success('Text saved');
+      } else {
+        toast.success('Translation saved');
+      }
+      close_editor();
+    } catch {
+      // Error toasts handled in mutation onError
+    } finally {
+      dual_save_in_progress = false;
+      translation_save_use_positional = false;
+    }
   };
 
   $effect(() => {
@@ -673,9 +895,9 @@
   const detect_shortcut_pressed = (event: KeyboardEvent) => {
     if (event.altKey && event.key.toLowerCase() === 'x') {
       event.preventDefault();
-      if ($editing_mode === 'text') {
+      if (is_editing_text(get(editing_mode)) && !is_dual_edit_mode(get(editing_mode))) {
         if (text_typing_enabled) edit_text_typer_status = !edit_text_typer_status;
-      } else {
+      } else if (is_editing_translation(get(editing_mode))) {
         $edit_language_typer_status = !$edit_language_typer_status;
       }
     }
@@ -691,9 +913,11 @@
   </div>
 {/if}
 
-{#if $editing_mode === 'text'}
+{#if is_dual_edit_mode($editing_mode)}
+  {@render dual_editor()}
+{:else if $editing_mode === 'text'}
   {@render text_editor()}
-{:else if $editing_mode === '1st_lang' || $editing_mode === '2nd_lang'}
+{:else if is_editing_translation($editing_mode)}
   {@render translation_editor()}
 {:else}
   {@render readonly_display()}
@@ -857,7 +1081,7 @@
 {/snippet}
 
 {#snippet edit_context_text_panel(data_index: number, fallback_text: string)}
-  {#if $editing_mode !== 'text' && $edit_context_visible.text}
+  {#if !is_editing_text($editing_mode) && $edit_context_visible.text}
     {@const display_text = transliterated_data[data_index] ?? fallback_text}
     <div class="mb-2">
       {@render multiline_display(display_text, main_text_font_info, 'text-sm')}
@@ -868,10 +1092,12 @@
 {#snippet edit_context_translation_panels_below(data_index: number | null)}
   {@const show_lang_1 =
     $editing_mode !== '1st_lang' &&
+    $editing_mode !== 'text_1st_lang' &&
     $edit_context_visible.lang_1 &&
     $selected_translation_lang_ids[0] !== null}
   {@const show_lang_2 =
     $editing_mode !== '2nd_lang' &&
+    $editing_mode !== 'text_2nd_lang' &&
     $edit_context_visible.lang_2 &&
     $selected_translation_lang_ids[1] !== null}
   {#if show_lang_1 || show_lang_2}
@@ -903,15 +1129,19 @@
   {/if}
 {/snippet}
 
-{#snippet editor_toolbar(kind: 'text' | 'translation')}
+{#snippet editor_toolbar(kind: 'text' | 'translation' | 'dual')}
   <div
     class="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-background/95 p-2 backdrop-blur"
   >
     <div class="font-semibold">
-      {kind === 'text' ? 'Edit Text' : `Edit ${active_translation_name} Translation`}
+      {kind === 'text'
+        ? 'Edit Text'
+        : kind === 'dual'
+          ? `Edit Text + ${active_translation_name}`
+          : `Edit ${active_translation_name} Translation`}
     </div>
     <div class="flex flex-wrap items-center gap-2">
-      {#if kind === 'text'}
+      {#if kind === 'text' || kind === 'dual'}
         <Popover.Root bind:open={text_actions_popover_open}>
           <Popover.Trigger>
             {#snippet child({ props })}
@@ -938,10 +1168,12 @@
       <Button
         variant="outline"
         size="sm"
-        onclick={kind === 'text' ? undo_text : undo_translation}
-        disabled={kind === 'text'
-          ? text_undo_stack.length === 0
-          : translation_undo_stack.length === 0}
+        onclick={kind === 'dual' ? undo_dual : kind === 'text' ? undo_text : undo_translation}
+        disabled={kind === 'dual'
+          ? dual_undo_stack.length === 0
+          : kind === 'text'
+            ? text_undo_stack.length === 0
+            : translation_undo_stack.length === 0}
       >
         <Undo2 data-icon="inline-start" />
         Undo
@@ -952,18 +1184,11 @@
       </Button>
       <Button
         size="sm"
-        onclick={() => request_save(kind)}
-        disabled={!editor_has_unsaved_changes ||
-          (kind === 'text' ? save_text_mut.isPending : save_translation_mut.isPending)}
+        onclick={() => request_save(kind === 'dual' ? 'dual' : kind)}
+        disabled={!editor_has_unsaved_changes || save_pending}
       >
         <Save data-icon="inline-start" />
-        {kind === 'text'
-          ? save_text_mut.isPending
-            ? 'Saving...'
-            : 'Save'
-          : save_translation_mut.isPending
-            ? 'Saving...'
-            : 'Save'}
+        {save_pending ? 'Saving...' : 'Save'}
       </Button>
     </div>
   </div>
@@ -1109,6 +1334,181 @@
                 class="min-h-28 w-full whitespace-pre-wrap"
                 style={editor_font_style(main_text_font_info)}
               />
+              {@render edit_context_translation_panels_below(row.source_index)}
+            </div>
+          {/each}
+        {/if}
+      </div>
+    {/if}
+  </div>
+{/snippet}
+
+{#snippet dual_editor()}
+  <div class="flex h-screen flex-col gap-3">
+    {@render editor_toolbar('dual')}
+    {#if text_typing_enabled}
+      <div class="flex flex-wrap items-center gap-2 px-1">
+        <Label>
+          <Switch
+            id="edit_text_typer_dual"
+            bind:checked={edit_text_typer_status}
+            class="focus:outline-none"
+          />
+          <Icon src={BsKeyboard} class="text-3xl" />
+        </Label>
+        <span class="text-xs text-muted-foreground">Text typing (Devanagari)</span>
+      </div>
+    {/if}
+    {#if !text_data_q.isSuccess || !active_translation_query.isSuccess}
+      <Skeleton class="h-[80vh] w-full rounded-lg" />
+    {:else}
+      <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-xl border p-2">
+        {#if text_rows.length === 0}
+          <div class="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <p class="text-sm text-muted-foreground">This list has no shlokas yet.</p>
+            <div class="flex flex-wrap items-center justify-center gap-2">
+              <Label for="dual-initial-row-count" class="text-sm">Rows to add</Label>
+              <Input
+                id="dual-initial-row-count"
+                type="number"
+                min="1"
+                class="h-9 w-20"
+                bind:value={initial_row_count}
+              />
+              <Button size="sm" onclick={add_initial_text_rows}>
+                <Plus data-icon="inline-start" />
+                Add
+              </Button>
+            </div>
+          </div>
+        {:else}
+          {#each text_rows as row, i (row.client_id)}
+            {@const trans_row = translation_rows[i]}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              data-text-row-card
+              data-text-row-index={i}
+              class={cn(
+                'relative rounded-lg border bg-card p-2 pt-8 transition-[opacity,box-shadow,transform]',
+                text_drag_index === i && 'scale-[0.99] opacity-45',
+                text_drop_index === i &&
+                  text_drag_index !== null &&
+                  text_drag_index !== i &&
+                  'ring-2 ring-primary ring-offset-2 ring-offset-background'
+              )}
+              ondragover={(e) => on_text_row_dragover(i, e)}
+              ondragleave={(e) => on_text_row_dragleave(i, e)}
+              ondrop={(e) => on_text_row_drop(i, e)}
+            >
+              {@render edit_row_index_badge(i, derived_shloka_nums[i])}
+              <div class="mb-2 flex flex-wrap items-center gap-2 pr-14">
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div
+                  role="button"
+                  tabindex="0"
+                  draggable="true"
+                  class="cursor-grab touch-none rounded p-0.5 text-muted-foreground select-none hover:bg-muted active:cursor-grabbing"
+                  aria-label="Drag to reorder"
+                  ondragstart={(e) => start_text_row_drag(i, e)}
+                  ondragend={end_text_row_drag}
+                >
+                  <GripVertical />
+                </div>
+                <label class="inline-flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={row.shloka_type}
+                    onCheckedChange={(checked) => {
+                      push_dual_undo();
+                      text_rows = text_rows.map((candidate) =>
+                        candidate.client_id === row.client_id
+                          ? { ...candidate, shloka_type: checked === true }
+                          : candidate
+                      );
+                    }}
+                  />
+                  Shloka
+                </label>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="size-8"
+                  aria-label="Move up"
+                  onclick={() => move_text_row_and_focus(i, i - 1)}
+                  disabled={i === 0}
+                >
+                  <ArrowUp class="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="size-8"
+                  aria-label="Move down"
+                  onclick={() => move_text_row_and_focus(i, i + 1)}
+                  disabled={i === text_rows.length - 1}
+                >
+                  <ArrowDown class="size-4" />
+                </Button>
+                <Button variant="outline" size="sm" onclick={() => add_text_row(i)}>
+                  <Plus data-icon="inline-start" />
+                  Add
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="size-8 text-destructive hover:text-destructive"
+                  aria-label="Delete row"
+                  onclick={() => delete_text_row(row.client_id)}
+                >
+                  <Trash2 class="size-4" />
+                </Button>
+              </div>
+              <Textarea
+                value={row.text}
+                onfocus={() => (text_focus_group_open = false)}
+                onblur={() => {
+                  text_focus_group_open = false;
+                  text_typing_ctx.clearContext();
+                }}
+                oninput={(e) => update_text_row(row.client_id, e.currentTarget.value)}
+                onbeforeinput={(e) =>
+                  handleTypingBeforeInputEvent(
+                    text_typing_ctx,
+                    e,
+                    (newValue) => update_text_row(row.client_id, newValue),
+                    text_typing_enabled && edit_text_typer_status
+                  )}
+                onkeydown={(e) => clearTypingContextOnKeyDown(e, text_typing_ctx)}
+                onkeyup={detect_shortcut_pressed}
+                class="min-h-28 w-full whitespace-pre-wrap"
+                style={editor_font_style(main_text_font_info)}
+              />
+              {#if trans_row}
+                <div class="mt-2 border-t border-border/60 pt-2">
+                  <p class="mb-1 text-xs text-muted-foreground">{active_translation_name}</p>
+                  <Textarea
+                    value={trans_row.value}
+                    placeholder="Leave empty to remove translation on save"
+                    onfocus={() => (translation_focus_group_open = false)}
+                    oninput={(e) => update_translation_row_at(i, e.currentTarget.value)}
+                    onbeforeinput={(e) =>
+                      handleTypingBeforeInputEvent(
+                        translation_typing_ctx,
+                        e,
+                        (newValue) => update_translation_row_at(i, newValue),
+                        $edit_language_typer_status &&
+                          active_translation_lang_id !== lang_list_obj.English
+                      )}
+                    onblur={() => {
+                      translation_focus_group_open = false;
+                      translation_typing_ctx.clearContext();
+                    }}
+                    onkeydown={(e) => clearTypingContextOnKeyDown(e, translation_typing_ctx)}
+                    onkeyup={detect_shortcut_pressed}
+                    class="min-h-28 w-full whitespace-pre-wrap"
+                    style={editor_font_style(active_trans_font_info)}
+                  />
+                </div>
+              {/if}
               {@render edit_context_translation_panels_below(row.source_index)}
             </div>
           {/each}

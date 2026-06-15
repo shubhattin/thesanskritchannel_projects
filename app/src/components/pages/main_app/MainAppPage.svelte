@@ -28,6 +28,9 @@
     edit_language_typer_status,
     sanskrit_mode,
     typing_assistance_modal_opened,
+    get_active_translation_slot,
+    is_editing_text,
+    is_editing_translation,
     image_tool_opened
   } from '~/state/main_app/state.svelte';
   import {
@@ -244,9 +247,9 @@
     next[slot] = lang_id;
     $selected_translation_lang_ids = next;
 
-    const editing_translation = $editing_mode === '1st_lang' || $editing_mode === '2nd_lang';
-    const is_active_edit_slot =
-      ($editing_mode === '1st_lang' && slot === 0) || ($editing_mode === '2nd_lang' && slot === 1);
+    const editing_translation = is_editing_translation($editing_mode);
+    const active_slot = get_active_translation_slot($editing_mode);
+    const is_active_edit_slot = active_slot === slot;
     // Other-slot changes during translation edit only affect Show context, not viewing script.
     if (editing_translation && !is_active_edit_slot) return;
 
@@ -258,12 +261,12 @@
     }
   };
 
+  const active_translation_slot = $derived(get_active_translation_slot($editing_mode));
+
   const active_translation_lang_id = $derived(
-    $editing_mode === '1st_lang'
-      ? $selected_translation_lang_ids[0]
-      : $editing_mode === '2nd_lang'
-        ? $selected_translation_lang_ids[1]
-        : null
+    active_translation_slot === null
+      ? null
+      : $selected_translation_lang_ids[active_translation_slot]
   );
 
   const can_edit_language = (lang_id: number | null) => {
@@ -289,6 +292,11 @@
     $editing_mode = 'text';
   };
 
+  const start_dual_edit = (slot: 0 | 1) => {
+    $viewing_script_selection = BASE_SCRIPT;
+    $editing_mode = slot === 0 ? 'text_1st_lang' : 'text_2nd_lang';
+  };
+
   const get_grouped_lang_options = (
     other_lang_id: number | null,
     langs_with_translations: number[] | undefined
@@ -310,7 +318,7 @@
     if (
       active_translation_lang_id !== null &&
       active_translation_lang_id !== lang_list_obj.English &&
-      ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang')
+      is_editing_translation($editing_mode)
     ) {
       preloadScriptData(
         LANG_LIST[LANG_LIST_IDS.indexOf(active_translation_lang_id)] as ScriptLangType
@@ -323,7 +331,7 @@
     queryKey: ['sanskrit_mode_texts', active_translation_lang_id],
     enabled:
       browser &&
-      ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') &&
+      is_editing_translation($editing_mode) &&
       active_translation_lang_id !== null &&
       active_translation_lang_id !== lang_list_obj.English,
     queryFn: () =>
@@ -346,7 +354,7 @@
   $effect(() => {
     (async () => {
       if (
-        !($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') ||
+        !is_editing_translation($editing_mode) ||
         sanskrit_mode_texts.isFetching ||
         !sanskrit_mode_texts.isSuccess
       )
@@ -376,7 +384,7 @@
   <Select.Root
     type="single"
     bind:value={$viewing_script_selection as any}
-    disabled={$editing_mode === 'text' ||
+    disabled={is_editing_text($editing_mode) ||
       ($viewing_script_selection !== BASE_SCRIPT && viewing_script_mut.isPending)}
   >
     <Select.Trigger class="inline-flex h-10 w-32 px-2 py-1 text-sm sm:h-12 sm:w-40 sm:text-base">
@@ -546,6 +554,17 @@
                   Edit
                 </Button>
               {/if}
+              {#if $editing_mode === 'none' && is_admin && slot_lang_id !== null}
+                <Button
+                  onclick={() => start_dual_edit(slot as 0 | 1)}
+                  variant="outline"
+                  size="sm"
+                  class="h-7 px-2 text-xs"
+                >
+                  <Icon src={BiEdit} class="text-base" />
+                  Edit Text + {get_lang_slot_label(slot as 0 | 1)}
+                </Button>
+              {/if}
             </div>
           {/each}
           {#each [0, 1] as slot (slot)}
@@ -561,8 +580,10 @@
               onValueChange={(v) => {
                 set_translation_slot_lang(slot as 0 | 1, v === 'none' ? null : Number(v));
               }}
-              disabled={($editing_mode === '1st_lang' && slot === 0) ||
-                ($editing_mode === '2nd_lang' && slot === 1)}
+              disabled={(($editing_mode === '1st_lang' || $editing_mode === 'text_1st_lang') &&
+                slot === 0) ||
+                (($editing_mode === '2nd_lang' || $editing_mode === 'text_2nd_lang') &&
+                  slot === 1)}
             >
               <Select.Trigger class="inline-flex h-7 w-full max-w-34 px-2 text-xs">
                 {slot_lang_id === null ? 'None' : LANG_LIST[LANG_LIST_IDS.indexOf(slot_lang_id)]}
@@ -592,11 +613,27 @@
           {/each}
         </div>
         {#if $editing_mode !== 'none'}
+          {@const show_text_context =
+            !is_editing_text($editing_mode) && $edit_context_visible.text}
+          {@const show_lang_1_context =
+            $editing_mode !== '1st_lang' &&
+            $editing_mode !== 'text_1st_lang' &&
+            $edit_context_visible.lang_1 &&
+            $selected_translation_lang_ids[0] !== null}
+          {@const show_lang_2_context =
+            $editing_mode !== '2nd_lang' &&
+            $editing_mode !== 'text_2nd_lang' &&
+            $edit_context_visible.lang_2 &&
+            $selected_translation_lang_ids[1] !== null}
+          {@const has_any_show_checkbox =
+            show_text_context || show_lang_1_context || show_lang_2_context}
+          {#if has_any_show_checkbox || is_editing_translation($editing_mode)}
           <div
             class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-0.5 text-xs text-muted-foreground"
           >
+            {#if has_any_show_checkbox}
             <span class="font-medium">Show</span>
-            {#if $editing_mode !== 'text'}
+            {#if show_text_context}
               <label class="inline-flex cursor-pointer items-center gap-1.5">
                 <Checkbox
                   checked={$edit_context_visible.text}
@@ -605,7 +642,7 @@
                 Text
               </label>
             {/if}
-            {#if $editing_mode !== '1st_lang' && $selected_translation_lang_ids[0] !== null}
+            {#if show_lang_1_context}
               <label
                 class="inline-flex cursor-pointer items-center gap-1.5 text-stone-500 dark:text-slate-400"
               >
@@ -617,7 +654,7 @@
                 {get_lang_slot_label(0)}
               </label>
             {/if}
-            {#if $editing_mode !== '2nd_lang' && $selected_translation_lang_ids[1] !== null}
+            {#if show_lang_2_context}
               <label
                 class="inline-flex cursor-pointer items-center gap-1.5 text-yellow-700 dark:text-yellow-500"
               >
@@ -629,10 +666,12 @@
                 {get_lang_slot_label(1)}
               </label>
             {/if}
-            {#if $editing_mode === '1st_lang' || $editing_mode === '2nd_lang'}
+            {/if}
+            {#if is_editing_translation($editing_mode)}
               <AITranslate />
             {/if}
           </div>
+          {/if}
         {/if}
       </div>
     {/if}
@@ -648,7 +687,7 @@
   </div>
 {/if}
 <LoadFromTextTool bind:open={load_from_text_open} />
-{#if active_translation_lang_id !== null && active_translation_lang_id !== lang_list_obj.English && ($editing_mode === '1st_lang' || $editing_mode === '2nd_lang') && !($ai_tool_opened && is_admin)}
+{#if active_translation_lang_id !== null && active_translation_lang_id !== lang_list_obj.English && is_editing_translation($editing_mode) && !($ai_tool_opened && is_admin)}
   <div class="flex gap-2.5 sm:gap-4">
     <Label class="flex items-center gap-2">
       <Switch

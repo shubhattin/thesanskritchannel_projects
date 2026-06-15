@@ -33,9 +33,29 @@ export const BASE_SCRIPT = 'Devanagari';
 
 export let viewing_script = writable<script_list_type>(BASE_SCRIPT);
 export type translation_slot_mode = '1st_lang' | '2nd_lang';
-export type editing_mode_type = 'none' | 'text' | translation_slot_mode;
+export type dual_edit_mode = 'text_1st_lang' | 'text_2nd_lang';
+export type editing_mode_type = 'none' | 'text' | translation_slot_mode | dual_edit_mode;
 export let selected_translation_lang_ids = writable<[number | null, number | null]>([1, null]);
 export let editing_mode = writable<editing_mode_type>('none');
+
+export const is_editing_text = (mode: editing_mode_type) =>
+  mode === 'text' || mode === 'text_1st_lang' || mode === 'text_2nd_lang';
+
+export const is_editing_translation = (mode: editing_mode_type) =>
+  mode === '1st_lang' ||
+  mode === '2nd_lang' ||
+  mode === 'text_1st_lang' ||
+  mode === 'text_2nd_lang';
+
+export const is_dual_edit_mode = (mode: editing_mode_type): mode is dual_edit_mode =>
+  mode === 'text_1st_lang' || mode === 'text_2nd_lang';
+
+export const get_active_translation_slot = (mode: editing_mode_type): 0 | 1 | null =>
+  mode === '1st_lang' || mode === 'text_1st_lang'
+    ? 0
+    : mode === '2nd_lang' || mode === 'text_2nd_lang'
+      ? 1
+      : null;
 
 export type edit_context_panel_key = 'text' | 'lang_1' | 'lang_2';
 export let edit_context_visible = writable<Record<edit_context_panel_key, boolean>>({

@@ -84,6 +84,23 @@ describe('map_edit_lib normal-mode structure edits', () => {
     expect(merged.info.type === 'list' && merged.info.list_name).toBe('Level Name');
   });
 
+  it('blocks shloka to list conversion when total lines are present', () => {
+    const snapshots = new Map<string, BaselineNodeSnapshot>();
+    const map: recursive_list_type = {
+      name_dev: 'Project',
+      info: { type: 'shloka', shloka_count: 0, total: 2, shloka_count_expected: null },
+      list: []
+    };
+    const working = clone_map_with_client_ids(map, null, 0, snapshots);
+    expect(can_convert_childless_to_list(working)).toBe(false);
+
+    const proposed = clone_working_map(working);
+    apply_map_edit_list_defaults(proposed, { preserve_name_dev: true });
+    expect(() => applyMetadataEditsToMap(map, strip_client_ids(proposed))).toThrow(
+      'Map node type changed during metadata save'
+    );
+  });
+
   it('allows childless list project root to convert to shloka', () => {
     const snapshots = new Map<string, BaselineNodeSnapshot>();
     const working = clone_map_with_client_ids(childless_list_root_map(), null, 0, snapshots);

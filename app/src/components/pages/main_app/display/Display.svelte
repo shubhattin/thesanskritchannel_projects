@@ -163,6 +163,7 @@
   let initial_row_count = $state(1);
   let translation_save_use_positional = $state(false);
   let dual_save_in_progress = $state(false);
+  let pending_dual_translation_payload = $state<{ index: number; value: string }[] | null>(null);
 
   const active_translation_slot = $derived(get_active_translation_slot($editing_mode));
   const active_translation_lang_id = $derived(
@@ -288,6 +289,7 @@
   });
 
   $effect(() => {
+    if (dual_save_in_progress) return;
     if (!is_editing_text($editing_mode) || !text_data_q.isSuccess || !text_data_q.data) {
       if (!is_editing_text($editing_mode)) text_session_key = '';
       return;
@@ -316,6 +318,7 @@
   });
 
   $effect(() => {
+    if (dual_save_in_progress) return;
     if (
       !is_editing_translation($editing_mode) ||
       is_dual_edit_mode($editing_mode) ||
@@ -348,6 +351,7 @@
   });
 
   $effect(() => {
+    if (dual_save_in_progress) return;
     if (
       !is_dual_edit_mode($editing_mode) ||
       text_session_key === '' ||
@@ -363,6 +367,7 @@
   });
 
   $effect(() => {
+    if (dual_save_in_progress) return;
     if (
       !is_editing_translation($editing_mode) ||
       active_translation_lang_id === null ||
@@ -763,10 +768,12 @@
         }))
       }),
     onSuccess: async () => {
-      await Promise.all([
-        invalidate_project_content_queries($project_state?.project_id ?? undefined),
-        invalidate_project_map_queries($project_state?.project_id ?? undefined)
-      ]);
+      if (!dual_save_in_progress) {
+        await Promise.all([
+          invalidate_project_content_queries($project_state?.project_id ?? undefined),
+          invalidate_project_map_queries($project_state?.project_id ?? undefined)
+        ]);
+      }
       if (!dual_save_in_progress) {
         save_dialog_open = false;
         toast.success('Text saved');
@@ -775,6 +782,7 @@
     },
     onError: (err) => {
       dual_save_in_progress = false;
+      pending_dual_translation_payload = null;
       toast.error(err.message || 'Failed to save text');
     }
   }));
@@ -801,7 +809,8 @@
     mutationKey: ['translation', 'save_slot_translation'],
     mutationFn: async () => {
       if (active_translation_lang_id === null) return { success: false };
-      const changed = build_translation_save_payload();
+      const changed = pending_dual_translation_payload ?? build_translation_save_payload();
+      pending_dual_translation_payload = null;
       if (changed.length === 0) return { success: true };
       return client.translation.edit_translation.mutate({
         project_id: $project_state!.project_id,
@@ -816,9 +825,12 @@
         toast.error('Permission denied for this language');
         save_dialog_open = false;
         dual_save_in_progress = false;
+        pending_dual_translation_payload = null;
         return;
       }
-      await invalidate_project_content_queries($project_state?.project_id ?? undefined);
+      if (!dual_save_in_progress) {
+        await invalidate_project_content_queries($project_state?.project_id ?? undefined);
+      }
       if (!dual_save_in_progress) {
         save_dialog_open = false;
         toast.success('Translation saved');
@@ -827,6 +839,7 @@
     },
     onError: (err) => {
       dual_save_in_progress = false;
+      pending_dual_translation_payload = null;
       toast.error(err.message || 'Failed to save translation');
     }
   }));
@@ -858,15 +871,18 @@
     const was_translation_dirty = translation_dirty;
     dual_save_in_progress = true;
     try {
-      if (was_text_dirty) {
-        translation_save_use_positional = true;
-        await save_text_mut.mutateAsync();
-      } else {
-        translation_save_use_positional = false;
-      }
+      translation_save_use_positional = was_text_dirty;
       if (was_translation_dirty) {
-        await save_translation_mut.mutateAsync();
+        pending_dual_translation_payload = build_translation_save_payload();
       }
+      if (was_text_dirty) await save_text_mut.mutateAsync();
+      if (was_translation_dirty) await save_translation_mut.mutateAsync();
+      await Promise.all([
+        invalidate_project_content_queries($project_state?.project_id ?? undefined),
+        was_text_dirty
+          ? invalidate_project_map_queries($project_state?.project_id ?? undefined)
+          : Promise.resolve()
+      ]);
       save_dialog_open = false;
       if (was_text_dirty && was_translation_dirty) {
         toast.success('Text and translation saved');
@@ -881,6 +897,7 @@
     } finally {
       dual_save_in_progress = false;
       translation_save_use_positional = false;
+      pending_dual_translation_payload = null;
     }
   };
 
@@ -1498,7 +1515,7 @@
                     }}
                     onkeydown={(e) => clearTypingContextOnKeyDown(e, translation_typing_ctx)}
                     onkeyup={detect_shortcut_pressed}
-                    class="min-h-28 w-full whitespace-pre-wrap"
+                    class="min-h-24 w-full whitespace-pre-wrap"
                     style={editor_font_style(active_trans_font_info)}
                   />
                 </div>
@@ -1542,7 +1559,7 @@
               }}
               onkeydown={(e) => clearTypingContextOnKeyDown(e, translation_typing_ctx)}
               onkeyup={detect_shortcut_pressed}
-              class="min-h-36 w-full whitespace-pre-wrap"
+              class="min-h-24 w-full whitespace-pre-wrap"
               style={editor_font_style(active_trans_font_info)}
             />
             {@render edit_context_translation_panels_below(row.index)}

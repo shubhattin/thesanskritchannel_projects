@@ -571,24 +571,22 @@
           {/each}
         </div>
         {#if $editing_mode !== 'none'}
-          {@const show_text_context = !is_editing_text($editing_mode) && $edit_context_visible.text}
-          {@const show_lang_1_context =
+          {@const show_text_checkbox = !is_editing_text($editing_mode)}
+          {@const show_lang_1_checkbox =
             !is_editing_translation_slot($editing_mode, 0) &&
-            $edit_context_visible.lang_1 &&
             $selected_translation_lang_ids[0] !== null}
-          {@const show_lang_2_context =
+          {@const show_lang_2_checkbox =
             !is_editing_translation_slot($editing_mode, 1) &&
-            $edit_context_visible.lang_2 &&
             $selected_translation_lang_ids[1] !== null}
           {@const has_any_show_checkbox =
-            show_text_context || show_lang_1_context || show_lang_2_context}
+            show_text_checkbox || show_lang_1_checkbox || show_lang_2_checkbox}
           {#if has_any_show_checkbox || is_editing_translation($editing_mode)}
             <div
               class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-0.5 text-xs text-muted-foreground"
             >
               {#if has_any_show_checkbox}
                 <span class="font-medium">Show</span>
-                {#if show_text_context}
+                {#if show_text_checkbox}
                   <label class="inline-flex cursor-pointer items-center gap-1.5">
                     <Checkbox
                       checked={$edit_context_visible.text}
@@ -598,7 +596,7 @@
                     Text
                   </label>
                 {/if}
-                {#if show_lang_1_context}
+                {#if show_lang_1_checkbox}
                   <label
                     class="inline-flex cursor-pointer items-center gap-1.5 text-stone-500 dark:text-slate-400"
                   >
@@ -610,7 +608,7 @@
                     {get_translation_slot_label(0, $selected_translation_lang_ids)}
                   </label>
                 {/if}
-                {#if show_lang_2_context}
+                {#if show_lang_2_checkbox}
                   <label
                     class="inline-flex cursor-pointer items-center gap-1.5 text-yellow-700 dark:text-yellow-500"
                   >

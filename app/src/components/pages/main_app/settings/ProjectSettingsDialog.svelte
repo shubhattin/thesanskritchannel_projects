@@ -37,7 +37,8 @@
     <Dialog.Header>
       <Dialog.Title>Project settings</Dialog.Title>
       <Dialog.Description class="text-sm text-muted-foreground">
-        {project.name}
+        <span class="block">{project.name}</span>
+        <span class="mt-0.5 block text-xs tabular-nums">Internal ID: {project.id}</span>
       </Dialog.Description>
     </Dialog.Header>
 

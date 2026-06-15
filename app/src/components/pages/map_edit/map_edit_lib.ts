@@ -78,9 +78,13 @@ export const apply_map_edit_shloka_defaults = (
 export const is_childless_map_node = (node: recursive_list_type): boolean =>
   (node.list ?? []).length === 0;
 
-/** Childless shloka nodes may convert to list at any depth, including the project root. */
+/** Shloka leaf with no map children and no stored text lines (`total`). */
+export const is_empty_shloka_leaf = (node: recursive_list_type): boolean =>
+  node.info.type === 'shloka' && is_childless_map_node(node) && node.info.total === 0;
+
+/** Empty shloka nodes may convert to list at any depth, including the project root. */
 export const can_convert_childless_to_list = (node: MapNodeWithClientId | null): boolean =>
-  Boolean(node && node.info.type === 'shloka' && is_childless_map_node(node));
+  Boolean(node && is_empty_shloka_leaf(node));
 
 /** Childless list nodes may convert to shloka at any depth, including the project root. */
 export const can_convert_childless_to_shloka = (node: MapNodeWithClientId | null): boolean =>

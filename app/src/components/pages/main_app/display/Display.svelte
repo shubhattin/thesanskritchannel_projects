@@ -251,8 +251,7 @@
       const is_shloka = textRow.shloka_type;
       if (is_shloka) shloka_num++;
       const idx = textRow.source_index;
-      const original =
-        idx !== null && query_data ? (query_data.get(idx) ?? null) : null;
+      const original = idx !== null && query_data ? (query_data.get(idx) ?? null) : null;
       return {
         index: idx ?? -1,
         source_text: textRow.text,
@@ -586,9 +585,7 @@
       push_dual_undo();
       translation_focus_group_open = true;
     }
-    translation_rows = translation_rows.map((row, i) =>
-      i === position ? { ...row, value } : row
-    );
+    translation_rows = translation_rows.map((row, i) => (i === position ? { ...row, value } : row));
   };
 
   const undo_text = () => {
@@ -786,9 +783,7 @@
     const changed: { index: number; value: string }[] = [];
     for (let i = 0; i < translation_rows.length; i++) {
       const row = translation_rows[i]!;
-      if (
-        normalize_translation_value(row.value) === normalize_translation_value(row.original)
-      ) {
+      if (normalize_translation_value(row.value) === normalize_translation_value(row.original)) {
         continue;
       }
       const index = translation_save_use_positional

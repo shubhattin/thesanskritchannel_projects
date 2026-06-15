@@ -27,10 +27,7 @@ export const get_lang_from_id = (id: number) => {
   return LANG_LIST[LANG_LIST_IDS.indexOf(id)] as lang_list_type;
 };
 
-export const get_translation_slot_label = (
-  slot: 0 | 1,
-  lang_ids: readonly (number | null)[]
-) => {
+export const get_translation_slot_label = (slot: 0 | 1, lang_ids: readonly (number | null)[]) => {
   const lang_id = lang_ids[slot] ?? null;
   return lang_id === null ? `Lang ${slot + 1}` : get_lang_from_id(lang_id);
 };

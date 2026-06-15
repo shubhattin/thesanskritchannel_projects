@@ -22,17 +22,17 @@ Presents the content managed through the [admin portal](../app/) in a clean, rea
 
 ## Tech Stack
 
-| | |
-|---|---|
-| Framework | Astro 5, SSR mode |
-| UI Islands | Svelte 5 (`@astrojs/svelte`) |
-| Styling | TailwindCSS v4, `@tailwindcss/typography` |
-| UI Components | shadcn-svelte |
-| Database | Neon PostgreSQL + Drizzle ORM (shared with `app/`) |
-| Cache | Upstash Redis |
-| Fonts | 16+ Noto Sans packages for Indian scripts |
-| Analytics | PostHog |
-| Deploy | Vercel (Mumbai region) |
+|               |                                                    |
+| ------------- | -------------------------------------------------- |
+| Framework     | Astro 5, SSR mode                                  |
+| UI Islands    | Svelte 5 (`@astrojs/svelte`)                       |
+| Styling       | TailwindCSS v4, `@tailwindcss/typography`          |
+| UI Components | shadcn-svelte                                      |
+| Database      | Neon PostgreSQL + Drizzle ORM (shared with `app/`) |
+| Cache         | Upstash Redis                                      |
+| Fonts         | 16+ Noto Sans packages for Indian scripts          |
+| Analytics     | PostHog                                            |
+| Deploy        | Vercel (Mumbai region)                             |
 
 ## Code Sharing
 

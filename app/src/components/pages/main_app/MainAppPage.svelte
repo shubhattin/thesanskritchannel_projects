@@ -571,8 +571,7 @@
           {/each}
         </div>
         {#if $editing_mode !== 'none'}
-          {@const show_text_context =
-            !is_editing_text($editing_mode) && $edit_context_visible.text}
+          {@const show_text_context = !is_editing_text($editing_mode) && $edit_context_visible.text}
           {@const show_lang_1_context =
             !is_editing_translation_slot($editing_mode, 0) &&
             $edit_context_visible.lang_1 &&
@@ -584,49 +583,50 @@
           {@const has_any_show_checkbox =
             show_text_context || show_lang_1_context || show_lang_2_context}
           {#if has_any_show_checkbox || is_editing_translation($editing_mode)}
-          <div
-            class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-0.5 text-xs text-muted-foreground"
-          >
-            {#if has_any_show_checkbox}
-            <span class="font-medium">Show</span>
-            {#if show_text_context}
-              <label class="inline-flex cursor-pointer items-center gap-1.5">
-                <Checkbox
-                  checked={$edit_context_visible.text}
-                  onCheckedChange={(checked) => set_edit_context_visible('text', checked === true)}
-                />
-                Text
-              </label>
-            {/if}
-            {#if show_lang_1_context}
-              <label
-                class="inline-flex cursor-pointer items-center gap-1.5 text-stone-500 dark:text-slate-400"
-              >
-                <Checkbox
-                  checked={$edit_context_visible.lang_1}
-                  onCheckedChange={(checked) =>
-                    set_edit_context_visible('lang_1', checked === true)}
-                />
-                {get_translation_slot_label(0, $selected_translation_lang_ids)}
-              </label>
-            {/if}
-            {#if show_lang_2_context}
-              <label
-                class="inline-flex cursor-pointer items-center gap-1.5 text-yellow-700 dark:text-yellow-500"
-              >
-                <Checkbox
-                  checked={$edit_context_visible.lang_2}
-                  onCheckedChange={(checked) =>
-                    set_edit_context_visible('lang_2', checked === true)}
-                />
-                {get_translation_slot_label(1, $selected_translation_lang_ids)}
-              </label>
-            {/if}
-            {/if}
-            {#if is_editing_translation($editing_mode)}
-              <AITranslate />
-            {/if}
-          </div>
+            <div
+              class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-0.5 text-xs text-muted-foreground"
+            >
+              {#if has_any_show_checkbox}
+                <span class="font-medium">Show</span>
+                {#if show_text_context}
+                  <label class="inline-flex cursor-pointer items-center gap-1.5">
+                    <Checkbox
+                      checked={$edit_context_visible.text}
+                      onCheckedChange={(checked) =>
+                        set_edit_context_visible('text', checked === true)}
+                    />
+                    Text
+                  </label>
+                {/if}
+                {#if show_lang_1_context}
+                  <label
+                    class="inline-flex cursor-pointer items-center gap-1.5 text-stone-500 dark:text-slate-400"
+                  >
+                    <Checkbox
+                      checked={$edit_context_visible.lang_1}
+                      onCheckedChange={(checked) =>
+                        set_edit_context_visible('lang_1', checked === true)}
+                    />
+                    {get_translation_slot_label(0, $selected_translation_lang_ids)}
+                  </label>
+                {/if}
+                {#if show_lang_2_context}
+                  <label
+                    class="inline-flex cursor-pointer items-center gap-1.5 text-yellow-700 dark:text-yellow-500"
+                  >
+                    <Checkbox
+                      checked={$edit_context_visible.lang_2}
+                      onCheckedChange={(checked) =>
+                        set_edit_context_visible('lang_2', checked === true)}
+                    />
+                    {get_translation_slot_label(1, $selected_translation_lang_ids)}
+                  </label>
+                {/if}
+              {/if}
+              {#if is_editing_translation($editing_mode)}
+                <AITranslate />
+              {/if}
+            </div>
           {/if}
         {/if}
       </div>

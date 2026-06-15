@@ -6,15 +6,12 @@ import {
   clear_server_project_map_cache
 } from '$app/utils/project/list.server';
 import { db } from '~/db/site_db';
-import { verify_jwt_token } from '~/lib/get_auth_from_cookie';
+import { get_session_from_cookie } from '~/lib/get_auth_from_cookie';
 
 export const GET: APIRoute = async ({ request, params }) => {
-  const jwt_token = new URL(request.url).searchParams.get('jwt_token');
-  if (!jwt_token) {
-    return new Response(null, { status: 400 });
-  }
-  const valid = await verify_jwt_token(jwt_token);
-  if (!valid || valid.payload.role !== 'admin') {
+  const cookie = request.headers.get('cookie') ?? '';
+  const session = await get_session_from_cookie(cookie);
+  if (!session?.user || session.user.role !== 'admin') {
     return new Response(null, { status: 401 });
   }
 

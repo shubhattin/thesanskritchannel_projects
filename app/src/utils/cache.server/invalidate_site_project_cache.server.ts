@@ -1,5 +1,3 @@
-import { authClient } from '~/lib/auth-client';
-
 const get_main_site_origin = () => {
   const url = import.meta.env.VITE_MAIN_SITE_URL;
   if (typeof url !== 'string') return '';
@@ -9,19 +7,9 @@ const get_main_site_origin = () => {
 const get_to_main_site = async (path: string, cookie: string) => {
   const origin = get_main_site_origin();
   if (!origin || !cookie) return;
-  const jwt_token = (
-    await authClient.token({
-      fetchOptions: {
-        headers: {
-          Cookie: cookie
-        }
-      }
-    })
-  ).data?.token;
-  if (!jwt_token) return;
 
   try {
-    const res = await fetch(`${origin}${path}?jwt_token=${jwt_token}`, {
+    const res = await fetch(`${origin}${path}`, {
       method: 'GET',
       headers: {
         Cookie: cookie,

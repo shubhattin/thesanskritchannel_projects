@@ -34,10 +34,7 @@ const get_text_data_route = publicProcedure
   )
   .query(async ({ input: { project_key, path_params } }) => {
     await delay(350);
-    const data = await CACHE.text_data.get(
-      { key: project_key, path_params },
-      cache_db_options_app
-    );
+    const data = await CACHE.text_data.get({ key: project_key, path_params }, cache_db_options_app);
     return data;
   });
 
@@ -194,11 +191,7 @@ const save_text_rows_route = protectedAdminProcedure
       );
     }
     if (mapChanged) {
-      await invalidate_and_refresh_cached(
-        CACHE.project_map,
-        { project_id },
-        cache_db_options_app
-      );
+      await invalidate_and_refresh_cached(CACHE.project_map, { project_id }, cache_db_options_app);
       clear_server_project_map_cache(project_id);
       clear_server_project_info_cache(projectKey);
       await notify_site_invalidate_project_map_cache(cookie, project_id);

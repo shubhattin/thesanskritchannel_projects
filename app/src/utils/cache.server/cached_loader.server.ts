@@ -251,13 +251,11 @@ export const invalidate_path_caches = async (
   for (const path of invalidation.textAndMediaPaths) {
     const path_params = dbPathToPathParams(path);
     tasks.push(
-      invalidate_and_refresh_cached(
-        CACHE.text_data,
-        { key: project_key, path_params },
-        options
-      )
+      invalidate_and_refresh_cached(CACHE.text_data, { key: project_key, path_params }, options)
     );
-    tasks.push(options.redis.del(REDIS_CACHE_KEYS_CLIENT.media_links(project_id, path_params)).then(() => { }));
+    tasks.push(
+      options.redis.del(REDIS_CACHE_KEYS_CLIENT.media_links(project_id, path_params)).then(() => {})
+    );
   }
 
   for (const { lang_id, path } of invalidation.translationPaths) {

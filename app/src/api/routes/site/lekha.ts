@@ -43,11 +43,7 @@ async function normalizeLekhaPostForStorage(post_data: z.infer<typeof lekha_post
 
 const invalidate_lekha_caches = async (url_slug: string) => {
   await Promise.all([
-    invalidate_and_refresh_cached(
-      CACHE.site_lekha_data,
-      { url_slug },
-      cache_db_options_app
-    ),
+    invalidate_and_refresh_cached(CACHE.site_lekha_data, { url_slug }, cache_db_options_app),
     invalidate_and_refresh_cached(CACHE.site_lekha_list, NO_CACHE_PARAMS, cache_db_options_app)
   ]);
 };
@@ -139,10 +135,10 @@ const list_lekhas_route = protectedAdminProcedure
     const trimmedSearch = input.search_text?.trim();
     const searchCondition = trimmedSearch
       ? or(
-        ilike(site_lekhas.title, `%${trimmedSearch}%`),
-        ilike(site_lekhas.description, `%${trimmedSearch}%`),
-        sql<boolean>`array_to_string(${site_lekhas.tags}, ' ') ILIKE ${`%${trimmedSearch}%`}`
-      )
+          ilike(site_lekhas.title, `%${trimmedSearch}%`),
+          ilike(site_lekhas.description, `%${trimmedSearch}%`),
+          sql<boolean>`array_to_string(${site_lekhas.tags}, ' ') ILIKE ${`%${trimmedSearch}%`}`
+        )
       : undefined;
     const draftCondition =
       input.draft === undefined ? undefined : eq(site_lekhas.draft, input.draft);

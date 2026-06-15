@@ -277,8 +277,12 @@ export const trans_slot_data_q_options = (
   const lang_id = selected_translation_lang_ids[slot];
   const pin_while_editing =
     slot === 0
-      ? editing_mode_ === '1st_lang' || editing_mode_ === 'text'
-      : editing_mode_ === '2nd_lang' || editing_mode_ === 'text';
+      ? editing_mode_ === '1st_lang' ||
+        editing_mode_ === 'text' ||
+        editing_mode_ === 'text_1st_lang'
+      : editing_mode_ === '2nd_lang' ||
+        editing_mode_ === 'text' ||
+        editing_mode_ === 'text_2nd_lang';
   return {
     ...trans_lang_data_q_options(lang_id ?? -1, selected_text_levels, project),
     enabled:

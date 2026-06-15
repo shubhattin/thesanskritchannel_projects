@@ -423,10 +423,13 @@ function isChildlessTypeConversion(
   if ((current.list ?? []).length > 0) {
     return false;
   }
-  return (
-    (current.info.type === 'shloka' && proposed.info.type === 'list') ||
-    (current.info.type === 'list' && proposed.info.type === 'shloka')
-  );
+  if (current.info.type === 'shloka' && proposed.info.type === 'list') {
+    return current.info.total === 0;
+  }
+  if (current.info.type === 'list' && proposed.info.type === 'shloka') {
+    return true;
+  }
+  return false;
 }
 
 function adoptConvertedNode(proposed: recursive_list_type): recursive_list_type {

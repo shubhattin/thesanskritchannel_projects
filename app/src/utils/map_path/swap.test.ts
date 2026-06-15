@@ -209,6 +209,24 @@ describe('map_path_swap', () => {
     });
   });
 
+  it('rejects shloka to list conversion when total lines are present', () => {
+    const current = sampleMap();
+    current.list![1] = {
+      name_dev: 'B',
+      info: { type: 'shloka', shloka_count: 0, total: 2, shloka_count_expected: null },
+      list: []
+    };
+    const proposed = sampleMap();
+    proposed.list![1] = {
+      name_dev: 'B',
+      info: { type: 'list', list_name: 'Adhyaya', list_count_expected: 5 },
+      list: []
+    };
+    expect(() => applyMetadataEditsToMap(current, proposed)).toThrow(
+      'Map structure changed during metadata save'
+    );
+  });
+
   it('accepts childless shloka project root to list without new children', () => {
     const current: recursive_list_type = {
       name_dev: 'Project',

@@ -2,6 +2,7 @@
   import { client } from '~/api/client';
   import {
     editing_mode,
+    get_active_translation_slot,
     selected_translation_lang_ids,
     TEXT_MODEL_LIST,
     project_state,
@@ -105,9 +106,7 @@
     }
   });
 
-  const active_translation_slot = $derived(
-    $editing_mode === '1st_lang' ? 0 : $editing_mode === '2nd_lang' ? 1 : null
-  );
+  const active_translation_slot = $derived(get_active_translation_slot($editing_mode));
 
   const active_translation_lang_id = $derived(
     active_translation_slot === null

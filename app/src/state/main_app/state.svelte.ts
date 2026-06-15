@@ -57,6 +57,9 @@ export const get_active_translation_slot = (mode: editing_mode_type): 0 | 1 | nu
       ? 1
       : null;
 
+export const is_editing_translation_slot = (mode: editing_mode_type, slot: 0 | 1) =>
+  get_active_translation_slot(mode) === slot;
+
 export type edit_context_panel_key = 'text' | 'lang_1' | 'lang_2';
 export let edit_context_visible = writable<Record<edit_context_panel_key, boolean>>({
   text: true,

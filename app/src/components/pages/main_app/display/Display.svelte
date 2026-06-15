@@ -34,6 +34,7 @@
     is_dual_edit_mode,
     is_editing_text,
     is_editing_translation,
+    is_editing_translation_slot,
     project_state,
     sanskrit_mode,
     selected_text_levels,
@@ -1091,13 +1092,11 @@
 
 {#snippet edit_context_translation_panels_below(data_index: number | null)}
   {@const show_lang_1 =
-    $editing_mode !== '1st_lang' &&
-    $editing_mode !== 'text_1st_lang' &&
+    !is_editing_translation_slot($editing_mode, 0) &&
     $edit_context_visible.lang_1 &&
     $selected_translation_lang_ids[0] !== null}
   {@const show_lang_2 =
-    $editing_mode !== '2nd_lang' &&
-    $editing_mode !== 'text_2nd_lang' &&
+    !is_editing_translation_slot($editing_mode, 1) &&
     $edit_context_visible.lang_2 &&
     $selected_translation_lang_ids[1] !== null}
   {#if show_lang_1 || show_lang_2}

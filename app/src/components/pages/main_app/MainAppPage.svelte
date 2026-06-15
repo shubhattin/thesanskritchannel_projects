@@ -10,6 +10,7 @@
     LANG_LIST,
     LANG_LIST_IDS,
     get_script_for_lang_id,
+    get_translation_slot_label,
     lang_list_obj,
     SCRIPT_LIST,
     script_list_obj,
@@ -31,6 +32,7 @@
     get_active_translation_slot,
     is_editing_text,
     is_editing_translation,
+    is_editing_translation_slot,
     image_tool_opened
   } from '~/state/main_app/state.svelte';
   import {
@@ -262,13 +264,10 @@
     }
   };
 
-  const active_translation_slot = $derived(get_active_translation_slot($editing_mode));
-
-  const active_translation_lang_id = $derived(
-    active_translation_slot === null
-      ? null
-      : $selected_translation_lang_ids[active_translation_slot]
-  );
+  const active_translation_lang_id = $derived.by(() => {
+    const slot = get_active_translation_slot($editing_mode);
+    return slot === null ? null : $selected_translation_lang_ids[slot];
+  });
 
   const can_edit_language = (lang_id: number | null) => {
     if (lang_id === null || !user_info) return false;
@@ -278,11 +277,6 @@
   };
 
   type lang_option = { lang: string; id: number };
-
-  const get_lang_slot_label = (slot: 0 | 1) => {
-    const lang_id = $selected_translation_lang_ids[slot];
-    return lang_id === null ? `Lang ${slot + 1}` : LANG_LIST[LANG_LIST_IDS.indexOf(lang_id)]!;
-  };
 
   const set_edit_context_visible = (key: 'text' | 'lang_1' | 'lang_2', checked: boolean) => {
     $edit_context_visible = { ...$edit_context_visible, [key]: checked };
@@ -508,12 +502,7 @@
         {/if}
       {/if}
       {#if $editing_mode === 'none'}
-        <EditOptionsPopover
-          disabled={$editing_mode !== 'none'}
-          {is_admin}
-          {can_edit_language}
-          {viewing_script_selection}
-        />
+        <EditOptionsPopover {is_admin} {can_edit_language} {viewing_script_selection} />
         {#if is_admin}
           <div class="ml-2 border-l pl-3">
             <Button
@@ -552,10 +541,7 @@
               onValueChange={(v) => {
                 set_translation_slot_lang(slot as 0 | 1, v === 'none' ? null : Number(v));
               }}
-              disabled={(($editing_mode === '1st_lang' || $editing_mode === 'text_1st_lang') &&
-                slot === 0) ||
-                (($editing_mode === '2nd_lang' || $editing_mode === 'text_2nd_lang') &&
-                  slot === 1)}
+              disabled={is_editing_translation_slot($editing_mode, slot as 0 | 1)}
             >
               <Select.Trigger class="inline-flex h-7 w-full max-w-34 px-2 text-xs">
                 {slot_lang_id === null ? 'None' : LANG_LIST[LANG_LIST_IDS.indexOf(slot_lang_id)]}
@@ -588,13 +574,11 @@
           {@const show_text_context =
             !is_editing_text($editing_mode) && $edit_context_visible.text}
           {@const show_lang_1_context =
-            $editing_mode !== '1st_lang' &&
-            $editing_mode !== 'text_1st_lang' &&
+            !is_editing_translation_slot($editing_mode, 0) &&
             $edit_context_visible.lang_1 &&
             $selected_translation_lang_ids[0] !== null}
           {@const show_lang_2_context =
-            $editing_mode !== '2nd_lang' &&
-            $editing_mode !== 'text_2nd_lang' &&
+            !is_editing_translation_slot($editing_mode, 1) &&
             $edit_context_visible.lang_2 &&
             $selected_translation_lang_ids[1] !== null}
           {@const has_any_show_checkbox =
@@ -623,7 +607,7 @@
                   onCheckedChange={(checked) =>
                     set_edit_context_visible('lang_1', checked === true)}
                 />
-                {get_lang_slot_label(0)}
+                {get_translation_slot_label(0, $selected_translation_lang_ids)}
               </label>
             {/if}
             {#if show_lang_2_context}
@@ -635,7 +619,7 @@
                   onCheckedChange={(checked) =>
                     set_edit_context_visible('lang_2', checked === true)}
                 />
-                {get_lang_slot_label(1)}
+                {get_translation_slot_label(1, $selected_translation_lang_ids)}
               </label>
             {/if}
             {/if}

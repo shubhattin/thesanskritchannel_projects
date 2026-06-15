@@ -10,16 +10,14 @@
     editing_mode,
     selected_translation_lang_ids
   } from '~/state/main_app/state.svelte';
-  import { LANG_LIST, LANG_LIST_IDS } from '~/state/lang_list';
+  import { get_translation_slot_label } from '~/state/lang_list';
   import Icon from '~/tools/Icon.svelte';
 
   let {
-    disabled = false,
     is_admin,
     can_edit_language,
     viewing_script_selection
   }: {
-    disabled?: boolean;
     is_admin: boolean;
     can_edit_language: (lang_id: number | null) => boolean;
     viewing_script_selection: Writable<string>;
@@ -27,12 +25,6 @@
 
   let open = $state(false);
 
-  const get_lang_slot_label = (slot: 0 | 1) => {
-    const lang_id = $selected_translation_lang_ids[slot];
-    return lang_id === null ? `Lang ${slot + 1}` : LANG_LIST[LANG_LIST_IDS.indexOf(lang_id)]!;
-  };
-
-  const show_text = $derived(is_admin);
   const show_dual = $derived(
     is_admin && [0, 1].some((s) => $selected_translation_lang_ids[s] !== null)
   );
@@ -43,7 +35,8 @@
         can_edit_language($selected_translation_lang_ids[s])
     )
   );
-  const has_any_option = $derived(show_text || show_dual || show_translation);
+  // ponytail: admin always has "Edit text"; non-admin needs at least one allowed lang slot
+  const visible = $derived(is_admin || show_translation);
 
   const menu_btn_class = 'h-auto w-full justify-start gap-2 px-2.5 py-1.5 font-normal';
 
@@ -53,11 +46,11 @@
   };
 </script>
 
-{#if has_any_option}
+{#if visible}
   <Popover.Root bind:open>
     <Popover.Trigger>
       {#snippet child({ props })}
-        <Button {...props} variant="outline" size="sm" {disabled}>
+        <Button {...props} variant="outline" size="sm">
           <Icon src={BiEdit} class="text-xl sm:text-2xl" />
           Edit
         </Button>
@@ -65,7 +58,7 @@
     </Popover.Trigger>
     <Popover.Content align="start" class="w-auto min-w-52 p-2">
       <div class="flex flex-col gap-2">
-        {#if show_text}
+        {#if is_admin}
           <div class="space-y-1">
             <Label class="px-1 text-xs font-medium text-muted-foreground">Text</Label>
             <Button
@@ -84,7 +77,7 @@
         {/if}
 
         {#if show_dual}
-          {#if show_text}<Separator />{/if}
+          {#if is_admin}<Separator />{/if}
           <div class="space-y-1">
             <Label class="px-1 text-xs font-medium text-muted-foreground">Text + translation</Label>
             {#each [0, 1] as slot (slot)}
@@ -99,7 +92,7 @@
                     })}
                 >
                   <Icon src={BiEdit} class="text-base" />
-                  Edit text + {get_lang_slot_label(slot as 0 | 1)}
+                  Edit text + {get_translation_slot_label(slot as 0 | 1, $selected_translation_lang_ids)}
                 </Button>
               {/if}
             {/each}
@@ -107,7 +100,7 @@
         {/if}
 
         {#if show_translation}
-          {#if show_text || show_dual}<Separator />{/if}
+          {#if is_admin || show_dual}<Separator />{/if}
           <div class="space-y-1">
             <Label class="px-1 text-xs font-medium text-muted-foreground">Translation</Label>
             {#each [0, 1] as slot (slot)}
@@ -122,7 +115,7 @@
                     })}
                 >
                   <Icon src={BiEdit} class="text-base" />
-                  Edit {get_lang_slot_label(slot as 0 | 1)}
+                  Edit {get_translation_slot_label(slot as 0 | 1, $selected_translation_lang_ids)}
                 </Button>
               {/if}
             {/each}

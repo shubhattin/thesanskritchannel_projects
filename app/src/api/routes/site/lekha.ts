@@ -6,7 +6,7 @@ import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { site_lekhas } from '~/db/schema';
 import { SiteLekhaSchemaZod } from '~/db/schema_zod';
-import { delay } from '~/tools/delay';
+import { delay_dev } from '~/tools/delay';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import {
   CACHE,
@@ -76,7 +76,7 @@ const edit_lekha_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { id, post_data } }) => {
-    await delay(1000);
+    await delay_dev(1000);
     const existing = await db.query.site_lekhas.findFirst({
       where: (tbl, { eq: eqId }) => eqId(tbl.id, id)
     });
@@ -102,7 +102,7 @@ const edit_lekha_route = protectedAdminProcedure
 const delete_lekha_route = protectedAdminProcedure
   .input(z.object({ id: z.number() }))
   .mutation(async ({ input: { id } }) => {
-    await delay(1000);
+    await delay_dev(1000);
 
     const prev_data = await db.query.site_lekhas.findFirst({
       where: (tbl, { eq: eqId }) => eqId(tbl.id, id),
@@ -132,7 +132,7 @@ const list_lekhas_input = z.object({
 const list_lekhas_route = protectedAdminProcedure
   .input(list_lekhas_input)
   .query(async ({ input }) => {
-    await delay(800);
+    await delay_dev(800);
     const trimmedSearch = input.search_text?.trim();
     const searchCondition = trimmedSearch
       ? or(

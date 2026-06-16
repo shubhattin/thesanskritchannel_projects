@@ -14,14 +14,21 @@
   type Props = {
     initial_lang_id: number;
     initial_script_id: number;
+    available_lang_ids: number[];
   };
 
-  let { initial_lang_id, initial_script_id }: Props = $props();
+  let { initial_lang_id, initial_script_id, available_lang_ids }: Props = $props();
+
+  const available_lang_id_set = $derived(new Set(available_lang_ids));
 
   // svelte-ignore state_referenced_locally
-  let value = $state(initial_lang_id);
+  let value = $state(
+    initial_lang_id === DEFAULT_LANG_ID || available_lang_id_set.has(initial_lang_id)
+      ? initial_lang_id
+      : DEFAULT_LANG_ID
+  );
 
-  const options = [
+  const options = $derived([
     {
       id: DEFAULT_LANG_ID,
       label: '-- Select --'
@@ -29,8 +36,8 @@
     ...LANG_LIST.map((lang, index) => ({
       id: LANG_LIST_IDS[index]!,
       label: lang
-    }))
-  ];
+    })).filter((option) => available_lang_id_set.has(option.id))
+  ]);
 
   async function handleValueChange(nextValue: string) {
     value = parseInt(nextValue);

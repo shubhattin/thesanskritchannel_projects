@@ -4,7 +4,7 @@ import { waitUntil } from '@vercel/functions';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { project_paths, projects, texts, translations } from '~/db/schema';
-import { delay } from '~/tools/delay';
+import { delay_dev } from '~/tools/delay';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
 import {
@@ -34,7 +34,7 @@ const get_text_data_route = publicProcedure
     })
   )
   .query(async ({ input: { project_key, path_params } }) => {
-    await delay(350);
+    await delay_dev(350);
     const data = await CACHE.text_data.get({ key: project_key, path_params }, cache_db_options_app);
     return data;
   });
@@ -179,11 +179,19 @@ const save_text_rows_route = protectedAdminProcedure
       };
     });
 
-    await invalidate_and_refresh_cached(
-      CACHE.text_data,
-      { key: projectKey, path_params: [...path_params] },
-      cache_db_options_app
-    );
+    await Promise.all([
+      invalidate_and_refresh_cached(
+        CACHE.text_data,
+        { key: projectKey, path_params: [...path_params] },
+        cache_db_options_app
+      ),
+      // the delete might have affected the available translation langs
+      invalidate_and_refresh_cached(
+        CACHE.available_translation_langs,
+        { project_id, path_params },
+        cache_db_options_app
+      )
+    ]);
     for (const lang_id of affectedLangIds) {
       waitUntil(
         invalidate_and_refresh_cached(

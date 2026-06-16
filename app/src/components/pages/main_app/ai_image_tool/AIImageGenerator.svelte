@@ -34,7 +34,7 @@
   import { OiStopwatch16 } from 'svelte-icons-pack/oi';
   import { BsClipboard2Check } from 'svelte-icons-pack/bs';
   import { createQuery } from '@tanstack/svelte-query';
-  import { delay } from '~/tools/delay';
+  import { delay_dev } from '~/tools/delay';
   import pretty_ms from 'pretty-ms';
   import ms from 'ms';
   import { get_project_from_id, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
@@ -221,7 +221,7 @@
       show_prompt_time_status = false;
       auto_image_generated = false;
       if (import.meta.env.DEV && load_ai_sample_data) {
-        await delay(1000);
+        await delay_dev(1000);
         const { ai_sample_data } = await import('./ai_sample_data');
         return { image_prompt: ai_sample_data.sample_text_prompt, time_taken: 0 };
       }
@@ -263,7 +263,7 @@
     queryFn: async () => {
       show_image_time_status = false;
       if (import.meta.env.DEV && load_ai_sample_data) {
-        await delay(2000);
+        await delay_dev(2000);
         const list: {
           url: string;
           created: number;

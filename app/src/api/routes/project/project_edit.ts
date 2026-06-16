@@ -27,7 +27,7 @@ import {
 import { notify_site_invalidate_project_list_caches } from '~/utils/cache.server/invalidate_site_project_cache.server';
 import { countResourcesForProject, insertProjectPaths } from '~/utils/project/paths_db.server';
 import { ROOT_DB_PATH } from '~/utils/map_path/swap';
-import { delay } from '~/tools/delay';
+import { delay_dev } from '~/tools/delay';
 import { type recursive_list_type, recursive_list_schema } from '~/state/data_types';
 
 const project_id_input = z.object({
@@ -61,7 +61,7 @@ export const update_project_name_description_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
-    await delay(400);
+    await delay_dev(400);
     await db.transaction(async (tx) => {
       await require_project(tx, input.project_id);
       const { map: project_map } = (await tx.query.projects.findFirst({
@@ -92,7 +92,7 @@ export const edit_project_slug_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
-    await delay(400);
+    await delay_dev(400);
     await db.transaction(async (tx) => {
       await require_project(tx, input.project_id);
       const key = lekhaUrlSlugify(input.key);
@@ -119,7 +119,7 @@ export const update_project_listed_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
-    await delay(400);
+    await delay_dev(400);
     await db.transaction(async (tx) => {
       await require_project(tx, input.project_id);
       await tx
@@ -180,7 +180,7 @@ const get_delete_resource_counts_for_project = async (project_id: number) => {
 export const get_delete_resource_counts_route = protectedAdminProcedure
   .input(project_id_input)
   .query(async ({ input }) => {
-    await delay(300);
+    await delay_dev(300);
     await require_project(db, input.project_id);
     return get_delete_resource_counts_for_project(input.project_id);
   });
@@ -188,7 +188,7 @@ export const get_delete_resource_counts_route = protectedAdminProcedure
 export const delete_project_route = protectedAdminProcedure
   .input(project_id_input)
   .mutation(async ({ input, ctx: { cookie } }) => {
-    await delay(400);
+    await delay_dev(400);
     await db.transaction(async (tx) => {
       await require_project(tx, input.project_id);
       const counts = await get_delete_resource_counts_for_project(input.project_id);
@@ -210,7 +210,7 @@ export const delete_project_route = protectedAdminProcedure
 export const check_project_slug_route = protectedAdminProcedure
   .input(z.object({ slug: z.string().max(100) }))
   .query(async ({ input }) => {
-    await delay(200);
+    await delay_dev(200);
     const key = lekhaUrlSlugify(input.slug);
     if (!key) {
       return { available: false, key: '' };
@@ -232,7 +232,7 @@ const add_new_project_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { name, name_dev, description, slug }, ctx: { cookie } }) => {
-    await delay(400);
+    await delay_dev(400);
     const key = lekhaUrlSlugify(slug);
     if (!key) {
       throw new TRPCError({

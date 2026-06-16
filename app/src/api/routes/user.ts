@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { protectedAdminProcedure, protectedProcedure } from '../trpc_init';
 import { db } from '~/db/db';
-import { delay } from '~/tools/delay';
+import { delay_dev } from '~/tools/delay';
 import { user_project_join, user_project_language_join } from '~/db/schema';
 import { eq } from 'drizzle-orm';
 import { t } from '../trpc_init';
@@ -18,7 +18,7 @@ import { get_user_app_scope_status } from '~/utils/auth/app_scope_utils.server';
 const get_user_info_route = protectedProcedure
   .input(z.object({ user_id: z.string() }))
   .query(async ({ input: { user_id }, ctx: { user } }) => {
-    await delay(550);
+    await delay_dev(550);
 
     if (user.role !== 'admin' && user.id !== user_id) {
       return { projects: [], current_app_scope: false };

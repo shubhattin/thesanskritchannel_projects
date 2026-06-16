@@ -517,7 +517,9 @@
         {/if}
       {/if}
       {#if !($ai_tool_opened && is_admin)}
-        {@render btn_multi()}
+        {#if is_admin}
+          {@render btn_multi()}
+        {/if}
       {/if}
     </div>
     {#if !($ai_tool_opened && is_admin)}

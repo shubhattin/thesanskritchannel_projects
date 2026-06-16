@@ -156,8 +156,7 @@ export function compute_multimedia_diff(
       return changed ? [patch] : [];
     });
 
-  const order_changed = has_order_changed(baseline, draft);
-  const order_updates = order_changed
+  const order_updates = needs_order_reconcile(baseline, draft)
     ? draft
         .map((item, order) => ({ item, order }))
         .filter(({ item }) => typeof item.id === 'number')
@@ -171,6 +170,12 @@ export function compute_multimedia_diff(
   return { creates, updates, deletes, order_updates };
 }
 
+export function needs_order_reconcile(baseline: MediaLinkRow[], draft: DraftMediaItem[]): boolean {
+  const diff_deletes = baseline.filter((row) => !draft.some((item) => item.id === row.id));
+  const diff_creates = draft.filter(is_new_draft_item);
+  return has_order_changed(baseline, draft) || diff_deletes.length > 0 || diff_creates.length > 0;
+}
+
 export function is_draft_dirty(baseline: MediaLinkRow[], draft: DraftMediaItem[]): boolean {
   if (baseline.length === 0 && draft.length === 0) return false;
 
@@ -179,7 +184,7 @@ export function is_draft_dirty(baseline: MediaLinkRow[], draft: DraftMediaItem[]
     diff.creates.length > 0 ||
     diff.updates.length > 0 ||
     diff.deletes.length > 0 ||
-    has_order_changed(baseline, draft)
+    needs_order_reconcile(baseline, draft)
   );
 }
 

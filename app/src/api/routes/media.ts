@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import { TRPCError } from '@trpc/server';
-import { t, publicProcedure, protectedAdminProcedure } from '../trpc_init';
+import { t, protectedProcedure, protectedAdminProcedure } from '../trpc_init';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
 import { get_project_info_by_id } from '~/utils/project/list.server';
@@ -37,7 +36,7 @@ const media_update_schema = z
     { message: 'Update must include at least one field' }
   );
 
-const get_media_list_route = publicProcedure
+const get_media_list_route = protectedProcedure
   .input(
     z.object({
       project_id: z.int(),

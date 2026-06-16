@@ -38,12 +38,13 @@
 
   const is_admin = $derived($session.data?.user.role === 'admin');
 
-  const media_list_q = createQuery(() =>
-    trpc.media.get_media_list.queryOptions({
+  const media_list_q = createQuery(() => ({
+    ...trpc.media.get_media_list.queryOptions({
       project_id: $project_state!.project_id,
       selected_text_levels: $selected_text_levels
-    })
-  );
+    }),
+    enabled: is_admin
+  }));
 
   const media_query_key = $derived(
     trpc.media.get_media_list.queryKey({
@@ -253,12 +254,14 @@
 </script>
 
 <Dialog.Root open={dialog_open} onOpenChange={handle_dialog_open_change}>
-  <Dialog.Trigger class="inline-flex outline-none select-none">
-    <Button variant="ghost" class="h-auto flex-col gap-0.5 px-2 py-1 outline-none">
-      <Icon src={MultimediaIcon} class="size-6 text-orange-600 dark:text-amber-200" />
-      <span class="text-[10px] font-medium text-muted-foreground">Media</span>
-    </Button>
-  </Dialog.Trigger>
+  {#if is_admin}
+    <Dialog.Trigger class="inline-flex outline-none select-none">
+      <Button variant="ghost" class="h-auto flex-col gap-0.5 px-2 py-1 outline-none">
+        <Icon src={MultimediaIcon} class="size-6 text-orange-600 dark:text-amber-200" />
+        <span class="text-[10px] font-medium text-muted-foreground">Media</span>
+      </Button>
+    </Dialog.Trigger>
+  {/if}
   <Dialog.Content
     showCloseButton={false}
     onInteractOutside={(event) => {

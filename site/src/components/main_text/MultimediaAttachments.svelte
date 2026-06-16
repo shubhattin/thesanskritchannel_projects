@@ -184,9 +184,7 @@
                           <div
                             class="absolute flex size-12 items-center justify-center rounded-full bg-red-600 text-white shadow-md transition-all duration-300 group-hover:scale-110 group-hover:bg-red-700"
                           >
-                            <svg class="size-6 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                              <path d="M8 5v14l11-7z" />
-                            </svg>
+                            <PlayIcon class="size-6 fill-white" />
                           </div>
                         </button>
                       {/if}

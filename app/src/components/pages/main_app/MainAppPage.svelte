@@ -517,7 +517,9 @@
         {/if}
       {/if}
       {#if !($ai_tool_opened && is_admin)}
-        {@render btn_multi()}
+        {#if is_admin}
+          {@render btn_multi()}
+        {/if}
       {/if}
     </div>
     {#if !($ai_tool_opened && is_admin)}
@@ -631,8 +633,9 @@
     {/if}
     {#snippet btn_multi()}
       {#await import('./multimedia/MultiMediaLinks.svelte')}
-        <Button variant="ghost" size="icon" class="outline-none">
+        <Button variant="ghost" class="h-auto flex-col gap-0.5 px-2 py-1 outline-none">
           <Icon src={MultimediaIcon} class="size-6 text-orange-600 sm:size-6 dark:text-amber-200" />
+          <span class="text-[10px] font-medium text-muted-foreground">Media</span>
         </Button>
       {:then MultiMediaLinks}
         <MultiMediaLinks.default />

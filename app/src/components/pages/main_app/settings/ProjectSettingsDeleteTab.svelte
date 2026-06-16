@@ -98,14 +98,14 @@
             </AlertDialog.Description>
           </AlertDialog.Header>
           <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
-            <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-            <AlertDialog.Action
+            <AlertDialog.Cancel disabled={delete_mut.isPending}>Cancel</AlertDialog.Cancel>
+            <Button
               class="bg-destructive text-white hover:bg-destructive/90"
               disabled={delete_mut.isPending}
               onclick={() => delete_mut.mutate({ project_id: project.id })}
             >
               {delete_mut.isPending ? 'Deleting…' : 'Delete permanently'}
-            </AlertDialog.Action>
+            </Button>
           </AlertDialog.Footer>
         </AlertDialog.Content>
       </AlertDialog.Root>

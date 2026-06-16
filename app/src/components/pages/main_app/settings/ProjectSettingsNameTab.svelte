@@ -166,10 +166,10 @@
       </AlertDialog.Description>
     </AlertDialog.Header>
     <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
-      <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-      <AlertDialog.Action disabled={save_mut.isPending} onclick={confirm_save}>
+      <AlertDialog.Cancel disabled={save_mut.isPending}>Cancel</AlertDialog.Cancel>
+      <Button disabled={save_mut.isPending} onclick={confirm_save}>
         {save_mut.isPending ? 'Saving…' : 'Save'}
-      </AlertDialog.Action>
+      </Button>
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>

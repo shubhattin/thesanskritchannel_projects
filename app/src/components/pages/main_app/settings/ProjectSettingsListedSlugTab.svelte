@@ -188,10 +188,10 @@
           </AlertDialog.Description>
         </AlertDialog.Header>
         <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
-          <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-          <AlertDialog.Action disabled={slug_mut.isPending} onclick={confirm_slug_save}>
+          <AlertDialog.Cancel disabled={slug_mut.isPending}>Cancel</AlertDialog.Cancel>
+          <Button disabled={slug_mut.isPending} onclick={confirm_slug_save}>
             {slug_mut.isPending ? 'Saving…' : 'Save slug'}
-          </AlertDialog.Action>
+          </Button>
         </AlertDialog.Footer>
       </AlertDialog.Content>
     </AlertDialog.Root>
@@ -233,10 +233,10 @@
             </AlertDialog.Description>
           </AlertDialog.Header>
           <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
-            <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-            <AlertDialog.Action disabled={listed_mut.isPending} onclick={unpublish_project}>
+            <AlertDialog.Cancel disabled={listed_mut.isPending}>Cancel</AlertDialog.Cancel>
+            <Button disabled={listed_mut.isPending} onclick={unpublish_project}>
               {listed_mut.isPending ? 'Updating…' : 'Unpublish'}
-            </AlertDialog.Action>
+            </Button>
           </AlertDialog.Footer>
         </AlertDialog.Content>
       </AlertDialog.Root>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createQuery } from '@tanstack/svelte-query';
   import { tick } from 'svelte';
+  import ExternalLink from '@lucide/svelte/icons/external-link';
   import { client } from '~/api/client';
   import { get_project_from_id, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import { project_list_q_options } from '~/state/main_app/data.svelte';
@@ -10,6 +11,14 @@
   import * as Select from '$lib/components/ui/select';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { Switch } from '$lib/components/ui/switch';
+  import * as Tooltip from '$lib/components/ui/tooltip';
+  import SearchTextSelector from '~/components/search/SearchTextSelector.svelte';
+  import SearchPathFilter from '~/components/search/SearchPathFilter.svelte';
+  import SearchResultPathLabel from '~/components/search/SearchResultPathLabel.svelte';
+  import SearchResultText from '~/components/search/SearchResultText.svelte';
+  import { build_search_result_href } from '~/utils/search_result_link';
+  import { normalize_search_path_prefixes } from '~/utils/search_path_prefixes';
+  import type { recursive_list_type } from '~/state/data_types';
   import {
     clearTypingContextOnKeyDown,
     createTypingContext,
@@ -22,22 +31,16 @@
   let form_el: HTMLFormElement | null = null;
 
   let submitted_search_text = $state('');
-  let submitted_project_id = $state<number>(0);
-  let submitted_path_filter = $state('');
+  let submitted_project_keys = $state<string[]>([]);
+  let submitted_path_prefixes = $state<number[][] | undefined>(undefined);
 
   let search_text = $state('');
-  let path_filter = $state('');
-  let project_id = $state(0);
+  let selected_project_ids = $state<Set<number>>(new Set());
+  let path_filter_text = $state('');
+  let path_prefixes = $state<number[][] | undefined>(undefined);
 
   const LIMIT = 20;
   let offset = $state(0);
-
-  const parse_path_params = (t: string): number[] | undefined => {
-    const matches = t.match(/\d+/g);
-    if (!matches || matches.length === 0) return undefined;
-    const nums = matches.map((v) => parseInt(v, 10)).filter((n) => Number.isFinite(n));
-    return nums.length ? nums : undefined;
-  };
 
   const project_list_q = createQuery(() => project_list_q_options());
 
@@ -47,11 +50,37 @@
   const get_project_name_from_id = (id: number) =>
     get_project_from_id(id, project_registry)?.name ?? `Project ${id}`;
 
+  const selected_project_keys = $derived(
+    [...selected_project_ids]
+      .map((id) => get_project_key_from_id(id))
+      .filter((k): k is string => !!k)
+      .sort()
+  );
+
+  const can_search = $derived(selected_project_ids.size > 0);
+  const show_result_project_names = $derived(submitted_project_keys.length !== 1);
+
+  let result_project_maps = $state<Map<number, recursive_list_type>>(new Map());
+
+  const ensure_maps_for_results = async (project_ids: number[]) => {
+    const missing = project_ids.filter((id) => !result_project_maps.has(id));
+    if (missing.length === 0) return;
+    const entries = await Promise.all(
+      missing.map(async (id) => {
+        const map = await client.project.get_project_map.query({ project_id: id });
+        return [id, map] as const;
+      })
+    );
+    const next = new Map(result_project_maps);
+    for (const [id, map] of entries) next.set(id, map);
+    result_project_maps = next;
+  };
+
   const search_q = createQuery(() => ({
     queryKey: [
       'text_search',
-      submitted_project_id === 0 ? undefined : submitted_project_id,
-      submitted_path_filter,
+      submitted_project_keys,
+      submitted_path_prefixes,
       submitted_search_text,
       offset,
       LIMIT
@@ -60,33 +89,38 @@
     placeholderData: (prev) => prev,
     queryFn: async () => {
       const q = submitted_search_text.trim();
-      if (q.length < 1) {
+      if (q.length < 1 || submitted_project_keys.length === 0) {
         return {
           items: [],
           page: { limit: LIMIT, offset, nextOffset: null, hasMore: false, totalCount: 0 }
         };
       }
 
-      const project_key = get_project_key_from_id(submitted_project_id);
-      const path_params = parse_path_params(submitted_path_filter);
+      const path_prefixes_for_query = normalize_search_path_prefixes(submitted_path_prefixes);
 
-      return await client.text.search_text_in_texts.query({
-        project_key,
-        path_params,
+      const result = await client.text.search_text_in_texts.query({
+        project_keys: submitted_project_keys,
         search_text: q,
         limit: LIMIT,
-        offset
+        offset,
+        ...(path_prefixes_for_query ? { path_prefixes: path_prefixes_for_query } : {})
       });
+
+      const ids = [...new Set(result.items.map((row) => row.project_id))];
+      await ensure_maps_for_results(ids);
+
+      return result;
     }
   }));
 
-  const submit_search = async (args?: {
-    q?: string;
-    project_id?: number;
-    path_filter?: string;
-  }) => {
+  const submit_search = async (args?: { q?: string }) => {
     const q = (args?.q ?? search_text).trim();
     validation_error = null;
+
+    if (selected_project_ids.size === 0) {
+      validation_error = 'Select at least one text to search.';
+      return;
+    }
 
     if (q.length < 1) {
       started = false;
@@ -97,10 +131,9 @@
     started = true;
     offset = 0;
     submitted_search_text = q;
-    submitted_project_id = args?.project_id ?? project_id;
-    submitted_path_filter = args?.path_filter ?? path_filter;
+    submitted_project_keys = selected_project_keys;
+    submitted_path_prefixes = normalize_search_path_prefixes(path_prefixes);
 
-    // ensure query key updates before refetch
     await tick();
     await search_q.refetch();
   };
@@ -128,7 +161,6 @@
   const showingStart = $derived(itemCount === 0 ? 0 : started ? offset + 1 : 0);
   const showingEnd = $derived(itemCount === 0 ? 0 : offset + itemCount);
 
-  // Lipi-Lekhika typing (Sanskrit / Devanagari)
   let typing_enabled = $state(true);
   let ctx = $derived(
     createTypingContext('Devanagari', {
@@ -141,69 +173,30 @@
 </script>
 
 <div class="space-y-6">
-  <!-- Header -->
   <div class="space-y-2">
     <h1 class="text-3xl font-bold tracking-tight">Search</h1>
     <p class="text-muted-foreground">Search across Sanskrit texts.</p>
   </div>
 
-  <!-- Search Form -->
   <div class="rounded-lg border bg-card p-6">
     <form
+      id="search-form"
       class="space-y-4"
       bind:this={form_el}
       onsubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget as HTMLFormElement);
-        submit_search({
-          q: String(fd.get('search_text') ?? ''),
-          project_id: Number(fd.get('project_id') ?? project_id),
-          path_filter: String(fd.get('path_filter') ?? '')
-        });
+        submit_search({ q: String(fd.get('search_text') ?? '') });
       }}
     >
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div class="space-y-2">
-          <Label for="project-select" class="text-sm font-medium">Project</Label>
-          {#if project_list_q.isPending}
-            <Skeleton class="h-10 w-full" />
-          {:else}
-            <Select.Root
-              type="single"
-              value={project_id.toString()}
-              onValueChange={(v) => {
-                project_id = parseInt(v) || 0;
-              }}
-            >
-              <Select.Trigger id="project-select" class="w-full">
-                {get_project_from_id(project_id, project_registry)?.name ?? 'All'}
-              </Select.Trigger>
-              <Select.Content>
-                {#each project_registry.list as project (project.id)}
-                  <Select.Item value={project.id.toString()} label={project.name} />
-                {/each}
-                <Select.Item value="0" label="All" />
-              </Select.Content>
-            </Select.Root>
-          {/if}
-          <input type="hidden" name="project_id" value={project_id} />
-        </div>
+        <SearchTextSelector
+          bind:selected_project_ids
+          {project_registry}
+          loading={project_list_q.isPending}
+        />
 
-        <div class="space-y-2">
-          <Label for="path-filter" class="text-sm font-medium">Path filter</Label>
-          <Input
-            id="path-filter"
-            name="path_filter"
-            placeholder="e.g. 1:2"
-            bind:value={path_filter}
-            onkeydown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                form_el?.requestSubmit();
-              }
-            }}
-          />
-        </div>
+        <SearchPathFilter {selected_project_ids} bind:path_prefixes bind:path_filter_text />
       </div>
 
       <div class="space-y-2">
@@ -243,20 +236,21 @@
         <div class="text-sm">
           {#if validation_error}
             <span class="text-destructive">{validation_error}</span>
+          {:else if !can_search}
+            <span class="text-muted-foreground">Select at least one text to search</span>
           {:else if started && search_q.isFetching}
             <span class="text-muted-foreground">Searching…</span>
           {:else}
             <span class="text-muted-foreground">&nbsp;</span>
           {/if}
         </div>
-        <Button type="submit" disabled={search_q.isFetching}>
+        <Button type="submit" disabled={!can_search || search_q.isFetching}>
           {search_q.isFetching ? 'Searching…' : 'Search'}
         </Button>
       </div>
     </form>
   </div>
 
-  <!-- Results Section -->
   <div class="space-y-4">
     <div class="flex items-center justify-between border-b pb-3">
       <h2 class="text-xl font-semibold">Results</h2>
@@ -340,62 +334,87 @@
       </div>
     {/if}
 
-    <div class="min-h-[60vh]">
-      {#if !started}
-        <div class="flex h-64 items-center justify-center rounded-lg border border-dashed">
-          <div class="text-center text-muted-foreground">
-            <p class="text-sm">Enter a query and click Search to begin</p>
-          </div>
-        </div>
-      {:else if search_q.isFetching}
-        <div class="space-y-3">
-          {#each Array(6) as _, i (i)}
-            <div class="rounded-lg border bg-card p-4">
-              <Skeleton class="h-4 w-32 bg-muted" />
-              <Skeleton class="mt-3 h-4 w-full bg-muted" />
-              <Skeleton class="mt-2 h-4 w-4/5 bg-muted" />
-            </div>
-          {/each}
-        </div>
-      {:else if search_q.isError}
-        <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-          <div class="font-semibold text-destructive">Search failed</div>
-          <div class="mt-1 text-sm text-destructive/80">{String(search_q.error)}</div>
-        </div>
-      {:else if search_q.isSuccess}
-        {#if search_q.data.items.length === 0}
-          <div class="flex h-64 items-center justify-center rounded-lg border">
+    <Tooltip.Provider>
+      <div class="min-h-[60vh]">
+        {#if !started}
+          <div class="flex h-64 items-center justify-center rounded-lg border border-dashed">
             <div class="text-center text-muted-foreground">
-              <p class="text-sm">No results found</p>
-              <p class="mt-1 text-xs">Try adjusting your search query or filters</p>
+              <p class="text-sm">Enter a query and click Search to begin</p>
             </div>
           </div>
-        {:else}
+        {:else if search_q.isFetching}
           <div class="space-y-3">
-            {#each search_q.data.items as row (row.project_id + ':' + row.path + ':' + row.index)}
-              <div class="rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50">
-                <div class="mb-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  <span class="rounded-md bg-muted px-2 py-0.5"
-                    >{get_project_name_from_id(row.project_id)}</span
-                  >
-                  <span class="rounded-md bg-muted px-2 py-0.5">Path {row.path}</span>
-                  <span class="rounded-md bg-muted px-2 py-0.5">Index {row.index}</span>
-                  {#if row.shloka_num}
-                    <span class="rounded-md bg-muted px-2 py-0.5">Shloka {row.shloka_num}</span>
-                  {/if}
-                </div>
-                <div class="text-sm leading-relaxed whitespace-pre-wrap">{row.text}</div>
+            {#each Array(6) as _, i (i)}
+              <div class="rounded-lg border bg-card p-4">
+                <Skeleton class="h-4 w-32 bg-muted" />
+                <Skeleton class="mt-3 h-4 w-full bg-muted" />
+                <Skeleton class="mt-2 h-4 w-4/5 bg-muted" />
               </div>
             {/each}
           </div>
-        {/if}
-      {:else}
-        <div class="flex h-64 items-center justify-center rounded-lg border">
-          <div class="text-center text-muted-foreground">
-            <p class="text-sm">Ready to search</p>
+        {:else if search_q.isError}
+          <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+            <div class="font-semibold text-destructive">Search failed</div>
+            <div class="mt-1 text-sm text-destructive/80">{String(search_q.error)}</div>
           </div>
-        </div>
-      {/if}
-    </div>
+        {:else if search_q.isSuccess}
+          {#if search_q.data.items.length === 0}
+            <div class="flex h-64 items-center justify-center rounded-lg border">
+              <div class="text-center text-muted-foreground">
+                <p class="text-sm">No results found</p>
+                <p class="mt-1 text-xs">Try adjusting your search query or filters</p>
+              </div>
+            </div>
+          {:else}
+            <div class="space-y-3">
+              {#each search_q.data.items as row (row.project_id + ':' + row.path + ':' + row.index)}
+                {@const project_key = get_project_key_from_id(row.project_id)}
+                {@const result_href =
+                  project_key != null
+                    ? build_search_result_href(project_key, row.path, row.index)
+                    : null}
+                <div class="rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50">
+                  <div class="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    {#if show_result_project_names}
+                      <span class="rounded-md bg-muted px-2 py-0.5"
+                        >{get_project_name_from_id(row.project_id)}</span
+                      >
+                    {/if}
+                    <SearchResultPathLabel
+                      map={result_project_maps.get(row.project_id)}
+                      db_path={row.path}
+                    />
+                    {#if row.shloka_num}
+                      <span class="rounded-md bg-muted px-2 py-0.5">Shloka {row.shloka_num}</span>
+                    {/if}
+                    {#if result_href}
+                      <a
+                        href={result_href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 transition-colors hover:bg-accent hover:text-accent-foreground"
+                        title="Open at line {row.index} (new tab)"
+                      >
+                        <ExternalLink class="size-3" aria-hidden="true" />
+                        <span>Line {row.index}</span>
+                      </a>
+                    {/if}
+                  </div>
+                  <div class="text-sm leading-relaxed whitespace-pre-wrap">
+                    <SearchResultText text={row.text} query={submitted_search_text} />
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        {:else}
+          <div class="flex h-64 items-center justify-center rounded-lg border">
+            <div class="text-center text-muted-foreground">
+              <p class="text-sm">Ready to search</p>
+            </div>
+          </div>
+        {/if}
+      </div>
+    </Tooltip.Provider>
   </div>
 </div>

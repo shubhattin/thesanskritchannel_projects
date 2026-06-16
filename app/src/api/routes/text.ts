@@ -15,7 +15,7 @@ import {
 } from '~/utils/project/list.server';
 import { notify_site_invalidate_project_map_cache } from '~/utils/cache.server/invalidate_site_project_cache.server';
 import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
-import { and, eq, like, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, like, or, sql } from 'drizzle-orm';
 import { get_path_params } from '~/state/project_list';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
 import {
@@ -43,24 +43,41 @@ const DEFAULT_PAGE_LIMIT = 20;
 export const search_text_in_texts_route = publicProcedure
   .input(
     z.object({
-      project_key: z.string().optional(),
-      path_params: z.int().array().optional(),
+      project_keys: z.string().array().min(1),
+      path_prefixes: z
+        .array(z.int().array())
+        .optional()
+        .transform((prefixes) => {
+          if (!prefixes?.length) return undefined;
+          const filtered = prefixes.filter((pp) => pp.length > 0);
+          return filtered.length > 0 ? filtered : undefined;
+        }),
       search_text: z.string().min(1).max(500),
       limit: z.int().min(1).max(100).default(DEFAULT_PAGE_LIMIT),
       offset: z.int().min(0).default(0)
     })
   )
-  .query(async ({ input: { project_key, search_text, path_params, limit, offset } }) => {
+  .query(async ({ input: { project_keys, search_text, path_prefixes, limit, offset } }) => {
     const conditions = [like(texts.text_search, `%${search_text}%`)];
-    if (project_key) {
-      const project = await get_project_by_key(project_key, cache_db_options_app);
-      if (!project) throw new Error(`Project not found: ${project_key}`);
-      const project_id = project.id;
-      conditions.push(eq(project_paths.project_id, project_id));
+
+    const project_ids: number[] = [];
+    for (const key of project_keys) {
+      const project = await get_project_by_key(key, cache_db_options_app);
+      if (!project) throw new Error(`Project not found: ${key}`);
+      project_ids.push(project.id);
     }
-    if (typeof path_params !== 'undefined' && path_params.length > 0) {
-      const prefix = path_params.join(':');
-      conditions.push(or(eq(project_paths.path, prefix), like(project_paths.path, `${prefix}:%`))!);
+    conditions.push(inArray(project_paths.project_id, project_ids));
+
+    if (path_prefixes && path_prefixes.length > 0) {
+      const pathConditions = path_prefixes
+        .filter((pp) => pp.length > 0)
+        .map((pp) => {
+          const prefix = pp.join(':');
+          return or(eq(project_paths.path, prefix), like(project_paths.path, `${prefix}:%`));
+        });
+      if (pathConditions.length > 0) {
+        conditions.push(or(...pathConditions)!);
+      }
     }
 
     const data = await db

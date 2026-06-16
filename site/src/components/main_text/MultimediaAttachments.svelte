@@ -30,6 +30,9 @@
   // Active filter tab
   let activeTab = $state<'all' | 'video' | 'audio' | 'pdf' | 'text'>('all');
 
+  // Track which videos are playing (clicked)
+  let activeVideos = $state<Record<number, boolean>>({});
+
   // Helper to extract YouTube video ID
   function getYoutubeId(url: string): string | null {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -155,13 +158,38 @@
                     class="group flex flex-col gap-2 rounded-xl border border-border bg-card p-3 shadow-sm transition-all hover:border-primary/20"
                   >
                     <div class="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
-                      <iframe
-                        src="https://www.youtube.com/embed/{ytid}"
-                        title={video.name}
-                        class="absolute inset-0 h-full w-full border-0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowfullscreen
-                      ></iframe>
+                      {#if activeVideos[video.id]}
+                        <iframe
+                          src="https://www.youtube.com/embed/{ytid}?autoplay=1"
+                          title={video.name}
+                          class="absolute inset-0 h-full w-full border-0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowfullscreen
+                        ></iframe>
+                      {:else}
+                        <button
+                          onclick={() => (activeVideos[video.id] = true)}
+                          class="absolute inset-0 flex h-full w-full cursor-pointer items-center justify-center border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          aria-label="Play video: {video.name}"
+                        >
+                          <img
+                            src="https://img.youtube.com/vi/{ytid}/hqdefault.jpg"
+                            alt={video.name}
+                            class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                            loading="lazy"
+                          />
+                          <div
+                            class="absolute inset-0 bg-black/10 transition-colors duration-250 group-hover:bg-black/30"
+                          ></div>
+                          <div
+                            class="absolute flex size-12 items-center justify-center rounded-full bg-red-600 text-white shadow-md transition-all duration-300 group-hover:scale-110 group-hover:bg-red-700"
+                          >
+                            <svg class="size-6 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </div>
+                        </button>
+                      {/if}
                     </div>
                     <div class="flex items-start justify-between gap-2 px-1 py-0.5">
                       <div class="min-w-0 flex-1">

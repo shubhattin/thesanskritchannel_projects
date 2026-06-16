@@ -11,6 +11,7 @@ import { cache_db_options_site } from '~/db/cache_db_options';
 import {
   LANG_ID_COOKIE_NAME,
   SCRIPT_ID_COOKIE_NAME,
+  DEFAULT_LANG_ID,
   parse_lang_id_cookie,
   parse_script_id_cookie
 } from '~/lib/cookies';
@@ -29,6 +30,16 @@ if (resolved?.redirect_to && resolved.redirect_to !== Astro.url.pathname) {
 
 const selected_lang_id = parse_lang_id_cookie(Astro.cookies.get(LANG_ID_COOKIE_NAME)?.value);
 const selected_script_id = parse_script_id_cookie(Astro.cookies.get(SCRIPT_ID_COOKIE_NAME)?.value);
+const available_lang_ids =
+  resolved && resolved.node.info.type === 'shloka'
+    ? await CACHE.available_translation_langs.get(
+        { project_id: resolved.project_id, path_params: resolved.path_params },
+        cache_db_options_site
+      )
+    : [];
+const effective_lang_id = available_lang_ids.includes(selected_lang_id)
+  ? selected_lang_id
+  : DEFAULT_LANG_ID;
 const text =
   resolved && resolved.node.info.type === 'shloka'
     ? await CACHE.text_data.get(
@@ -37,11 +48,11 @@ const text =
       )
     : null;
 const translation =
-  resolved && resolved.node.info.type === 'shloka' && selected_lang_id !== -1
+  resolved && resolved.node.info.type === 'shloka' && effective_lang_id !== -1
     ? await CACHE.translation.get(
         {
           project_id: resolved.project_id,
-          lang_id: selected_lang_id,
+          lang_id: effective_lang_id,
           selected_text_levels: get_selected_text_levels_from_path_params(
             resolved.path_params,
             resolved.levels
@@ -61,8 +72,9 @@ const child_items = resolved
       resolved={resolved}
       child_items={child_items}
       text={text}
-      selected_lang_id={selected_lang_id}
+      selected_lang_id={effective_lang_id}
       selected_script_id={selected_script_id}
+      available_lang_ids={available_lang_ids}
       translation={translation}
     />
   ) : (

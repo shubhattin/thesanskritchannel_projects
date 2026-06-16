@@ -38,11 +38,20 @@ type Props = {
   text: shloka_list_type | null;
   selected_lang_id: number;
   selected_script_id: number;
+  available_lang_ids: number[];
   translation: Map<number, string> | null;
 };
 
-const { resolved, child_items, text, selected_lang_id, selected_script_id, translation }: Props =
-  Astro.props;
+const {
+  resolved,
+  child_items,
+  text,
+  selected_lang_id,
+  selected_script_id,
+  available_lang_ids,
+  translation
+}: Props = Astro.props;
+const show_language_select = available_lang_ids.length > 0;
 const scriptFontClass =
   getFontClass(get_display_script_from_id(selected_script_id)) ?? 'font-normal';
 const display_path_names = await transliterate_list_for_display(
@@ -270,11 +279,14 @@ const next_sibling_item: TextSiblingNavigationItem | null =
 
           <div class="flex flex-wrap gap-4">
             <MainTextScriptSelector client:load initial_script_id={selected_script_id} />
-            <LanguageSelect
-              client:load
-              initial_lang_id={selected_lang_id}
-              initial_script_id={selected_script_id}
-            />
+            {show_language_select ? (
+              <LanguageSelect
+                client:load
+                initial_lang_id={selected_lang_id}
+                initial_script_id={selected_script_id}
+                available_lang_ids={available_lang_ids}
+              />
+            ) : null}
           </div>
 
           <TextSiblingNavigation

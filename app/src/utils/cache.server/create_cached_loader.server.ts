@@ -80,6 +80,8 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
   };
 
   const delete_cache = async (params: TParams, options: db_options) => {
+    if (!import.meta.env.PROD) return;
+
     const cache_key = await resolve_key(params, options);
     await options.redis.del(cache_key);
   };
@@ -89,13 +91,13 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
     options: db_options,
     { deleteFirst = true }: CachedLoaderRefreshOptions = {}
   ) => {
+    if (!import.meta.env.PROD) return;
+
     if (deleteFirst) {
       await delete_cache(params, options);
     }
 
     const repopulate = async () => {
-      if (!import.meta.env.PROD) return;
-
       const cache_key = await resolve_key(params, options);
       const fetched = await config.fetch(params, options);
       if (shouldCache(fetched)) {

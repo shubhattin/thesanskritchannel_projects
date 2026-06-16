@@ -18,9 +18,11 @@
 
   let {
     project,
+    saving = $bindable(false),
     onSaved
   }: {
     project: project_type;
+    saving?: boolean;
     onSaved?: () => void;
   } = $props();
   const trpc = useTRPC();
@@ -63,12 +65,15 @@
   const save_mut = createMutation(() =>
     trpc.project.edit.update_name_description.mutationOptions({
       onSuccess: async () => {
+        console.log('[ProjectSettings] name/description save succeeded');
         await invalidate_project_registry_queries(project.id);
-        save_confirm_open = false;
+        saving = false;
         toast.success('Project details saved');
         onSaved?.();
       },
       onError: (err) => {
+        console.error('[ProjectSettings] name/description save failed', err);
+        saving = false;
         toast.error(err.message || 'Failed to save project details');
       }
     })
@@ -89,6 +94,9 @@
   };
 
   const confirm_save = () => {
+    console.log('[ProjectSettings] confirm_save clicked, starting mutation');
+    save_confirm_open = false;
+    saving = true;
     save_mut.mutate({
       project_id: project.id,
       name: name.trim(),
@@ -151,8 +159,8 @@
     />
   </div>
   <div class="flex justify-end">
-    <Button type="button" disabled={!has_changes || save_mut.isPending} onclick={request_save}>
-      Save
+    <Button type="button" disabled={!has_changes || saving} onclick={request_save}>
+      {saving ? 'Saving…' : 'Save'}
     </Button>
   </div>
 </div>
@@ -166,10 +174,8 @@
       </AlertDialog.Description>
     </AlertDialog.Header>
     <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
-      <AlertDialog.Cancel disabled={save_mut.isPending}>Cancel</AlertDialog.Cancel>
-      <Button disabled={save_mut.isPending} onclick={confirm_save}>
-        {save_mut.isPending ? 'Saving…' : 'Save'}
-      </Button>
+      <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Action onclick={confirm_save}>Save</AlertDialog.Action>
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>

@@ -11,6 +11,7 @@
   import { AiOutlineHome } from 'svelte-icons-pack/ai';
   import { Skeleton } from '~/lib/components/ui/skeleton';
   import UserControls from '~/components/pages/main_app/user/UserControls.svelte';
+  import MainSitePageLink from '~/components/pages/main_app/MainSitePageLink.svelte';
   import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
   import { editing_mode, text_data_present } from '~/state/main_app/state.svelte';
   import { map_edit_dirty } from '~/state/map_edit_dirty.svelte';
@@ -149,6 +150,9 @@
               <ProjectUtility.default />
             {/await}
           </div>
+        {/if}
+        {#if active_tab === 'edit-map'}
+          <MainSitePageLink use_selected_levels={false} />
         {/if}
       </div>
 

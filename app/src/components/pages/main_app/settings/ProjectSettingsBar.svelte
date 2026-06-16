@@ -8,6 +8,7 @@
   import Settings from '@lucide/svelte/icons/settings';
   import { cl_join } from '~/tools/cl_join';
   import ProjectSettingsDialog from './ProjectSettingsDialog.svelte';
+  import MainSitePageLink from '../MainSitePageLink.svelte';
 
   const session = useSession();
 
@@ -36,17 +37,20 @@
     {$project_state?.listed ? 'Listed' : 'Unlisted'}
   </span>
 
-  {#if is_admin && project}
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      class="ml-auto h-9 gap-1.5 px-2.5 text-xs sm:ml-0 sm:text-sm"
-      onclick={() => (settings_open = true)}
-    >
-      <Settings class="size-4" aria-hidden="true" />
-      Settings
-    </Button>
-    <ProjectSettingsDialog bind:open={settings_open} {project} />
-  {/if}
+  <div class="ml-auto flex flex-wrap items-center gap-2 sm:ml-0">
+    {#if is_admin && project}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        class="h-9 gap-1.5 px-2.5 text-xs sm:text-sm"
+        onclick={() => (settings_open = true)}
+      >
+        <Settings class="size-4" aria-hidden="true" />
+        Settings
+      </Button>
+      <ProjectSettingsDialog bind:open={settings_open} {project} />
+    {/if}
+    <MainSitePageLink />
+  </div>
 </div>

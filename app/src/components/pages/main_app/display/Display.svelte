@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
+  import { page } from '$app/state';
   import { beforeNavigate } from '$app/navigation';
   import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
   import { onDestroy, onMount, tick, untrack } from 'svelte';
@@ -413,6 +414,20 @@
   $effect(() => {
     translation_typing_ctx.ready;
     text_typing_ctx.ready;
+  });
+
+  $effect(() => {
+    const hash = page.url.hash;
+    if (!browser || $editing_mode !== 'none') return;
+    if (!text_data_q.isSuccess || !text_data_q.data?.length) return;
+    if (transliterated_data.length !== text_data_q.data.length) return;
+    if (!hash.startsWith('#L-')) return;
+    const id = hash.slice(1);
+
+    void (async () => {
+      await tick();
+      document.getElementById(id)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    })();
   });
 
   $effect(() => {
@@ -1027,7 +1042,11 @@
             ['bhagavadgita'].includes($project_state!.project_key) &&
             i > 2 &&
             i < transliterated_data.length - 2}
-          <div class="rounded-lg px-2 py-0.5 hover:bg-gray-200 dark:hover:bg-gray-800">
+          {@const line_index = text_data_q.data[i]?.index}
+          <div
+            id={line_index !== undefined ? `L-${line_index}` : undefined}
+            class="rounded-lg px-2 py-0.5 hover:bg-gray-200 dark:hover:bg-gray-800"
+          >
             <div class="flex gap-2">
               {#if text_data_q.data[i]?.shloka_num || is_spacing_allowed}
                 <div

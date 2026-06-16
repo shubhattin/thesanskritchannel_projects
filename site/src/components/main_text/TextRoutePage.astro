@@ -314,7 +314,7 @@ const next_sibling_item: TextSiblingNavigationItem | null =
 
           <div class="space-y-4">
             {(text ?? []).map((item, index) => (
-              <div class="rounded-lg border bg-card/50 p-4 sm:p-5">
+              <div id={`L-${item.index}`} class="rounded-lg border bg-card/50 p-4 sm:p-5">
                 <div class="flex gap-3">
                   {/* Shloka number (commented out as per request)
                   <span

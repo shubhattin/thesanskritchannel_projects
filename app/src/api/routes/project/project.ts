@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { protectedAdminProcedure, protectedProcedure } from '../../trpc_init';
 import { db, type transactionType } from '~/db/db';
-import { delay } from '~/tools/delay';
+import { delay_dev } from '~/tools/delay';
 import { projects, user_project_join, user_project_language_join } from '~/db/schema';
 import { and, asc, count, eq, ilike, or } from 'drizzle-orm';
 import { t } from '../../trpc_init';
@@ -52,7 +52,7 @@ const add_to_project_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { user_id, project_id } }) => {
-    await delay(400);
+    await delay_dev(400);
     await db.insert(user_project_join).values({
       user_id,
       project_id
@@ -106,7 +106,7 @@ const update_project_languages_route = protectedAdminProcedure
   )
   .mutation(async ({ input }) => {
     const { user_id, project_id, languages_id } = input;
-    await delay(400);
+    await delay_dev(400);
     await db.transaction(async (tx) => {
       const languages_current = await get_languages_for_project_user(user_id, project_id, tx);
 
@@ -153,7 +153,7 @@ export const user_project_info_route = protectedProcedure
     })
   )
   .query(async ({ input: { project_id }, ctx: { user } }) => {
-    await delay(550);
+    await delay_dev(550);
 
     const languages = await get_languages_for_project_user(user.id, project_id, db);
     return { languages };

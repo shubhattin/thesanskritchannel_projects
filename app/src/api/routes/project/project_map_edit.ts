@@ -48,7 +48,7 @@ import {
   validateDbPath,
   ROOT_DB_PATH
 } from '~/utils/map_path/swap';
-import { delay } from '~/tools/delay';
+import { delay_dev } from '~/tools/delay';
 import { recursive_list_schema } from '~/state/data_types';
 import { countExactPathResources, insertProjectPaths } from '~/utils/project/paths_db.server';
 import {
@@ -89,7 +89,7 @@ export const update_project_map_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
-    await delay(400);
+    await delay_dev(400);
     const project = await db.transaction(async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${input.project_id})`
@@ -162,7 +162,7 @@ const save_project_map_order = protectedAdminProcedure
       }
     }
 
-    await delay(400);
+    await delay_dev(400);
 
     const {
       project,
@@ -230,7 +230,7 @@ const delete_project_map_nodes = protectedAdminProcedure
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'No nodes selected for deletion' });
     }
 
-    await delay(400);
+    await delay_dev(400);
 
     const { project, map, pathInvalidation } = await db.transaction(async (tx) => {
       await tx.execute(

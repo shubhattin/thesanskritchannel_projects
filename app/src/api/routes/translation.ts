@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { protectedAppScopeProcedure_ProjectsPortal, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { project_paths, texts, translations } from '~/db/schema';
-import { delay } from '~/tools/delay';
+import { delay_dev } from '~/tools/delay';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { get_project_by_key, get_project_info_by_id } from '~/utils/project/list.server';
 import { get_languages_for_project_user } from './project/project';
@@ -195,7 +195,7 @@ const get_all_langs_translation_route = protectedAppScopeProcedure_ProjectsPorta
     })
   )
   .query(async ({ input: { project_id, selected_text_levels } }) => {
-    await delay(400);
+    await delay_dev(400);
 
     const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
     const path_params = get_path_params(selected_text_levels, levels);

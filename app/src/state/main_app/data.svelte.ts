@@ -3,7 +3,7 @@ import { queryClient } from '~/state/queryClient';
 import { queryOptions } from '@tanstack/svelte-query';
 import { type editing_mode_type, type ProjectState, project_state } from './state.svelte';
 import { browser } from '$app/environment';
-import { delay } from '~/tools/delay';
+import { delay_dev } from '~/tools/delay';
 import { get, writable } from 'svelte/store';
 import { lang_list_obj } from '../lang_list';
 import { get_node_at_path, build_project_registry } from '../project_list';
@@ -323,7 +323,7 @@ export async function get_translations(
   lang_id: number,
   project: ProjectState
 ) {
-  await delay(400);
+  await delay_dev(400);
   const data_map = await client.translation.get_translation.query({
     project_id: project.project_id,
     lang_id: lang_id,

@@ -7,7 +7,7 @@
     type ScriptListType
   } from 'lipilekhika';
   import { getScriptKramaData, getScriptTypingDataMap } from 'lipilekhika/typing';
-  import { delay } from '~/tools/delay';
+  import { delay_dev } from '~/tools/delay';
   import { ALL_LANG_SCRIPT_LIST } from '~/state/lang_list';
   import { cn } from '$lib/utils';
   import { onDestroy } from 'svelte';
@@ -87,7 +87,7 @@
     queryKey: ['usage_table', typing_assistance_lang],
     enabled: modal_opened,
     queryFn: async () => {
-      await delay(700);
+      await delay_dev(700);
       const script_data_load_promise = preloadScriptData(typing_assistance_lang as ScriptLangType);
       const IMAGE_URLS = import.meta.glob('/src/tools/converter/resources/images/*.png', {
         eager: true,

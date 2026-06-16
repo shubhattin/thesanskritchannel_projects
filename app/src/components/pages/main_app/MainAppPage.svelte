@@ -45,7 +45,7 @@
   } from '~/state/project_list';
   import type { recursive_list_type } from '~/state/data_types';
   import { transliterate_custom } from '~/tools/converter';
-  import { delay } from '~/tools/delay';
+  import { delay_dev } from '~/tools/delay';
   import Icon from '~/tools/Icon.svelte';
   import { fade, scale, slide } from 'svelte/transition';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
@@ -228,7 +228,7 @@
       const args = params_viewing_script_mut_schema.parse(params);
       const script = args.script as script_list_type;
       if (!mounted) return script;
-      await delay(350);
+      await delay_dev(350);
       await preloadScriptData(script);
       return script;
     },
@@ -257,7 +257,7 @@
     if (editing_translation && !is_active_edit_slot) return;
 
     if (!mounted || !browser || lang_id === null || lang_id === lang_list_obj.English) return;
-    await delay(300);
+    await delay_dev(300);
     const script = get_script_for_lang_id(lang_id);
     if (script) {
       $viewing_script_selection = script;

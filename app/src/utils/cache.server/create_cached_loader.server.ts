@@ -2,13 +2,14 @@ import ms from 'ms';
 import type { ZodType } from 'zod';
 import { waitUntil } from '@vercel/functions';
 import type { db_options, defer_promise_type } from './cache_db_options.server';
+import { delay_dev } from '~/tools/delay';
 
 const DEFAULT_TTL_S = ms('30days') / 1000;
 
 const defer_promise = (promise: Promise<unknown>, defer?: defer_promise_type) => {
   const defer_func = defer ?? waitUntil;
   defer_func(promise);
-  void promise.catch(() => {});
+  void promise.catch(() => { });
 };
 
 export type CachedLoaderFn<TParams, TData> = (
@@ -68,6 +69,8 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
         const parsed = config.schema ? config.schema.parse(cached) : cached;
         return to_return_value(parsed, config.transform);
       }
+    } else {
+      await delay_dev(350);
     }
 
     const fetched = await config.fetch(params, options);
@@ -80,7 +83,9 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
   };
 
   const delete_cache = async (params: TParams, options: db_options) => {
-    if (!import.meta.env.PROD) return;
+    if (!import.meta.env.PROD) {
+      await delay_dev(350);
+    }
 
     const cache_key = await resolve_key(params, options);
     await options.redis.del(cache_key);
@@ -91,7 +96,10 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
     options: db_options,
     { deleteFirst = true }: CachedLoaderRefreshOptions = {}
   ) => {
-    if (!import.meta.env.PROD) return;
+    if (!import.meta.env.PROD) {
+      await delay_dev(350);
+      return;
+    }
 
     if (deleteFirst) {
       await delete_cache(params, options);

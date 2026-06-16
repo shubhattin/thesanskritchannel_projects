@@ -85,6 +85,7 @@ export function createCachedLoader<TParams, TCached, TData = TCached>(
   const delete_cache = async (params: TParams, options: db_options) => {
     if (!import.meta.env.PROD) {
       await delay_dev(350);
+      return;
     }
 
     const cache_key = await resolve_key(params, options);

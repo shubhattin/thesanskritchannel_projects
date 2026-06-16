@@ -7,14 +7,8 @@ import {
   type project_registry_type,
   type project_type
 } from '../../state/project_list';
-import {
-  type db_options,
-  get_project_list_func,
-  get_project_map_func
-} from '../cache.server/cached_loader.server';
-
-export type defer_promise_type = (promise: Promise<unknown>) => void;
-export type { project_type };
+import { get_project_list_func, get_project_map_func } from '../cache.server/cached_loader.server';
+import type { db_options } from '../cache.server/cache_db_options.server';
 
 type internal_project_registry_type = project_registry_type & {
   getMapById: ReadonlyMap<number, () => Promise<recursive_list_type>>;

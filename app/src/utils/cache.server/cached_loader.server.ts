@@ -3,103 +3,91 @@ import { REDIS_CACHE_KEYS_CLIENT } from '../../db/redis_shared';
 import type { recursive_list_type, shloka_list_type } from '../../state/data_types';
 import { get_path_params } from '../../state/project_list';
 import { get_project_by_key, get_project_info_by_id } from '../project/list.server';
-import type { Redis } from '@upstash/redis/cloudflare';
-import type { drizzleDbType } from '../../db/db_types';
 import { SiteLekhaSchemaZod } from '../../db/schema_zod';
-import { waitUntil } from '@vercel/functions';
 import type z from 'zod';
 import type { project_type } from '../../state/project_list';
 import { and, eq } from 'drizzle-orm';
 import { texts, translations } from '../../db/schema';
 import { requireProjectPath } from '../project/paths_db.server';
+import type { PathSwapInvalidation } from '../map_path/swap_db.server';
+import { dbPathToPathParams } from '../map_path/swap';
+import {
+  createCachedLoader,
+  NO_CACHE_PARAMS,
+  type CachedLoader,
+  type NoCacheParams
+} from './create_cached_loader.server';
+import type { db_options } from './cache_db_options.server';
 
-export type defer_promise_type = (promise: Promise<unknown>) => void;
+export { NO_CACHE_PARAMS } from './create_cached_loader.server';
 
-const defer_promise = (promise: Promise<unknown>, defer?: defer_promise_type) => {
-  const defer_func = defer ?? waitUntil;
-  defer_func(promise);
-  void promise.catch(() => {});
+const lekhaSchema = SiteLekhaSchemaZod;
+type lekhaType = z.infer<typeof lekhaSchema>;
+
+const lekhaListSchema = lekhaSchema.omit({ content: true }).array();
+type lekhaListType = z.infer<typeof lekhaListSchema>;
+
+const PROJECT_LIST_CACHE_TTL_S = ms('30days') / 1000;
+
+type text_data_params = { key: string; path_params: number[] };
+
+const load_text_data = createCachedLoader<text_data_params, shloka_list_type>({
+  getKey: async ({ key, path_params }, options) => {
+    const project = await get_project_by_key(key, options);
+    if (!project) throw new Error(`Project not found: ${key}`);
+    return REDIS_CACHE_KEYS_CLIENT.text_data(project.id, path_params);
+  },
+  fetch: async ({ key, path_params }, options) => {
+    const project = await get_project_by_key(key, options);
+    if (!project) throw new Error(`Project not found: ${key}`);
+    const { db } = options;
+    const projectPath = await requireProjectPath(db, project.id, path_params.join(':'));
+    return db
+      .select({
+        text: texts.text,
+        index: texts.index,
+        shloka_num: texts.shloka_num
+      })
+      .from(texts)
+      .where(eq(texts.project_path_id, projectPath.id))
+      .orderBy(texts.index);
+  }
+});
+
+/** Cache loader for `texts` */
+export const get_text_data_func = (key: string, path_params: number[], options: db_options) =>
+  load_text_data.get({ key, path_params }, options);
+
+type translation_row = { index: number; text: string };
+
+type translation_params = {
+  project_id: number;
+  lang_id: number;
+  selected_text_levels: (number | null)[];
 };
 
-/** Cross project db, redis instances */
-export type db_options = {
-  defer?: defer_promise_type;
-  db: drizzleDbType;
-  redis: Redis;
-};
-
-/** Cache laoder for `texts` */
-export const get_text_data_func = async (
-  key: string,
-  path_params: number[],
-  options: db_options
-) => {
-  const { db, redis } = options;
-
-  const project = await get_project_by_key(key, options);
-  if (!project) throw new Error(`Project not found: ${key}`);
-  const project_id = project.id;
-
-  const cache_key = REDIS_CACHE_KEYS_CLIENT.text_data(project_id, path_params);
-  let cache = null;
-  if (import.meta.env.PROD) {
-    cache = await redis.get<shloka_list_type>(cache_key);
-  }
-  if (cache) return cache;
-
-  const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
-  const data = await db
-    .select({
-      text: texts.text,
-      index: texts.index,
-      shloka_num: texts.shloka_num
-    })
-    .from(texts)
-    .where(eq(texts.project_path_id, projectPath.id))
-    .orderBy(texts.index);
-
-  if (import.meta.env.PROD) {
-    defer_promise(
-      redis.set(cache_key, data, {
-        ex: ms('30days') / 1000
-      }),
-      options.defer
-    );
-  }
-
-  return data satisfies shloka_list_type;
-};
-
-/** Cache laoder for `translations` */
-export const get_translation_data_func = async (
-  project_id: number,
-  lang_id: number,
-  selected_text_levels: (number | null)[],
-  options: db_options
-) => {
-  let data: {
-    index: number;
-    text: string;
-  }[] = [];
-
-  const { db, redis } = options;
-
-  const { levels } = await get_project_info_by_id(project_id, options);
-  const path_params = get_path_params(selected_text_levels, levels);
-  if (levels > 1 && path_params.length === 0) {
-    throw new Error('Invalid text path selection');
-  }
-  const path = path_params.join(':');
-  const projectPath = await requireProjectPath(db, project_id, path);
-  let cache = null;
-  if (import.meta.env.PROD) {
-    cache = await redis.get<typeof data>(
-      REDIS_CACHE_KEYS_CLIENT.translation(project_id, lang_id, path_params)
-    );
-  }
-  if (cache) data = cache;
-  else {
-    data = await db
+const load_translation_data = createCachedLoader<
+  translation_params,
+  translation_row[],
+  Map<number, string>
+>({
+  getKey: async ({ project_id, lang_id, selected_text_levels }, options) => {
+    const { levels } = await get_project_info_by_id(project_id, options);
+    const path_params = get_path_params(selected_text_levels, levels);
+    if (levels > 1 && path_params.length === 0) {
+      throw new Error('Invalid text path selection');
+    }
+    return REDIS_CACHE_KEYS_CLIENT.translation(project_id, lang_id, path_params);
+  },
+  fetch: async ({ project_id, lang_id, selected_text_levels }, options) => {
+    const { db } = options;
+    const { levels } = await get_project_info_by_id(project_id, options);
+    const path_params = get_path_params(selected_text_levels, levels);
+    if (levels > 1 && path_params.length === 0) {
+      throw new Error('Invalid text path selection');
+    }
+    const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
+    return db
       .select({
         index: translations.index,
         text: translations.text
@@ -109,159 +97,178 @@ export const get_translation_data_func = async (
         and(eq(translations.project_path_id, projectPath.id), eq(translations.lang_id, lang_id))
       )
       .orderBy(translations.index);
-    if (import.meta.env.PROD) {
-      // set cache in background
-      defer_promise(
-        redis.set(REDIS_CACHE_KEYS_CLIENT.translation(project_id, lang_id, path_params), data, {
-          ex: ms('30days') / 1000
-        }),
-        options.defer
-      );
-    }
+  },
+  transform: (rows) => {
+    const data_map = new Map<number, string>();
+    for (const row of rows) data_map.set(row.index, row.text);
+    return data_map;
   }
-  const data_map = new Map<number, string>();
-  for (let i = 0; i < data.length; i++) data_map.set(data[i].index, data[i].text);
-  return data_map;
-};
+});
 
-const lekhaSchema = SiteLekhaSchemaZod;
-type lekhaType = z.infer<typeof lekhaSchema>;
-
-/** Cache laoder for `site_lekhas` */
-export const get_site_lekha_data_func = async (
-  url_slug: string,
+/** Cache loader for `translations` */
+export const get_translation_data_func = (
+  project_id: number,
+  lang_id: number,
+  selected_text_levels: (number | null)[],
   options: db_options
-): Promise<lekhaType | null> => {
-  const { db, redis } = options;
-  const cache_key = REDIS_CACHE_KEYS_CLIENT.site_lekha_data(url_slug);
+) => load_translation_data.get({ project_id, lang_id, selected_text_levels }, options);
 
-  let cache = null;
-  if (import.meta.env.PROD) cache = await redis.get<lekhaType>(cache_key);
-  // parsing is also essential here as we have string types for timestamps
-  // that have to be coered to Date Objects
-  if (cache) return lekhaSchema.parse(cache);
-
-  const data = await db.query.site_lekhas.findFirst({
-    where: (tbl, { eq }) => eq(tbl.url_slug, url_slug)
-  });
-  if (!data) return null;
-  if (import.meta.env.PROD) {
-    defer_promise(
-      redis.set(cache_key, data, {
-        ex: ms('30days') / 1000
-      }),
-      options.defer
-    );
+const load_site_lekha_data = createCachedLoader<{ url_slug: string }, lekhaType | null>({
+  getKey: ({ url_slug }) => REDIS_CACHE_KEYS_CLIENT.site_lekha_data(url_slug),
+  schema: lekhaSchema,
+  shouldCache: (data) => data !== null,
+  fetch: async ({ url_slug }, { db }) => {
+    const data = await db.query.site_lekhas.findFirst({
+      where: (tbl, { eq }) => eq(tbl.url_slug, url_slug)
+    });
+    return data ?? null;
   }
-  return data satisfies lekhaType;
-};
+});
 
-const lekhaListSchema = lekhaSchema.omit({ content: true }).array();
-type lekhaListType = z.infer<typeof lekhaListSchema>;
+/** Cache loader for `site_lekhas` */
+export const get_site_lekha_data_func = (url_slug: string, options: db_options) =>
+  load_site_lekha_data.get({ url_slug }, options);
+
 /**
  * TODO : implement caching, paging and sorting
  *
  * Gives listed non-draft lekhas
  */
-export const get_site_lekha_list_func = async (options: db_options): Promise<lekhaListType> => {
-  const { db, redis } = options;
-  const cache_key = REDIS_CACHE_KEYS_CLIENT.site_lekha_list();
+const load_site_lekha_list = createCachedLoader<NoCacheParams, lekhaListType>({
+  getKey: () => REDIS_CACHE_KEYS_CLIENT.site_lekha_list(),
+  schema: lekhaListSchema,
+  fetch: async (_params, { db }) =>
+    db.query.site_lekhas.findMany({
+      columns: {
+        id: true,
+        title: true,
+        description: true,
+        tags: true,
+        created_at: true,
+        published_at: true,
+        updated_at: true,
+        draft: true,
+        listed: true,
+        search_indexed: true,
+        url_slug: true
+      },
+      orderBy: ({ published_at }, { desc }) => desc(published_at),
+      where: (tbl, { eq, and }) => and(eq(tbl.draft, false), eq(tbl.listed, true))
+    })
+});
 
-  let cache = null;
-  if (import.meta.env.PROD) {
-    cache = await redis.get<lekhaListType>(cache_key);
+export const get_site_lekha_list_func = (options: db_options) =>
+  load_site_lekha_list.get(NO_CACHE_PARAMS, options);
+
+const load_project_list = createCachedLoader<NoCacheParams, project_type[]>({
+  getKey: () => REDIS_CACHE_KEYS_CLIENT.project_list(),
+  ttlSeconds: PROJECT_LIST_CACHE_TTL_S,
+  fetch: async (_params, { db }) =>
+    db.query.projects.findMany({
+      columns: {
+        id: true,
+        name: true,
+        name_dev: true,
+        description: true,
+        key: true,
+        listed: true
+      },
+      orderBy: ({ id }, { asc }) => asc(id)
+    })
+});
+
+/** Cache loader for `project_list` */
+export const get_project_list_func = (options: db_options) =>
+  load_project_list.get(NO_CACHE_PARAMS, options);
+
+const load_project_map = createCachedLoader<{ project_id: number }, recursive_list_type>({
+  getKey: ({ project_id }) => REDIS_CACHE_KEYS_CLIENT.project_map(project_id),
+  ttlSeconds: PROJECT_LIST_CACHE_TTL_S,
+  fetch: async ({ project_id }, { db }) => {
+    const data = await db.query.projects.findFirst({
+      where: (tbl, { eq }) => eq(tbl.id, project_id),
+      columns: {
+        id: true,
+        map: true
+      }
+    });
+    if (!data) throw new Error(`Project not found: ${project_id}`);
+    return data.map;
   }
-  if (cache) return lekhaListSchema.parse(cache);
+});
 
-  const data = await db.query.site_lekhas.findMany({
-    columns: {
-      id: true,
-      title: true,
-      description: true,
-      tags: true,
-      created_at: true,
-      published_at: true,
-      updated_at: true,
-      draft: true,
-      listed: true,
-      search_indexed: true,
-      url_slug: true
-    },
-    orderBy: ({ published_at }, { desc }) => desc(published_at),
-    where: (tbl, { eq, and }) => and(eq(tbl.draft, false), eq(tbl.listed, true))
-  });
+/** Cache loader for `project_map` */
+export const get_project_map_func = (project_id: number, options: db_options) =>
+  load_project_map.get({ project_id }, options);
 
-  if (import.meta.env.PROD) {
-    defer_promise(
-      redis.set(cache_key, data, {
-        ex: ms('30days') / 1000
-      }),
-      options.defer
-    );
-  }
-
-  return data satisfies lekhaListType;
+/**
+ * Typed registry of cache loaders keyed by `REDIS_CACHE_KEYS_CLIENT` name.
+ * Params / return types are explicit per entry — not derived from key builders alone.
+ */
+export type CacheLoaderRegistry = {
+  project_list: CachedLoader<NoCacheParams, project_type[]>;
+  project_map: CachedLoader<{ project_id: number }, recursive_list_type>;
+  site_lekha_data: CachedLoader<{ url_slug: string }, lekhaType | null>;
+  site_lekha_list: CachedLoader<NoCacheParams, lekhaListType>;
+  text_data: CachedLoader<text_data_params, shloka_list_type>;
+  translation: CachedLoader<translation_params, Map<number, string>>;
 };
 
-const PROJECT_LIST_CACHE_REFRESH_INTERVAL_MS = ms('30days');
+export const CACHE = {
+  project_list: load_project_list,
+  project_map: load_project_map,
+  site_lekha_data: load_site_lekha_data,
+  site_lekha_list: load_site_lekha_list,
+  text_data: load_text_data,
+  translation: load_translation_data
+} satisfies CacheLoaderRegistry;
 
-/** Cache laoder for `project_list` */
-export const get_project_list_func = async (options: db_options): Promise<project_type[]> => {
-  const { db, redis } = options;
-  const cache_key = REDIS_CACHE_KEYS_CLIENT.project_list();
-  let cache = null;
-  if (import.meta.env.PROD) {
-    cache = await redis.get<project_type[]>(cache_key);
-  }
-  if (cache) return cache;
+const path_params_to_selected_text_levels = (
+  path_params: number[],
+  levels: number
+): (number | null)[] => path_params.slice(0, levels - 1).reverse() as (number | null)[];
 
-  const data = await db.query.projects.findMany({
-    columns: {
-      id: true,
-      name: true,
-      name_dev: true,
-      description: true,
-      key: true,
-      listed: true
-    },
-    orderBy: ({ id }, { asc }) => asc(id)
-  });
-  if (import.meta.env.PROD) {
-    defer_promise(
-      redis.set(cache_key, data, { ex: PROJECT_LIST_CACHE_REFRESH_INTERVAL_MS / 1000 }),
-      options.defer
-    );
-  }
-  return data satisfies project_type[];
-};
-
-/** Cache laoder for `project_info` */
-export const get_project_map_func = async (
-  project_id: number,
+/** Await cache delete, then warm cache in background (prod only, via waitUntil). */
+export const invalidate_and_refresh_cached = async <TParams, TData>(
+  loader: CachedLoader<TParams, TData>,
+  params: TParams,
   options: db_options
-): Promise<recursive_list_type> => {
-  const { db, redis } = options;
-  const cache_key = REDIS_CACHE_KEYS_CLIENT.project_map(project_id);
-  let cache = null;
-  if (import.meta.env.PROD) {
-    cache = await redis.get<recursive_list_type>(cache_key);
-  }
-  if (cache) return cache;
+) => {
+  await loader.delete(params, options);
+  void loader.refresh(params, options, { deleteFirst: false });
+};
 
-  const data = await db.query.projects.findFirst({
-    where: (tbl, { eq }) => eq(tbl.id, project_id),
-    columns: {
-      id: true,
-      map: true
-    }
-  });
-  if (!data) throw new Error(`Project not found: ${project_id}`);
-  const { map } = data;
-  if (import.meta.env.PROD) {
-    defer_promise(
-      redis.set(cache_key, map, { ex: PROJECT_LIST_CACHE_REFRESH_INTERVAL_MS / 1000 }),
-      options.defer
+/** Invalidate text/translation caches for map path edits; media_links keys are deleted only. */
+export const invalidate_path_caches = async (
+  project_id: number,
+  project_key: string,
+  invalidation: PathSwapInvalidation,
+  options: db_options
+) => {
+  const { levels } = await get_project_info_by_id(project_id, options);
+  const tasks: Promise<void>[] = [];
+
+  for (const path of invalidation.textAndMediaPaths) {
+    const path_params = dbPathToPathParams(path);
+    tasks.push(
+      invalidate_and_refresh_cached(CACHE.text_data, { key: project_key, path_params }, options)
+    );
+    tasks.push(
+      options.redis.del(REDIS_CACHE_KEYS_CLIENT.media_links(project_id, path_params)).then(() => {})
     );
   }
-  return map satisfies recursive_list_type;
+
+  for (const { lang_id, path } of invalidation.translationPaths) {
+    const path_params = dbPathToPathParams(path);
+    const selected_text_levels = path_params_to_selected_text_levels(path_params, levels);
+    tasks.push(
+      invalidate_and_refresh_cached(
+        CACHE.translation,
+        { project_id, lang_id, selected_text_levels },
+        options
+      )
+    );
+  }
+
+  await Promise.all(tasks);
 };

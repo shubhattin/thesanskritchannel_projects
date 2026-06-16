@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { waitUntil } from '@vercel/functions';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { project_paths, projects, texts, translations } from '~/db/schema';
 import { delay } from '~/tools/delay';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
-import { get_text_data_func } from '~/utils/cache.server/cached_loader.server';
+import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
 import {
   clear_server_project_info_cache,
   clear_server_project_map_cache,
@@ -17,9 +18,7 @@ import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
 import { and, eq, like, or, sql } from 'drizzle-orm';
 import { get_path_params } from '~/state/project_list';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
-import { redis } from '~/db/redis';
 import {
-  buildTextEditRedisKeys,
   buildTextRowsForSave,
   cloneMapWithUpdatedLeafCounts,
   getAffectedTranslationLangIds,
@@ -36,7 +35,7 @@ const get_text_data_route = publicProcedure
   )
   .query(async ({ input: { project_key, path_params } }) => {
     await delay(350);
-    const data = await get_text_data_func(project_key, path_params, cache_db_options_app);
+    const data = await CACHE.text_data.get({ key: project_key, path_params }, cache_db_options_app);
     return data;
   });
 
@@ -120,7 +119,7 @@ const save_text_rows_route = protectedAdminProcedure
     const textRows = buildTextRowsForSave(rows);
     const shloka_count = textRows.filter((row) => row.shloka_num !== null).length;
 
-    const { redisKeys, mapChanged, projectKey } = await db.transaction(async (tx) => {
+    const { affectedLangIds, mapChanged, projectKey } = await db.transaction(async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
       );
@@ -176,21 +175,29 @@ const save_text_rows_route = protectedAdminProcedure
       return {
         mapChanged,
         projectKey: project.key,
-        redisKeys: buildTextEditRedisKeys(
-          project_id,
-          path_params,
-          getAffectedTranslationLangIds(existingTranslations)
-        )
+        affectedLangIds: getAffectedTranslationLangIds(existingTranslations)
       };
     });
 
-    if (redisKeys.length > 0) {
-      await redis.del(...redisKeys);
+    await invalidate_and_refresh_cached(
+      CACHE.text_data,
+      { key: projectKey, path_params: [...path_params] },
+      cache_db_options_app
+    );
+    for (const lang_id of affectedLangIds) {
+      waitUntil(
+        invalidate_and_refresh_cached(
+          CACHE.translation,
+          { project_id, lang_id, selected_text_levels },
+          cache_db_options_app
+        )
+      );
     }
     if (mapChanged) {
+      await invalidate_and_refresh_cached(CACHE.project_map, { project_id }, cache_db_options_app);
       clear_server_project_map_cache(project_id);
       clear_server_project_info_cache(projectKey);
-      await notify_site_invalidate_project_map_cache(cookie, project_id);
+      waitUntil(notify_site_invalidate_project_map_cache(cookie, project_id));
     }
 
     return { success: true as const };

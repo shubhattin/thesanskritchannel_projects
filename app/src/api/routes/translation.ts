@@ -5,12 +5,11 @@ import { protectedAppScopeProcedure_ProjectsPortal, publicProcedure, t } from '~
 import { db } from '~/db/db';
 import { project_paths, texts, translations } from '~/db/schema';
 import { delay } from '~/tools/delay';
-import { redis, REDIS_CACHE_KEYS } from '~/db/redis';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { get_project_by_key, get_project_info_by_id } from '~/utils/project/list.server';
 import { get_languages_for_project_user } from './project/project';
 import { get_path_params } from '~/state/project_list';
-import { get_translation_data_func } from '~/utils/cache.server/cached_loader.server';
+import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
 import { TEXT_EDIT_LOCK_NAMESPACE } from '~/utils/text/row_edit.server';
 
@@ -38,10 +37,8 @@ const get_translation_route = publicProcedure
     })
   )
   .query(async ({ input: { project_id, lang_id, selected_text_levels } }) => {
-    return get_translation_data_func(
-      project_id,
-      lang_id,
-      selected_text_levels,
+    return CACHE.translation.get(
+      { project_id, lang_id, selected_text_levels },
       cache_db_options_app
     );
   });
@@ -152,7 +149,11 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
         }
       });
 
-      await redis.del(REDIS_CACHE_KEYS.translation(project_id, lang_id, path_params));
+      await invalidate_and_refresh_cached(
+        CACHE.translation,
+        { project_id, lang_id, selected_text_levels },
+        cache_db_options_app
+      );
 
       return {
         success: true

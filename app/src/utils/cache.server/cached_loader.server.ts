@@ -27,8 +27,6 @@ type lekhaType = z.infer<typeof lekhaSchema>;
 const lekhaListSchema = lekhaSchema.omit({ content: true }).array();
 type lekhaListType = z.infer<typeof lekhaListSchema>;
 
-const PROJECT_LIST_CACHE_TTL_S = ms('30days') / 1000;
-
 type text_data_params = { key: string; path_params: number[] };
 
 const load_text_data = createCachedLoader<text_data_params, shloka_list_type>({
@@ -165,7 +163,6 @@ const load_site_lekha_list = createCachedLoader<NoCacheParams, lekhaListType>({
 
 const load_project_list = createCachedLoader<NoCacheParams, project_type[]>({
   getKey: () => REDIS_CACHE_KEYS_CLIENT.project_list(),
-  ttlSeconds: PROJECT_LIST_CACHE_TTL_S,
   fetch: async (_params, { db }) =>
     db.query.projects.findMany({
       columns: {
@@ -182,7 +179,6 @@ const load_project_list = createCachedLoader<NoCacheParams, project_type[]>({
 
 const load_project_map = createCachedLoader<{ project_id: number }, recursive_list_type>({
   getKey: ({ project_id }) => REDIS_CACHE_KEYS_CLIENT.project_map(project_id),
-  ttlSeconds: PROJECT_LIST_CACHE_TTL_S,
   fetch: async ({ project_id }, { db }) => {
     const data = await db.query.projects.findFirst({
       where: (tbl, { eq }) => eq(tbl.id, project_id),

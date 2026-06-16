@@ -4,7 +4,7 @@ import { waitUntil } from '@vercel/functions';
 import type { db_options, defer_promise_type } from './cache_db_options.server';
 import { delay_dev } from '../../tools/delay';
 
-const DEFAULT_TTL_S = ms('30days') / 1000;
+const DEFAULT_TTL_S = ms('60days') / 1000;
 
 const defer_promise = (promise: Promise<unknown>, defer?: defer_promise_type) => {
   const defer_func = defer ?? waitUntil;

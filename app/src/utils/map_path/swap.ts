@@ -6,8 +6,8 @@
  * `translations.path`, and `media_attachment.path`.
  */
 
-import type { recursive_list_type } from '~/state/data_types';
-import { get_node_at_path } from '~/state/project_list';
+import type { recursive_list_type } from '../../state/data_types';
+import { get_node_at_path } from '../../state/project_list';
 
 /** Staging suffix for two-phase swaps (`1:2` → `1:2_temp` → `1:5`). */
 export const PATH_TEMP_SUFFIX = '_temp';

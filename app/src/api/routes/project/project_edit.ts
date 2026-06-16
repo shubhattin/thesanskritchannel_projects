@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { count, eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { waitUntil } from '@vercel/functions';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db, type transactionType } from '~/db/db';
 import {
@@ -35,10 +36,8 @@ const project_id_input = z.object({
 
 const invalidate_project_list_caches = async (cookie: string) => {
   clear_project_registry_cache();
-  await Promise.all([
-    invalidate_and_refresh_cached(CACHE.project_list, NO_CACHE_PARAMS, cache_db_options_app),
-    notify_site_invalidate_project_list_caches(cookie)
-  ]);
+  await invalidate_and_refresh_cached(CACHE.project_list, NO_CACHE_PARAMS, cache_db_options_app);
+  waitUntil(notify_site_invalidate_project_list_caches(cookie));
 };
 
 /** Ensures `project_id` exists; throws NOT_FOUND otherwise. */

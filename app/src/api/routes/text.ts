@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { waitUntil } from '@vercel/functions';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { project_paths, projects, texts, translations } from '~/db/schema';
@@ -184,17 +185,19 @@ const save_text_rows_route = protectedAdminProcedure
       cache_db_options_app
     );
     for (const lang_id of affectedLangIds) {
-      await invalidate_and_refresh_cached(
-        CACHE.translation,
-        { project_id, lang_id, selected_text_levels },
-        cache_db_options_app
+      waitUntil(
+        invalidate_and_refresh_cached(
+          CACHE.translation,
+          { project_id, lang_id, selected_text_levels },
+          cache_db_options_app
+        )
       );
     }
     if (mapChanged) {
       await invalidate_and_refresh_cached(CACHE.project_map, { project_id }, cache_db_options_app);
       clear_server_project_map_cache(project_id);
       clear_server_project_info_cache(projectKey);
-      await notify_site_invalidate_project_map_cache(cookie, project_id);
+      waitUntil(notify_site_invalidate_project_map_cache(cookie, project_id));
     }
 
     return { success: true as const };

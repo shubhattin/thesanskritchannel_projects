@@ -1,6 +1,7 @@
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+import { waitUntil } from '@vercel/functions';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
 import { site_lekhas } from '~/db/schema';
@@ -60,7 +61,7 @@ const add_lekha_route = protectedAdminProcedure
     const lekha = await db.insert(site_lekhas).values(normalized).returning();
     const id = lekha[0].id;
 
-    await invalidate_lekha_caches(lekha[0].url_slug);
+    waitUntil(invalidate_lekha_caches(lekha[0].url_slug));
 
     return {
       id
@@ -89,7 +90,7 @@ const edit_lekha_route = protectedAdminProcedure
       .set({ ...normalized, ...(setPublishedNow ? { published_at: new Date() } : {}) })
       .where(eq(site_lekhas.id, id))
       .returning();
-    await invalidate_lekha_caches(lekha[0].url_slug);
+    waitUntil(invalidate_lekha_caches(lekha[0].url_slug));
 
     return {
       id: lekha[0]?.id ?? id,
@@ -113,7 +114,7 @@ const delete_lekha_route = protectedAdminProcedure
     const url_slug = prev_data.url_slug;
 
     await db.delete(site_lekhas).where(eq(site_lekhas.id, id));
-    await invalidate_lekha_caches(url_slug);
+    waitUntil(invalidate_lekha_caches(url_slug));
     return {
       id: id
     };

@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import { waitUntil } from '@vercel/functions';
 import {
   applyDeletePathCompactions,
   collectDeleteInvalidation,
@@ -127,7 +128,7 @@ export const update_project_map_route = protectedAdminProcedure
       return { key: existing.key, map };
     });
 
-    await invalidate_project_caches(cookie, input.project_id, project.key);
+    waitUntil(invalidate_project_caches(cookie, input.project_id, project.key));
     return { success: true as const, map: project.map };
   });
 
@@ -212,7 +213,7 @@ const save_project_map_order = protectedAdminProcedure
       };
     });
 
-    await invalidate_project_caches(cookie, project_id, project.key, pathInvalidation);
+    waitUntil(invalidate_project_caches(cookie, project_id, project.key, pathInvalidation));
 
     return { success: true as const, swap_count: parsedEdits.length, map: derivedMap };
   });
@@ -281,7 +282,7 @@ const delete_project_map_nodes = protectedAdminProcedure
       };
     });
 
-    await invalidate_project_caches(cookie, project_id, project.key, pathInvalidation);
+    waitUntil(invalidate_project_caches(cookie, project_id, project.key, pathInvalidation));
 
     return { success: true as const, deleted_count: minimized.length, map };
   });

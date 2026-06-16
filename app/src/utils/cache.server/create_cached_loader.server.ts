@@ -2,14 +2,14 @@ import ms from 'ms';
 import type { ZodType } from 'zod';
 import { waitUntil } from '@vercel/functions';
 import type { db_options, defer_promise_type } from './cache_db_options.server';
-import { delay_dev } from '~/tools/delay';
+import { delay_dev } from '../../tools/delay';
 
 const DEFAULT_TTL_S = ms('30days') / 1000;
 
 const defer_promise = (promise: Promise<unknown>, defer?: defer_promise_type) => {
   const defer_func = defer ?? waitUntil;
   defer_func(promise);
-  void promise.catch(() => {});
+  void promise.catch(() => { });
 };
 
 export type CachedLoaderFn<TParams, TData> = (

@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { client } from '~/api/client';
+  import { createMutation } from '@tanstack/svelte-query';
+  import { useTRPC } from '~/api/client';
   import { invalidate_project_list_queries } from '~/state/main_app/data.svelte';
   import { project_state } from '~/state/main_app/state.svelte';
   import type { project_type } from '~/state/project_list';
@@ -12,13 +13,12 @@
 
   let {
     project,
-    saving = $bindable(false),
     onSlugChanged
   }: {
     project: project_type;
-    saving?: boolean;
     onSlugChanged?: (newKey: string) => void;
   } = $props();
+  const trpc = useTRPC();
 
   let slug_edit_unlocked = $state(false);
   let slug_draft = $state('');
@@ -30,6 +30,39 @@
     project.key;
     if (!slug_edit_unlocked) slug_draft = project.key;
   });
+
+  const slug_mut = createMutation(() =>
+    trpc.project.edit.edit_project_slug.mutationOptions({
+      onSuccess: async (_data, variables) => {
+        const key = lekhaUrlSlugify(variables.key);
+        await invalidate_project_list_queries();
+        slug_edit_unlocked = false;
+        save_confirm_open = false;
+        if ($project_state) $project_state = { ...$project_state, project_key: key };
+        toast.success('Project slug updated');
+        onSlugChanged?.(key);
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to update project slug');
+      }
+    })
+  );
+
+  const listed_mut = createMutation(() =>
+    trpc.project.edit.update_listed.mutationOptions({
+      onSuccess: async (_data, variables) => {
+        await invalidate_project_list_queries();
+        unpublish_dialog_open = false;
+        if ($project_state) $project_state = { ...$project_state, listed: variables.listed };
+        toast.success(
+          variables.listed ? 'Project is now listed on the public site' : 'Project unpublished'
+        );
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to update listed status');
+      }
+    })
+  );
 
   const cancel_slug_edit = () => {
     slug_draft = project.key;
@@ -49,63 +82,19 @@
     save_confirm_open = true;
   };
 
-  const confirm_slug_save = async () => {
-    console.log('[ProjectSettings] confirm_slug_save clicked, starting mutation');
-    save_confirm_open = false;
-    saving = true;
-    try {
-      await client.project.edit.edit_project_slug.mutate({
-        project_id: project.id,
-        key: slug_draft
-      });
-      console.log('[ProjectSettings] slug save succeeded');
-      const key = lekhaUrlSlugify(slug_draft);
-      await invalidate_project_list_queries();
-      slug_edit_unlocked = false;
-      saving = false;
-      if ($project_state) $project_state = { ...$project_state, project_key: key };
-      toast.success('Project slug updated');
-      onSlugChanged?.(key);
-    } catch (err: any) {
-      console.error('[ProjectSettings] slug save failed', err);
-      saving = false;
-      toast.error(err.message || 'Failed to update project slug');
-    }
+  const confirm_slug_save = () => {
+    slug_mut.mutate({
+      project_id: project.id,
+      key: slug_draft
+    });
   };
 
-  const list_project = async () => {
-    console.log('[ProjectSettings] list_project clicked');
-    saving = true;
-    try {
-      await client.project.edit.update_listed.mutate({ project_id: project.id, listed: true });
-      console.log('[ProjectSettings] listed update succeeded');
-      await invalidate_project_list_queries();
-      saving = false;
-      if ($project_state) $project_state = { ...$project_state, listed: true };
-      toast.success('Project is now listed on the public site');
-    } catch (err: any) {
-      console.error('[ProjectSettings] listed update failed', err);
-      saving = false;
-      toast.error(err.message || 'Failed to update listed status');
-    }
+  const list_project = () => {
+    listed_mut.mutate({ project_id: project.id, listed: true });
   };
 
-  const confirm_unpublish = async () => {
-    console.log('[ProjectSettings] confirm_unpublish clicked, starting mutation');
-    unpublish_dialog_open = false;
-    saving = true;
-    try {
-      await client.project.edit.update_listed.mutate({ project_id: project.id, listed: false });
-      console.log('[ProjectSettings] listed update succeeded');
-      await invalidate_project_list_queries();
-      saving = false;
-      if ($project_state) $project_state = { ...$project_state, listed: false };
-      toast.success('Project unpublished');
-    } catch (err: any) {
-      console.error('[ProjectSettings] listed update failed', err);
-      saving = false;
-      toast.error(err.message || 'Failed to update listed status');
-    }
+  const unpublish_project = () => {
+    listed_mut.mutate({ project_id: project.id, listed: false });
   };
 </script>
 
@@ -170,16 +159,16 @@
           type="button"
           variant="secondary"
           size="sm"
-          disabled={saving}
+          disabled={slug_mut.isPending}
           onclick={request_slug_save}
         >
-          {saving ? 'Saving…' : 'Save'}
+          Save
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          disabled={saving}
+          disabled={slug_mut.isPending}
           onclick={cancel_slug_edit}
         >
           Cancel
@@ -200,7 +189,9 @@
         </AlertDialog.Header>
         <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
           <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-          <AlertDialog.Action onclick={confirm_slug_save}>Save slug</AlertDialog.Action>
+          <AlertDialog.Action disabled={slug_mut.isPending} onclick={confirm_slug_save}>
+            {slug_mut.isPending ? 'Saving…' : 'Save slug'}
+          </AlertDialog.Action>
         </AlertDialog.Footer>
       </AlertDialog.Content>
     </AlertDialog.Root>
@@ -222,8 +213,14 @@
       <AlertDialog.Root bind:open={unpublish_dialog_open}>
         <AlertDialog.Trigger>
           {#snippet child({ props })}
-            <Button {...props} type="button" variant="destructive" size="sm" disabled={saving}>
-              {saving ? 'Saving…' : 'Unpublish project'}
+            <Button
+              {...props}
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={listed_mut.isPending}
+            >
+              Unpublish project
             </Button>
           {/snippet}
         </AlertDialog.Trigger>
@@ -237,13 +234,21 @@
           </AlertDialog.Header>
           <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
             <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-            <AlertDialog.Action onclick={confirm_unpublish}>Unpublish</AlertDialog.Action>
+            <AlertDialog.Action disabled={listed_mut.isPending} onclick={unpublish_project}>
+              {listed_mut.isPending ? 'Updating…' : 'Unpublish'}
+            </AlertDialog.Action>
           </AlertDialog.Footer>
         </AlertDialog.Content>
       </AlertDialog.Root>
     {:else}
-      <Button type="button" variant="default" size="sm" disabled={saving} onclick={list_project}>
-        {saving ? 'Saving…' : 'List on public site'}
+      <Button
+        type="button"
+        variant="default"
+        size="sm"
+        disabled={listed_mut.isPending}
+        onclick={list_project}
+      >
+        {listed_mut.isPending ? 'Updating…' : 'List on public site'}
       </Button>
     {/if}
   </section>

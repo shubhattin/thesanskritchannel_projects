@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { client } from '~/api/client';
+  import { createMutation } from '@tanstack/svelte-query';
+  import { useTRPC } from '~/api/client';
   import { invalidate_project_registry_queries } from '~/state/main_app/data.svelte';
   import type { project_type } from '~/state/project_list';
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
@@ -17,13 +18,12 @@
 
   let {
     project,
-    saving = $bindable(false),
     onSaved
   }: {
     project: project_type;
-    saving?: boolean;
     onSaved?: () => void;
   } = $props();
+  const trpc = useTRPC();
 
   let name = $state('');
   let name_dev = $state('');
@@ -60,6 +60,20 @@
     description = project.description ?? '';
   });
 
+  const save_mut = createMutation(() =>
+    trpc.project.edit.update_name_description.mutationOptions({
+      onSuccess: async () => {
+        await invalidate_project_registry_queries(project.id);
+        save_confirm_open = false;
+        toast.success('Project details saved');
+        onSaved?.();
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to save project details');
+      }
+    })
+  );
+
   const request_save = () => {
     const trimmed_name = name.trim();
     const trimmed_name_dev = name_dev.trim();
@@ -74,27 +88,13 @@
     save_confirm_open = true;
   };
 
-  const confirm_save = async () => {
-    console.log('[ProjectSettings] confirm_save clicked, starting mutation');
-    save_confirm_open = false;
-    saving = true;
-    try {
-      await client.project.edit.update_name_description.mutate({
-        project_id: project.id,
-        name: name.trim(),
-        name_dev: name_dev.trim(),
-        description: description.trim() || null
-      });
-      console.log('[ProjectSettings] name/description save succeeded');
-      await invalidate_project_registry_queries(project.id);
-      saving = false;
-      toast.success('Project details saved');
-      onSaved?.();
-    } catch (err: any) {
-      console.error('[ProjectSettings] name/description save failed', err);
-      saving = false;
-      toast.error(err.message || 'Failed to save project details');
-    }
+  const confirm_save = () => {
+    save_mut.mutate({
+      project_id: project.id,
+      name: name.trim(),
+      name_dev: name_dev.trim(),
+      description: description.trim() || null
+    });
   };
 </script>
 
@@ -151,8 +151,8 @@
     />
   </div>
   <div class="flex justify-end">
-    <Button type="button" disabled={!has_changes || saving} onclick={request_save}>
-      {saving ? 'Saving…' : 'Save'}
+    <Button type="button" disabled={!has_changes || save_mut.isPending} onclick={request_save}>
+      Save
     </Button>
   </div>
 </div>
@@ -167,7 +167,9 @@
     </AlertDialog.Header>
     <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
       <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-      <AlertDialog.Action onclick={confirm_save}>Save</AlertDialog.Action>
+      <AlertDialog.Action disabled={save_mut.isPending} onclick={confirm_save}>
+        {save_mut.isPending ? 'Saving…' : 'Save'}
+      </AlertDialog.Action>
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>

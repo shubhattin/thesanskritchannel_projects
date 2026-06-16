@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { createQuery } from '@tanstack/svelte-query';
-  import { useTRPC, client } from '~/api/client';
+  import { createMutation, createQuery } from '@tanstack/svelte-query';
+  import { useTRPC } from '~/api/client';
   import { invalidate_project_registry_queries } from '~/state/main_app/data.svelte';
   import type { project_type } from '~/state/project_list';
   import { Button } from '$lib/components/ui/button';
@@ -11,11 +11,9 @@
 
   let {
     project,
-    saving = $bindable(false),
     onDeleted
   }: {
     project: project_type;
-    saving?: boolean;
     onDeleted?: () => void;
   } = $props();
   const trpc = useTRPC();
@@ -25,6 +23,20 @@
   const counts_q = createQuery(() =>
     trpc.project.edit.get_delete_resource_counts.queryOptions({
       project_id: project.id
+    })
+  );
+
+  const delete_mut = createMutation(() =>
+    trpc.project.edit.delete_project.mutationOptions({
+      onSuccess: async () => {
+        await invalidate_project_registry_queries(project.id);
+        delete_dialog_open = false;
+        toast.success('Project deleted');
+        onDeleted?.();
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to delete project');
+      }
     })
   );
 
@@ -42,24 +54,6 @@
         ].filter((row) => row.count > 0)
       : []
   );
-
-  const confirm_delete = async () => {
-    console.log('[ProjectSettings] confirm_delete clicked, starting mutation');
-    delete_dialog_open = false;
-    saving = true;
-    try {
-      await client.project.edit.delete_project.mutate({ project_id: project.id });
-      console.log('[ProjectSettings] delete succeeded');
-      await invalidate_project_registry_queries(project.id);
-      saving = false;
-      toast.success('Project deleted');
-      onDeleted?.();
-    } catch (err: any) {
-      console.error('[ProjectSettings] delete failed', err);
-      saving = false;
-      toast.error(err.message || 'Failed to delete project');
-    }
-  };
 </script>
 
 {#if counts_q.isPending}
@@ -92,9 +86,7 @@
       <AlertDialog.Root bind:open={delete_dialog_open}>
         <AlertDialog.Trigger>
           {#snippet child({ props })}
-            <Button {...props} type="button" variant="destructive" size="sm" disabled={saving}>
-              {saving ? 'Deleting…' : 'Delete project'}
-            </Button>
+            <Button {...props} type="button" variant="destructive" size="sm">Delete project</Button>
           {/snippet}
         </AlertDialog.Trigger>
         <AlertDialog.Content class="max-w-md">
@@ -109,9 +101,10 @@
             <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
             <AlertDialog.Action
               class="bg-destructive text-white hover:bg-destructive/90"
-              onclick={confirm_delete}
+              disabled={delete_mut.isPending}
+              onclick={() => delete_mut.mutate({ project_id: project.id })}
             >
-              Delete permanently
+              {delete_mut.isPending ? 'Deleting…' : 'Delete permanently'}
             </AlertDialog.Action>
           </AlertDialog.Footer>
         </AlertDialog.Content>

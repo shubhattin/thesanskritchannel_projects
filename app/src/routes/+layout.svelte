@@ -2,7 +2,8 @@
   import '@fontsource/roboto/latin.css';
   import '../app.css';
   import '../app.scss';
-  import { type Snippet } from 'svelte';
+  import { onMount, type Snippet } from 'svelte';
+  import { toast } from 'svelte-sonner';
   import { ModeWatcher } from 'mode-watcher';
   import { QueryClientProvider } from '@tanstack/svelte-query';
   import { queryClient } from '~/state/queryClient';
@@ -15,6 +16,15 @@
   import { client } from '~/api/client';
 
   let { children }: { children: Snippet } = $props();
+
+  onMount(() => {
+    if (navigator.userAgent.toLowerCase().includes('firefox')) {
+      toast.warning(
+        'Firefox browser detected. Some network requests might be blocked by Firefox Enhanced Tracking Protection or extensions. If you experience issues saving data, please temporarily disable tracking protection or use a Chromium-based browser.',
+        { duration: 15000 }
+      );
+    }
+  });
 </script>
 
 <QueryClientProvider client={queryClient}>

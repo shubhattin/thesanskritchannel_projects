@@ -1,0 +1,1 @@
+ALTER TABLE "media_attachment" ADD COLUMN "order" integer NOT NULL;

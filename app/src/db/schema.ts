@@ -105,6 +105,7 @@ export const media_attachment = pgTable(
       .notNull()
       .references(() => project_paths.id, { onDelete: 'cascade' }),
     lang_id: integer(),
+    order: integer().notNull(),
     // lang_id of the resource (null if not specific)
     media_type: media_type_enum().notNull(),
     link: text().notNull(),

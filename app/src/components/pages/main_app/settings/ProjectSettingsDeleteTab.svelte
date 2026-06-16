@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { createMutation, createQuery } from '@tanstack/svelte-query';
-  import { useTRPC } from '~/api/client';
+  import { createQuery } from '@tanstack/svelte-query';
+  import { useTRPC, client } from '~/api/client';
   import { invalidate_project_registry_queries } from '~/state/main_app/data.svelte';
   import type { project_type } from '~/state/project_list';
   import { Button } from '$lib/components/ui/button';
@@ -28,23 +28,6 @@
     })
   );
 
-  const delete_mut = createMutation(() =>
-    trpc.project.edit.delete_project.mutationOptions({
-      onSuccess: async () => {
-        console.log('[ProjectSettings] delete succeeded');
-        await invalidate_project_registry_queries(project.id);
-        saving = false;
-        toast.success('Project deleted');
-        onDeleted?.();
-      },
-      onError: (err) => {
-        console.error('[ProjectSettings] delete failed', err);
-        saving = false;
-        toast.error(err.message || 'Failed to delete project');
-      }
-    })
-  );
-
   const resource_lines = $derived(
     counts_q.data
       ? [
@@ -60,11 +43,22 @@
       : []
   );
 
-  const confirm_delete = () => {
+  const confirm_delete = async () => {
     console.log('[ProjectSettings] confirm_delete clicked, starting mutation');
     delete_dialog_open = false;
     saving = true;
-    delete_mut.mutate({ project_id: project.id });
+    try {
+      await client.project.edit.delete_project.mutate({ project_id: project.id });
+      console.log('[ProjectSettings] delete succeeded');
+      await invalidate_project_registry_queries(project.id);
+      saving = false;
+      toast.success('Project deleted');
+      onDeleted?.();
+    } catch (err: any) {
+      console.error('[ProjectSettings] delete failed', err);
+      saving = false;
+      toast.error(err.message || 'Failed to delete project');
+    }
   };
 </script>
 

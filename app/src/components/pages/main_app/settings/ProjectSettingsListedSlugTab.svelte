@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { createMutation } from '@tanstack/svelte-query';
-  import { useTRPC } from '~/api/client';
+  import { client } from '~/api/client';
   import { invalidate_project_list_queries } from '~/state/main_app/data.svelte';
   import { project_state } from '~/state/main_app/state.svelte';
   import type { project_type } from '~/state/project_list';
@@ -20,7 +19,6 @@
     saving?: boolean;
     onSlugChanged?: (newKey: string) => void;
   } = $props();
-  const trpc = useTRPC();
 
   let slug_edit_unlocked = $state(false);
   let slug_draft = $state('');
@@ -32,46 +30,6 @@
     project.key;
     if (!slug_edit_unlocked) slug_draft = project.key;
   });
-
-  const slug_mut = createMutation(() =>
-    trpc.project.edit.edit_project_slug.mutationOptions({
-      onSuccess: async (_data, variables) => {
-        console.log('[ProjectSettings] slug save succeeded');
-        const key = lekhaUrlSlugify(variables.key);
-        await invalidate_project_list_queries();
-        slug_edit_unlocked = false;
-        saving = false;
-        if ($project_state) $project_state = { ...$project_state, project_key: key };
-        toast.success('Project slug updated');
-        onSlugChanged?.(key);
-      },
-      onError: (err) => {
-        console.error('[ProjectSettings] slug save failed', err);
-        saving = false;
-        toast.error(err.message || 'Failed to update project slug');
-      }
-    })
-  );
-
-  const listed_mut = createMutation(() =>
-    trpc.project.edit.update_listed.mutationOptions({
-      onSuccess: async (_data, variables) => {
-        console.log('[ProjectSettings] listed update succeeded', variables);
-        await invalidate_project_list_queries();
-        unpublish_dialog_open = false;
-        saving = false;
-        if ($project_state) $project_state = { ...$project_state, listed: variables.listed };
-        toast.success(
-          variables.listed ? 'Project is now listed on the public site' : 'Project unpublished'
-        );
-      },
-      onError: (err) => {
-        console.error('[ProjectSettings] listed update failed', err);
-        saving = false;
-        toast.error(err.message || 'Failed to update listed status');
-      }
-    })
-  );
 
   const cancel_slug_edit = () => {
     slug_draft = project.key;
@@ -91,27 +49,63 @@
     save_confirm_open = true;
   };
 
-  const confirm_slug_save = () => {
+  const confirm_slug_save = async () => {
     console.log('[ProjectSettings] confirm_slug_save clicked, starting mutation');
     save_confirm_open = false;
     saving = true;
-    slug_mut.mutate({
-      project_id: project.id,
-      key: slug_draft
-    });
+    try {
+      await client.project.edit.edit_project_slug.mutate({
+        project_id: project.id,
+        key: slug_draft
+      });
+      console.log('[ProjectSettings] slug save succeeded');
+      const key = lekhaUrlSlugify(slug_draft);
+      await invalidate_project_list_queries();
+      slug_edit_unlocked = false;
+      saving = false;
+      if ($project_state) $project_state = { ...$project_state, project_key: key };
+      toast.success('Project slug updated');
+      onSlugChanged?.(key);
+    } catch (err: any) {
+      console.error('[ProjectSettings] slug save failed', err);
+      saving = false;
+      toast.error(err.message || 'Failed to update project slug');
+    }
   };
 
-  const list_project = () => {
+  const list_project = async () => {
     console.log('[ProjectSettings] list_project clicked');
     saving = true;
-    listed_mut.mutate({ project_id: project.id, listed: true });
+    try {
+      await client.project.edit.update_listed.mutate({ project_id: project.id, listed: true });
+      console.log('[ProjectSettings] listed update succeeded');
+      await invalidate_project_list_queries();
+      saving = false;
+      if ($project_state) $project_state = { ...$project_state, listed: true };
+      toast.success('Project is now listed on the public site');
+    } catch (err: any) {
+      console.error('[ProjectSettings] listed update failed', err);
+      saving = false;
+      toast.error(err.message || 'Failed to update listed status');
+    }
   };
 
-  const confirm_unpublish = () => {
+  const confirm_unpublish = async () => {
     console.log('[ProjectSettings] confirm_unpublish clicked, starting mutation');
     unpublish_dialog_open = false;
     saving = true;
-    listed_mut.mutate({ project_id: project.id, listed: false });
+    try {
+      await client.project.edit.update_listed.mutate({ project_id: project.id, listed: false });
+      console.log('[ProjectSettings] listed update succeeded');
+      await invalidate_project_list_queries();
+      saving = false;
+      if ($project_state) $project_state = { ...$project_state, listed: false };
+      toast.success('Project unpublished');
+    } catch (err: any) {
+      console.error('[ProjectSettings] listed update failed', err);
+      saving = false;
+      toast.error(err.message || 'Failed to update listed status');
+    }
   };
 </script>
 

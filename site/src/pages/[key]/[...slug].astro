@@ -64,6 +64,18 @@ const translation =
 const child_items = resolved
   ? get_child_route_items(resolved.project_key, resolved.map, resolved.path_params, resolved.levels)
   : [];
+
+let media_links: any[] = [];
+if (resolved) {
+  try {
+    media_links = await CACHE.media_links.get(
+      { project_id: resolved.project_id, path_params: resolved.path_params },
+      cache_db_options_site
+    );
+  } catch (e) {
+    // If project path doesn't exist or doesn't have media links, it's fine.
+  }
+}
 ---
 
 {
@@ -76,6 +88,7 @@ const child_items = resolved
       selected_script_id={selected_script_id}
       available_lang_ids={available_lang_ids}
       translation={translation}
+      media_links={media_links}
     />
   ) : (
     <NotFoundPage />

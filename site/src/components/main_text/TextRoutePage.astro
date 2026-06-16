@@ -18,6 +18,7 @@ import BookOpenIcon from '@lucide/svelte/icons/book-open';
 import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 import BanIcon from '@lucide/svelte/icons/ban';
 import Icon from '~/components/utils/Icon.astro';
+import MultimediaAttachments from '$components/main_text/MultimediaAttachments.svelte';
 
 type ChildRouteItem = {
   index: number;
@@ -40,6 +41,13 @@ type Props = {
   selected_script_id: number;
   available_lang_ids: number[];
   translation: Map<number, string> | null;
+  media_links?: {
+    id: number;
+    lang_id: number | null;
+    media_type: string;
+    link: string;
+    name: string;
+  }[];
 };
 
 const {
@@ -49,7 +57,8 @@ const {
   selected_lang_id,
   selected_script_id,
   available_lang_ids,
-  translation
+  translation,
+  media_links = []
 }: Props = Astro.props;
 const show_language_select = available_lang_ids.length > 0;
 const scriptFontClass =
@@ -212,6 +221,7 @@ const next_sibling_item: TextSiblingNavigationItem | null =
       resolved.node.info.type === 'list' ? (
         <section class="flex flex-col gap-5">
           <MainTextScriptSelector client:load initial_script_id={selected_script_id} />
+          <MultimediaAttachments client:load media_links={media_links} />
           <div class="grid gap-3">
             {display_child_items.map((item) => {
               const rowBody = (
@@ -293,6 +303,12 @@ const next_sibling_item: TextSiblingNavigationItem | null =
             previous_item={previous_sibling_item}
             next_item={next_sibling_item}
             script_font_class={scriptFontClass}
+          />
+
+          <MultimediaAttachments
+            client:load
+            media_links={media_links}
+            selected_lang_id={selected_lang_id}
           />
 
           <div class="space-y-4">

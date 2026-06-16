@@ -1,195 +1,156 @@
 <script lang="ts">
-  import { client, useTRPC } from '~/api/client';
-  import { MEDIA_TYPE_LIST, type media_list_type } from './index';
-  import { lang_list_obj } from '~/state/lang_list';
-  import { z } from 'zod';
-  import Icon from '~/tools/Icon.svelte';
-  import { createMutation, useQueryClient } from '@tanstack/svelte-query';
-  import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
-  import MediaTypeIcon from './MediaTypeIcon.svelte';
-  import { AiOutlineDelete } from 'svelte-icons-pack/ai';
-  import ConfirmPopover from '~/components/PopoverModals/ConfirmPopover.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
-  import { Label } from '$lib/components/ui/label';
   import * as Select from '$lib/components/ui/select';
-  import { toast } from 'svelte-sonner';
-
-  type link_info_type = Awaited<ReturnType<typeof client.media.get_media_list.query>>[0];
+  import { AiOutlineDelete } from 'svelte-icons-pack/ai';
+  import { BsGripVertical } from 'svelte-icons-pack/bs';
+  import { lang_list_obj } from '~/state/lang_list';
+  import Icon from '~/tools/Icon.svelte';
+  import { MEDIA_TYPE_LIST, type media_list_type } from './index';
+  import type { DraftMediaItem } from './multimedia_lib';
 
   let {
-    modal_open_state = $bindable(),
-    link_info
+    item,
+    index,
+    drag_index = null,
+    drop_index = null,
+    on_change,
+    on_select_change,
+    on_text_focus,
+    on_text_blur,
+    on_delete,
+    on_drag_start,
+    on_drag_end,
+    on_drag_over,
+    on_drag_leave,
+    on_drop
   }: {
-    modal_open_state: boolean;
-    link_info: link_info_type;
+    item: DraftMediaItem;
+    index: number;
+    drag_index?: number | null;
+    drop_index?: number | null;
+    on_change: (patch: Partial<DraftMediaItem>) => void;
+    on_select_change: (patch: Partial<DraftMediaItem>) => void;
+    on_text_focus: () => void;
+    on_text_blur: () => void;
+    on_delete: () => void;
+    on_drag_start: (index: number, event: DragEvent) => void;
+    on_drag_end: () => void;
+    on_drag_over: (index: number, event: DragEvent) => void;
+    on_drag_leave: (index: number, event: DragEvent) => void;
+    on_drop: (index: number, event: DragEvent) => void;
   } = $props();
 
-  const query_client = useQueryClient();
-  const trpc = useTRPC();
-
-  const del_media_link_mut = createMutation(() =>
-    trpc.media.delete_media_link.mutationOptions({
-      onSuccess() {
-        query_client.invalidateQueries({
-          queryKey: trpc.media.get_media_list.queryKey({
-            project_id: $project_state!.project_id,
-            selected_text_levels: $selected_text_levels
-          }),
-          exact: true
-        });
-        modal_open_state = false;
-      },
-      onError: (err) => {
-        toast.error(err.message || 'Failed to delete media link');
-      }
-    })
-  );
-
-  const update_media_link_mut = createMutation(() =>
-    trpc.media.update_media_link.mutationOptions({
-      onSuccess() {
-        toast.success('Media link updated');
-        query_client.invalidateQueries({
-          queryKey: trpc.media.get_media_list.queryKey({
-            project_id: $project_state!.project_id,
-            selected_text_levels: $selected_text_levels
-          }),
-          exact: true
-        });
-        modal_open_state = false;
-      },
-      onError: (err) => {
-        toast.error(err.message || 'Failed to update media link');
-      }
-    })
-  );
-
   const LANG_NONE = '';
-
-  let media_type = $derived<media_list_type>(link_info.media_type as media_list_type);
-  let lang_id = $state<number | null>(null);
-  let url = $derived(link_info.link);
-  let name = $derived(link_info.name);
-
-  $effect.pre(() => {
-    lang_id = link_info.lang_id;
-  });
 
   const lang_label = (id: number | null) =>
     id === null
       ? '--'
       : (Object.entries(lang_list_obj).find(([, langId]) => langId === id)?.[0] ?? '--');
 
-  const del_link_func = () => {
-    del_media_link_mut.mutate({
-      project_id: $project_state!.project_id,
-      selected_text_levels: $selected_text_levels,
-      link_id: link_info.id
-    });
-  };
-
-  const update_link_func = (e: Event) => {
-    e.preventDefault();
-    if (url === '' || !z.string().url().safeParse(url).success || name === '') return;
-    update_media_link_mut.mutate({
-      project_id: $project_state!.project_id,
-      selected_text_levels: $selected_text_levels,
-      media_type,
-      lang_id,
-      link: url,
-      name,
-      id: link_info.id
-    });
-  };
+  const link_invalid = $derived(item.link !== '' && !URL.canParse(item.link));
+  const name_invalid = $derived(item.name.trim().length === 0);
 </script>
 
-<div class="dark:text-warning-500 text-center text-lg font-bold text-amber-700">
-  Edit Media Link
-</div>
-<form onsubmit={update_link_func} class="space-y-4">
-  <div>
-    <ConfirmPopover
-      description="Are you sure to delete this link?"
-      popup_state={false}
-      placement="bottom"
-      close_on_confirm={true}
-      confirm_func={del_link_func}
+<div
+  role="listitem"
+  data-media-edit-card
+  class="rounded-lg border bg-card px-1.5 py-1 transition-colors {drag_index === index
+    ? 'opacity-60'
+    : ''} {drop_index === index && drag_index !== null && drag_index !== index
+    ? 'border-primary ring-1 ring-primary/30'
+    : 'border-border'}"
+  ondragover={(event) => on_drag_over(index, event)}
+  ondragleave={(event) => on_drag_leave(index, event)}
+  ondrop={(event) => on_drop(index, event)}
+>
+  <div class="flex min-w-0 items-center gap-1.5 overflow-x-auto">
+    <button
+      type="button"
+      aria-label="Drag to reorder"
+      class="shrink-0 cursor-grab rounded p-0.5 text-muted-foreground hover:bg-muted active:cursor-grabbing"
+      draggable="true"
+      ondragstart={(event) => on_drag_start(index, event)}
+      ondragend={on_drag_end}
     >
-      <Button type="button" disabled={del_media_link_mut.isPending} variant="destructive" size="sm">
-        <Icon src={AiOutlineDelete} class="text-xl" />
-        <span>Delete Link</span>
-      </Button>
-    </ConfirmPopover>
-  </div>
+      <Icon src={BsGripVertical} class="text-base" />
+    </button>
 
-  <div class="space-y-2">
-    <Label for="edit-media-type" class="font-semibold">Type</Label>
-    <div class="flex items-center gap-2">
-      <MediaTypeIcon {media_type} />
-      <Select.Root type="single" bind:value={media_type}>
-        <Select.Trigger id="edit-media-type" class="w-full text-sm">
-          {MEDIA_TYPE_LIST[media_type] ?? 'Select Type'}
-        </Select.Trigger>
-        <Select.Content>
-          {#each Object.entries(MEDIA_TYPE_LIST) as [key, value]}
-            <Select.Item value={key}>{value}</Select.Item>
-          {/each}
-        </Select.Content>
-      </Select.Root>
-      <input type="hidden" name="type" value={media_type} />
-    </div>
-  </div>
+    <span
+      class="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground"
+      title="Order"
+    >
+      #{index + 1}
+    </span>
 
-  <div class="space-y-2">
-    <Label for="edit-language" class="font-semibold">Language</Label>
     <Select.Root
       type="single"
-      value={lang_id === null ? LANG_NONE : lang_id.toString()}
-      onValueChange={(v) => {
-        lang_id = v === LANG_NONE ? null : parseInt(v);
+      value={item.media_type}
+      onValueChange={(value) => {
+        if (!value) return;
+        on_select_change({ media_type: value as media_list_type });
       }}
     >
-      <Select.Trigger id="edit-language" class="w-full text-sm">
-        {lang_label(lang_id)}
+      <Select.Trigger class="h-8 w-22 shrink-0 px-2 text-xs">
+        {MEDIA_TYPE_LIST[item.media_type]}
+      </Select.Trigger>
+      <Select.Content>
+        {#each Object.entries(MEDIA_TYPE_LIST) as [key, value] (key)}
+          <Select.Item value={key}>{value}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
+
+    <Select.Root
+      type="single"
+      value={item.lang_id === null ? LANG_NONE : item.lang_id.toString()}
+      onValueChange={(value) => {
+        on_select_change({ lang_id: value === LANG_NONE ? null : Number(value) });
+      }}
+    >
+      <Select.Trigger class="h-8 w-26 shrink-0 px-2 text-xs">
+        <span class="truncate">{lang_label(item.lang_id)}</span>
       </Select.Trigger>
       <Select.Content>
         <Select.Item value={LANG_NONE}>--</Select.Item>
-        {#each Object.entries(lang_list_obj) as [lang, id]}
+        {#each Object.entries(lang_list_obj) as [lang, id] (id)}
           <Select.Item value={id.toString()}>{lang}</Select.Item>
         {/each}
       </Select.Content>
     </Select.Root>
-    <input type="hidden" name="lang_id" value={lang_id} />
-  </div>
 
-  <div class="space-y-2">
-    <Label for="edit-name" class="font-semibold">Name</Label>
     <Input
-      id="edit-name"
-      required
-      minlength={4}
-      bind:value={name}
-      type="text"
+      value={item.name}
+      onfocus={on_text_focus}
+      onblur={on_text_blur}
+      oninput={(event) => on_change({ name: event.currentTarget.value })}
+      class="h-8 min-w-0 flex-1 px-2 text-xs {name_invalid ? 'border-destructive' : ''}"
       placeholder="Name"
-      class="w-52"
+      title={name_invalid ? 'Name is required' : undefined}
+      aria-invalid={name_invalid}
     />
-  </div>
 
-  <div class="space-y-2">
-    <Label for="edit-url" class="font-semibold">URL</Label>
     <Input
-      id="edit-url"
-      required
-      minlength={10}
-      bind:value={url}
+      value={item.link}
+      onfocus={on_text_focus}
+      onblur={on_text_blur}
+      oninput={(event) => on_change({ link: event.currentTarget.value })}
+      class="h-8 min-w-0 flex-[1.4] px-2 text-xs {link_invalid ? 'border-destructive' : ''}"
       type="url"
-      placeholder="URL"
-      class="w-52"
+      placeholder="https://"
+      title={link_invalid ? 'Enter a valid URL' : undefined}
+      aria-invalid={link_invalid}
     />
-  </div>
 
-  <Button disabled={update_media_link_mut.isPending} type="submit" class="w-full">
-    Update Link
-  </Button>
-</form>
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      class="size-7 shrink-0 text-destructive hover:text-destructive"
+      onclick={on_delete}
+      aria-label="Delete link"
+    >
+      <Icon src={AiOutlineDelete} class="text-base" />
+    </Button>
+  </div>
+</div>

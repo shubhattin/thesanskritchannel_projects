@@ -5,7 +5,7 @@ import { get_project_by_key, get_project_info_by_id } from '../project/list.serv
 import { SiteLekhaSchemaZod } from '../../db/schema_zod';
 import type z from 'zod';
 import type { project_type } from '../../state/project_list';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, asc, eq, ne } from 'drizzle-orm';
 import { media_attachment, texts, translations } from '../../db/schema';
 import { requireProjectPath } from '../project/paths_db.server';
 import type { PathSwapInvalidation } from '../map_path/swap_db.server';
@@ -125,6 +125,7 @@ type media_link_row = {
   media_type: string;
   link: string;
   name: string;
+  order: number;
 };
 
 type media_links_params = {
@@ -143,10 +144,12 @@ const load_media_links = createCachedLoader<media_links_params, media_link_row[]
         link: media_attachment.link,
         media_type: media_attachment.media_type,
         lang_id: media_attachment.lang_id,
-        name: media_attachment.name
+        name: media_attachment.name,
+        order: media_attachment.order
       })
       .from(media_attachment)
-      .where(eq(media_attachment.project_path_id, projectPath.id));
+      .where(eq(media_attachment.project_path_id, projectPath.id))
+      .orderBy(asc(media_attachment.order));
   }
 });
 

@@ -20,6 +20,7 @@ import {
   NO_CACHE_PARAMS
 } from '~/utils/cache.server/cached_loader.server';
 import { lekhaUrlSlugify } from '~/lib/carta_markdown/markdown';
+import { is_reserved_project_route_slug } from '~/utils/reserved_project_route_slugs';
 import {
   clear_server_project_map_cache,
   clear_project_registry_cache
@@ -96,6 +97,12 @@ export const edit_project_slug_route = protectedAdminProcedure
     await db.transaction(async (tx) => {
       await require_project(tx, input.project_id);
       const key = lekhaUrlSlugify(input.key);
+      if (is_reserved_project_route_slug(key)) {
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: 'This slug is reserved (conflicts with an app route)'
+        });
+      }
 
       const conflict = await tx.query.projects.findFirst({
         where: (tbl, { eq }) => eq(tbl.key, key),
@@ -215,6 +222,9 @@ export const check_project_slug_route = protectedAdminProcedure
     if (!key) {
       return { available: false, key: '' };
     }
+    if (is_reserved_project_route_slug(key)) {
+      return { available: false, key };
+    }
     const conflict = await db.query.projects.findFirst({
       where: (tbl, { eq: eqId }) => eqId(tbl.key, key),
       columns: { id: true }
@@ -238,6 +248,12 @@ const add_new_project_route = protectedAdminProcedure
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message: 'Slug must contain at least one alphanumeric character'
+      });
+    }
+    if (is_reserved_project_route_slug(key)) {
+      throw new TRPCError({
+        code: 'CONFLICT',
+        message: 'This slug is reserved (conflicts with an app route)'
       });
     }
 

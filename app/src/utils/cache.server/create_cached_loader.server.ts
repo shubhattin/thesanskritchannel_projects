@@ -9,7 +9,7 @@ const DEFAULT_TTL_S = ms('30days') / 1000;
 const defer_promise = (promise: Promise<unknown>, defer?: defer_promise_type) => {
   const defer_func = defer ?? waitUntil;
   defer_func(promise);
-  void promise.catch(() => { });
+  void promise.catch(() => {});
 };
 
 export type CachedLoaderFn<TParams, TData> = (

@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { and, eq, inArray, ne, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAppScopeProcedure_ProjectsPortal, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
@@ -149,11 +149,18 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
         }
       });
 
-      await invalidate_and_refresh_cached(
-        CACHE.translation,
-        { project_id, lang_id, selected_text_levels },
-        cache_db_options_app
-      );
+      await Promise.all([
+        invalidate_and_refresh_cached(
+          CACHE.translation,
+          { project_id, lang_id, selected_text_levels },
+          cache_db_options_app
+        ),
+        invalidate_and_refresh_cached(
+          CACHE.available_translation_langs,
+          { project_id, path_params },
+          cache_db_options_app
+        )
+      ]);
 
       return {
         success: true
@@ -174,15 +181,10 @@ const get_langs_with_translations_route = protectedAppScopeProcedure_ProjectsPor
       throw new TRPCError({ code: 'NOT_FOUND', message: `Project not found: ${project_key}` });
     }
 
-    const path = path_params.join(':');
-    const projectPath = await requireProjectPath(db, project.id, path);
-    const rows = await db
-      .select({ lang_id: translations.lang_id })
-      .from(translations)
-      .where(and(eq(translations.project_path_id, projectPath.id), ne(translations.text, '')))
-      .groupBy(translations.lang_id);
-
-    return rows.map((row) => row.lang_id);
+    return CACHE.available_translation_langs.get(
+      { project_id: project.id, path_params },
+      cache_db_options_app
+    );
   });
 
 const get_all_langs_translation_route = protectedAppScopeProcedure_ProjectsPortal

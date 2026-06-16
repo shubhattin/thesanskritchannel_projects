@@ -7,7 +7,7 @@ import {
   type project_registry_type,
   type project_type
 } from '../../state/project_list';
-import { get_project_list_func, get_project_map_func } from '../cache.server/cached_loader.server';
+import { CACHE, NO_CACHE_PARAMS } from '../cache.server/cached_loader.server';
 import type { db_options } from '../cache.server/cache_db_options.server';
 
 type internal_project_registry_type = project_registry_type & {
@@ -98,7 +98,7 @@ const get_internal_registry = async (
 
   registry_cache.inFlight = Promise.resolve(
     (async (): Promise<internal_project_registry_type> => {
-      const sorted_source = await get_project_list_func(options);
+      const sorted_source = await CACHE.project_list.get(NO_CACHE_PARAMS, options);
       const registry = build_project_registry(
         sorted_source.map(({ id, name, name_dev, description, key, listed }) => ({
           id,
@@ -111,7 +111,8 @@ const get_internal_registry = async (
       );
       const getMapById = new Map(
         sorted_source.map(
-          (project) => [project.id, () => get_project_map_func(project.id, options)] as const
+          (project) =>
+            [project.id, () => CACHE.project_map.get({ project_id: project.id }, options)] as const
         )
       );
       return { ...registry, getMapById };

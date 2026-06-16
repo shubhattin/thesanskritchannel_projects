@@ -147,6 +147,7 @@ export const buildRedisKeysForPathSwapInvalidation = (
     const pathParams = dbPathToPathParams(path);
     keys.add(REDIS_CACHE_KEYS_CLIENT.text_data(project_id, pathParams));
     keys.add(REDIS_CACHE_KEYS_CLIENT.media_links(project_id, pathParams));
+    keys.add(REDIS_CACHE_KEYS_CLIENT.available_translation_langs(project_id, pathParams));
   }
 
   for (const { lang_id, path } of invalidation.translationPaths) {

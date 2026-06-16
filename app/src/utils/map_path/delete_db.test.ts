@@ -102,6 +102,8 @@ describe('map_path_delete_db', () => {
     ]);
     expect(buildRedisKeysForDeleteInvalidation(42, invalidation).sort()).toEqual(
       [
+        'available_translation_langs:42:1/1',
+        'available_translation_langs:42:1/2',
         'media_links:42:1/1',
         'media_links:42:1/2',
         'text_data:42:1/1',

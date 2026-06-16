@@ -6,7 +6,7 @@ import { get_project_by_key, get_project_info_by_id } from '../project/list.serv
 import { SiteLekhaSchemaZod } from '../../db/schema_zod';
 import type z from 'zod';
 import type { project_type } from '../../state/project_list';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { texts, translations } from '../../db/schema';
 import { requireProjectPath } from '../project/paths_db.server';
 import type { PathSwapInvalidation } from '../map_path/swap_db.server';
@@ -53,10 +53,6 @@ const load_text_data = createCachedLoader<text_data_params, shloka_list_type>({
       .orderBy(texts.index);
   }
 });
-
-/** Cache loader for `texts` */
-export const get_text_data_func = (key: string, path_params: number[], options: db_options) =>
-  load_text_data.get({ key, path_params }, options);
 
 type translation_row = { index: number; text: string };
 
@@ -105,13 +101,27 @@ const load_translation_data = createCachedLoader<
   }
 });
 
-/** Cache loader for `translations` */
-export const get_translation_data_func = (
-  project_id: number,
-  lang_id: number,
-  selected_text_levels: (number | null)[],
-  options: db_options
-) => load_translation_data.get({ project_id, lang_id, selected_text_levels }, options);
+type available_translation_langs_params = {
+  project_id: number;
+  path_params: number[];
+};
+
+const load_available_translation_langs = createCachedLoader<
+  available_translation_langs_params,
+  number[]
+>({
+  getKey: ({ project_id, path_params }) =>
+    REDIS_CACHE_KEYS_CLIENT.available_translation_langs(project_id, path_params),
+  fetch: async ({ project_id, path_params }, { db }) => {
+    const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
+    const rows = await db
+      .select({ lang_id: translations.lang_id })
+      .from(translations)
+      .where(and(eq(translations.project_path_id, projectPath.id), ne(translations.text, '')))
+      .groupBy(translations.lang_id);
+    return rows.map((row) => row.lang_id);
+  }
+});
 
 const load_site_lekha_data = createCachedLoader<{ url_slug: string }, lekhaType | null>({
   getKey: ({ url_slug }) => REDIS_CACHE_KEYS_CLIENT.site_lekha_data(url_slug),
@@ -124,10 +134,6 @@ const load_site_lekha_data = createCachedLoader<{ url_slug: string }, lekhaType 
     return data ?? null;
   }
 });
-
-/** Cache loader for `site_lekhas` */
-export const get_site_lekha_data_func = (url_slug: string, options: db_options) =>
-  load_site_lekha_data.get({ url_slug }, options);
 
 /**
  * TODO : implement caching, paging and sorting
@@ -157,9 +163,6 @@ const load_site_lekha_list = createCachedLoader<NoCacheParams, lekhaListType>({
     })
 });
 
-export const get_site_lekha_list_func = (options: db_options) =>
-  load_site_lekha_list.get(NO_CACHE_PARAMS, options);
-
 const load_project_list = createCachedLoader<NoCacheParams, project_type[]>({
   getKey: () => REDIS_CACHE_KEYS_CLIENT.project_list(),
   ttlSeconds: PROJECT_LIST_CACHE_TTL_S,
@@ -177,10 +180,6 @@ const load_project_list = createCachedLoader<NoCacheParams, project_type[]>({
     })
 });
 
-/** Cache loader for `project_list` */
-export const get_project_list_func = (options: db_options) =>
-  load_project_list.get(NO_CACHE_PARAMS, options);
-
 const load_project_map = createCachedLoader<{ project_id: number }, recursive_list_type>({
   getKey: ({ project_id }) => REDIS_CACHE_KEYS_CLIENT.project_map(project_id),
   ttlSeconds: PROJECT_LIST_CACHE_TTL_S,
@@ -197,15 +196,12 @@ const load_project_map = createCachedLoader<{ project_id: number }, recursive_li
   }
 });
 
-/** Cache loader for `project_map` */
-export const get_project_map_func = (project_id: number, options: db_options) =>
-  load_project_map.get({ project_id }, options);
-
 /**
  * Typed registry of cache loaders keyed by `REDIS_CACHE_KEYS_CLIENT` name.
  * Params / return types are explicit per entry — not derived from key builders alone.
  */
 export type CacheLoaderRegistry = {
+  available_translation_langs: CachedLoader<available_translation_langs_params, number[]>;
   project_list: CachedLoader<NoCacheParams, project_type[]>;
   project_map: CachedLoader<{ project_id: number }, recursive_list_type>;
   site_lekha_data: CachedLoader<{ url_slug: string }, lekhaType | null>;
@@ -215,6 +211,7 @@ export type CacheLoaderRegistry = {
 };
 
 export const CACHE = {
+  available_translation_langs: load_available_translation_langs,
   project_list: load_project_list,
   project_map: load_project_map,
   site_lekha_data: load_site_lekha_data,
@@ -252,6 +249,13 @@ export const invalidate_path_caches = async (
     const path_params = dbPathToPathParams(path);
     tasks.push(
       invalidate_and_refresh_cached(CACHE.text_data, { key: project_key, path_params }, options)
+    );
+    tasks.push(
+      invalidate_and_refresh_cached(
+        CACHE.available_translation_langs,
+        { project_id, path_params },
+        options
+      )
     );
     tasks.push(
       options.redis.del(REDIS_CACHE_KEYS_CLIENT.media_links(project_id, path_params)).then(() => {})

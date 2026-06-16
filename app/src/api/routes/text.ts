@@ -179,11 +179,19 @@ const save_text_rows_route = protectedAdminProcedure
       };
     });
 
-    await invalidate_and_refresh_cached(
-      CACHE.text_data,
-      { key: projectKey, path_params: [...path_params] },
-      cache_db_options_app
-    );
+    await Promise.all([
+      invalidate_and_refresh_cached(
+        CACHE.text_data,
+        { key: projectKey, path_params: [...path_params] },
+        cache_db_options_app
+      ),
+      // the delete might have affected the available translation langs
+      invalidate_and_refresh_cached(
+        CACHE.available_translation_langs,
+        { project_id, path_params },
+        cache_db_options_app
+      )
+    ]);
     for (const lang_id of affectedLangIds) {
       waitUntil(
         invalidate_and_refresh_cached(

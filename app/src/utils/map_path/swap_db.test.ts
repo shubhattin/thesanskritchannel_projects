@@ -38,6 +38,8 @@ describe('map_path_swap_db', () => {
 
     expect(buildRedisKeysForPathSwapInvalidation(42, invalidation).sort()).toEqual(
       [
+        'available_translation_langs:42:1/1/1/2',
+        'available_translation_langs:42:1/2/1/2',
         'media_links:42:1/1/1/2',
         'media_links:42:1/2/1/2',
         'text_data:42:1/1/1/2',

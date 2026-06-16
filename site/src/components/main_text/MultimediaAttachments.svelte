@@ -15,6 +15,7 @@
     media_type: string;
     link: string;
     name: string;
+    order: number;
   };
 
   type Props = {

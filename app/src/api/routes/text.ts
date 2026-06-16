@@ -63,7 +63,9 @@ export const search_text_in_texts_route = publicProcedure
     const project_ids: number[] = [];
     for (const key of project_keys) {
       const project = await get_project_by_key(key, cache_db_options_app);
-      if (!project) throw new Error(`Project not found: ${key}`);
+      if (!project) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: `Project not found: ${key}` });
+      }
       project_ids.push(project.id);
     }
     conditions.push(inArray(project_paths.project_id, project_ids));

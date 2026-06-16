@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
+  import { page } from '$app/state';
   import { beforeNavigate } from '$app/navigation';
   import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
   import { onDestroy, onMount, tick, untrack } from 'svelte';
@@ -416,11 +417,10 @@
   });
 
   $effect(() => {
+    const hash = page.url.hash;
     if (!browser || $editing_mode !== 'none') return;
     if (!text_data_q.isSuccess || !text_data_q.data?.length) return;
     if (transliterated_data.length !== text_data_q.data.length) return;
-
-    const hash = window.location.hash;
     if (!hash.startsWith('#L-')) return;
     const id = hash.slice(1);
 

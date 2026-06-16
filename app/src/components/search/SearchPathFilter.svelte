@@ -43,10 +43,9 @@
   });
 
   const parse_path_params = (t: string): number[] | undefined => {
-    const matches = t.match(/\d+/g);
-    if (!matches || matches.length === 0) return undefined;
-    const nums = matches.map((v) => parseInt(v, 10)).filter((n) => Number.isFinite(n));
-    return nums.length ? nums : undefined;
+    const trimmed = t.trim();
+    if (!trimmed || !/^\d+(?::\d+)*$/.test(trimmed)) return undefined;
+    return trimmed.split(':').map((v) => parseInt(v, 10));
   };
 
   $effect(() => {

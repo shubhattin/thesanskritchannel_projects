@@ -65,14 +65,19 @@
   const ensure_maps_for_results = async (project_ids: number[]) => {
     const missing = project_ids.filter((id) => !result_project_maps.has(id));
     if (missing.length === 0) return;
-    const entries = await Promise.all(
+    const settled = await Promise.allSettled(
       missing.map(async (id) => {
         const map = await client.project.get_project_map.query({ project_id: id });
         return [id, map] as const;
       })
     );
     const next = new Map(result_project_maps);
-    for (const [id, map] of entries) next.set(id, map);
+    for (const result of settled) {
+      if (result.status === 'fulfilled') {
+        const [id, map] = result.value;
+        next.set(id, map);
+      }
+    }
     result_project_maps = next;
   };
 

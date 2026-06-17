@@ -5,6 +5,8 @@
   import { Button } from '$lib/components/ui/button';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import Undo2Icon from '@lucide/svelte/icons/undo-2';
+  import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
+  import LanguagesIcon from '@lucide/svelte/icons/languages';
   import { toast } from 'svelte-sonner';
   import { useTRPC } from '~/api/client';
   import { MultimediaIcon } from '~/components/icons';
@@ -22,13 +24,17 @@
     compute_multimedia_diff,
     create_empty_draft_item,
     filter_by_media_tab,
+    filter_by_media_lang,
     getYoutubeId,
     is_draft_dirty,
     media_tab_counts,
+    media_type_tabs_list,
+    media_lang_tabs_list,
     move_draft_item,
     validate_draft_items,
     type DraftMediaItem,
     type MediaLinkRow,
+    type MediaLangTab,
     type MediaTab
   } from './multimedia_lib';
 
@@ -76,6 +82,7 @@
   let dialog_open = $state(false);
   let mode = $state<'view' | 'edit'>('view');
   let active_tab = $state<MediaTab>('all');
+  let active_lang_tab = $state<MediaLangTab>('all');
   let baseline = $state<MediaLinkRow[]>([]);
   let draft = $state<DraftMediaItem[]>([]);
   let draft_undo_stack = $state<DraftMediaItem[][]>([]);
@@ -86,16 +93,14 @@
 
   const media_list = $derived(media_list_q.data ?? []);
   const counts = $derived(media_tab_counts(mode === 'edit' ? draft : media_list));
-  const tabs_list = $derived(
-    [
-      { id: 'all' as const, label: 'All', count: counts.all },
-      { id: 'video' as const, label: 'Videos', count: counts.video },
-      { id: 'audio' as const, label: 'Audio', count: counts.audio },
-      { id: 'pdf' as const, label: 'PDFs', count: counts.pdf },
-      { id: 'text' as const, label: 'Links', count: counts.text }
-    ].filter((tab) => tab.count > 0)
+  const tabs_list = $derived(media_type_tabs_list(counts));
+  const type_filtered_view_items = $derived(filter_by_media_tab(media_list, active_tab));
+  const lang_tabs_list = $derived(
+    media_lang_tabs_list(type_filtered_view_items, (lang_id) => get_lang_name(lang_id))
   );
-  const filtered_view_items = $derived(filter_by_media_tab(media_list, active_tab));
+  const filtered_view_items = $derived(
+    filter_by_media_lang(type_filtered_view_items, active_lang_tab)
+  );
   const dirty = $derived(is_draft_dirty(baseline, draft));
   const can_undo = $derived(draft_undo_stack.length > 0);
   const is_saving = $derived(save_mut.isPending);
@@ -112,6 +117,7 @@
     text_edit_session_open = false;
     mode = 'edit';
     active_tab = 'all';
+    active_lang_tab = 'all';
   };
 
   const cancel_edit = () => {
@@ -251,6 +257,17 @@
       cancel_edit();
     }
   });
+
+  $effect(() => {
+    active_tab;
+    type_filtered_view_items;
+    if (
+      active_lang_tab !== 'all' &&
+      !type_filtered_view_items.some((item) => item.lang_id === active_lang_tab)
+    ) {
+      active_lang_tab = 'all';
+    }
+  });
 </script>
 
 <Dialog.Root open={dialog_open} onOpenChange={handle_dialog_open_change}>
@@ -335,21 +352,58 @@
     </div>
 
     {#if mode === 'view' && tabs_list.length > 1}
-      <div class="flex w-fit flex-wrap gap-1.5 rounded-lg bg-muted/50 p-1">
-        {#each tabs_list as tab (tab.id)}
-          <button
-            type="button"
-            onclick={() => (active_tab = tab.id)}
-            class="inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all {active_tab ===
-            tab.id
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-background/40 hover:text-foreground'}"
-          >
-            {tab.label}
-            <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold">{tab.count}</span
+      <div class="flex flex-wrap items-center gap-2">
+        <span
+          class="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground"
+        >
+          <LayoutGridIcon class="size-3.5" />
+          Type
+        </span>
+        <div class="flex w-fit flex-wrap gap-1.5 rounded-lg bg-muted/50 p-1">
+          {#each tabs_list as tab (tab.id)}
+            <button
+              type="button"
+              onclick={() => (active_tab = tab.id)}
+              class="inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all {active_tab ===
+              tab.id
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:bg-background/40 hover:text-foreground'}"
             >
-          </button>
-        {/each}
+              {tab.label}
+              <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold"
+                >{tab.count}</span
+              >
+            </button>
+          {/each}
+        </div>
+      </div>
+    {/if}
+
+    {#if mode === 'view' && lang_tabs_list.length > 1}
+      <div class="flex flex-wrap items-center gap-2">
+        <span
+          class="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground"
+        >
+          <LanguagesIcon class="size-3.5" />
+          Language
+        </span>
+        <div class="flex w-fit flex-wrap gap-1.5 rounded-lg bg-muted/50 p-1">
+          {#each lang_tabs_list as tab (tab.id)}
+            <button
+              type="button"
+              onclick={() => (active_lang_tab = tab.id)}
+              class="inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all {active_lang_tab ===
+              tab.id
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:bg-background/40 hover:text-foreground'}"
+            >
+              {tab.label}
+              <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold"
+                >{tab.count}</span
+              >
+            </button>
+          {/each}
+        </div>
       </div>
     {/if}
 

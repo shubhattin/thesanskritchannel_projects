@@ -15,7 +15,6 @@ import {
   get_project_map_by_id
 } from '~/utils/project/list.server';
 import { notify_site_invalidate_project_map_cache } from '~/utils/cache.server/invalidate_site_project_cache.server';
-import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
 import { and, eq, inArray, like, or, sql } from 'drizzle-orm';
 import { get_path_params } from '~/state/project_list';
 import { requireProjectPath } from '~/utils/project/paths_db.server';

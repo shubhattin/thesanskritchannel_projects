@@ -198,10 +198,7 @@
 
   let typing_enabled = $state(true);
   let is_submit_searching = $state(false);
-  let ctx = $derived(createTypingContext('Devanagari'));
-  $effect(() => {
-    ctx.ready;
-  });
+  const ctx = createTypingContext('Devanagari');
 </script>
 
 <div class="space-y-6">

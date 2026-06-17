@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import * as Accordion from '$lib/components/ui/accordion';
   import { TrOutlineHelpSquare } from 'svelte-icons-pack/tr';
   import Icon from '~/tools/Icon.svelte';
@@ -63,7 +64,7 @@
     )
   );
 
-  let ctx = $derived(
+  let ctx = $state(
     createTypingContext(
       (LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type) ?? 'Devanagari',
       {
@@ -71,9 +72,14 @@
       }
     )
   );
-
   $effect(() => {
-    ctx.ready;
+    const lang = (LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type) ?? 'Devanagari';
+    const inherent = $sanskrit_mode !== 1;
+    untrack(() => {
+      ctx = createTypingContext(lang, {
+        includeInherentVowel: inherent
+      });
+    });
   });
 
   let { tab_edit_name = $bindable() }: { tab_edit_name: 'main' | 'bulk' } = $props();

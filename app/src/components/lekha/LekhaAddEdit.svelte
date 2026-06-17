@@ -64,7 +64,7 @@
   } = $props();
   const trpc = useTRPC();
 
-  let ctx = $derived(createTypingContext('Devanagari'));
+  const ctx = createTypingContext('Devanagari');
   let typing_enabled = $state(false);
 
   // In the new svelte versions, we can use $derived for value updating too

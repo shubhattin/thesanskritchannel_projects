@@ -92,13 +92,8 @@
   const image_lang_id = $derived($image_lang ?? lang_list_obj.English);
   const current_lang = $derived(LANG_LIST[LANG_LIST_IDS.indexOf(image_lang_id)] as lang_list_type);
 
-  let shloka_typing_ctx = $derived(
-    createTypingContext('Devanagari', {
-      includeInherentVowel: true
-    })
-  );
-  $effect(() => {
-    shloka_typing_ctx.ready;
+  const shloka_typing_ctx = createTypingContext('Devanagari', {
+    includeInherentVowel: true
   });
 
   const can_reset_defaults = $derived(

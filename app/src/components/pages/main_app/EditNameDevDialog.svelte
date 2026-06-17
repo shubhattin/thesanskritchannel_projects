@@ -45,14 +45,10 @@
   const name_dev_input_id = 'main-app-edit-name-dev';
   const name_dev_typing_switch_id = 'main-app-edit-name-dev-typing';
 
-  let typing_ctx = $derived(createTypingContext('Devanagari'));
+  const typing_ctx = createTypingContext('Devanagari');
 
   const has_change = $derived(draft.trim() !== original.trim());
   const can_save = $derived(has_change && !save_mut.isPending);
-
-  $effect(() => {
-    typing_ctx.ready;
-  });
 
   $effect(() => {
     if (open && target) {

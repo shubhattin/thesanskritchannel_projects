@@ -23,14 +23,8 @@
   let typing_enabled = $state(false);
   let page = $state(1);
 
-  const ctx = $derived(
-    createTypingContext('Devanagari', {
-      includeInherentVowel: true
-    })
-  );
-
-  $effect(() => {
-    ctx.ready;
+  const ctx = createTypingContext('Devanagari', {
+    includeInherentVowel: true
   });
 
   const matches_query = (project: project_type, query: string) => {

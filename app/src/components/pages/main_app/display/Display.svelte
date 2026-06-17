@@ -204,7 +204,17 @@
       return shloka_num;
     });
   });
-  const text_dirty = $derived(JSON.stringify(text_rows) !== JSON.stringify(text_baseline));
+  const text_dirty = $derived.by(() => {
+    if (text_rows.length !== text_baseline.length) return true;
+    return text_rows.some((row, i) => {
+      const base = text_baseline[i]!;
+      return (
+        row.text !== base.text ||
+        row.shloka_type !== base.shloka_type ||
+        row.source_index !== base.source_index
+      );
+    });
+  });
   const translation_dirty = $derived.by(() => {
     if (is_dual_edit_mode($editing_mode) && translation_rows.length !== text_rows.length) {
       return true;
@@ -221,16 +231,30 @@
     return false;
   });
   const text_typing_enabled = $derived($viewing_script === BASE_SCRIPT);
-  const translation_typing_ctx = $derived(
-    createTypingContext((active_translation_name || 'Devanagari') as lang_list_type, {
-      includeInherentVowel: $sanskrit_mode !== 1
-    })
+  // text_typing_ctx has no reactive deps — create once as a plain const
+  const text_typing_ctx = createTypingContext('Devanagari' as lang_list_type, {
+    includeInherentVowel: true
+  });
+
+  // translation_typing_ctx must be recreated when the language changes,
+  // but NOT via $derived (which would leak context objects on every reactive tick).
+  let translation_typing_ctx = $state(
+    createTypingContext(
+      untrack(() => (active_translation_name || 'Devanagari') as lang_list_type),
+      {
+        includeInherentVowel: untrack(() => $sanskrit_mode !== 1)
+      }
+    )
   );
-  const text_typing_ctx = $derived(
-    createTypingContext('Devanagari' as lang_list_type, {
-      includeInherentVowel: true
-    })
-  );
+  $effect(() => {
+    const lang = (active_translation_name || 'Devanagari') as lang_list_type;
+    const inherent = $sanskrit_mode !== 1;
+    untrack(() => {
+      translation_typing_ctx = createTypingContext(lang, {
+        includeInherentVowel: inherent
+      });
+    });
+  });
 
   const editor_font_style = (font_info: { size: number; family: string }) =>
     `font-size: ${font_info.size}rem; font-family: ${font_info.family};`;
@@ -411,10 +435,8 @@
     });
   });
 
-  $effect(() => {
-    translation_typing_ctx.ready;
-    text_typing_ctx.ready;
-  });
+  // The .ready promises on typing contexts resolve internally;
+  // no need for a reactive effect to subscribe to them.
 
   $effect(() => {
     const hash = page.url.hash;

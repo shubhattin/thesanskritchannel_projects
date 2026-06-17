@@ -38,12 +38,8 @@
 
   const name_dev_input_id = 'project-settings-name-dev';
   const name_dev_typing_switch_id = 'project-settings-name-dev-typing';
-  let typing_ctx = $derived(createTypingContext('Devanagari'));
+  const typing_ctx = createTypingContext('Devanagari');
   let typing_enabled = $state(true);
-
-  $effect(() => {
-    typing_ctx.ready;
-  });
 
   function toggle_typing_from_keyboard(e: KeyboardEvent) {
     if (!e.altKey) return false;

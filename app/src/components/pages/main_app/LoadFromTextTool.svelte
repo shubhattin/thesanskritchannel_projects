@@ -10,6 +10,8 @@
   import * as Select from '$lib/components/ui/select';
   import { Textarea } from '$lib/components/ui/textarea';
   import * as Tabs from '$lib/components/ui/tabs';
+  import * as Tooltip from '$lib/components/ui/tooltip';
+  import CircleHelpIcon from '@lucide/svelte/icons/circle-help';
   import { client } from '~/api/client';
   import {
     active_text_data_q_options,
@@ -23,7 +25,11 @@
     text_data_present
   } from '~/state/main_app/state.svelte';
   import { LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
-  import { parse_import_text } from './display/project_utility/download_text_format';
+  import {
+    get_import_format_example,
+    get_import_format_hint,
+    parse_import_text
+  } from './display/project_utility/download_text_format';
   import {
     apply_normalizations_to_texts,
     DEFAULT_ENABLED_NORMALIZATIONS,
@@ -55,6 +61,18 @@
       : selected_normalization_keys.length === normalization_options.length
         ? 'All transformations'
         : `${selected_normalization_keys.length} selected`
+  );
+  const format_example = $derived(
+    get_import_format_example({
+      includesNormal: include_normal,
+      includesTranslation: include_translation
+    })
+  );
+  const format_hint = $derived(
+    get_import_format_hint({
+      includesNormal: include_normal,
+      includesTranslation: include_translation
+    })
   );
 
   const text_data_q = createQuery(() =>
@@ -262,7 +280,31 @@
           </div>
 
           <div class="flex min-h-0 flex-1 flex-col gap-1.5">
-            <Label for="load-from-text-input">Input text</Label>
+            <div class="flex items-center gap-1.5">
+              <Label for="load-from-text-input">Input text</Label>
+              <Tooltip.Provider>
+                <Tooltip.Root>
+                  <Tooltip.Trigger
+                    type="button"
+                    class="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    aria-label="Show expected input format"
+                  >
+                    <CircleHelpIcon class="size-3.5" />
+                  </Tooltip.Trigger>
+                  <Tooltip.Content
+                    side="top"
+                    align="start"
+                    showArrow={false}
+                    class="max-w-sm border border-border bg-popover p-3 text-popover-foreground shadow-md"
+                  >
+                    <p class="text-xs font-medium text-foreground">Expected format</p>
+                    <pre
+                      class="mt-2 rounded-md border border-border/60 bg-muted/50 p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-foreground"
+                    >{format_example}</pre>
+                  </Tooltip.Content>
+                </Tooltip.Root>
+              </Tooltip.Provider>
+            </div>
             <Textarea
               id="load-from-text-input"
               bind:value={import_text}

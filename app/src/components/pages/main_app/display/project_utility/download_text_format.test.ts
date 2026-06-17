@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   format_download_text,
   format_shloka_block,
+  get_import_format_example,
+  get_import_format_hint,
   MISSING_TRANSLATION,
   parse_import_text,
   should_show_normal_transliteration
@@ -235,5 +237,24 @@ Script two`,
       rows: [{ text: 'लिपि २', translation: 'Script two' }],
       ignoredBlockCount: 0
     });
+  });
+
+  it('builds import format example from checkbox options', () => {
+    expect(
+      get_import_format_example({ includesNormal: true, includesTranslation: true })
+    ).toBe(`ॐ श्री परमात्मने नमः
+AUM shrI paramAtmane namaH
+
+I bow down to the supreme consciousness`);
+
+    expect(get_import_format_example({ includesNormal: false, includesTranslation: false })).toBe(
+      'ॐ श्री परमात्मने नमः'
+    );
+  });
+
+  it('builds import format hint from checkbox options', () => {
+    expect(
+      get_import_format_hint({ includesNormal: true, includesTranslation: false })
+    ).toContain('script and normal');
   });
 });

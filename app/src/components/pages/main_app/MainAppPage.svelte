@@ -238,9 +238,11 @@
     }
   }));
   $effect(() => {
+    const next = $viewing_script_selection;
+    if (next === get(viewing_script)) return;
     const _viewing_script_mut = untrack(() => viewing_script_mut);
     _viewing_script_mut.mutate({
-      script: $viewing_script_selection,
+      script: next,
       update_viewing_script_selection: false
     });
   });

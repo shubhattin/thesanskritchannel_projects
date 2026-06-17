@@ -1,4 +1,4 @@
-import adapter_netlify from '@sveltejs/adapter-netlify';
+import adapter_auto from '@sveltejs/adapter-node';
 import adapter_vercel from '@sveltejs/adapter-vercel';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
@@ -9,15 +9,11 @@ const config = {
   kit: {
     adapter:
       process.env.BUILD_MODE === 'vercel'
-        ? adapter_vercel()
-        : // {
-          // runtime: 'nodejs22.x'
-          // runtime: 'edge',
-          // regions: ['sin1']
-          // })
-          adapter_netlify({
-            edge: true
-          }),
+        ? adapter_vercel({
+            runtime: 'nodejs22.x',
+            regions: ['sin1']
+          })
+        : adapter_auto(),
     alias: {
       '~': 'src',
       '@data': '../data',

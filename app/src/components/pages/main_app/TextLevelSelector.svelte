@@ -1,5 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
+  import { untrack } from 'svelte';
   import { Button } from '$lib/components/ui/button';
   import * as Select from '$lib/components/ui/select';
   import { BASE_SCRIPT, selected_text_levels, viewing_script } from '~/state/main_app/state.svelte';
@@ -34,31 +35,58 @@
     on_edit_name_dev?: () => void;
   } = $props();
 
-  const transliterate_options = async (opts: selector_option_type[], script: script_list_type) => {
-    if (!browser) return opts;
-    const transliterate_texts = await transliterate_custom(
-      opts.map((v) => v.text!),
-      BASE_SCRIPT,
-      script
-    );
-    return opts.map((v, i) => ({ ...v, text: transliterate_texts[i] }));
-  };
+  // Memoized transliterated label — avoids creating a new promise on every render
+  let label_text = $state('Select');
+  $effect(() => {
+    const selected_value = $selected_text_levels[text_level_state_index];
+    const script = $viewing_script;
+    const opts = options;
+    const initial = initial_option;
 
-  const transliterate_selected_label = async (
-    opts: false | selector_option_type[],
-    initial: selector_option_type,
-    selected_value: number | null,
-    script: script_list_type
-  ) => {
-    if (!selected_value) return 'Select';
-    const selected_text = opts
-      ? (opts.find((o) => o.value === selected_value)?.text ?? '')
-      : (initial.text ?? '');
-    if (!selected_text) return `${selected_value}.`;
-    if (!browser || script === BASE_SCRIPT) return `${selected_value}. ${selected_text}`;
-    const text_tr = await transliterate_custom(selected_text, BASE_SCRIPT, script);
-    return `${selected_value}. ${text_tr}`;
-  };
+    untrack(() => {
+      (async () => {
+        if (!selected_value) {
+          label_text = 'Select';
+          return;
+        }
+        const selected_text = opts
+          ? (opts.find((o) => o.value === selected_value)?.text ?? '')
+          : (initial.text ?? '');
+        if (!selected_text) {
+          label_text = `${selected_value}.`;
+          return;
+        }
+        if (!browser || script === BASE_SCRIPT) {
+          label_text = `${selected_value}. ${selected_text}`;
+          return;
+        }
+        const text_tr = await transliterate_custom(selected_text, BASE_SCRIPT, script);
+        label_text = `${selected_value}. ${text_tr}`;
+      })();
+    });
+  });
+
+  // Memoized transliterated options — avoids creating a new promise on every render
+  let options_transliterated = $state<selector_option_type[] | null>(null);
+  $effect(() => {
+    const opts = options;
+    const script = $viewing_script;
+
+    untrack(() => {
+      if (!opts || !browser) {
+        options_transliterated = opts || null;
+        return;
+      }
+      (async () => {
+        const transliterate_texts = await transliterate_custom(
+          opts.map((v) => v.text!),
+          BASE_SCRIPT,
+          script
+        );
+        options_transliterated = opts.map((v, i) => ({ ...v, text: transliterate_texts[i] }));
+      })();
+    });
+  });
 </script>
 
 <div class="block space-x-2 sm:space-x-3">
@@ -93,13 +121,7 @@
     <Select.Trigger
       class={`${get_text_font_class($viewing_script)} inline-flex h-10 w-44 px-2 py-1 sm:h-12 sm:w-52`}
     >
-      {#await transliterate_selected_label(options, initial_option, $selected_text_levels[text_level_state_index], $viewing_script)}
-        {$selected_text_levels[text_level_state_index]
-          ? $selected_text_levels[text_level_state_index] + '. ' + initial_option.text
-          : 'Select'}
-      {:then label}
-        {label}
-      {/await}
+      {label_text}
     </Select.Trigger>
     <Select.Content>
       <Select.Item value="">Select</Select.Item>
@@ -115,29 +137,16 @@
           </Select.Item>
         {/if}
       {:else}
-        {#await transliterate_options(options, $viewing_script)}
-          {#each options as option}
-            <Select.Item value={option.value!.toString()}>
-              <span class="flex w-full items-center justify-between gap-2">
-                <span>{option.value}. {option.text}</span>
-                {#if option.empty_child}
-                  <Icon class="size-4 opacity-70" src={AiOutlineStop} />
-                {/if}
-              </span>
-            </Select.Item>
-          {/each}
-        {:then options_tr}
-          {#each options_tr as option}
-            <Select.Item value={option.value!.toString()}>
-              <span class="flex w-full items-center justify-between gap-2">
-                <span>{option.value}. {option.text}</span>
-                {#if option.empty_child}
-                  <Icon class="size-4 opacity-70" src={AiOutlineStop} />
-                {/if}
-              </span>
-            </Select.Item>
-          {/each}
-        {/await}
+        {#each options_transliterated ?? options as option}
+          <Select.Item value={option.value!.toString()}>
+            <span class="flex w-full items-center justify-between gap-2">
+              <span>{option.value}. {option.text}</span>
+              {#if option.empty_child}
+                <Icon class="size-4 opacity-70" src={AiOutlineStop} />
+              {/if}
+            </span>
+          </Select.Item>
+        {/each}
       {/if}
     </Select.Content>
   </Select.Root>

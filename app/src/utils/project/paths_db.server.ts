@@ -72,6 +72,20 @@ export const insertProjectPaths = async (
     });
 };
 
+/** Deletes exact project_paths rows (cascades texts, translations, and media). */
+export const deleteProjectPathsAtExact = async (
+  tx: TxOrDb,
+  project_id: number,
+  paths: string[]
+): Promise<void> => {
+  const deduped = [...new Set(paths)];
+  if (deduped.length === 0) return;
+
+  await tx
+    .delete(project_paths)
+    .where(and(eq(project_paths.project_id, project_id), inArray(project_paths.path, deduped)));
+};
+
 export const listProjectPathsAtOrUnderPrefixes = async (
   tx: TxOrDb,
   project_id: number,

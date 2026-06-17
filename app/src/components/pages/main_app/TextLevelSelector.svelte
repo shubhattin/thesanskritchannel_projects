@@ -10,6 +10,9 @@
   import Icon from '~/tools/Icon.svelte';
   import { AiOutlineStop } from 'svelte-icons-pack/ai';
   import { BiEdit } from 'svelte-icons-pack/bi';
+  import { ArrowLeftRight } from '@lucide/svelte';
+  import Loader2 from '@lucide/svelte/icons/loader-2';
+  import type { MapMetadataTypeConvertTarget } from './map_metadata_patch';
 
   export type selector_option_type = { text?: string; value?: number; empty_child?: boolean };
 
@@ -20,9 +23,12 @@
     text_level_state_index,
     is_admin = false,
     controls_disabled = false,
+    metadata_save_pending = false,
     show_name_dev_edit = false,
+    type_convert_target = null,
     on_edit_list_name,
-    on_edit_name_dev
+    on_edit_name_dev,
+    on_convert_type
   }: {
     name: string;
     initial_option: selector_option_type;
@@ -30,9 +36,12 @@
     text_level_state_index: number;
     is_admin?: boolean;
     controls_disabled?: boolean;
+    metadata_save_pending?: boolean;
     show_name_dev_edit?: boolean;
+    type_convert_target?: MapMetadataTypeConvertTarget | null;
     on_edit_list_name?: () => void;
     on_edit_name_dev?: () => void;
+    on_convert_type?: () => void;
   } = $props();
 
   // Memoized transliterated label — avoids creating a new promise on every render
@@ -99,7 +108,7 @@
         size="icon"
         class="inline-flex size-8 shrink-0 align-middle"
         title="Edit level label"
-        disabled={controls_disabled}
+        disabled={controls_disabled || metadata_save_pending}
         onclick={() => on_edit_list_name?.()}
       >
         <Icon src={BiEdit} class="text-lg" />
@@ -157,10 +166,27 @@
       size="icon"
       class="inline-flex size-8 shrink-0 align-middle"
       title="Edit name (देवनागरी)"
-      disabled={controls_disabled}
+      disabled={controls_disabled || metadata_save_pending}
       onclick={() => on_edit_name_dev?.()}
     >
       <Icon src={BiEdit} class="text-lg" />
+    </Button>
+  {/if}
+  {#if is_admin && type_convert_target}
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      class="inline-flex size-8 shrink-0 align-middle"
+      title={type_convert_target === 'to_shloka' ? 'Convert to Shloka' : 'Convert to List'}
+      disabled={controls_disabled || metadata_save_pending}
+      onclick={() => on_convert_type?.()}
+    >
+      {#if metadata_save_pending}
+        <Loader2 class="size-4 animate-spin" />
+      {:else}
+        <ArrowLeftRight class="size-4" />
+      {/if}
     </Button>
   {/if}
 </div>

@@ -320,6 +320,50 @@ describe('map_path_swap', () => {
     });
   });
 
+  it('accepts nested childless list to shloka conversion with rename', () => {
+    const emptyList = (name: string): recursive_list_type => ({
+      name_dev: name,
+      info: { type: 'list', list_name: 'Section', list_count_expected: null },
+      list: []
+    });
+    const current: recursive_list_type = {
+      name_dev: 'Root',
+      info: { type: 'list', list_name: 'Kanda', list_count_expected: null },
+      list: [
+        emptyList('1'),
+        emptyList('2'),
+        {
+          name_dev: '3',
+          info: { type: 'list', list_name: 'Section', list_count_expected: null },
+          list: [
+            emptyList('3.1'),
+            emptyList('3.2'),
+            emptyList('3.3'),
+            {
+              name_dev: '3.4',
+              info: { type: 'list', list_name: 'Section', list_count_expected: null },
+              list: [emptyList('3.4.1'), emptyList('3.4.2'), emptyList('तैत्तिरीयक')]
+            }
+          ]
+        }
+      ]
+    };
+    const proposed = structuredClone(current);
+    const target = proposed.list![2]!.list![3]!.list![2]!;
+    target.info = { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null };
+    target.list = [];
+
+    const merged = applyMetadataEditsToMap(current, proposed);
+    const converted = merged.list?.[2]?.list?.[3]?.list?.[2];
+    expect(converted?.name_dev).toBe('तैत्तिरीयक');
+    expect(converted?.info).toEqual({
+      type: 'shloka',
+      shloka_count: 0,
+      total: 0,
+      shloka_count_expected: null
+    });
+  });
+
   it('rejects type conversion when the node has children', () => {
     const current = sampleMap();
     const proposed = sampleMap();

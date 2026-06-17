@@ -307,10 +307,7 @@ function mergeMetadataListNode(
       const currentChild = currentChildren[i]!;
       const proposedChild = proposedChildren[i]!;
       if (prefixFingerprints[i] !== proposedPrefixFingerprints[i]) {
-        if (
-          !isChildlessTypeConversion(currentChild, proposedChild) &&
-          !isAppendOnlySubtreeChange(currentChild, proposedChild)
-        ) {
+        if (!isAllowedMetadataSubtreeChange(currentChild, proposedChild)) {
           throw new TypeError('Map structure changed during metadata save');
         }
       }
@@ -322,10 +319,7 @@ function mergeMetadataListNode(
       const currentChild = currentChildren[i]!;
       const proposedChild = proposedChildren[i]!;
       if (currentFingerprints[i] !== proposedFingerprints[i]) {
-        if (
-          !isChildlessTypeConversion(currentChild, proposedChild) &&
-          !isAppendOnlySubtreeChange(currentChild, proposedChild)
-        ) {
+        if (!isAllowedMetadataSubtreeChange(currentChild, proposedChild)) {
           throw new TypeError('Map structure changed during metadata save');
         }
       }
@@ -384,6 +378,42 @@ function assertNoAmbiguousSiblingReorder(
   }
 }
 
+/**
+ * True when `proposed` differs from `current` only by allowed metadata-mode edits:
+ * childless type conversion, append-only children, and nested combinations thereof.
+ */
+function isAllowedMetadataSubtreeChange(
+  current: recursive_list_type,
+  proposed: recursive_list_type
+): boolean {
+  if (isChildlessTypeConversion(current, proposed)) {
+    return true;
+  }
+  if (isAppendOnlySubtreeChange(current, proposed)) {
+    return true;
+  }
+  if (current.info.type !== 'list' || proposed.info.type !== 'list') {
+    return false;
+  }
+  const currentChildren = current.list ?? [];
+  const proposedChildren = proposed.list ?? [];
+  if (currentChildren.length !== proposedChildren.length) {
+    return false;
+  }
+  for (let i = 0; i < currentChildren.length; i++) {
+    const currentChild = currentChildren[i]!;
+    const proposedChild = proposedChildren[i]!;
+    if (
+      metadataStructureFingerprint(currentChild) !== metadataStructureFingerprint(proposedChild)
+    ) {
+      if (!isAllowedMetadataSubtreeChange(currentChild, proposedChild)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 function isAppendOnlySubtreeChange(
   current: recursive_list_type,
   proposed: recursive_list_type
@@ -402,10 +432,7 @@ function isAppendOnlySubtreeChange(
     if (
       metadataStructureFingerprint(currentChild) !== metadataStructureFingerprint(proposedChild)
     ) {
-      if (
-        !isChildlessTypeConversion(currentChild, proposedChild) &&
-        !isAppendOnlySubtreeChange(currentChild, proposedChild)
-      ) {
+      if (!isAllowedMetadataSubtreeChange(currentChild, proposedChild)) {
         return false;
       }
     }

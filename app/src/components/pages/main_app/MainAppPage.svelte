@@ -72,8 +72,14 @@
   import TextLevelSelector from './TextLevelSelector.svelte';
   import EditListNameDialog, { type ListNameEditTarget } from './EditListNameDialog.svelte';
   import EditNameDevDialog, { type NameDevEditTarget } from './EditNameDevDialog.svelte';
+  import QuickConvertTypeDialog, {
+    type QuickConvertTypeTarget
+  } from './QuickConvertTypeDialog.svelte';
   import LoadFromTextTool from './LoadFromTextTool.svelte';
-  import { create_map_metadata_save_mutation } from './map_metadata_save';
+  import {
+    create_map_metadata_save_mutation,
+    get_map_metadata_type_convert_target
+  } from './map_metadata_save';
   import Label from '~/lib/components/ui/label/label.svelte';
   import AITranslate from './display/ai_translate/AITranslate.svelte';
   import EditOptionsPopover from './display/EditOptionsPopover.svelte';
@@ -133,6 +139,8 @@
   let list_name_target = $state<ListNameEditTarget | null>(null);
   let name_dev_dialog_open = $state(false);
   let name_dev_target = $state<NameDevEditTarget | null>(null);
+  let type_convert_dialog_open = $state(false);
+  let type_convert_target = $state<QuickConvertTypeTarget | null>(null);
   let load_from_text_open = $state(false);
 
   function open_list_name_edit(map: recursive_list_type, path: number[], initial_value: string) {
@@ -143,6 +151,17 @@
   function open_name_dev_edit(map: recursive_list_type, path: number[], initial_value: string) {
     name_dev_target = { path, initial_value, map };
     name_dev_dialog_open = true;
+  }
+
+  function open_type_convert_confirm(
+    map: recursive_list_type,
+    path: number[],
+    target: NonNullable<ReturnType<typeof get_map_metadata_type_convert_target>>
+  ) {
+    const node = get_node_at_path(map, path);
+    if (!node) return;
+    type_convert_target = { map, path, target, node_name: node.name_dev };
+    type_convert_dialog_open = true;
   }
   const active_leaf_state_index = $derived.by(() => {
     for (let i = 0; i < levels - 1; i++) {
@@ -423,6 +442,9 @@
   {@const list_name_node = map_root ? get_node_at_path(map_root, list_name_path) : null}
   {@const name_dev_path =
     map_root && dynamic_path.length > i ? (dynamic_path.slice(0, i + 1) as number[]) : null}
+  {@const name_dev_node =
+    map_root && name_dev_path?.length ? get_node_at_path(map_root, name_dev_path) : null}
+  {@const type_convert_target = get_map_metadata_type_convert_target(name_dev_node)}
   {#if i === 0 || list_at_depth || initial_option.value}
     <TextLevelSelector
       name={level_name}
@@ -435,7 +457,9 @@
         : false}
       is_admin={is_admin && !!map_root}
       controls_disabled={$editing_mode !== 'none'}
+      metadata_save_pending={map_metadata_save_mut.isPending}
       show_name_dev_edit={!!name_dev_path && name_dev_path.length > 0}
+      {type_convert_target}
       on_edit_list_name={() => {
         if (!map_root || !list_name_node || list_name_node.info.type !== 'list') return;
         open_list_name_edit(map_root, list_name_path, list_name_node.info.list_name);
@@ -445,6 +469,10 @@
         const node = get_node_at_path(map_root, name_dev_path);
         if (!node) return;
         open_name_dev_edit(map_root, name_dev_path, node.name_dev);
+      }}
+      on_convert_type={() => {
+        if (!map_root || !name_dev_path?.length || !type_convert_target) return;
+        open_type_convert_confirm(map_root, name_dev_path, type_convert_target);
       }}
     />
   {/if}
@@ -460,6 +488,12 @@
   <EditNameDevDialog
     bind:open={name_dev_dialog_open}
     bind:target={name_dev_target}
+    {project_id}
+    save_mut={map_metadata_save_mut}
+  />
+  <QuickConvertTypeDialog
+    bind:open={type_convert_dialog_open}
+    bind:target={type_convert_target}
     {project_id}
     save_mut={map_metadata_save_mut}
   />

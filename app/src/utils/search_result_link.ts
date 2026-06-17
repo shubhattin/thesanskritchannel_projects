@@ -5,12 +5,15 @@ const path_params_from_db = (db_path: string): number[] => {
   return dbPathToPathParams(db_path);
 };
 
+export const build_search_result_path_href = (project_key: string, db_path: string): string => {
+  const segments = path_params_from_db(db_path);
+  return segments.length === 0 ? `/${project_key}` : `/${project_key}/${segments.join('/')}`;
+};
+
 export const build_search_result_href = (
   project_key: string,
   db_path: string,
   line_index: number
 ): string => {
-  const segments = path_params_from_db(db_path);
-  const base = segments.length === 0 ? `/${project_key}` : `/${project_key}/${segments.join('/')}`;
-  return `${base}#L-${line_index}`;
+  return `${build_search_result_path_href(project_key, db_path)}#L-${line_index}`;
 };

@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
-  import { ChevronDown } from '@lucide/svelte';
+  import { tick, untrack } from 'svelte';
+  import { ChevronDown, Search } from '@lucide/svelte';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
+  import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as Popover from '$lib/components/ui/popover';
   import { Skeleton } from '$lib/components/ui/skeleton';
@@ -19,13 +20,22 @@
   } = $props();
 
   let open = $state(false);
+  let name_filter = $state('');
+  let filter_input_el: HTMLInputElement | null = $state(null);
+
+  const filtered_projects = $derived.by(() => {
+    const q = name_filter.trim().toLowerCase();
+    if (!q) return project_registry.list;
+    return project_registry.list.filter((p) => p.name.toLowerCase().includes(q));
+  });
 
   const all_checked = $derived(
-    project_registry.list.length > 0 &&
-      project_registry.list.every((p) => selected_project_ids.has(p.id))
+    filtered_projects.length > 0 && filtered_projects.every((p) => selected_project_ids.has(p.id))
   );
 
-  const some_checked = $derived(selected_project_ids.size > 0 && !all_checked);
+  const some_checked = $derived(
+    filtered_projects.some((p) => selected_project_ids.has(p.id)) && !all_checked
+  );
 
   const button_label = $derived.by(() => {
     const count = selected_project_ids.size;
@@ -38,9 +48,12 @@
   });
 
   const toggle_all = (checked: boolean) => {
-    selected_project_ids = checked
-      ? new Set(untrack(() => project_registry.list.map((p) => p.id)))
-      : new Set();
+    const next = new Set(untrack(() => selected_project_ids));
+    for (const project of filtered_projects) {
+      if (checked) next.add(project.id);
+      else next.delete(project.id);
+    }
+    selected_project_ids = next;
   };
 
   const toggle_project = (id: number, checked: boolean) => {
@@ -49,6 +62,14 @@
     else next.delete(id);
     selected_project_ids = next;
   };
+
+  $effect(() => {
+    if (!open) {
+      name_filter = '';
+      return;
+    }
+    void tick().then(() => filter_input_el?.focus());
+  });
 </script>
 
 <div class="space-y-2">
@@ -74,6 +95,20 @@
         class="w-(--bits-popover-anchor-width) border-border bg-card p-2 text-card-foreground shadow-md"
         align="start"
       >
+        <div class="relative mb-2">
+          <Search
+            class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            bind:ref={filter_input_el}
+            bind:value={name_filter}
+            placeholder="Search by name…"
+            class="h-8 pl-8"
+            aria-label="Filter texts by name"
+            onkeydown={(e) => e.stopPropagation()}
+          />
+        </div>
         <div class="max-h-64 space-y-1 overflow-y-auto">
           <label
             class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent"
@@ -83,20 +118,26 @@
               indeterminate={some_checked}
               onCheckedChange={(v) => toggle_all(v === true)}
             />
-            <span class="text-sm font-medium">All</span>
+            <span class="text-sm font-medium">
+              {name_filter.trim() ? 'All shown' : 'All'}
+            </span>
           </label>
           <div class="my-1 border-t border-border/60"></div>
-          {#each project_registry.list as project (project.id)}
-            <label
-              class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent"
-            >
-              <Checkbox
-                checked={selected_project_ids.has(project.id)}
-                onCheckedChange={(v) => toggle_project(project.id, v === true)}
-              />
-              <span class="truncate text-sm">{project.name}</span>
-            </label>
-          {/each}
+          {#if filtered_projects.length === 0}
+            <p class="px-2 py-3 text-center text-sm text-muted-foreground">No matching texts</p>
+          {:else}
+            {#each filtered_projects as project (project.id)}
+              <label
+                class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent"
+              >
+                <Checkbox
+                  checked={selected_project_ids.has(project.id)}
+                  onCheckedChange={(v) => toggle_project(project.id, v === true)}
+                />
+                <span class="truncate text-sm">{project.name}</span>
+              </label>
+            {/each}
+          {/if}
         </div>
       </Popover.Content>
     </Popover.Root>

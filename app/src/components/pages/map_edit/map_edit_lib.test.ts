@@ -302,14 +302,14 @@ describe('map_edit_lib collect_unsaved_added_db_paths', () => {
     expect(collect_unsaved_added_db_paths(working, snapshots)).toEqual(['1:2']);
   });
 
-  it('collects nested paths for an appended subtree', () => {
+  it('collects only the shloka leaf path for an appended subtree', () => {
     const { working, snapshots } = setup_working();
     const listNode = get_node_at_map_path(working, [1])!;
     const child = create_map_edit_child('list');
     child.list = [...(child.list ?? []), create_map_edit_child('shloka')];
     listNode.list = [...(listNode.list ?? []), child];
 
-    expect(collect_unsaved_added_db_paths(working, snapshots)).toEqual(['1:2', '1:2:1']);
+    expect(collect_unsaved_added_db_paths(working, snapshots)).toEqual(['1:2:1']);
   });
 
   it('removes a newly added path when that node is deleted before save', () => {

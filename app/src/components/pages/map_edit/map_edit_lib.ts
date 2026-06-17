@@ -616,7 +616,11 @@ export const collect_unsaved_added_db_paths = (
   const paths = new Set<string>();
   const walk = (node: MapNodeWithClientId, path: MapPath) => {
     const clientId = node[MAP_EDIT_CLIENT_ID];
-    if (path.length > 0 && is_unsaved_added_map_node(clientId, snapshots)) {
+    if (
+      path.length > 0 &&
+      node.info.type === 'shloka' &&
+      is_unsaved_added_map_node(clientId, snapshots)
+    ) {
       paths.add(map_path_to_db_path(path));
     }
     if (node.info.type === 'list') {

@@ -45,14 +45,18 @@ import {
   validateOrderRootPath,
   validateSwapEdits,
   validateSwapEditsRootScope,
-  validateDbPath,
-  ROOT_DB_PATH
+  validateDbPath
 } from '~/utils/map_path/swap';
 import { delay_dev } from '~/tools/delay';
 import { recursive_list_schema } from '~/state/data_types';
-import { countExactPathResources, insertProjectPaths } from '~/utils/project/paths_db.server';
 import {
-  collect_db_paths_from_map,
+  countExactPathResources,
+  deleteProjectPathsAtExact,
+  insertProjectPaths
+} from '~/utils/project/paths_db.server';
+import {
+  collect_shloka_db_paths_from_map,
+  diff_shloka_db_paths,
   validate_explicit_to_add_paths
 } from '~/utils/project/map_sync.server';
 import { TEXT_EDIT_LOCK_NAMESPACE } from '~/utils/text/row_edit.server';
@@ -111,11 +115,13 @@ export const update_project_map_route = protectedAdminProcedure
         });
       }
 
-      const oldPaths = collect_db_paths_from_map(existing.map);
-      const derivedPaths = collect_db_paths_from_map(map);
-      const toAddPaths = validate_explicit_to_add_paths(oldPaths, derivedPaths, input.to_add_paths);
+      const oldShlokaPaths = collect_shloka_db_paths_from_map(existing.map);
+      const newShlokaPaths = collect_shloka_db_paths_from_map(map);
+      validate_explicit_to_add_paths(oldShlokaPaths, newShlokaPaths, input.to_add_paths);
+      const { toInsert, toRemove } = diff_shloka_db_paths(existing.map, map);
 
-      await insertProjectPaths(tx, input.project_id, [ROOT_DB_PATH, ...toAddPaths]);
+      await deleteProjectPathsAtExact(tx, input.project_id, toRemove);
+      await insertProjectPaths(tx, input.project_id, toInsert);
 
       await tx
         .update(projects)

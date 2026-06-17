@@ -94,14 +94,18 @@
   let translate_error = $state<string | null>(null);
   let overwrite_confirmed = $state<'yes' | 'no'>('no');
 
+  let destroyed = false;
   onDestroy(() => {
+    destroyed = true;
     show_time_status = false;
     main_app_ai_translate_in_progress.set(false);
   });
 
   $effect(() => {
     if (show_time_status) {
-      const t_id = setTimeout(() => (show_time_status = false), 10 * 1000);
+      const t_id = setTimeout(() => {
+        if (!destroyed) show_time_status = false;
+      }, 10 * 1000);
       return () => clearTimeout(t_id);
     }
   });
@@ -166,57 +170,76 @@
   );
 
   const translate_sarga_mut = createMutation(() => ({
-    mutationFn: async (
-      input: Parameters<typeof client.ai.trigger_funcs.translate_trigger.mutate>[0]
-    ) => {
-      show_time_status = false;
-      const out = await client.ai.trigger_funcs.translate_trigger.mutate(input);
-      return await get_result_from_trigger_run_id<typeof out.output_type>(out.run_id!);
+    mutationFn: async (payload: {
+      input: Parameters<typeof client.ai.trigger_funcs.translate_trigger.mutate>[0];
+      slot: number;
+      active_translation_name: string;
+      query_key: any;
+      text_data: any[];
+      slot_query_data: Map<number, string> | undefined;
+    }) => {
+      if (!destroyed) {
+        show_time_status = false;
+      }
+      const out = await client.ai.trigger_funcs.translate_trigger.mutate(payload.input);
+      const result = await get_result_from_trigger_run_id<typeof out.output_type>(out.run_id!);
+      return {
+        result,
+        time_taken: result.time_taken,
+        slot: payload.slot,
+        active_translation_name: payload.active_translation_name,
+        query_key: payload.query_key,
+        text_data: payload.text_data,
+        slot_query_data: payload.slot_query_data
+      };
     },
-    async onSuccess(response) {
-      response = response!;
-      if (!response.success) {
-        translate_error = response.error ?? 'Translation failed';
+    async onSuccess(data) {
+      const { result, slot, active_translation_name, query_key, text_data, slot_query_data } = data;
+      if (!result.success) {
+        if (!destroyed) {
+          translate_error = result.error ?? 'Translation failed';
+        }
         return;
       }
 
-      const slot = active_translation_slot;
-      if (slot === null) return;
-
-      const translations = response.translations;
-      const text_data = text_data_q.data;
       if (
         !text_data ||
-        translations.length !== text_data.length ||
-        translations.some((v, i) => v.index !== i)
+        result.translations.length !== text_data.length ||
+        result.translations.some((v, i) => v.index !== i)
       ) {
         console.error('Translation Rejected: Length mismatch or index mismatch');
-        console.error(translations);
-        translate_error = 'Translation rejected: length or index mismatch';
+        console.error(result.translations);
+        if (!destroyed) {
+          translate_error = 'Translation rejected: length or index mismatch';
+        }
         return;
       }
 
-      const slot_query = slot === 0 ? trans_slot_1_data_q : trans_slot_2_data_q;
-      const new_data = new Map(slot_query.data);
-      for (const translation of translations) {
+      const new_data = new Map(slot_query_data);
+      for (const translation of result.translations) {
         const positional_index = translation.index;
         if (positional_index < 0 || positional_index >= text_data.length) {
           console.error('Translation Rejected: out-of-range positional index', translation);
-          translate_error = 'Translation rejected: out-of-range index';
+          if (!destroyed) {
+            translate_error = 'Translation rejected: out-of-range index';
+          }
           return;
         }
         new_data.set(text_data[positional_index]!.index, translation.text);
       }
 
-      const query_key = trans_slot_data_query_key[slot];
       await query_client.setQueryData(query_key, new_data);
-      show_time_status = true;
-      translate_error = null;
-      dialog_open = false;
-      toast.success(`AI translation to ${active_translation_name} completed`);
+      if (!destroyed) {
+        show_time_status = true;
+        translate_error = null;
+        dialog_open = false;
+        toast.success(`AI translation to ${active_translation_name} completed`);
+      }
     },
     onError(err) {
-      translate_error = err.message || 'Translation failed';
+      if (!destroyed) {
+        translate_error = err.message || 'Translation failed';
+      }
     }
   }));
 
@@ -254,12 +277,22 @@
       };
     });
 
+    const query_key = trans_slot_data_query_key[slot];
+    const slot_query = slot === 0 ? trans_slot_1_data_q : trans_slot_2_data_q;
+
     await translate_sarga_mut.mutateAsync({
-      project_id,
-      lang_id,
-      model: selected_model,
-      text_name: project.name,
-      text_data: texts_obj_list
+      input: {
+        project_id,
+        lang_id,
+        model: selected_model,
+        text_name: project.name,
+        text_data: texts_obj_list
+      },
+      slot,
+      active_translation_name,
+      query_key,
+      text_data: text_data_q.data,
+      slot_query_data: slot_query.data
     });
   }
 </script>

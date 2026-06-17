@@ -4,7 +4,7 @@
  * collide with these static routes (route groups and `[param]` segments are excluded).
  *
  * app/src/routes: api, grammar, lekha, search, user
- * site/src/pages: api, lekha, support
+ * site/src/pages: api, lekha, support, texts
  */
 export const RESERVED_PROJECT_ROUTE_SLUGS = [
   'api',
@@ -12,7 +12,8 @@ export const RESERVED_PROJECT_ROUTE_SLUGS = [
   'lekha',
   'search',
   'support',
-  'user'
+  'user',
+  'texts'
 ] as const;
 
 const reserved_slug_set = new Set<string>(RESERVED_PROJECT_ROUTE_SLUGS);

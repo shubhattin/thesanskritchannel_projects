@@ -6,6 +6,7 @@ import { CACHE } from '$app/utils/cache.server/cached_loader.server';
 import { NO_CACHE_PARAMS } from '$app/utils/cache.server/create_cached_loader.server';
 
 const projects = await get_project_list(cache_db_options_site, { listed_only: true });
+const featured_projects = projects.slice(0, 10);
 import Youtube from '@lucide/svelte/icons/youtube';
 import ArrowRight from '@lucide/svelte/icons/arrow-right';
 import ExternalLink from '@lucide/svelte/icons/external-link';
@@ -31,7 +32,7 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
     >
     </div>
 
-    <div class="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 lg:py-36">
+    <div class="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
       <div class="mx-auto max-w-3xl text-center">
         <!-- Sanskrit decorative quote -->
         <!-- <p
@@ -45,7 +46,7 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
           <span class="bg-linear-to-r from-primary to-primary/70 bg-clip-text text-transparent"
             >Explore Sanskrit</span
           >{' '}
-          Literature
+          <!-- Literature -->
         </h1>
 
         <p
@@ -58,7 +59,7 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
 
         <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <a
-            href="#texts"
+            href="/texts"
             class="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-md transition-transform duration-150 hover:scale-[1.02] hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             Explore Texts
@@ -77,116 +78,13 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
     </div>
   </section>
 
-  <!-- Featured Texts Section -->
-  <section
-    id="texts"
-    class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20"
-    style="scroll-margin-top: 4rem;"
-  >
-    <div class="mb-10 text-center">
-      <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Sacred Texts</h2>
-      <p class="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
-        Read classical Sanskrit texts in a clean, distraction-free interface. Switch between
-        multiple Indian scripts effortlessly.
-      </p>
-    </div>
-
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {
-        projects.map((project, index) => (
-          <a
-            href={`/${project.key}`}
-            class:list={[
-              'card-hover-glow group relative rounded-xl border bg-card p-6 transition-colors duration-150 hover:border-primary/30',
-              `animate-fade-in-up stagger-${index + 1}`
-            ]}
-          >
-            <div class="space-y-2">
-              <p class="font-devanagari text-xl font-medium text-foreground transition-colors duration-150 group-hover:text-primary">
-                {project.name_dev}
-              </p>
-              <p class="text-sm text-muted-foreground">{project.name}</p>
-            </div>
-            <div class="mt-4 flex items-center gap-1 text-xs font-medium text-primary/70">
-              <span>Read</span>
-              <Icon
-                icon={ArrowRight}
-                class="size-3.5 transition-transform duration-150 group-hover:translate-x-0.5"
-              />
-            </div>
-          </a>
-        ))
-      }
-    </div>
-  </section>
-
-  {
-    latest_lekhas.length > 0 && (
-      <section class="border-b border-border/30 bg-muted/20" aria-labelledby="lekha-latest-heading">
-        <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
-          <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 id="lekha-latest-heading" class="text-2xl font-bold tracking-tight sm:text-3xl">
-                Latest from Lekha
-              </h2>
-              <p class="mt-2 max-w-xl text-sm text-muted-foreground sm:text-base">
-                Short notes and articles — read the most recent posts.
-              </p>
-            </div>
-            <a
-              href="/lekha"
-              class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline"
-            >
-              View all
-              <Icon icon={ArrowRight} class="size-4" />
-            </a>
-          </div>
-          <ul class="flex flex-col gap-3 sm:gap-4">
-            {latest_lekhas.map((post, index) => (
-              <li>
-                <a
-                  href={`/lekha/${post.url_slug}`}
-                  class:list={[
-                    'card-hover-glow group block rounded-xl border border-border/60 bg-card/60 px-5 py-4 transition-colors duration-150 hover:border-primary/40 hover:bg-accent/30',
-                    `animate-fade-in-up stagger-${index + 1}`
-                  ]}
-                >
-                  <h3 class="text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
-                    {post.title}
-                  </h3>
-                  {post.description && (
-                    <p class="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                      {post.description}
-                    </p>
-                  )}
-                  {post.published_at && (
-                    <time
-                      class="mt-3 block text-xs text-muted-foreground"
-                      datetime={post.published_at.toISOString()}
-                    >
-                      {post.published_at.toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </time>
-                  )}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-    )
-  }
-
   <!-- Tools Showcase Section -->
   <section
     id="tools"
     class="border-t border-border/30 bg-muted/30"
     style="scroll-margin-top: 4rem;"
   >
-    <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+    <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
       <div class="mb-10 text-center">
         <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Tools for Sanskrit Learning</h2>
         <p class="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
@@ -310,6 +208,123 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
       </div>
     </div>
   </section>
+
+  <!-- Featured Texts Section -->
+  <section
+    id="texts"
+    class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20"
+    style="scroll-margin-top: 4rem;"
+  >
+    <div class="mb-10 text-center">
+      <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Texts</h2>
+      <p class="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
+        Read classical Sanskrit texts in a clean, distraction-free interface. Switch between
+        multiple Indian scripts effortlessly.
+      </p>
+    </div>
+
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        featured_projects.map((project, index) => (
+          <a
+            href={`/${project.key}`}
+            class:list={[
+              'card-hover-glow group relative rounded-xl border bg-card p-4 transition-colors duration-150 hover:border-primary/30',
+              `animate-fade-in-up stagger-${index + 1}`
+            ]}
+          >
+            <div class="space-y-1">
+              <p class="font-devanagari text-lg font-medium text-foreground transition-colors duration-150 group-hover:text-primary">
+                {project.name_dev}
+              </p>
+              <p class="text-sm text-muted-foreground">{project.name}</p>
+            </div>
+            <div class="mt-3 flex items-center gap-1 text-xs font-medium text-primary/70">
+              <span>Read</span>
+              <Icon
+                icon={ArrowRight}
+                class="size-3.5 transition-transform duration-150 group-hover:translate-x-0.5"
+              />
+            </div>
+          </a>
+        ))
+      }
+    </div>
+
+    {
+      projects.length > featured_projects.length && (
+        <div class="mt-8 text-center">
+          <a
+            href="/texts"
+            class="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+          >
+            Explore More
+            <Icon icon={ArrowRight} class="size-4" />
+          </a>
+        </div>
+      )
+    }
+  </section>
+
+  {
+    latest_lekhas.length > 0 && (
+      <section class="border-b border-border/30 bg-muted/20" aria-labelledby="lekha-latest-heading">
+        <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+          <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 id="lekha-latest-heading" class="text-2xl font-bold tracking-tight sm:text-3xl">
+                Latest from Lekha
+              </h2>
+              <p class="mt-2 max-w-xl text-sm text-muted-foreground sm:text-base">
+                Short notes and articles — read the most recent posts.
+              </p>
+            </div>
+            <a
+              href="/lekha"
+              class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline"
+            >
+              View all
+              <Icon icon={ArrowRight} class="size-4" />
+            </a>
+          </div>
+          <ul class="flex flex-col gap-3 sm:gap-4">
+            {latest_lekhas.map((post, index) => (
+              <li>
+                <a
+                  href={`/lekha/${post.url_slug}`}
+                  class:list={[
+                    'card-hover-glow group block rounded-xl border border-border/60 bg-card/60 px-5 py-4 transition-colors duration-150 hover:border-primary/40 hover:bg-accent/30',
+                    `animate-fade-in-up stagger-${index + 1}`
+                  ]}
+                >
+                  <h3 class="text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
+                    {post.title}
+                  </h3>
+                  {post.description && (
+                    <p class="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                      {post.description}
+                    </p>
+                  )}
+                  {post.published_at && (
+                    <time
+                      class="mt-3 block text-xs text-muted-foreground"
+                      datetime={post.published_at.toISOString()}
+                    >
+                      {post.published_at.toLocaleDateString('en-IN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </time>
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )
+  }
 
   <!-- Support CTA Section -->
   <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">

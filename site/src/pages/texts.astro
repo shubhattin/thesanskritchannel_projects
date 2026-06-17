@@ -1,0 +1,26 @@
+---
+import RootLayout from '$components/RootLayout.astro';
+import TextsBrowser from '$components/texts/TextsBrowser.svelte';
+import { get_project_list } from '$app/utils/project/list.server';
+import { cache_db_options_site } from '~/db/cache_db_options';
+
+const projects = await get_project_list(cache_db_options_site, { listed_only: true });
+
+const title = 'Texts — The Sanskrit Channel';
+const description =
+  'Browse classical Sanskrit texts. Read in a clean interface and switch between multiple Indian scripts.';
+---
+
+<RootLayout {title} {description}>
+  <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+    <header class="mb-10 border-b border-border pb-8">
+      <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">Texts</h1>
+      <p class="mt-3 max-w-2xl text-muted-foreground">
+        Read classical Sanskrit texts in a clean, distraction-free interface. Switch between
+        multiple Indian scripts effortlessly.
+      </p>
+    </header>
+
+    <TextsBrowser client:load {projects} />
+  </div>
+</RootLayout>

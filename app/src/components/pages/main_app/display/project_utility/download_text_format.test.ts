@@ -246,14 +246,34 @@ AUM shrI paramAtmane namaH
 
 I bow down to the supreme consciousness`);
 
+    expect(get_import_format_example({ includesNormal: true, includesTranslation: false })).toBe(
+      `ॐ श्री परमात्मने नमः
+AUM shrI paramAtmane namaH`
+    );
+
+    expect(get_import_format_example({ includesNormal: false, includesTranslation: true })).toBe(
+      `ॐ श्री परमात्मने नमः
+
+I bow down to the supreme consciousness`
+    );
+
     expect(get_import_format_example({ includesNormal: false, includesTranslation: false })).toBe(
       'ॐ श्री परमात्मने नमः'
     );
   });
 
   it('builds import format hint from checkbox options', () => {
-    expect(get_import_format_hint({ includesNormal: true, includesTranslation: false })).toContain(
-      'script and normal'
+    expect(get_import_format_hint({ includesNormal: false, includesTranslation: false })).toBe(
+      'Each block is one text entry. Separate multiple blocks with a blank line.'
+    );
+    expect(get_import_format_hint({ includesNormal: false, includesTranslation: true })).toBe(
+      'Each entry is a text block followed by its translation, separated by a blank line.'
+    );
+    expect(get_import_format_hint({ includesNormal: true, includesTranslation: false })).toBe(
+      'Each block has the same number of script and normal transliteration lines.'
+    );
+    expect(get_import_format_hint({ includesNormal: true, includesTranslation: true })).toBe(
+      'Each entry is script text, normal transliteration, then translation. Leave a blank line before the translation and between entries.'
     );
   });
 });

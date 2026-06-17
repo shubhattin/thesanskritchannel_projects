@@ -67,11 +67,14 @@ export const split_text_for_vedic_svara_highlight = (
     if (range.start > cursor) {
       segments.push({ text: text.slice(cursor, range.start) });
     }
-    segments.push({
-      text: text.slice(range.start, range.end),
-      highlight: true,
-      svaraKind: range.kind
-    });
+    const highlightStart = Math.max(cursor, range.start);
+    if (highlightStart < range.end) {
+      segments.push({
+        text: text.slice(highlightStart, range.end),
+        highlight: true,
+        svaraKind: range.kind
+      });
+    }
     cursor = Math.max(cursor, range.end);
   }
   if (cursor < text.length) {

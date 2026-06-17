@@ -27,7 +27,6 @@
   import { LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
   import {
     get_import_format_example,
-    get_import_format_hint,
     parse_import_text
   } from './display/project_utility/download_text_format';
   import {
@@ -64,12 +63,6 @@
   );
   const format_example = $derived(
     get_import_format_example({
-      includesNormal: include_normal,
-      includesTranslation: include_translation
-    })
-  );
-  const format_hint = $derived(
-    get_import_format_hint({
       includesNormal: include_normal,
       includesTranslation: include_translation
     })

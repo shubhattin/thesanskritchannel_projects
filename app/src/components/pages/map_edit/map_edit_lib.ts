@@ -54,6 +54,10 @@ export const MAP_EDIT_DEFAULT_LIST_LEVEL_NAME = 'Level Name';
 export const MAP_EDIT_DEFAULT_SHLOKA_NAME_DEV = 'नवश्लोकानि';
 export const MAP_EDIT_DEFAULT_LIST_NAME_DEV = 'नवसूची';
 
+/** Placeholder names used for new nodes; swapped on type conversion only when already a placeholder. */
+export const is_map_edit_placeholder_name_dev = (name_dev: string): boolean =>
+  name_dev === MAP_EDIT_DEFAULT_SHLOKA_NAME_DEV || name_dev === MAP_EDIT_DEFAULT_LIST_NAME_DEV;
+
 export const is_unsaved_added_map_node = (
   clientId: string | undefined,
   snapshots: Map<string, BaselineNodeSnapshot>
@@ -68,7 +72,10 @@ export const apply_map_edit_shloka_defaults = (
   node: MapNodeWithClientId,
   options?: MapEditTypeDefaultsOptions
 ): void => {
-  if (!options?.preserve_name_dev) {
+  if (
+    !options?.preserve_name_dev &&
+    (node.name_dev === '' || is_map_edit_placeholder_name_dev(node.name_dev))
+  ) {
     node.name_dev = MAP_EDIT_DEFAULT_SHLOKA_NAME_DEV;
   }
   node.info = { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null };
@@ -94,7 +101,10 @@ export const apply_map_edit_list_defaults = (
   node: MapNodeWithClientId,
   options?: MapEditTypeDefaultsOptions
 ): void => {
-  if (!options?.preserve_name_dev) {
+  if (
+    !options?.preserve_name_dev &&
+    (node.name_dev === '' || is_map_edit_placeholder_name_dev(node.name_dev))
+  ) {
     node.name_dev = MAP_EDIT_DEFAULT_LIST_NAME_DEV;
   }
   node.info = {
@@ -323,6 +333,13 @@ export const collapse_tree_expanded_paths = (
   }
   return next;
 };
+
+/** Keep ancestor branches expanded after map edits (e.g. type conversion). */
+export const preserve_tree_expansion_for_path = (
+  expanded: ReadonlySet<string>,
+  basePath: MapPath,
+  fullPath: MapPath
+): Set<string> => expand_tree_expanded_paths(expanded, subtree_path_from_full(basePath, fullPath));
 
 export const paths_equal = (a: MapPath, b: MapPath) =>
   a.length === b.length && a.every((v, i) => v === b[i]);

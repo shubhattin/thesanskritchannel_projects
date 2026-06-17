@@ -13,6 +13,7 @@ import {
   create_map_edit_child,
   expand_terminal_deleted_paths,
   get_node_at_map_path,
+  preserve_tree_expansion_for_path,
   remove_node_at_path,
   strip_client_ids,
   UndoStack,
@@ -196,6 +197,99 @@ describe('map_edit_lib normal-mode structure edits', () => {
 
     const diff = compute_map_edit_diff(working, snapshots);
     expect(diff.rows.some((r) => r.summary === 'Converted List → Shloka')).toBe(true);
+  });
+
+  it('allows nested childless list to shloka conversion through the save merge', () => {
+    const emptyList = (name: string): recursive_list_type => ({
+      name_dev: name,
+      info: { type: 'list', list_name: 'Section', list_count_expected: null },
+      list: []
+    });
+    const map: recursive_list_type = {
+      name_dev: 'Root',
+      info: { type: 'list', list_name: 'Kanda', list_count_expected: null },
+      list: [
+        emptyList('1'),
+        emptyList('2'),
+        {
+          name_dev: '3',
+          info: { type: 'list', list_name: 'Section', list_count_expected: null },
+          list: [
+            emptyList('3.1'),
+            emptyList('3.2'),
+            emptyList('3.3'),
+            {
+              name_dev: '3.4',
+              info: { type: 'list', list_name: 'Section', list_count_expected: null },
+              list: [emptyList('3.4.1'), emptyList('3.4.2'), emptyList('तैत्तिरीयक')]
+            }
+          ]
+        }
+      ]
+    };
+    const snapshots = new Map<string, BaselineNodeSnapshot>();
+    const working = clone_map_with_client_ids(map, null, 0, snapshots);
+    const node = get_node_at_map_path(working, [3, 4, 3]) as MapNodeWithClientId;
+    apply_map_edit_shloka_defaults(node);
+
+    const diff = compute_map_edit_diff(working, snapshots);
+    expect(diff.rows.some((r) => r.pathLabel === '/3/4/3' && r.kind === 'type_change')).toBe(true);
+    expect(diff.rows.some((r) => r.pathLabel === '/3/4/3' && r.kind === 'rename')).toBe(false);
+
+    const merged = applyMetadataEditsToMap(map, strip_client_ids(working));
+    expect(get_node_at_map_path(merged, [3, 4, 3])?.info.type).toBe('shloka');
+    expect(get_node_at_map_path(merged, [3, 4, 3])?.name_dev).toBe('तैत्तिरीयक');
+  });
+
+  it('swaps placeholder names on type conversion', () => {
+    const snapshots = new Map<string, BaselineNodeSnapshot>();
+    const map: recursive_list_type = {
+      name_dev: 'Root',
+      info: { type: 'list', list_name: 'Kanda', list_count_expected: null },
+      list: [
+        {
+          name_dev: 'नवश्लोकानि',
+          info: { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null },
+          list: []
+        }
+      ]
+    };
+    const working = clone_map_with_client_ids(map, null, 0, snapshots);
+    apply_map_edit_list_defaults(get_node_at_map_path(working, [1]) as MapNodeWithClientId);
+    expect(get_node_at_map_path(working, [1])?.name_dev).toBe('नवसूची');
+
+    const diff = compute_map_edit_diff(working, snapshots);
+    expect(diff.rows.some((r) => r.pathLabel === '/1' && r.kind === 'type_change')).toBe(true);
+  });
+
+  it('preserves custom name_dev when converting list to shloka', () => {
+    const snapshots = new Map<string, BaselineNodeSnapshot>();
+    const map: recursive_list_type = {
+      name_dev: 'Root',
+      info: { type: 'list', list_name: 'Kanda', list_count_expected: null },
+      list: [
+        {
+          name_dev: 'तैत्तिरीयक',
+          info: { type: 'list', list_name: 'Section', list_count_expected: null },
+          list: []
+        }
+      ]
+    };
+    const working = clone_map_with_client_ids(map, null, 0, snapshots);
+    apply_map_edit_shloka_defaults(get_node_at_map_path(working, [1]) as MapNodeWithClientId);
+    expect(get_node_at_map_path(working, [1])?.name_dev).toBe('तैत्तिरीयक');
+  });
+});
+
+describe('map_edit_lib tree expansion', () => {
+  it('preserves ancestor expansion paths after edits', () => {
+    const expanded = new Set(['', '3', '3.4']);
+    const next = preserve_tree_expansion_for_path(expanded, [], [3, 4, 3]);
+    expect(next.has('')).toBe(true);
+    expect(next.has('3')).toBe(true);
+    expect(next.has('3.4')).toBe(true);
+    expect(next.has('3.4.3')).toBe(true);
+    expect(next.has('1')).toBe(false);
   });
 });
 

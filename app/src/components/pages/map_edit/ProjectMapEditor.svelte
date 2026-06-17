@@ -58,6 +58,7 @@
     default_tree_expanded_paths,
     expand_tree_expanded_paths,
     collapse_tree_expanded_paths,
+    preserve_tree_expansion_for_path,
     build_delete_review_state,
     remove_node_at_path,
     is_ancestor_path,
@@ -671,11 +672,19 @@
     if (!can_convert_childless_to_list(node)) return;
     mark_local_change();
     const preserve_name_dev = selected_is_root;
+    const expanded_before = new Set(expandedTreePaths);
     const next = mutate_metadata((draft) => {
       const draftNode = get_node_at_map_path(draft, selectedNodePath);
       if (draftNode) apply_map_edit_list_defaults(draftNode, { preserve_name_dev });
     });
-    if (next) workingMap = next;
+    if (next) {
+      workingMap = next;
+      expandedTreePaths = preserve_tree_expansion_for_path(
+        expanded_before,
+        basePath,
+        selectedNodePath
+      );
+    }
   }
 
   function convert_selected_to_shloka() {
@@ -684,11 +693,19 @@
     if (!can_convert_childless_to_shloka(node)) return;
     mark_local_change();
     const preserve_name_dev = selected_is_root;
+    const expanded_before = new Set(expandedTreePaths);
     const next = mutate_metadata((draft) => {
       const draftNode = get_node_at_map_path(draft, selectedNodePath);
       if (draftNode) apply_map_edit_shloka_defaults(draftNode, { preserve_name_dev });
     });
-    if (next) workingMap = next;
+    if (next) {
+      workingMap = next;
+      expandedTreePaths = preserve_tree_expansion_for_path(
+        expanded_before,
+        basePath,
+        selectedNodePath
+      );
+    }
   }
 
   async function before_drop(

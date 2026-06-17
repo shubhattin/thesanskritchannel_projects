@@ -12,7 +12,6 @@ import {
 import { getFontClass } from '~/components/utils/font_list';
 import { build_project_path, type resolved_text_route_type } from '~/utils/text-routes';
 import { get_node_at_path } from '$app/state/project_list';
-import HomeIcon from '@lucide/svelte/icons/house';
 import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 import BookOpenIcon from '@lucide/svelte/icons/book-open';
 import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
@@ -179,10 +178,10 @@ const next_sibling_item: TextSiblingNavigationItem | null =
     >
       <a
         class="inline-flex items-center gap-1 rounded-md px-2 py-1 transition-colors duration-150 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-        href="/"
+        href="/texts"
       >
-        <Icon icon={HomeIcon} class="size-3.5" />
-        Home
+        <Icon icon={BookOpenIcon} class="size-3.5" />
+        Texts
       </a>
 
       <!-- Separator -->

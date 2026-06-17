@@ -1,0 +1,48 @@
+---
+import RootLayout from '$components/RootLayout.astro';
+import TextsBrowser from '$components/texts/TextsBrowser.svelte';
+import { get_project_list } from '$app/utils/project/list.server';
+import { cache_db_options_site } from '~/db/cache_db_options';
+
+const projects = await get_project_list(cache_db_options_site, { listed_only: true });
+
+const title = 'Texts — The Sanskrit Channel';
+const description =
+  'Browse classical Sanskrit texts. Read in a clean interface and switch between multiple Indian scripts.';
+---
+
+<RootLayout {title} {description}>
+  <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+    <header class="mb-10 border-b border-border/50 pb-8">
+      <!-- Library Pill Badge -->
+      <div
+        class="mb-3 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold tracking-wide text-primary"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="size-3"
+          ><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path><path
+            d="M6 6h10"></path><path d="M6 10h10"></path></svg
+        >
+        Sanskrit Library
+      </div>
+      <h1 class="font-heading text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
+        Texts
+      </h1>
+      <p class="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
+        Read classical Sanskrit texts in a clean, distraction-free interface. Switch between
+        multiple Indian scripts effortlessly.
+      </p>
+    </header>
+
+    <TextsBrowser client:load {projects} />
+  </div>
+</RootLayout>

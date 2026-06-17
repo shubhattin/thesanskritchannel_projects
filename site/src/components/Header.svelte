@@ -1,25 +1,16 @@
 <script lang="ts">
   import * as NavigationMenu from '~/lib/components/ui/navigation-menu';
-  import * as Collapsible from '~/lib/components/ui/collapsible';
   import { navigationMenuTriggerStyle } from '~/lib/components/ui/navigation-menu/navigation-menu-trigger.svelte';
-  import type { project_type } from '$app/state/project_list';
   import ThemeSwitcher from './ThemeSwitcher.svelte';
   import Menu from '@lucide/svelte/icons/menu';
   import X from '@lucide/svelte/icons/x';
   import ExternalLink from '@lucide/svelte/icons/external-link';
   import Heart from '@lucide/svelte/icons/heart';
   import Pencil from '@lucide/svelte/icons/pencil';
-  import ChevronRight from '@lucide/svelte/icons/chevron-right';
-  import ChevronDown from '@lucide/svelte/icons/chevron-down';
+  import BookOpen from '@lucide/svelte/icons/book-open';
   import { cn } from '~/lib/utils';
   import { ContributeIcon } from '$app/components/icons';
   import { Icon } from 'svelte-icons-pack';
-
-  let {
-    projects = [] as readonly project_type[]
-  }: {
-    projects?: readonly project_type[];
-  } = $props();
 
   let mobileMenuOpen = $state(false);
 
@@ -68,7 +59,9 @@
         height="24"
         class="rounded-sm"
       />
-      <span class="text-sm font-semibold tracking-tight sm:inline">The Sanskrit Channel</span>
+      <span class="font-heading text-sm font-semibold tracking-tight sm:inline sm:text-base"
+        >The Sanskrit Channel</span
+      >
     </a>
 
     <!-- Desktop Navigation -->
@@ -113,29 +106,10 @@
 
           <!-- Texts -->
           <NavigationMenu.Item>
-            <NavigationMenu.Trigger>Texts</NavigationMenu.Trigger>
-            <NavigationMenu.Content>
-              <ul class="grid w-[320px] gap-1 p-2 lg:w-[400px] lg:grid-cols-2">
-                {#each projects as project}
-                  <li>
-                    <NavigationMenu.Link href={`/${project.key}`}>
-                      <div class="flex items-center justify-between gap-2">
-                        <div class="min-w-0">
-                          <div class="text-sm font-medium">{project.name}</div>
-                          <p class="font-devanagari text-xs text-muted-foreground">
-                            {project.name_dev}
-                          </p>
-                        </div>
-                        <ChevronRight
-                          class="size-3.5 shrink-0 text-muted-foreground"
-                          aria-hidden="true"
-                        />
-                      </div>
-                    </NavigationMenu.Link>
-                  </li>
-                {/each}
-              </ul>
-            </NavigationMenu.Content>
+            <a href="/texts" class={navigationMenuTriggerStyle()}>
+              <BookOpen class="mr-1.5 size-3.5 text-primary" aria-hidden="true" />
+              Texts
+            </a>
           </NavigationMenu.Item>
 
           <!-- Lekha (blog) -->
@@ -195,39 +169,15 @@
       style="overscroll-behavior: contain;"
     >
       <div class="max-h-[calc(100dvh-3.5rem)] space-y-1 overflow-y-auto px-4 py-4">
-        <!-- Texts Section -->
-        <Collapsible.Root class="space-y-1">
-          <Collapsible.Trigger
-            class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2.5 text-start transition-colors duration-150 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 [&[data-state=open]>svg]:rotate-180"
-          >
-            <span class="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-              Texts
-            </span>
-            <ChevronDown
-              class="size-4 shrink-0 text-muted-foreground transition-transform duration-200"
-              aria-hidden="true"
-            />
-          </Collapsible.Trigger>
-          <Collapsible.Content class="space-y-1">
-            {#each projects as project}
-              <a
-                href={`/${project.key}`}
-                class="flex items-center justify-between gap-2 rounded-lg px-2 py-2.5 transition-colors duration-150 hover:bg-accent"
-                onclick={closeMobile}
-              >
-                <div class="min-w-0">
-                  <div class="text-sm font-medium">{project.name}</div>
-                  <p class="font-devanagari truncate text-xs text-muted-foreground">
-                    {project.name_dev}
-                  </p>
-                </div>
-                <ChevronRight class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              </a>
-            {/each}
-          </Collapsible.Content>
-        </Collapsible.Root>
-        <!-- Separator -->
-        <div class="my-2 border-t border-border/40"></div>
+        <!-- Texts -->
+        <a
+          href="/texts"
+          class="flex items-center gap-2 rounded-lg px-2 py-2.5 font-medium text-primary transition-colors duration-150 hover:bg-accent"
+          onclick={closeMobile}
+        >
+          <BookOpen class="size-4" aria-hidden="true" />
+          Texts
+        </a>
 
         <!-- Lekha (blog) -->
         <a

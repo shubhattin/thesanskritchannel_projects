@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { split_text_by_search_query } from '~/utils/search_highlight';
+  import { split_text_by_search_query } from '~/utils/search/search_highlight';
 
   let {
     text,

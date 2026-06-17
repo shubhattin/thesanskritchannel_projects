@@ -18,8 +18,8 @@ import { notify_site_invalidate_project_map_cache } from '~/utils/cache.server/i
 import { and, eq, inArray, like, or, sql } from 'drizzle-orm';
 import { get_path_params } from '~/state/project_list';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
-import { SEARCH_MODE_ENUM } from '~/utils/search_mode';
-import { search_name_dev_in_maps } from '~/utils/search_name_dev.server';
+import { SEARCH_MODE_ENUM } from '~/utils/search/search_mode';
+import { search_name_dev_in_maps } from '~/utils/search/search_name_dev.server';
 import {
   buildTextRowsForSave,
   cloneMapWithUpdatedLeafCounts,

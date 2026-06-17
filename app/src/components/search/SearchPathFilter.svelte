@@ -11,7 +11,7 @@
     full_path_from_subtree_path
   } from '~/components/pages/map_edit/map_edit_lib';
   import SearchPathTree from './SearchPathTree.svelte';
-  import { normalize_search_path_prefixes } from '~/utils/search_path_prefixes';
+  import { normalize_search_path_prefixes } from '~/utils/search/search_path_prefixes';
 
   let {
     selected_project_ids,

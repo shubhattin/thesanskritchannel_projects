@@ -221,13 +221,14 @@ export function media_tab_counts(rows: MediaLinkRow[] | DraftMediaItem[]) {
 export function media_type_tabs_list(
   counts: ReturnType<typeof media_tab_counts>
 ): MediaTypeTabItem[] {
-  return [
+  const tabs: MediaTypeTabItem[] = [
     { id: 'all', label: 'All', count: counts.all },
     { id: 'video', label: MEDIA_TYPE_TAB_LABELS.video, count: counts.video },
     { id: 'audio', label: MEDIA_TYPE_TAB_LABELS.audio, count: counts.audio },
     { id: 'pdf', label: MEDIA_TYPE_TAB_LABELS.pdf, count: counts.pdf },
     { id: 'text', label: MEDIA_TYPE_TAB_LABELS.text, count: counts.text }
-  ].filter((tab) => tab.count > 0);
+  ];
+  return tabs.filter((tab) => tab.count > 0);
 }
 
 export function filter_by_media_tab<T extends { media_type: string }>(

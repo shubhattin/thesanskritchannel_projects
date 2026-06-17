@@ -25,9 +25,9 @@
   import {
     build_search_result_href,
     build_search_result_path_href
-  } from '~/utils/search_result_link';
-  import { normalize_search_path_prefixes } from '~/utils/search_path_prefixes';
-  import type { SearchMode } from '~/utils/search_mode';
+  } from '~/utils/search/search_result_link';
+  import { normalize_search_path_prefixes } from '~/utils/search/search_path_prefixes';
+  import type { SearchMode } from '~/utils/search/search_mode';
   import type { recursive_list_type } from '~/state/data_types';
   import { dbPathToPathParams } from '~/utils/map_path/swap';
   import Icon from '~/tools/Icon.svelte';

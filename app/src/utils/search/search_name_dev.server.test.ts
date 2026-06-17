@@ -12,7 +12,8 @@ const sample_map: recursive_list_type = {
       list: [
         {
           name_dev: 'श्लोक १',
-          info: { type: 'shloka', shloka_count: 1, total: 4 }
+          info: { type: 'shloka', shloka_count: 1, total: 4 },
+          list: []
         }
       ]
     },

@@ -11,7 +11,7 @@ import {
 } from '~/lib/main_text/script-display';
 import { getFontClass } from '~/components/utils/font_list';
 import { build_project_path, type resolved_text_route_type } from '~/utils/text-routes';
-import { get_node_at_path } from '$app/state/project_list';
+import { get_node_at_path, is_sibling_nav_disabled } from '$app/state/project_list';
 import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 import BookOpenIcon from '@lucide/svelte/icons/book-open';
 import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
@@ -30,6 +30,7 @@ type ChildRouteItem = {
 type TextSiblingNavigationItem = {
   href: string;
   name_display: string;
+  disabled?: boolean;
 };
 
 type Props = {
@@ -141,7 +142,12 @@ const previous_sibling_item: TextSiblingNavigationItem | null =
             ...sibling_parent_path_params,
             current_sibling_position! - 1
           ]) ?? resolved.canonical_path,
-        name_display: previous_sibling_name_display
+        name_display: previous_sibling_name_display,
+        disabled: is_sibling_nav_disabled(
+          previous_sibling_source,
+          [...sibling_parent_path_params, current_sibling_position! - 1],
+          resolved.levels
+        )
       }
     : null;
 const next_sibling_item: TextSiblingNavigationItem | null =
@@ -152,9 +158,33 @@ const next_sibling_item: TextSiblingNavigationItem | null =
             ...sibling_parent_path_params,
             current_sibling_position! + 1
           ]) ?? resolved.canonical_path,
-        name_display: next_sibling_name_display
+        name_display: next_sibling_name_display,
+        disabled: is_sibling_nav_disabled(
+          next_sibling_source,
+          [...sibling_parent_path_params, current_sibling_position! + 1],
+          resolved.levels
+        )
       }
     : null;
+
+const parent_path_params = resolved.path_params.slice(0, -1);
+const parent_href =
+  parent_path_params.length === 0
+    ? `/${resolved.project_key}`
+    : (build_project_path(resolved.project_key, resolved.map, parent_path_params) ??
+      `/${resolved.project_key}`);
+const parent_name_dev =
+  parent_path_params.length === 0
+    ? resolved.map.name_dev
+    : (resolved.path_names.at(-2) ?? resolved.map.name_dev);
+const [parent_name_display] = await transliterate_list_for_display(
+  [parent_name_dev],
+  selected_script_id
+);
+const show_parent_back_link = resolved.path_params.length > 0 && parent_name_display;
+const show_project_root_back_link = resolved.path_params.length > 1;
+const is_empty_list_view =
+  resolved.node.info.type === 'list' && (resolved.node.list ?? []).length === 0;
 ---
 
 <RootLayout title={page_title} description={page_description}>
@@ -220,72 +250,119 @@ const next_sibling_item: TextSiblingNavigationItem | null =
     {
       resolved.node.info.type === 'list' ? (
         <section class="flex flex-col gap-5">
+          {(show_parent_back_link || show_project_root_back_link) && (
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-1 sm:gap-x-8">
+              {show_parent_back_link ? (
+                <a
+                  class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  href={parent_href}
+                >
+                  <Icon icon={ChevronLeftIcon} class="size-3.5" />
+                  Back to{' '}
+                  <span class={`font-medium text-foreground ${scriptFontClass}`}>
+                    {parent_name_display}
+                  </span>
+                </a>
+              ) : null}
+              {show_project_root_back_link ? (
+                <a
+                  class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  href={`/${resolved.project_key}`}
+                >
+                  <Icon icon={ChevronLeftIcon} class="size-3.5" />
+                  Back to {resolved.project_name}
+                </a>
+              ) : null}
+            </div>
+          )}
           <MainTextScriptSelector client:load initial_script_id={selected_script_id} />
           <MultimediaAttachments client:load media_links={media_links} />
-          <div class="grid gap-3">
-            {display_child_items.map((item) => {
-              const rowBody = (
-                <>
-                  <span
-                    class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground"
-                    style="font-variant-numeric: tabular-nums;"
-                  >
-                    {item.index}
-                  </span>
-                  <div class="min-w-0 flex-1 space-y-0.5">
-                    <p class={`truncate text-base font-medium ${scriptFontClass}`}>
-                      {item.name_display}
-                    </p>
-                  </div>
+          {is_empty_list_view ? (
+            <p class="rounded-xl border border-dashed bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">
+              No list data here.
+            </p>
+          ) : (
+            <div class="grid gap-3">
+              {display_child_items.map((item) => {
+                const rowBody = (
+                  <>
+                    <span
+                      class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground"
+                      style="font-variant-numeric: tabular-nums;"
+                    >
+                      {item.index}
+                    </span>
+                    <div class="min-w-0 flex-1 space-y-0.5">
+                      <p class={`truncate text-base font-medium ${scriptFontClass}`}>
+                        {item.name_display}
+                      </p>
+                    </div>
+                    <div
+                      class:list={[
+                        'shrink-0 text-muted-foreground transition-colors duration-150',
+                        !item.is_disabled && 'group-hover:text-primary'
+                      ]}
+                    >
+                      {item.is_disabled ? (
+                        <Icon icon={BanIcon} class="size-4 text-muted-foreground/80" />
+                      ) : item.is_leaf ? (
+                        <Icon icon={BookOpenIcon} class="size-4" />
+                      ) : (
+                        <Icon
+                          icon={ChevronRightIcon}
+                          class="size-4 transition-transform duration-150 group-hover:translate-x-0.5"
+                        />
+                      )}
+                    </div>
+                  </>
+                );
+                return item.is_disabled ? (
                   <div
-                    class:list={[
-                      'shrink-0 text-muted-foreground transition-colors duration-150',
-                      !item.is_disabled && 'group-hover:text-primary'
-                    ]}
+                    class="group flex cursor-not-allowed items-center gap-4 rounded-xl border border-dashed bg-muted/30 p-4 opacity-70"
+                    aria-disabled="true"
+                    title="No sub-sections available for this item"
                   >
-                    {item.is_disabled ? (
-                      <Icon icon={BanIcon} class="size-4 text-muted-foreground/80" />
-                    ) : item.is_leaf ? (
-                      <Icon icon={BookOpenIcon} class="size-4" />
-                    ) : (
-                      <Icon
-                        icon={ChevronRightIcon}
-                        class="size-4 transition-transform duration-150 group-hover:translate-x-0.5"
-                      />
-                    )}
+                    {rowBody}
                   </div>
-                </>
-              );
-              return item.is_disabled ? (
-                <div
-                  class="group flex cursor-not-allowed items-center gap-4 rounded-xl border border-dashed bg-muted/30 p-4 opacity-70"
-                  aria-disabled="true"
-                  title="No sub-sections available for this item"
-                >
-                  {rowBody}
-                </div>
-              ) : (
-                <a
-                  class="card-hover-glow group flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors duration-150 hover:border-primary/30"
-                  href={item.href}
-                >
-                  {rowBody}
-                </a>
-              );
-            })}
-          </div>
+                ) : (
+                  <a
+                    class="card-hover-glow group flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors duration-150 hover:border-primary/30"
+                    href={item.href}
+                  >
+                    {rowBody}
+                  </a>
+                );
+              })}
+            </div>
+          )}
         </section>
       ) : (
         <section class="flex flex-col gap-5">
-          {resolved.path_params.length > 0 ? (
-            <a
-              class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-              href={`/${resolved.project_key}`}
-            >
-              <Icon icon={ChevronLeftIcon} class="size-3.5" />
-              Back to {resolved.project_name}
-            </a>
-          ) : null}
+          {(show_parent_back_link || show_project_root_back_link) && (
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-1 sm:gap-x-8">
+              {show_parent_back_link ? (
+                <a
+                  class="inline-flex items-center justify-center gap-1.5 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  href={parent_href}
+                >
+                  <Icon icon={ChevronLeftIcon} class="size-3.5" />
+                  Back to{' '}
+                  <span class={`font-medium text-foreground ${scriptFontClass}`}>
+                    {parent_name_display}
+                  </span>
+                </a>
+              ) : null}
+              {show_project_root_back_link ? (
+                <a
+                  class="inline-flex items-center justify-center gap-1.5 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  href={`/${resolved.project_key}`}
+                >
+                  <Icon icon={ChevronLeftIcon} class="size-3.5" />
+                  Back to {resolved.project_name}
+                </a>
+              ) : null}
+            </div>
+          )}
 
           <div class="flex flex-wrap gap-4">
             <MainTextScriptSelector client:load initial_script_id={selected_script_id} />

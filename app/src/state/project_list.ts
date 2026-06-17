@@ -153,6 +153,18 @@ export const is_child_nav_disabled = (
   levels: number
 ) => path_params_length < levels - 2 && is_empty_list_branch(child);
 
+/** Whether prev/next sibling nav to this node should be disabled on the reader site. */
+export const is_sibling_nav_disabled = (
+  sibling: recursive_list_type,
+  sibling_path_params: number[],
+  levels: number
+) => {
+  if (sibling.info.type === 'list') {
+    return is_child_nav_disabled(sibling, sibling_path_params.length - 1, levels);
+  }
+  return (sibling.info.total ?? 0) === 0;
+};
+
 export type map_selector_option_type = {
   text: string;
   value: number;

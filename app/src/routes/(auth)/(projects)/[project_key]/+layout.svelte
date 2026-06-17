@@ -4,14 +4,13 @@
   import { goto } from '$app/navigation';
   import * as Popover from '$lib/components/ui/popover';
   import { cn } from '$lib/utils';
-  import { cl_join } from '~/tools/cl_join';
   import { BsChevronDown, BsChevronUp, BsThreeDots } from 'svelte-icons-pack/bs';
   import Icon from '~/tools/Icon.svelte';
   import { fade } from 'svelte/transition';
-  import { AiOutlineHome } from 'svelte-icons-pack/ai';
   import { Skeleton } from '~/lib/components/ui/skeleton';
   import UserControls from '~/components/pages/main_app/user/UserControls.svelte';
   import MainSitePageLink from '~/components/pages/main_app/MainSitePageLink.svelte';
+  import ProjectSwitcherMenu from '~/components/pages/main_app/ProjectSwitcherMenu.svelte';
   import { APP_SCOPE_ID_PROJECT_PORTAL } from '~/state/data_types';
   import { editing_mode, text_data_present } from '~/state/main_app/state.svelte';
   import { map_edit_dirty } from '~/state/map_edit_dirty.svelte';
@@ -108,36 +107,20 @@
               <span>{current_project.name}</span>
             </div>
           </Popover.Trigger>
-          <Popover.Content side="bottom" class="w-auto space-y-2 p-2">
-            <div class="space-y-2">
-              <button
-                class={cl_join(
-                  'block w-full gap-0 rounded-md px-1.5 py-1 text-center text-sm font-semibold',
-                  'border border-border bg-card text-foreground transition-colors duration-150 hover:border-accent hover:bg-accent hover:text-accent-foreground'
-                )}
-                onclick={() => {
-                  project_selected_popover = false;
-                  goto(`/`);
-                }}
-              >
-                <Icon src={AiOutlineHome} class="-mt-1 mr-1 size-5" />
-                Home
-              </button>
-              {#each project_registry.list as project (project.id)}
-                <button
-                  class={cl_join(
-                    'block w-full gap-0 rounded-md px-1.5 py-1 text-center text-sm font-semibold',
-                    project.key === project_key
-                      ? 'border border-primary bg-primary text-primary-foreground shadow'
-                      : 'border border-border bg-card text-foreground transition-colors duration-150 hover:border-accent hover:bg-accent hover:text-accent-foreground'
-                  )}
-                  onclick={() => {
-                    project_selected_popover = false;
-                    goto(`/${project.key}`);
-                  }}>{project.name}</button
-                >
-              {/each}
-            </div>
+          <Popover.Content side="bottom" class="w-auto p-2">
+            <ProjectSwitcherMenu
+              projects={project_registry.list}
+              current_project_key={project_key}
+              open={project_selected_popover}
+              on_home={() => {
+                project_selected_popover = false;
+                goto(`/`);
+              }}
+              on_select_project={(key) => {
+                project_selected_popover = false;
+                goto(`/${key}`);
+              }}
+            />
           </Popover.Content>
         </Popover.Root>
         {#if $text_data_present}

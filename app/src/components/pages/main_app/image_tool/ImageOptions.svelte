@@ -35,6 +35,7 @@
   import { Label } from '$lib/components/ui/label';
   import * as Select from '$lib/components/ui/select';
   import ImageDownloader from './ImageDownloader.svelte';
+  import ImagePresetControls from './ImagePresetControls.svelte';
   import { DEFAULT_SHLOKA_CONFIG_SHARED, get_image_font_info } from './settings';
   import { IoOptions } from 'svelte-icons-pack/io';
   import {
@@ -438,6 +439,8 @@
     Reset defaults
   </Button>
 </div>
+
+<ImagePresetControls />
 
 <Accordion.Root type="single" class="max-w-full">
   <Accordion.Item value="options">

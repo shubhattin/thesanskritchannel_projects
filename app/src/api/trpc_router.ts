@@ -8,6 +8,7 @@ import { cache_router } from './routes/cache';
 import { grammar_router } from './routes/grammar/grammar';
 import { text_router } from './routes/text';
 import { lekha_router } from './routes/site/lekha';
+import { image_tool_router } from './routes/image_tool';
 
 export const router = t.router({
   user: user_router,
@@ -18,6 +19,7 @@ export const router = t.router({
   cache: cache_router,
   grammar: grammar_router,
   text: text_router,
+  image_tool: image_tool_router,
   site: t.router({
     lekha: lekha_router
   })

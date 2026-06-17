@@ -59,7 +59,9 @@
         height="24"
         class="rounded-sm"
       />
-      <span class="text-sm font-semibold tracking-tight sm:inline">The Sanskrit Channel</span>
+      <span class="font-heading text-sm font-semibold tracking-tight sm:inline sm:text-base"
+        >The Sanskrit Channel</span
+      >
     </a>
 
     <!-- Desktop Navigation -->

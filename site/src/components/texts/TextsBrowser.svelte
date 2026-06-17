@@ -116,27 +116,36 @@
   {/if}
 
   {#if paginated_projects.length > 0}
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {#each paginated_projects as project (project.id)}
         <a
           href={`/${project.key}`}
-          class="card-hover-glow group flex flex-col rounded-xl border bg-card p-5 transition-colors duration-150 hover:border-primary/30"
+          class="group relative flex flex-col justify-between rounded-2xl border border-border bg-card/40 p-5 shadow-2xs backdrop-blur-xs transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-card/85 hover:shadow-sm"
         >
-          <div class="flex flex-col gap-1.5">
+          <!-- Subtle hover light effect -->
+          <div
+            class="pointer-events-none absolute inset-0 rounded-2xl bg-linear-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          ></div>
+
+          <div class="relative flex flex-col gap-2">
             <p
-              class="font-devanagari text-lg font-medium text-foreground transition-colors duration-150 group-hover:text-primary"
+              class="font-devanagari text-xl font-medium tracking-wide text-foreground transition-colors duration-300 group-hover:text-primary"
             >
               {project.name_dev}
             </p>
-            <p class="text-sm text-muted-foreground">{project.name}</p>
+            <p class="text-sm font-semibold text-muted-foreground/90">{project.name}</p>
             {#if project.description}
-              <p class="line-clamp-2 text-sm text-muted-foreground/80">{project.description}</p>
+              <p class="line-clamp-2 text-sm leading-relaxed text-muted-foreground/75">
+                {project.description}
+              </p>
             {/if}
           </div>
-          <div class="mt-4 flex items-center gap-1 text-xs font-medium text-primary/70">
-            <span>Read</span>
+          <div
+            class="relative mt-5 flex items-center gap-1 text-xs font-semibold text-primary/80 transition-colors duration-300 group-hover:text-primary"
+          >
+            <span>Read Text</span>
             <ArrowRight
-              class="size-3.5 transition-transform duration-150 group-hover:translate-x-0.5"
+              class="size-3.5 transition-transform duration-300 group-hover:translate-x-0.5"
               aria-hidden="true"
             />
           </div>

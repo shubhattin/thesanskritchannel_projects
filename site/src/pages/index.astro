@@ -11,6 +11,7 @@ import Youtube from '@lucide/svelte/icons/youtube';
 import ArrowRight from '@lucide/svelte/icons/arrow-right';
 import ExternalLink from '@lucide/svelte/icons/external-link';
 import Heart from '@lucide/svelte/icons/heart';
+import Calendar from '@lucide/svelte/icons/calendar';
 import Icon from '~/components/utils/Icon.astro';
 
 const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_options_site);
@@ -22,35 +23,47 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
 >
   <!-- Hero Section -->
   <section
-    class="relative overflow-hidden border-b border-border/30 bg-linear-to-br from-background via-accent/20 to-primary/5 outline-hidden"
+    class="relative overflow-hidden border-b border-border/30 bg-linear-to-br from-background via-accent/15 to-primary/5 py-6 outline-hidden"
   >
+    <!-- Background glowing spots -->
+    <div
+      class="pointer-events-none absolute top-1/4 left-1/2 -z-10 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-primary/10 blur-[100px] duration-5000"
+    >
+    </div>
+    <div
+      class="pointer-events-none absolute top-1/2 left-1/3 -z-10 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/20 blur-[80px]"
+    >
+    </div>
+
     <!-- Decorative background pattern -->
     <div
-      class="absolute inset-0 opacity-[0.03]"
+      class="absolute inset-0 opacity-[0.02] dark:opacity-[0.03]"
       style="background-image: radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0); background-size: 40px 40px;"
       aria-hidden="true"
     >
     </div>
 
-    <div class="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
-      <div class="mx-auto max-w-3xl text-center">
-        <!-- Sanskrit decorative quote -->
-        <!-- <p
-          class="font-devanagari mb-4 text-sm tracking-wider text-primary/60 sm:text-base"
-          aria-hidden="true"
-        >
-          ॐ वाङ्मे मनसि प्रतिष्ठिता
-        </p> -->
+    <div class="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:py-28">
+      <div class="mx-auto max-w-4xl text-center">
+        <!-- Sanskrit decorative quote badge -->
+        <!-- <div class="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5 text-xs font-semibold tracking-wide text-primary sm:text-sm animate-fade-in-up">
+          <Icon icon={Sparkles} class="size-3.5" />
+          <span class="font-devanagari">ॐ वाङ्मे मनसि प्रतिष्ठिता ।</span>
+        </div> -->
 
-        <h1 class="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-          <span class="bg-linear-to-r from-primary to-primary/70 bg-clip-text text-transparent"
-            >Explore Sanskrit</span
-          >{' '}
-          <!-- Literature -->
+        <h1
+          class="text-4xl font-extrabold tracking-tight text-foreground sm:text-6xl lg:text-7xl/none"
+        >
+          Explore
+          <span
+            class="mt-2 bg-linear-to-r from-primary via-amber-500 to-primary/80 bg-clip-text text-transparent"
+          >
+            Sanskrit
+          </span>
         </h1>
 
         <p
-          class="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg"
+          class="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-xl"
         >
           Explore authentic Sanskrit literature through a modern reading experience. Read texts in
           multiple Indian scripts, use powerful learning tools, and join a community dedicated to
@@ -60,7 +73,7 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
         <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <a
             href="/texts"
-            class="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-md transition-transform duration-150 hover:scale-[1.02] hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+            class="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-md transition-all duration-150 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/15 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             Explore Texts
           </a>
@@ -68,9 +81,12 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
             href="https://www.youtube.com/@TheSanskritChannel"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border px-8 text-sm font-semibold text-foreground transition-colors duration-150 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-background/50 px-8 text-sm font-semibold text-foreground transition-all duration-150 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
-            <Icon icon={Youtube} class="size-6 text-red-500" />
+            <Icon
+              icon={Youtube}
+              class="size-5 text-red-500 transition-transform duration-150 group-hover:scale-110"
+            />
             Watch on YouTube
           </a>
         </div>
@@ -81,43 +97,74 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
   <!-- Tools Showcase Section -->
   <section
     id="tools"
-    class="border-t border-border/30 bg-muted/30"
+    class="border-t border-b border-border/30 bg-linear-to-b from-muted/20 via-background to-muted/20"
     style="scroll-margin-top: 4rem;"
   >
-    <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-      <div class="mb-10 text-center">
-        <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Tools for Sanskrit Learning</h2>
-        <p class="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
-          Interactive tools designed to help you learn, practice, and experience Sanskrit in new
-          ways.
+    <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+      <div class="mb-12 text-center">
+        <!-- Section Badging -->
+        <div
+          class="mb-3 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[10px] font-bold tracking-wider text-primary uppercase"
+        >
+          Ecosystem
+        </div>
+        <h2 class="font-heading text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+          Tools for Sanskrit Learning
+        </h2>
+        <p class="mx-auto mt-3 max-w-2xl text-base text-muted-foreground">
+          Interactive web applications designed to help you learn, practice, and experience Sanskrit
+          in new, accessible ways.
         </p>
       </div>
 
-      <div class="grid gap-4 sm:grid-cols-2">
+      <div class="grid gap-6 sm:grid-cols-2">
         <!-- Padavali -->
         <a
           href="https://krida.thesanskritchannel.org/padavali"
           target="_blank"
           rel="noopener noreferrer"
-          class="card-hover-glow group animate-fade-in-up stagger-1 flex gap-4 rounded-xl border bg-card p-6 transition-colors duration-150 hover:border-primary/30"
+          class="group animate-fade-in-up stagger-1 relative flex gap-5 rounded-2xl border border-border/60 bg-card/45 p-6 shadow-2xs backdrop-blur-xs transition-all duration-300 before:absolute before:top-4 before:bottom-4 before:left-0 before:w-1 before:rounded-r-md before:bg-amber-500/20 before:transition-all before:duration-300 hover:-translate-y-1 hover:border-amber-500/30 hover:bg-card hover:shadow-md hover:before:top-0 hover:before:bottom-0 hover:before:bg-amber-500"
         >
-          <div class="flex size-10 shrink-0 overflow-hidden rounded-lg bg-primary/10 text-primary">
+          <div
+            class="pointer-events-none absolute inset-0 rounded-2xl bg-linear-to-br from-amber-500/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          >
+          </div>
+
+          <div
+            class="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/80 bg-background shadow-xs transition-all duration-300 group-hover:scale-105 group-hover:shadow-sm"
+          >
             <img
               src="/icons/apps/padavali_64.png"
               alt=""
-              width="40"
-              height="40"
-              class="h-full w-full object-contain"
+              width="44"
+              height="44"
+              class="h-full w-full object-contain p-1"
               aria-hidden="true"
             />
           </div>
-          <div class="min-w-0">
-            <div class="flex items-center gap-1.5">
-              <h3 class="font-semibold">Padavali</h3>
-              <Icon icon={ExternalLink} class="size-3.5 text-muted-foreground" />
+
+          <div class="relative min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <h3
+                  class="font-heading text-lg font-bold text-foreground transition-colors duration-300 group-hover:text-amber-500"
+                >
+                  Padavali
+                </h3>
+                <Icon
+                  icon={ExternalLink}
+                  class="size-3.5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                />
+              </div>
+              <span
+                class="inline-flex items-center rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-amber-500 uppercase"
+              >
+                Word Game
+              </span>
             </div>
-            <p class="mt-1 text-sm text-muted-foreground">
-              Sanskrit Word Game playable in multiple Indian scripts.
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Sanskrit Word Game playable in multiple Indian scripts. Challenge yourself and build
+              your vocabulary.
             </p>
           </div>
         </a>
@@ -127,25 +174,48 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
           href="https://svara.thesanskritchannel.org/"
           target="_blank"
           rel="noopener noreferrer"
-          class="card-hover-glow group animate-fade-in-up stagger-2 flex gap-4 rounded-xl border bg-card p-6 transition-colors duration-150 hover:border-primary/30"
+          class="group animate-fade-in-up stagger-2 relative flex gap-5 rounded-2xl border border-border/60 bg-card/45 p-6 shadow-2xs backdrop-blur-xs transition-all duration-300 before:absolute before:top-4 before:bottom-4 before:left-0 before:w-1 before:rounded-r-md before:bg-emerald-500/20 before:transition-all before:duration-300 hover:-translate-y-1 hover:border-emerald-500/30 hover:bg-card hover:shadow-md hover:before:top-0 hover:before:bottom-0 hover:before:bg-emerald-500"
         >
-          <div class="flex size-10 shrink-0 overflow-hidden rounded-lg bg-primary/10 text-primary">
+          <div
+            class="pointer-events-none absolute inset-0 rounded-2xl bg-linear-to-br from-emerald-500/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          >
+          </div>
+
+          <div
+            class="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/80 bg-background shadow-xs transition-all duration-300 group-hover:scale-105 group-hover:shadow-sm"
+          >
             <img
               src="/icons/apps/svara_64.png"
               alt=""
-              width="40"
-              height="40"
-              class="h-full w-full object-contain"
+              width="44"
+              height="44"
+              class="h-full w-full object-contain p-1"
               aria-hidden="true"
             />
           </div>
-          <div class="min-w-0">
-            <div class="flex items-center gap-1.5">
-              <h3 class="font-semibold">Svara Darshini</h3>
-              <Icon icon={ExternalLink} class="size-3.5 text-muted-foreground" />
+
+          <div class="relative min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <h3
+                  class="font-heading text-lg font-bold text-foreground transition-colors duration-300 group-hover:text-emerald-500"
+                >
+                  Svara Darshini
+                </h3>
+                <Icon
+                  icon={ExternalLink}
+                  class="size-3.5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                />
+              </div>
+              <span
+                class="inline-flex items-center rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-emerald-500 uppercase"
+              >
+                Chanting
+              </span>
             </div>
-            <p class="mt-1 text-sm text-muted-foreground">
-              Visualize and practice Vedic pitch levels for chanting.
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Visualize and practice Vedic pitch levels for chanting. Master the accent systems of
+              sacred chanting.
             </p>
           </div>
         </a>
@@ -155,25 +225,48 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
           href="https://akshara.thesanskritchannel.org/"
           target="_blank"
           rel="noopener noreferrer"
-          class="card-hover-glow group animate-fade-in-up stagger-3 flex gap-4 rounded-xl border bg-card p-6 transition-colors duration-150 hover:border-primary/30"
+          class="group animate-fade-in-up stagger-3 relative flex gap-5 rounded-2xl border border-border/60 bg-card/45 p-6 shadow-2xs backdrop-blur-xs transition-all duration-300 before:absolute before:top-4 before:bottom-4 before:left-0 before:w-1 before:rounded-r-md before:bg-violet-500/20 before:transition-all before:duration-300 hover:-translate-y-1 hover:border-violet-500/30 hover:bg-card hover:shadow-md hover:before:top-0 hover:before:bottom-0 hover:before:bg-violet-500"
         >
-          <div class="flex size-10 shrink-0 overflow-hidden rounded-lg bg-primary/10 text-primary">
+          <div
+            class="pointer-events-none absolute inset-0 rounded-2xl bg-linear-to-br from-violet-500/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          >
+          </div>
+
+          <div
+            class="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/80 bg-background shadow-xs transition-all duration-300 group-hover:scale-105 group-hover:shadow-sm"
+          >
             <img
               src="/icons/apps/akshara_64.png"
               alt=""
-              width="40"
-              height="40"
-              class="h-full w-full object-contain"
+              width="44"
+              height="44"
+              class="h-full w-full object-contain p-1"
               aria-hidden="true"
             />
           </div>
-          <div class="min-w-0">
-            <div class="flex items-center gap-1.5">
-              <h3 class="font-semibold">Akshara</h3>
-              <Icon icon={ExternalLink} class="size-3.5 text-muted-foreground" />
+
+          <div class="relative min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <h3
+                  class="font-heading text-lg font-bold text-foreground transition-colors duration-300 group-hover:text-violet-500"
+                >
+                  Akshara
+                </h3>
+                <Icon
+                  icon={ExternalLink}
+                  class="size-3.5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                />
+              </div>
+              <span
+                class="inline-flex items-center rounded-md border border-violet-500/20 bg-violet-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-violet-500 uppercase"
+              >
+                Learning
+              </span>
             </div>
-            <p class="mt-1 text-sm text-muted-foreground">
-              Interactive lessons to learn, read, and write Indian scripts.
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Interactive lessons to learn, read, and write Indian scripts. Trace letters and
+              understand pronunciation.
             </p>
           </div>
         </a>
@@ -183,25 +276,48 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
           href="https://lipilekhika.in/"
           target="_blank"
           rel="noopener noreferrer"
-          class="card-hover-glow group animate-fade-in-up stagger-4 flex gap-4 rounded-xl border bg-card p-6 transition-colors duration-150 hover:border-primary/30"
+          class="group animate-fade-in-up stagger-4 relative flex gap-5 rounded-2xl border border-border/60 bg-card/45 p-6 shadow-2xs backdrop-blur-xs transition-all duration-300 before:absolute before:top-4 before:bottom-4 before:left-0 before:w-1 before:rounded-r-md before:bg-sky-500/20 before:transition-all before:duration-300 hover:-translate-y-1 hover:border-sky-500/30 hover:bg-card hover:shadow-md hover:before:top-0 hover:before:bottom-0 hover:before:bg-sky-500"
         >
-          <div class="flex size-10 shrink-0 overflow-hidden rounded-lg bg-primary/10 text-primary">
+          <div
+            class="pointer-events-none absolute inset-0 rounded-2xl bg-linear-to-br from-sky-500/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          >
+          </div>
+
+          <div
+            class="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/80 bg-background shadow-xs transition-all duration-300 group-hover:scale-105 group-hover:shadow-sm"
+          >
             <img
               src="/icons/apps/lipi.svg"
               alt=""
-              width="40"
-              height="40"
-              class="h-full w-full object-contain"
+              width="44"
+              height="44"
+              class="h-full w-full object-contain p-1"
               aria-hidden="true"
             />
           </div>
-          <div class="min-w-0">
-            <div class="flex items-center gap-1.5">
-              <h3 class="font-semibold">Lipi Lekhika</h3>
-              <Icon icon={ExternalLink} class="size-3.5 text-muted-foreground" />
+
+          <div class="relative min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <h3
+                  class="font-heading text-lg font-bold text-foreground transition-colors duration-300 group-hover:text-sky-500"
+                >
+                  Lipi Lekhika
+                </h3>
+                <Icon
+                  icon={ExternalLink}
+                  class="size-3.5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                />
+              </div>
+              <span
+                class="inline-flex items-center rounded-md border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-sky-500 uppercase"
+              >
+                Converter
+              </span>
             </div>
-            <p class="mt-1 text-sm text-muted-foreground">
-              Convert text between Indian scripts with ease.
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Convert text between Indian scripts with ease. A robust transliteration engine
+              supporting major Indic scripts.
             </p>
           </div>
         </a>
@@ -223,27 +339,28 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
       </p>
     </div>
 
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {
         featured_projects.map((project, index) => (
           <a
             href={`/${project.key}`}
             class:list={[
-              'card-hover-glow group relative rounded-xl border bg-card p-4 transition-colors duration-150 hover:border-primary/30',
+              'group relative flex flex-col justify-between rounded-2xl border border-border bg-card/40 p-5 shadow-2xs backdrop-blur-xs transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-card/80 hover:shadow-md',
               `animate-fade-in-up stagger-${index + 1}`
             ]}
           >
-            <div class="space-y-1">
-              <p class="font-devanagari text-lg font-medium text-foreground transition-colors duration-150 group-hover:text-primary">
+            <div class="absolute inset-0 rounded-2xl bg-linear-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <div class="relative space-y-1.5">
+              <p class="font-devanagari text-xl font-medium tracking-wide text-foreground transition-colors duration-300 group-hover:text-primary">
                 {project.name_dev}
               </p>
               <p class="text-sm text-muted-foreground">{project.name}</p>
             </div>
-            <div class="mt-3 flex items-center gap-1 text-xs font-medium text-primary/70">
-              <span>Read</span>
+            <div class="relative mt-4 flex items-center gap-1 text-xs font-semibold text-primary/80 transition-colors duration-300 group-hover:text-primary">
+              <span>Read Text</span>
               <Icon
                 icon={ArrowRight}
-                class="size-3.5 transition-transform duration-150 group-hover:translate-x-0.5"
+                class="size-3.5 transition-transform duration-300 group-hover:translate-x-0.5"
               />
             </div>
           </a>
@@ -287,36 +404,39 @@ const latest_lekhas = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_
               <Icon icon={ArrowRight} class="size-4" />
             </a>
           </div>
-          <ul class="flex flex-col gap-3 sm:gap-4">
+          <ul class="flex flex-col gap-4">
             {latest_lekhas.map((post, index) => (
               <li>
                 <a
                   href={`/lekha/${post.url_slug}`}
                   class:list={[
-                    'card-hover-glow group block rounded-xl border border-border/60 bg-card/60 px-5 py-4 transition-colors duration-150 hover:border-primary/40 hover:bg-accent/30',
+                    'group relative block rounded-2xl border border-border bg-card/40 px-6 py-5 shadow-2xs backdrop-blur-xs transition-all duration-300 hover:border-primary/40 hover:bg-card/85 hover:shadow-sm',
                     `animate-fade-in-up stagger-${index + 1}`
                   ]}
                 >
-                  <h3 class="text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
-                    {post.title}
-                  </h3>
-                  {post.description && (
-                    <p class="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                      {post.description}
-                    </p>
-                  )}
-                  {post.published_at && (
-                    <time
-                      class="mt-3 block text-xs text-muted-foreground"
-                      datetime={post.published_at.toISOString()}
-                    >
-                      {post.published_at.toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </time>
-                  )}
+                  <div class="absolute inset-0 rounded-2xl bg-linear-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <div class="relative">
+                    <h3 class="font-heading text-lg font-semibold tracking-tight text-foreground transition-colors duration-300 group-hover:text-primary">
+                      {post.title}
+                    </h3>
+                    {post.description && (
+                      <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                        {post.description}
+                      </p>
+                    )}
+                    {post.published_at && (
+                      <div class="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+                        <Icon icon={Calendar} class="size-3.5 text-primary/60" />
+                        <time datetime={post.published_at.toISOString()}>
+                          {post.published_at.toLocaleDateString('en-IN', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </time>
+                      </div>
+                    )}
+                  </div>
                 </a>
               </li>
             ))}

@@ -1,4 +1,4 @@
-import { client } from '~/api/client';
+import { client, trpc } from '~/api/client';
 import { queryClient } from '~/state/queryClient';
 import { queryOptions } from '@tanstack/svelte-query';
 import { type editing_mode_type, type ProjectState, project_state } from './state.svelte';
@@ -81,7 +81,10 @@ export const compute_text_data_present = (
 };
 
 export const invalidate_project_list_queries = () =>
-  queryClient.invalidateQueries({ queryKey: ['project_list'] });
+  Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['project_list'] }),
+    queryClient.invalidateQueries(trpc.project.get_project_list.queryFilter())
+  ]);
 
 export const invalidate_project_map_queries = (project_id?: number) =>
   queryClient.invalidateQueries({

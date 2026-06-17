@@ -32,6 +32,7 @@
   </Tooltip.Trigger>
   <Tooltip.Content
     side="top"
+    showArrow={false}
     class="max-w-sm border border-border bg-popover text-xs leading-snug text-popover-foreground shadow-md"
   >
     {resolved}

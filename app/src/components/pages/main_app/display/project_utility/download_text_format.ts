@@ -29,6 +29,22 @@ export type ParseImportTextResult = {
   ignoredBlockCount: number;
 };
 
+const IMPORT_FORMAT_EXAMPLE = {
+  script: 'ॐ श्री परमात्मने नमः',
+  normal: 'AUM shrI paramAtmane namaH',
+  translation: 'I bow down to the supreme consciousness'
+} as const;
+
+export function get_import_format_example(options: ParseImportTextOptions): string {
+  const main = options.includesNormal
+    ? `${IMPORT_FORMAT_EXAMPLE.script}\n${IMPORT_FORMAT_EXAMPLE.normal}`
+    : IMPORT_FORMAT_EXAMPLE.script;
+
+  if (!options.includesTranslation) return main;
+
+  return `${main}\n\n${IMPORT_FORMAT_EXAMPLE.translation}`;
+}
+
 export const should_show_normal_transliteration = (textScript: script_list_type) =>
   !NON_BRAHMIC_SCRIPTS.has(textScript);
 

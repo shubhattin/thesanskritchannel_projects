@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   format_download_text,
   format_shloka_block,
+  get_import_format_example,
+  get_import_format_hint,
   MISSING_TRANSLATION,
   parse_import_text,
   should_show_normal_transliteration
@@ -235,5 +237,43 @@ Script two`,
       rows: [{ text: 'लिपि २', translation: 'Script two' }],
       ignoredBlockCount: 0
     });
+  });
+
+  it('builds import format example from checkbox options', () => {
+    expect(get_import_format_example({ includesNormal: true, includesTranslation: true }))
+      .toBe(`ॐ श्री परमात्मने नमः
+AUM shrI paramAtmane namaH
+
+I bow down to the supreme consciousness`);
+
+    expect(get_import_format_example({ includesNormal: true, includesTranslation: false })).toBe(
+      `ॐ श्री परमात्मने नमः
+AUM shrI paramAtmane namaH`
+    );
+
+    expect(get_import_format_example({ includesNormal: false, includesTranslation: true })).toBe(
+      `ॐ श्री परमात्मने नमः
+
+I bow down to the supreme consciousness`
+    );
+
+    expect(get_import_format_example({ includesNormal: false, includesTranslation: false })).toBe(
+      'ॐ श्री परमात्मने नमः'
+    );
+  });
+
+  it('builds import format hint from checkbox options', () => {
+    expect(get_import_format_hint({ includesNormal: false, includesTranslation: false })).toBe(
+      'Each block is one text entry. Separate multiple blocks with a blank line.'
+    );
+    expect(get_import_format_hint({ includesNormal: false, includesTranslation: true })).toBe(
+      'Each entry is a text block followed by its translation, separated by a blank line.'
+    );
+    expect(get_import_format_hint({ includesNormal: true, includesTranslation: false })).toBe(
+      'Each block has the same number of script and normal transliteration lines.'
+    );
+    expect(get_import_format_hint({ includesNormal: true, includesTranslation: true })).toBe(
+      'Each entry is script text, normal transliteration, then translation. Leave a blank line before the translation and between entries.'
+    );
   });
 });

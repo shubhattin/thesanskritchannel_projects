@@ -11,13 +11,15 @@ import {
   clear_server_project_info_cache,
   clear_server_project_map_cache,
   get_project_by_key,
-  get_project_info_by_id
+  get_project_info_by_id,
+  get_project_map_by_id
 } from '~/utils/project/list.server';
 import { notify_site_invalidate_project_map_cache } from '~/utils/cache.server/invalidate_site_project_cache.server';
-import { remove_vedic_svara_chihnAni } from '../../utils/normalize_text';
 import { and, eq, inArray, like, or, sql } from 'drizzle-orm';
 import { get_path_params } from '~/state/project_list';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
+import { SEARCH_MODE_ENUM } from '~/utils/search/search_mode';
+import { search_name_dev_in_maps } from '~/utils/search/search_name_dev.server';
 import {
   buildTextRowsForSave,
   cloneMapWithUpdatedLeafCounts,
@@ -53,13 +55,12 @@ export const search_text_in_texts_route = publicProcedure
           return filtered.length > 0 ? filtered : undefined;
         }),
       search_text: z.string().min(1).max(500),
+      mode: SEARCH_MODE_ENUM.default('text'),
       limit: z.int().min(1).max(100).default(DEFAULT_PAGE_LIMIT),
       offset: z.int().min(0).default(0)
     })
   )
-  .query(async ({ input: { project_keys, search_text, path_prefixes, limit, offset } }) => {
-    const conditions = [like(texts.text_search, `%${search_text}%`)];
-
+  .query(async ({ input: { project_keys, search_text, path_prefixes, mode, limit, offset } }) => {
     const project_ids: number[] = [];
     for (const key of project_keys) {
       const project = await get_project_by_key(key, cache_db_options_app);
@@ -68,6 +69,24 @@ export const search_text_in_texts_route = publicProcedure
       }
       project_ids.push(project.id);
     }
+
+    if (mode === 'name') {
+      const projects = await Promise.all(
+        project_ids.map(async (id) => ({
+          id,
+          map: await get_project_map_by_id(id, cache_db_options_app)
+        }))
+      );
+      return search_name_dev_in_maps({
+        projects,
+        search_text,
+        path_prefixes,
+        limit,
+        offset
+      });
+    }
+
+    const conditions = [like(texts.text_search, `%${search_text}%`)];
     conditions.push(inArray(project_paths.project_id, project_ids));
 
     if (path_prefixes && path_prefixes.length > 0) {

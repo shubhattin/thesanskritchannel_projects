@@ -1,5 +1,15 @@
 <script lang="ts">
   import { get_lang_from_id } from '$app/state/lang_list';
+  import {
+    filter_by_media_lang,
+    filter_by_media_tab,
+    getYoutubeId,
+    media_lang_tabs_list,
+    media_tab_counts,
+    media_type_tabs_list,
+    type MediaLangTab,
+    type MediaTab
+  } from '$app/components/pages/main_app/multimedia/multimedia_lib';
   import VideoIcon from '@lucide/svelte/icons/video';
   import HeadphonesIcon from '@lucide/svelte/icons/headphones';
   import FileTextIcon from '@lucide/svelte/icons/file-text';
@@ -7,6 +17,8 @@
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
   import PlayIcon from '@lucide/svelte/icons/play';
   import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+  import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
+  import LanguagesIcon from '@lucide/svelte/icons/languages';
   import { slide } from 'svelte/transition';
 
   type MediaLinkRow = {
@@ -25,75 +37,64 @@
 
   let { media_links = [], selected_lang_id = null }: Props = $props();
 
-  // Collapsible state
   let isOpen = $state(false);
-
-  // Active filter tab
-  let activeTab = $state<'all' | 'video' | 'audio' | 'pdf' | 'text'>('all');
-
-  // Track which videos are playing (clicked)
+  let activeTab = $state<MediaTab>('all');
+  let activeLangTab = $state<MediaLangTab>('all');
   let activeVideos = $state<Record<number, boolean>>({});
 
-  // Helper to extract YouTube video ID
-  function getYoutubeId(url: string): string | null {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return match && match[2].length === 11 ? match[2] : null;
-  }
-
-  // Helper to get language name
-  function getLangName(langId: number | null): string | null {
+  const getLangName = (langId: number | null): string | null => {
     if (langId === null) return null;
     try {
       return get_lang_from_id(langId);
     } catch {
       return null;
     }
-  }
+  };
 
-  // Count items per category
-  const counts = $derived({
-    all: media_links.length,
-    video: media_links.filter((item) => item.media_type === 'video').length,
-    audio: media_links.filter((item) => item.media_type === 'audio').length,
-    pdf: media_links.filter((item) => item.media_type === 'pdf').length,
-    text: media_links.filter((item) => item.media_type === 'text').length
-  });
+  const counts = $derived(media_tab_counts(media_links));
+  const tabsList = $derived(media_type_tabs_list(counts));
 
-  // Filtered list
-  const filteredLinks = $derived(
-    activeTab === 'all' ? media_links : media_links.filter((item) => item.media_type === activeTab)
+  const typeFilteredLinks = $derived(filter_by_media_tab(media_links, activeTab));
+  const langTabsList = $derived(
+    media_lang_tabs_list(typeFilteredLinks, (lang_id) => getLangName(lang_id))
   );
+  const filteredLinks = $derived(filter_by_media_lang(typeFilteredLinks, activeLangTab));
 
-  // Available tabs (only show tabs that have items)
-  const tabsList = $derived(
-    [
-      { id: 'all', label: 'All', count: counts.all },
-      { id: 'video', label: 'Videos', count: counts.video },
-      { id: 'audio', label: 'Audio', count: counts.audio },
-      { id: 'pdf', label: 'PDFs', count: counts.pdf },
-      { id: 'text', label: 'Links', count: counts.text }
-    ].filter((tab) => tab.count > 0)
-  );
-
-  // YouTube videos
   const youtubeVideos = $derived(
     filteredLinks.filter((item) => item.media_type === 'video' && getYoutubeId(item.link) !== null)
   );
 
-  // Other links
   const nonYoutubeLinks = $derived(
     filteredLinks.filter(
       (item) => !(item.media_type === 'video' && getYoutubeId(item.link) !== null)
     )
   );
+
+  $effect(() => {
+    if (
+      selected_lang_id !== null &&
+      media_links.some((item) => item.lang_id === selected_lang_id)
+    ) {
+      activeLangTab = selected_lang_id;
+    }
+  });
+
+  $effect(() => {
+    activeTab;
+    typeFilteredLinks;
+    if (
+      activeLangTab !== 'all' &&
+      !typeFilteredLinks.some((item) => item.lang_id === activeLangTab)
+    ) {
+      activeLangTab = 'all';
+    }
+  });
 </script>
 
 {#if media_links.length > 0}
   <div
     class="w-full rounded-2xl border border-border/60 bg-card/40 p-5 shadow-sm backdrop-blur-md transition-all duration-300"
   >
-    <!-- Header with Toggle Button -->
     <button
       onclick={() => (isOpen = !isOpen)}
       class="flex w-full items-center justify-between gap-4 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -122,34 +123,73 @@
 
     {#if isOpen}
       <div transition:slide={{ duration: 250 }} class="mt-4 space-y-4">
-        <!-- Categories Navigation (Only if there are multiple types) -->
         {#if tabsList.length > 1}
-          <div class="flex w-fit flex-wrap gap-1.5 rounded-lg bg-muted/50 p-1">
-            {#each tabsList as tab (tab.id)}
-              <button
-                onclick={() => (activeTab = tab.id as any)}
-                class="inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {activeTab ===
-                tab.id
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:bg-background/40 hover:text-foreground'}"
-              >
-                {tab.label}
-                <span
-                  class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold {activeTab ===
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              class="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground"
+            >
+              <LayoutGridIcon class="size-3.5" />
+              Type
+            </span>
+            <div class="flex w-fit flex-wrap gap-1.5 rounded-lg bg-muted/50 p-1">
+              {#each tabsList as tab (tab.id)}
+                <button
+                  type="button"
+                  onclick={() => (activeTab = tab.id)}
+                  class="inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {activeTab ===
                   tab.id
-                    ? 'bg-muted/70 text-foreground'
-                    : 'text-muted-foreground'}"
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-background/40 hover:text-foreground'}"
                 >
-                  {tab.count}
-                </span>
-              </button>
-            {/each}
+                  {tab.label}
+                  <span
+                    class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold {activeTab ===
+                    tab.id
+                      ? 'bg-muted/70 text-foreground'
+                      : 'text-muted-foreground'}"
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              {/each}
+            </div>
           </div>
         {/if}
 
-        <!-- Scrollable content container with max-height constraint -->
+        {#if langTabsList.length > 1}
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              class="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground"
+            >
+              <LanguagesIcon class="size-3.5" />
+              Language
+            </span>
+            <div class="flex w-fit flex-wrap gap-1.5 rounded-lg bg-muted/50 p-1">
+              {#each langTabsList as tab (tab.id)}
+                <button
+                  type="button"
+                  onclick={() => (activeLangTab = tab.id)}
+                  class="inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none {activeLangTab ===
+                  tab.id
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-background/40 hover:text-foreground'}"
+                >
+                  {tab.label}
+                  <span
+                    class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold {activeLangTab ===
+                    tab.id
+                      ? 'bg-muted/70 text-foreground'
+                      : 'text-muted-foreground'}"
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
         <div class="max-h-[480px] scrollbar-thin space-y-4 overflow-y-auto pr-1.5">
-          <!-- YouTube Embeds Grid (Only for Video type, rendered beautifully above the list) -->
           {#if youtubeVideos.length > 0}
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {#each youtubeVideos as video (video.id)}
@@ -213,7 +253,6 @@
             </div>
           {/if}
 
-          <!-- Other Links List -->
           {#if nonYoutubeLinks.length > 0}
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {#each nonYoutubeLinks as item (item.id)}
@@ -224,7 +263,6 @@
                   class="group flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-card p-3.5 shadow-sm transition-all duration-300 hover:border-primary/30 hover:bg-accent/10 hover:shadow-md"
                 >
                   <div class="flex min-w-0 items-center gap-3">
-                    <!-- Media Type Icon Box -->
                     <div
                       class="flex size-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-105
                       {item.media_type === 'video'
@@ -251,7 +289,6 @@
                       {/if}
                     </div>
 
-                    <!-- Media details -->
                     <div class="min-w-0 flex-1 space-y-0.5">
                       <p
                         class="truncate text-sm font-medium text-foreground transition-colors duration-150 group-hover:text-primary"
@@ -277,7 +314,6 @@
                     </div>
                   </div>
 
-                  <!-- External link action -->
                   <div
                     class="text-muted-foreground transition-colors duration-150 group-hover:text-primary"
                   >
@@ -286,6 +322,12 @@
                 </a>
               {/each}
             </div>
+          {/if}
+
+          {#if filteredLinks.length === 0}
+            <p class="text-sm text-muted-foreground">
+              No multimedia links match the current filters.
+            </p>
           {/if}
         </div>
       </div>

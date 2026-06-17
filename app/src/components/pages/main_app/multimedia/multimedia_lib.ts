@@ -19,6 +19,20 @@ export type DraftMediaItem = {
 };
 
 export type MediaTab = 'all' | media_list_type;
+export type MediaLangTab = 'all' | number;
+
+export type MediaLangTabItem =
+  | { id: 'all'; label: string; count: number }
+  | { id: number; label: string; count: number };
+
+export type MediaTypeTabItem = { id: MediaTab; label: string; count: number };
+
+const MEDIA_TYPE_TAB_LABELS: Record<media_list_type, string> = {
+  video: 'Videos',
+  audio: 'Audio',
+  pdf: 'PDFs',
+  text: 'Text'
+};
 
 export type MultimediaDiff = {
   creates: {
@@ -204,9 +218,52 @@ export function media_tab_counts(rows: MediaLinkRow[] | DraftMediaItem[]) {
   };
 }
 
+export function media_type_tabs_list(
+  counts: ReturnType<typeof media_tab_counts>
+): MediaTypeTabItem[] {
+  const tabs: MediaTypeTabItem[] = [
+    { id: 'all', label: 'All', count: counts.all },
+    { id: 'video', label: MEDIA_TYPE_TAB_LABELS.video, count: counts.video },
+    { id: 'audio', label: MEDIA_TYPE_TAB_LABELS.audio, count: counts.audio },
+    { id: 'pdf', label: MEDIA_TYPE_TAB_LABELS.pdf, count: counts.pdf },
+    { id: 'text', label: MEDIA_TYPE_TAB_LABELS.text, count: counts.text }
+  ];
+  return tabs.filter((tab) => tab.count > 0);
+}
+
 export function filter_by_media_tab<T extends { media_type: string }>(
   rows: T[],
   tab: MediaTab
 ): T[] {
   return tab === 'all' ? rows : rows.filter((row) => row.media_type === tab);
+}
+
+export function media_lang_tabs_list<T extends { lang_id: number | null }>(
+  rows: T[],
+  get_lang_name: (lang_id: number) => string | null
+): MediaLangTabItem[] {
+  const by_lang = new Map<number, number>();
+  for (const row of rows) {
+    if (row.lang_id !== null) {
+      by_lang.set(row.lang_id, (by_lang.get(row.lang_id) ?? 0) + 1);
+    }
+  }
+  if (by_lang.size <= 1) return [];
+
+  const lang_tabs = [...by_lang.entries()]
+    .map(([id, count]) => ({
+      id,
+      label: get_lang_name(id) ?? `Lang ${id}`,
+      count
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  return [{ id: 'all', label: 'All', count: rows.length }, ...lang_tabs];
+}
+
+export function filter_by_media_lang<T extends { lang_id: number | null }>(
+  rows: T[],
+  lang_tab: MediaLangTab
+): T[] {
+  return lang_tab === 'all' ? rows : rows.filter((row) => row.lang_id === lang_tab);
 }

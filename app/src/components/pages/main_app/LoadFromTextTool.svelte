@@ -299,8 +299,7 @@
                   >
                     <p class="text-xs font-medium text-foreground">Expected format</p>
                     <pre
-                      class="mt-2 rounded-md border border-border/60 bg-muted/50 p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-foreground"
-                    >{format_example}</pre>
+                      class="mt-2 rounded-md border border-border/60 bg-muted/50 p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-foreground">{format_example}</pre>
                   </Tooltip.Content>
                 </Tooltip.Root>
               </Tooltip.Provider>

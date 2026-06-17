@@ -240,9 +240,8 @@ Script two`,
   });
 
   it('builds import format example from checkbox options', () => {
-    expect(
-      get_import_format_example({ includesNormal: true, includesTranslation: true })
-    ).toBe(`ॐ श्री परमात्मने नमः
+    expect(get_import_format_example({ includesNormal: true, includesTranslation: true }))
+      .toBe(`ॐ श्री परमात्मने नमः
 AUM shrI paramAtmane namaH
 
 I bow down to the supreme consciousness`);
@@ -253,8 +252,8 @@ I bow down to the supreme consciousness`);
   });
 
   it('builds import format hint from checkbox options', () => {
-    expect(
-      get_import_format_hint({ includesNormal: true, includesTranslation: false })
-    ).toContain('script and normal');
+    expect(get_import_format_hint({ includesNormal: true, includesTranslation: false })).toContain(
+      'script and normal'
+    );
   });
 });

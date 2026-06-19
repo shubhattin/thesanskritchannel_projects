@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createQuery } from '@tanstack/svelte-query';
-  import { useTRPC } from '~/api/client';
+  import { project_list_q_options } from '~/state/main_app/data.svelte';
+  import { EMPTY_PROJECT_REGISTRY, type project_type } from '~/state/project_list';
   import { Skeleton } from '~/lib/components/ui/skeleton';
   import { Button } from '~/lib/components/ui/button';
   import * as InputGroup from '$lib/components/ui/input-group';
@@ -12,37 +13,59 @@
   import ListX from '@lucide/svelte/icons/list-x';
   import ProjectAddNewDialog from './settings/ProjectAddNewDialog.svelte';
   import { useSession } from '~/lib/auth-client';
+  import { filter_projects_by_search } from '~/utils/search/project_list_search';
+  import { create_project_name_dev_normal_cache } from '~/utils/search/project_name_dev_normal_cache';
 
   const session = useSession();
-  const trpc = useTRPC();
 
-  const DEFAULT_PAGE_SIZE = 15;
+  const PAGE_SIZE = 16;
   const is_admin = $derived($session.data?.user.role === 'admin');
   let add_project_open = $state(false);
 
   let page = $state(1);
-  let size = $state(DEFAULT_PAGE_SIZE);
-  let search_input = $state('');
-  let submitted_search = $state('');
+  let search_text = $state('');
   let listed_filter = $state<'all' | 'listed' | 'unlisted'>('all');
 
-  const listed_param = $derived(
-    is_admin ? (listed_filter === 'all' ? undefined : listed_filter === 'listed') : true
-  );
+  const project_list_q = createQuery(() => project_list_q_options());
+  const all_projects = $derived(project_list_q.data?.list ?? EMPTY_PROJECT_REGISTRY.list);
 
-  let project_list_q = createQuery(() =>
-    trpc.project.get_project_list.queryOptions({
-      page,
-      size,
-      search: submitted_search || undefined,
-      ...(is_admin ? { listed: listed_param } : {})
-    })
-  );
+  const name_dev_normal_cache = create_project_name_dev_normal_cache();
+  let name_dev_cache_version = $state(0);
 
-  const apply_search = () => {
-    submitted_search = search_input.trim();
-    page = 1;
+  $effect(() => {
+    const name_devs = all_projects.map((project) => project.name_dev);
+    void name_dev_normal_cache.ensure_all(name_devs).then(() => {
+      name_dev_cache_version++;
+    });
+  });
+
+  const matches_listed_filter = (project: project_type) => {
+    if (!is_admin || listed_filter === 'all') return true;
+    if (listed_filter === 'listed') return project.listed;
+    return !project.listed;
   };
+
+  const filtered_projects = $derived.by(() => {
+    void name_dev_cache_version;
+    const listed_projects = all_projects.filter(matches_listed_filter);
+    return filter_projects_by_search(listed_projects, search_text, (name_dev) =>
+      name_dev_normal_cache.get(name_dev)
+    );
+  });
+  const total_count = $derived(filtered_projects.length);
+  const total_pages = $derived(Math.max(1, Math.ceil(total_count / PAGE_SIZE)));
+  const current_page = $derived(Math.max(1, Math.min(page, total_pages)));
+
+  const paginated_projects = $derived(
+    filtered_projects.slice((current_page - 1) * PAGE_SIZE, current_page * PAGE_SIZE)
+  );
+
+  const showing_start = $derived(total_count === 0 ? 0 : (current_page - 1) * PAGE_SIZE + 1);
+  const showing_end = $derived(Math.min(current_page * PAGE_SIZE, total_count));
+
+  function reset_page() {
+    page = 1;
+  }
 </script>
 
 <div class="flex flex-col gap-3">
@@ -53,18 +76,11 @@
       </InputGroup.Addon>
       <InputGroup.Input
         placeholder="Search name, Sanskrit name, description…"
-        bind:value={search_input}
-        onkeydown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            apply_search();
-          }
-        }}
+        bind:value={search_text}
+        oninput={reset_page}
         aria-label="Search projects"
       />
     </InputGroup.Root>
-    <Button type="button" variant="secondary" class="shrink-0" onclick={apply_search}>Search</Button
-    >
 
     <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
       {#if is_admin}
@@ -119,17 +135,21 @@
     >
       Failed to load projects. Please refresh the page.
     </div>
-  {:else if project_list_q.data}
-    <p class="text-xs text-muted-foreground">
-      {project_list_q.data.total} project{project_list_q.data.total !== 1 ? 's' : ''} · Page
-      {project_list_q.data.page} of {project_list_q.data.pageCount}
-    </p>
+  {:else}
+    {#if total_count > 0}
+      <p class="text-xs text-muted-foreground">
+        Showing {showing_start}–{showing_end} of {total_count} project{total_count === 1 ? '' : 's'}
+        {#if total_pages > 1}
+          · Page {current_page} of {total_pages}
+        {/if}
+      </p>
+    {/if}
 
-    {#if project_list_q.data.list.length === 0}
+    {#if paginated_projects.length === 0}
       <p class="py-8 text-center text-sm text-muted-foreground">No projects match your filters.</p>
     {:else}
       <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4">
-        {#each project_list_q.data.list as project (project.id)}
+        {#each paginated_projects as project (project.id)}
           <a
             href={'/' + project.key}
             class="group block rounded-lg border border-border bg-card px-4 py-3 shadow-sm transition-colors duration-150 hover:border-secondary/80 hover:bg-muted/25 focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none"
@@ -172,10 +192,10 @@
       </div>
     {/if}
 
-    {#if project_list_q.data.pageCount > 1}
+    {#if total_pages > 1}
       <Pagination.Root
-        count={project_list_q.data.total}
-        perPage={size}
+        count={total_count}
+        perPage={PAGE_SIZE}
         bind:page
         class="border-t border-border/60 pt-3"
       >

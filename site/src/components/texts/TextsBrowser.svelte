@@ -14,6 +14,8 @@
     createTypingContext,
     handleTypingBeforeInputEvent
   } from 'lipilekhika/typing';
+  import { filter_projects_by_search } from '$app/utils/search/project_list_search';
+  import { create_project_name_dev_normal_cache } from '$app/utils/search/project_name_dev_normal_cache';
 
   const PAGE_SIZE = 16;
 
@@ -27,16 +29,22 @@
     includeInherentVowel: true
   });
 
-  const matches_query = (project: project_type, query: string) => {
-    const q = query.trim().toLowerCase();
-    if (!q) return true;
-    if (project.name.toLowerCase().includes(q)) return true;
-    if (project.name_dev.toLowerCase().includes(q)) return true;
-    if (project.description?.toLowerCase().includes(q)) return true;
-    return false;
-  };
+  const name_dev_normal_cache = create_project_name_dev_normal_cache();
+  let name_dev_cache_version = $state(0);
 
-  const filtered_projects = $derived(projects.filter((p) => matches_query(p, search_text)));
+  $effect(() => {
+    const name_devs = projects.map((project) => project.name_dev);
+    void name_dev_normal_cache.ensure_all(name_devs).then(() => {
+      name_dev_cache_version++;
+    });
+  });
+
+  const filtered_projects = $derived.by(() => {
+    void name_dev_cache_version;
+    return filter_projects_by_search(projects, search_text, (name_dev) =>
+      name_dev_normal_cache.get(name_dev)
+    );
+  });
   const total_count = $derived(filtered_projects.length);
   const total_pages = $derived(Math.max(1, Math.ceil(total_count / PAGE_SIZE)));
   const current_page = $derived(Math.max(1, Math.min(page, total_pages)));

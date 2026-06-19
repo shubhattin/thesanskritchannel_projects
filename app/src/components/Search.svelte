@@ -13,7 +13,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
-  import * as Select from '$lib/components/ui/select';
+  import * as Pagination from '$lib/components/ui/pagination';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { Switch } from '$lib/components/ui/switch';
   import * as RadioGroup from '$lib/components/ui/radio-group';
@@ -55,7 +55,8 @@
   let path_prefixes = $state<number[][] | undefined>(undefined);
 
   const LIMIT = 20;
-  let offset = $state(0);
+  let page = $state(1);
+  const offset = $derived((page - 1) * LIMIT);
 
   const project_list_q = createQuery(() => project_list_q_options());
 
@@ -113,7 +114,8 @@
       offset,
       LIMIT
     ],
-    enabled: false,
+    enabled:
+      started && submitted_search_text.trim().length >= 1 && submitted_project_keys.length > 0,
     placeholderData: (prev) => prev,
     queryFn: async () => {
       const q = submitted_search_text.trim();
@@ -158,7 +160,7 @@
     }
 
     started = true;
-    offset = 0;
+    page = 1;
     submitted_search_text = q;
     submitted_project_keys = selected_project_keys;
     submitted_path_prefixes = normalize_search_path_prefixes(path_prefixes);
@@ -173,25 +175,8 @@
     }
   };
 
-  const go_to_page = async (pageNumber: number) => {
-    if (!started) return;
-    const nextOffset = Math.max(0, (pageNumber - 1) * LIMIT);
-    offset = nextOffset;
-    await tick();
-    await search_q.refetch();
-  };
-
-  const go_to_offset = async (nextOffset: number) => {
-    if (!started) return;
-    offset = Math.max(0, nextOffset);
-    await tick();
-    await search_q.refetch();
-  };
-
-  const currentPage = $derived(Math.floor(offset / LIMIT) + 1);
-  const totalPages = $derived(
-    Math.max(0, Math.ceil(((search_q.data?.page.totalCount as number | undefined) ?? 0) / LIMIT))
-  );
+  const totalCount = $derived(search_q.data?.page.totalCount ?? 0);
+  const totalPages = $derived(Math.max(0, Math.ceil(totalCount / LIMIT)));
   const itemCount = $derived(search_q.data?.items.length ?? 0);
   const showingStart = $derived(itemCount === 0 ? 0 : started ? offset + 1 : 0);
   const showingEnd = $derived(itemCount === 0 ? 0 : offset + itemCount);
@@ -321,61 +306,51 @@
       >
         <div class="text-sm text-muted-foreground">
           {#if totalPages > 0}
-            <span class="font-medium">Page {currentPage} of {totalPages}</span>
+            <span class="font-medium">Page {page} of {totalPages}</span>
           {:else}
-            <span class="font-medium">Page {currentPage}</span>
+            <span class="font-medium">Page {page}</span>
           {/if}
           {#if search_q.data}
             <span class="mx-2 opacity-50">•</span>
             <span>
               Showing {showingStart}-{showingEnd}
-              {#if search_q.data.page.totalCount}
-                of <span class="font-medium">{search_q.data.page.totalCount}</span>
+              {#if totalCount}
+                of <span class="font-medium">{totalCount}</span>
               {/if}
             </span>
           {/if}
         </div>
-        <div class="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={offset === 0 || search_q.isFetching}
-            onclick={() => go_to_offset(offset - LIMIT)}
-          >
-            Prev
-          </Button>
-          {#if totalPages > 0}
-            <Select.Root
-              type="single"
-              value={currentPage.toString()}
-              onValueChange={(v) => {
-                const p = parseInt(v);
-                if (Number.isFinite(p)) go_to_page(p);
-              }}
-              disabled={search_q.isFetching}
-            >
-              <Select.Trigger class="w-28" aria-label="Jump to page">
-                Page {currentPage}
-              </Select.Trigger>
-              <Select.Content>
-                {#each Array(totalPages) as _, idx (idx)}
-                  <Select.Item value={(idx + 1).toString()} label={`Page ${idx + 1}`} />
+        {#if totalCount > LIMIT}
+          <Pagination.Root count={totalCount} perPage={LIMIT} bind:page>
+            {#snippet children({ pages, currentPage })}
+              <Pagination.Content>
+                <Pagination.Item>
+                  <Pagination.Previous disabled={search_q.isFetching} />
+                </Pagination.Item>
+                {#each pages as pageItem (pageItem.key)}
+                  {#if pageItem.type === 'ellipsis'}
+                    <Pagination.Item>
+                      <Pagination.Ellipsis />
+                    </Pagination.Item>
+                  {:else}
+                    <Pagination.Item>
+                      <Pagination.Link
+                        page={pageItem}
+                        isActive={currentPage === pageItem.value}
+                        disabled={search_q.isFetching}
+                      >
+                        {pageItem.value}
+                      </Pagination.Link>
+                    </Pagination.Item>
+                  {/if}
                 {/each}
-              </Select.Content>
-            </Select.Root>
-          {/if}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={search_q.isFetching ||
-              (totalPages > 0 ? currentPage >= totalPages : !search_q.data?.page.hasMore)}
-            onclick={() => go_to_offset(search_q.data?.page.nextOffset ?? offset + LIMIT)}
-          >
-            Next
-          </Button>
-        </div>
+                <Pagination.Item>
+                  <Pagination.Next disabled={search_q.isFetching} />
+                </Pagination.Item>
+              </Pagination.Content>
+            {/snippet}
+          </Pagination.Root>
+        {/if}
       </div>
     {/if}
 

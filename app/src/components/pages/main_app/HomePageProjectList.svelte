@@ -4,6 +4,7 @@
   import { Skeleton } from '~/lib/components/ui/skeleton';
   import { Button } from '~/lib/components/ui/button';
   import * as InputGroup from '$lib/components/ui/input-group';
+  import * as Pagination from '$lib/components/ui/pagination';
   import * as Select from '$lib/components/ui/select';
   import SearchIcon from '@lucide/svelte/icons/search';
   import Plus from '@lucide/svelte/icons/plus';
@@ -171,28 +172,37 @@
       </div>
     {/if}
 
-    <div class="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={!project_list_q.data.hasPrev}
-        onclick={() => (page = project_list_q.data!.page - 1)}
+    {#if project_list_q.data.pageCount > 1}
+      <Pagination.Root
+        count={project_list_q.data.total}
+        perPage={size}
+        bind:page
+        class="border-t border-border/60 pt-3"
       >
-        Previous
-      </Button>
-      <span class="text-xs text-muted-foreground">
-        Page {project_list_q.data.page} / {project_list_q.data.pageCount}
-      </span>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={!project_list_q.data.hasNext}
-        onclick={() => (page = project_list_q.data!.page + 1)}
-      >
-        Next
-      </Button>
-    </div>
+        {#snippet children({ pages, currentPage })}
+          <Pagination.Content>
+            <Pagination.Item>
+              <Pagination.Previous />
+            </Pagination.Item>
+            {#each pages as pageItem (pageItem.key)}
+              {#if pageItem.type === 'ellipsis'}
+                <Pagination.Item>
+                  <Pagination.Ellipsis />
+                </Pagination.Item>
+              {:else}
+                <Pagination.Item>
+                  <Pagination.Link page={pageItem} isActive={currentPage === pageItem.value}>
+                    {pageItem.value}
+                  </Pagination.Link>
+                </Pagination.Item>
+              {/if}
+            {/each}
+            <Pagination.Item>
+              <Pagination.Next />
+            </Pagination.Item>
+          </Pagination.Content>
+        {/snippet}
+      </Pagination.Root>
+    {/if}
   {/if}
 </div>

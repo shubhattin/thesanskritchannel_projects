@@ -106,6 +106,9 @@
   {#if total_count > 0}
     <p class="text-xs text-muted-foreground">
       Showing {showing_start}–{showing_end} of {total_count} text{total_count === 1 ? '' : 's'}
+      {#if total_pages > 1}
+        · Page {current_page} of {total_pages}
+      {/if}
     </p>
   {/if}
 
@@ -160,8 +163,13 @@
     </Empty.Root>
   {/if}
 
-  {#if total_count > PAGE_SIZE}
-    <Pagination.Root count={total_count} perPage={PAGE_SIZE} bind:page>
+  {#if total_pages > 1}
+    <Pagination.Root
+      count={total_count}
+      perPage={PAGE_SIZE}
+      bind:page
+      class="border-t border-border/60 pt-3"
+    >
       {#snippet children({ pages, currentPage })}
         <Pagination.Content>
           <Pagination.Item>

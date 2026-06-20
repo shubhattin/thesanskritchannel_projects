@@ -3,8 +3,6 @@
   import { createQuery } from '@tanstack/svelte-query';
   import { project_state, text_data_present } from '~/state/main_app/state.svelte';
   import {
-    DEFAULT_MAIN_TEXT_FONT_CONFIGS,
-    DEFAULT_TRANS_TEXT_FONT_CONFIGS,
     image_lang,
     image_rendering_state,
     image_selected_levels,
@@ -20,10 +18,8 @@
     image_shloka_data,
     image_trans_text,
     image_render_colors,
-    DEFAULT_IMAGE_TEXT_RENDER_COLORS,
     set_image_text_color,
-    translation_bounding_coords,
-    reset_image_drag_positions
+    translation_bounding_coords
   } from './image_state';
   import { LANG_LIST, LANG_LIST_IDS, lang_list_obj, type lang_list_type } from '~/state/lang_list';
   import Icon from '~/tools/Icon.svelte';
@@ -36,18 +32,16 @@
   import * as Select from '$lib/components/ui/select';
   import ImageDownloader from './ImageDownloader.svelte';
   import ImagePresetControls from './ImagePresetControls.svelte';
-  import { DEFAULT_SHLOKA_CONFIG_SHARED, get_image_font_info } from './settings';
   import { IoOptions } from 'svelte-icons-pack/io';
   import {
     current_shloka_type,
     shloka_configs,
     SPACE_ABOVE_REFERENCE_LINE,
-    DEFAULT_SHLOKA_CONFIG,
-    DEFAULT_TRANSLATION_BOUNDING_COORDS,
     SHLOKA_NUMBER_TYPES,
     type shloka_number_type
   } from './settings';
-  import { copy_plain_object, deepCopy } from '~/tools/kry';
+  import { deepCopy } from '~/tools/kry';
+  import { reset_to_loaded_preset } from './image_tool_preset_state';
   import { FiEdit, FiSave } from 'svelte-icons-pack/fi';
   import { CgClose } from 'svelte-icons-pack/cg';
   import { Button } from '$lib/components/ui/button';
@@ -107,13 +101,7 @@
     const text_row = image_text_data_q.data?.[$image_shloka];
     if (!text_row) return;
 
-    $shloka_configs = copy_plain_object(DEFAULT_SHLOKA_CONFIG);
-    $translation_bounding_coords = copy_plain_object(DEFAULT_TRANSLATION_BOUNDING_COORDS);
-    $SPACE_ABOVE_REFERENCE_LINE = DEFAULT_SHLOKA_CONFIG_SHARED.SPACE_ABOVE_REFERENCE_LINE;
-    $normal_text_font_config = copy_plain_object(get_image_font_info('Normal'));
-    $main_text_font_configs = copy_plain_object(DEFAULT_MAIN_TEXT_FONT_CONFIGS);
-    $trans_text_font_configs = copy_plain_object(DEFAULT_TRANS_TEXT_FONT_CONFIGS);
-    $image_render_colors = copy_plain_object(DEFAULT_IMAGE_TEXT_RENDER_COLORS);
+    reset_to_loaded_preset();
     $image_shloka_data = deepCopy(text_row);
     if (image_trans_data_q.data?.has($image_shloka)) {
       const translation = image_trans_data_q.data.get($image_shloka)!;
@@ -124,7 +112,6 @@
       $image_trans_text = '';
     }
     trans_textarea_disabled = true;
-    reset_image_drag_positions();
   };
 
   let shloka_defaults_initialized = false;
@@ -435,8 +422,9 @@
     variant="outline"
     size="sm"
     class="h-7 px-2 text-xs font-semibold"
+    title="Reset all settings to default values for current selected preset"
   >
-    Reset defaults
+    Reset
   </Button>
 </div>
 

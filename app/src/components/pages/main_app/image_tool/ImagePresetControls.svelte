@@ -24,7 +24,8 @@
     apply_image_tool_preset,
     collect_image_tool_preset,
     get_builtin_default_image_tool_preset,
-    image_tool_presets_equal
+    image_tool_presets_equal,
+    loaded_preset_snapshot
   } from './image_tool_preset_state';
   import {
     image_render_colors,
@@ -99,7 +100,6 @@
   });
 
   let selected_preset_id = $state(BUILTIN_IMAGE_TOOL_PRESET_ID);
-  let loaded_snapshot = $state<ImageToolPresetConfig>(get_builtin_default_image_tool_preset());
 
   let delete_confirm_open = $state(false);
   let update_confirm_open = $state(false);
@@ -125,7 +125,7 @@
     return collect_image_tool_preset();
   });
 
-  const is_dirty = $derived(!image_tool_presets_equal(current_config, loaded_snapshot));
+  const is_dirty = $derived(!image_tool_presets_equal(current_config, $loaded_preset_snapshot));
   const is_server_preset = $derived(selected_preset_id !== BUILTIN_IMAGE_TOOL_PRESET_ID);
   const is_pending = $derived(upsert_mut.isPending || delete_mut.isPending);
 
@@ -134,7 +134,7 @@
     if (!option) return;
     selected_preset_id = preset_id;
     apply_image_tool_preset(option.config);
-    loaded_snapshot = copy_plain_object(option.config);
+    loaded_preset_snapshot.set(copy_plain_object(option.config));
   };
 
   const handle_preset_change = (value: string | undefined) => {
@@ -150,7 +150,7 @@
         config: current_config,
         update: true
       });
-      loaded_snapshot = copy_plain_object(current_config);
+      loaded_preset_snapshot.set(copy_plain_object(current_config));
       update_confirm_open = false;
       toast.success('Preset updated');
     } catch {
@@ -171,7 +171,7 @@
         update: false
       });
       selected_preset_id = name;
-      loaded_snapshot = copy_plain_object(current_config);
+      loaded_preset_snapshot.set(copy_plain_object(current_config));
       save_new_open = false;
       new_preset_name = '';
       toast.success('Preset saved');

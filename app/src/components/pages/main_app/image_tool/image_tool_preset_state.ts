@@ -1,4 +1,4 @@
-import { get } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 import { copy_plain_object } from '~/tools/kry';
 import {
   DEFAULT_SHLOKA_CONFIG,
@@ -97,6 +97,14 @@ export function apply_image_tool_preset(config: ImageToolPresetConfig) {
     >[0]
   );
   reset_image_drag_positions();
+}
+
+export const loaded_preset_snapshot = writable<ImageToolPresetConfig>(
+  get_builtin_default_image_tool_preset()
+);
+
+export function reset_to_loaded_preset() {
+  apply_image_tool_preset(get(loaded_preset_snapshot));
 }
 
 export function image_tool_presets_equal(a: ImageToolPresetConfig, b: ImageToolPresetConfig) {

@@ -38,10 +38,13 @@
     shloka_configs,
     SPACE_ABOVE_REFERENCE_LINE,
     SHLOKA_NUMBER_TYPES,
+    MAX_SUPPORTED_SHLOKA_LINES,
+    is_supported_shloka_line_count,
     type shloka_number_type
   } from './settings';
   import { deepCopy } from '~/tools/kry';
   import { reset_to_loaded_preset } from './image_tool_preset_state';
+  import { split_shloka_lines } from './render_text';
   import { FiEdit, FiSave } from 'svelte-icons-pack/fi';
   import { CgClose } from 'svelte-icons-pack/cg';
   import { Button } from '$lib/components/ui/button';
@@ -95,6 +98,21 @@
     image_text_data_q.isSuccess &&
       !image_text_data_q.isFetching &&
       image_text_data_q.data?.[$image_shloka] != null
+  );
+
+  const shloka_line_count = $derived.by(() => {
+    const text = $image_shloka_data?.text;
+    if (!text || !image_text_data_q.isSuccess) return null;
+    return split_shloka_lines(
+      text,
+      $image_shloka,
+      $project_state?.project_key ?? '',
+      image_text_data_q.data?.length ?? 0
+    ).length;
+  });
+
+  const unsupported_shloka_line_count = $derived(
+    shloka_line_count != null && !is_supported_shloka_line_count(shloka_line_count)
   );
 
   const reset_func = () => {
@@ -691,7 +709,14 @@
 
         <Tabs.Content value="bounding" class="space-y-4 pt-1">
           <div class="rounded-lg border border-border bg-muted/30 px-4 py-3 text-center">
-            {#if $current_shloka_type}
+            {#if unsupported_shloka_line_count && shloka_line_count != null}
+              <p class="text-sm text-amber-800 dark:text-amber-200">
+                This shloka has
+                <span class="font-semibold">{shloka_line_count} lines</span>. Only up to
+                {MAX_SUPPORTED_SHLOKA_LINES} lines are supported — edit the shloka text to combine or
+                remove line breaks.
+              </p>
+            {:else if $current_shloka_type}
               <p class="text-sm text-muted-foreground">
                 Detected shloka type:
                 <span class="font-semibold text-foreground">

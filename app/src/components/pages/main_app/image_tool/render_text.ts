@@ -16,6 +16,7 @@ import {
 } from './image_state';
 import {
   IMAGE_RENDER_COLORS,
+  is_supported_shloka_line_count,
   shloka_configs,
   SPACE_ABOVE_REFERENCE_LINE,
   type shloka_type_config,
@@ -498,6 +499,25 @@ function compute_lines(
 
 // --- Main layout computation (replaces render_all_texts) ---
 
+export function split_shloka_lines(
+  text: string,
+  shloka_val: number,
+  project_key: string,
+  sarga_data_length: number
+): string[] {
+  if (project_key === 'ramayanam') {
+    if (shloka_val === 0) {
+      const words = text.split(' ');
+      return [words.slice(0, 3).join(' '), words.slice(3).join(' ')];
+    }
+    if (shloka_val === sarga_data_length - 1) {
+      const words = text.split(' ');
+      return [words.slice(0, 4).join(' '), words.slice(4).join(' ')];
+    }
+  }
+  return text.split('\n');
+}
+
 /**
  * Computes all text and line layout data for a given shloka.
  * This is the pure computation function — no side effects, no canvas mutation.
@@ -556,23 +576,20 @@ export const compute_all_layouts = async (
 
   const show_shloka_number = get(show_image_on_top_right);
 
-  // Ramayanam special word splitting + standard newline split
-  const shloka_lines = (() => {
-    if ($project_key === 'ramayanam') {
-      if (shloka_val === 0) {
-        const words = shloka_data.text.split(' ');
-        return [words.slice(0, 3).join(' '), words.slice(3).join(' ')];
-      } else if (shloka_val === $image_sarga_data.data!.length - 1) {
-        const words = shloka_data.text.split(' ');
-        return [words.slice(0, 4).join(' '), words.slice(4).join(' ')];
-      }
-    }
-    // We are not splitting words as it leads to inconsistent unexpected results
-    return shloka_data.text.split('\n');
-  })();
+  const shloka_lines = split_shloka_lines(
+    shloka_data.text,
+    shloka_val,
+    $project_key,
+    $image_sarga_data.data?.length ?? 0
+  );
 
-  const shloka_type = shloka_lines.length as keyof typeof $shloka_configs;
+  if (!is_supported_shloka_line_count(shloka_lines.length)) {
+    return null;
+  }
+
+  const shloka_type = shloka_lines.length as shloka_number_type;
   const shloka_config = $shloka_configs[shloka_type];
+  if (!shloka_config) return null;
 
   const colors = get(image_render_colors);
   const texts: KonvaTextConfig[] = [];

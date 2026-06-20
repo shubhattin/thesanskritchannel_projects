@@ -40,6 +40,12 @@ export type shloka_number_type = 1 | 2 | 3 | 4 | 5;
 
 export const SHLOKA_NUMBER_TYPES: shloka_number_type[] = [1, 2, 3, 4, 5];
 
+export const MAX_SUPPORTED_SHLOKA_LINES = 5;
+
+export function is_supported_shloka_line_count(line_count: number): boolean {
+  return line_count >= 1 && line_count <= MAX_SUPPORTED_SHLOKA_LINES;
+}
+
 export const DEFAULT_SHLOKA_CONFIG: Record<shloka_number_type, shloka_type_config> = {
   1: {
     bounding_coords: {
@@ -126,7 +132,7 @@ export const SPACE_ABOVE_REFERENCE_LINE = writable(
 );
 export let shloka_configs = writable(copy_plain_object(DEFAULT_SHLOKA_CONFIG));
 
-export let current_shloka_type = writable<shloka_number_type>();
+export let current_shloka_type = writable<shloka_number_type | undefined>();
 
 export type bounding_coords_type = {
   left: number;

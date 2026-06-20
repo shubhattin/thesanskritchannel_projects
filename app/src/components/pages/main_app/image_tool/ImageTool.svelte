@@ -40,8 +40,14 @@
   import { createQuery } from '@tanstack/svelte-query';
   import { get_script_for_lang, get_text_font_class } from '~/tools/font_tools';
   import { SCRIPT_LIST, type script_list_type } from '~/state/lang_list';
-  import { current_shloka_type, shloka_configs, SPACE_ABOVE_REFERENCE_LINE } from './settings';
-  import { compute_all_layouts, type CanvasLayoutResult } from './render_text';
+  import {
+    current_shloka_type,
+    shloka_configs,
+    SPACE_ABOVE_REFERENCE_LINE,
+    MAX_SUPPORTED_SHLOKA_LINES,
+    is_supported_shloka_line_count
+  } from './settings';
+  import { compute_all_layouts, split_shloka_lines, type CanvasLayoutResult } from './render_text';
   import ImageOptions from './ImageOptions.svelte';
   import { get_starting_index, project_map_q_options } from '~/state/main_app/data.svelte';
   import { transliterate_custom } from '~/tools/converter';
@@ -121,6 +127,21 @@
 
   const levels = $derived($project_state?.levels ?? 0);
   const level_names = $derived($project_state?.level_names ?? []);
+
+  const shloka_line_count = $derived.by(() => {
+    const text = $image_shloka_data?.text;
+    if (!text || !image_text_data_q.isSuccess) return null;
+    return split_shloka_lines(
+      text,
+      $image_shloka,
+      $project_state?.project_key ?? '',
+      image_text_data_q.data?.length ?? 0
+    ).length;
+  });
+
+  const unsupported_shloka_line_count = $derived(
+    shloka_line_count != null && !is_supported_shloka_line_count(shloka_line_count)
+  );
   type option_type = { text?: string; value?: number };
 
   const transliterate_options = async (options: option_type[], script: script_list_type) => {
@@ -247,7 +268,11 @@
       const result = await compute_all_layouts(null, $image_script, $image_lang);
       if (!cancelled) {
         layout_result = result;
-        if (result) current_shloka_type.set(result.shloka_type);
+        if (result) {
+          current_shloka_type.set(result.shloka_type);
+        } else if (unsupported_shloka_line_count) {
+          current_shloka_type.set(undefined);
+        }
         $image_rendering_state = false;
       }
     })();
@@ -384,7 +409,18 @@
     {/if}
   </div>
 
-  <div class="mt-2 flex justify-center space-y-2">
+  <div class="mt-2 flex flex-col items-center space-y-2">
+    {#if unsupported_shloka_line_count && shloka_line_count != null}
+      <p
+        class="max-w-3xl rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-900 dark:text-amber-200"
+        role="status"
+      >
+        This shloka has <strong>{shloka_line_count} lines</strong>. The image tool only supports up
+        to
+        <strong>{MAX_SUPPORTED_SHLOKA_LINES} lines</strong>. Open
+        <strong>Image options → Edit text</strong> and combine or remove line breaks so the shloka fits.
+      </p>
+    {/if}
     {#if browser && mounted && $scaling_factor > 0}
       <Stage
         bind:this={stage_component}

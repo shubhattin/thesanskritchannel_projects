@@ -18,7 +18,7 @@
 
   const link = $derived.by(() => {
     const state = $project_state;
-    if (!state?.project_key || !project_map_q.isSuccess) return null;
+    if (!state?.project_key || !state.listed || !project_map_q.isSuccess) return null;
     return build_main_site_project_link({
       project_key: state.project_key,
       map: project_map_q.data,

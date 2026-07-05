@@ -4,8 +4,7 @@ const loaded_fonts = new Set<string>();
 
 /**
  * Ensures the given font families are loaded via the browser's native font loading API.
- * Fonts must already be declared via CSS `@font-face` rules (see `app.scss`).
- * This replaces the old HarfBuzz binary font preloading.
+ * Bundled fonts must already be declared via CSS `@font-face` rules (see `app.scss`).
  */
 export async function ensure_fonts_loaded(
   families: { family: string; weight: 'normal' | 'bold' }[]
@@ -18,13 +17,22 @@ export async function ensure_fonts_loaded(
       const key = `${family}:${weight}`;
       try {
         await document.fonts.load(`${weight} 48px "${family}"`);
+        // System fonts may resolve before the canvas can use them — wait until ready.
+        await document.fonts.ready;
         loaded_fonts.add(key);
       } catch {
-        // Font may not exist or already be loaded — continue gracefully
         console.warn(`[font_loader] Could not load font: ${key}`);
       }
     })
   );
+}
+
+/** Load a single family (bundled or system-installed). */
+export async function ensure_family_loaded(
+  family: string,
+  weight: 'normal' | 'bold' = 'normal'
+): Promise<void> {
+  await ensure_fonts_loaded([{ family, weight }]);
 }
 
 /**

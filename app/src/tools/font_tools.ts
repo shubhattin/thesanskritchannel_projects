@@ -46,9 +46,21 @@ export const FONT_FAMILY_NAME = {
   NOTO_SERIF_KANNADA: 'Noto Serif Kannada',
   NOTO_SERIF_SINHALA: 'Noto Serif Sinhala',
   ISKOOLA_POTA: 'Iskoola Pota'
-};
+} as const;
 
-type fonts_type = keyof typeof FONT_FAMILY_NAME;
+export type fonts_type = keyof typeof FONT_FAMILY_NAME;
+
+export const BUNDLED_FONT_OPTIONS = (
+  Object.entries(FONT_FAMILY_NAME) as [fonts_type, string][]
+).map(([key, family]) => ({ key, family }));
+
+export function is_bundled_font_key(key: string): key is fonts_type {
+  return key in FONT_FAMILY_NAME;
+}
+
+export function bundled_font_family(key: fonts_type): string {
+  return FONT_FAMILY_NAME[key];
+}
 type supported_font_formats = 'ttf' | 'otf';
 
 const FONT_FILE_INFO: Record<

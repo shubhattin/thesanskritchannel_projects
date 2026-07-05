@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { get_total_count, project_map_q_options } from '~/state/main_app/data.svelte';
   import { createQuery } from '@tanstack/svelte-query';
   import { project_state, text_data_present } from '~/state/main_app/state.svelte';
@@ -15,6 +16,8 @@
     shaded_background_image_status,
     show_image_on_top_right,
     trans_text_font_configs,
+    system_font_overrides,
+    number_font_config,
     image_shloka_data,
     image_trans_text,
     image_render_colors,
@@ -40,6 +43,9 @@
     SHLOKA_NUMBER_TYPES,
     MAX_SUPPORTED_SHLOKA_LINES,
     is_supported_shloka_line_count,
+    is_image_font_at_default,
+    reset_image_font_to_default,
+    set_bundled_font_on_config,
     type shloka_number_type
   } from './settings';
   import { deepCopy } from '~/tools/kry';
@@ -51,11 +57,20 @@
   import { Input } from '$lib/components/ui/input';
   import { Textarea } from '$lib/components/ui/textarea';
   import ImageColorField from './ImageColorField.svelte';
+  import ImageFontPicker from './ImageFontPicker.svelte';
+  import { resolve_effective_font_family } from './font_resolve';
+  import { bundled_font_family, type fonts_type } from '~/tools/font_tools';
+  import type { ImageSystemFontRole } from './system_fonts';
+  import { preload_system_font_families } from './system_fonts';
   import {
     clearTypingContextOnKeyDown,
     createTypingContext,
     handleTypingBeforeInputEvent
   } from 'lipilekhika/typing';
+
+  onMount(() => {
+    void preload_system_font_families();
+  });
 
   const project_map_q = createQuery(() => project_map_q_options($project_state));
 
@@ -78,7 +93,7 @@
       : 0
   );
 
-  let settings_tab: 'spacing' | 'text' | 'colors' | 'bounding' = $state('spacing');
+  let settings_tab: 'spacing' | 'fonts' | 'text' | 'colors' | 'bounding' = $state('spacing');
   let bounding_tab: string = $state('1');
 
   let text_data = $state('');
@@ -115,11 +130,112 @@
     shloka_line_count != null && !is_supported_shloka_line_count(shloka_line_count)
   );
 
-  const reset_func = () => {
+  const main_font_config = $derived($main_text_font_configs[$image_script]);
+  const trans_font_config = $derived($trans_text_font_configs[current_lang]);
+
+  const main_effective_family = $derived(
+    resolve_effective_font_family(main_font_config, $system_font_overrides.main)
+  );
+  const normal_effective_family = $derived(
+    resolve_effective_font_family($normal_text_font_config, $system_font_overrides.normal)
+  );
+  const trans_effective_family = $derived(
+    resolve_effective_font_family(trans_font_config, $system_font_overrides.trans)
+  );
+
+  function clear_system_font(role: ImageSystemFontRole) {
+    system_font_overrides.update((overrides) => ({ ...overrides, [role]: null }));
+  }
+
+  function set_system_font(role: ImageSystemFontRole, family: string) {
+    system_font_overrides.update((overrides) => ({ ...overrides, [role]: family }));
+  }
+
+  function select_main_bundled(key: fonts_type) {
+    main_text_font_configs.update((configs) => ({
+      ...configs,
+      [$image_script]: set_bundled_font_on_config(configs[$image_script], key)
+    }));
+    clear_system_font('main');
+  }
+
+  function reset_main_font() {
+    main_text_font_configs.update((configs) => ({
+      ...configs,
+      [$image_script]: reset_image_font_to_default(configs[$image_script], $image_script, 'shloka')
+    }));
+    clear_system_font('main');
+  }
+
+  function select_normal_bundled(key: fonts_type) {
+    normal_text_font_config.update((config) => set_bundled_font_on_config(config, key));
+    clear_system_font('normal');
+  }
+
+  function reset_normal_font() {
+    normal_text_font_config.update((config) =>
+      reset_image_font_to_default(config, 'Normal', 'shloka')
+    );
+    clear_system_font('normal');
+  }
+
+  function select_trans_bundled(key: fonts_type) {
+    trans_text_font_configs.update((configs) => ({
+      ...configs,
+      [current_lang]: set_bundled_font_on_config(configs[current_lang], key)
+    }));
+    clear_system_font('trans');
+  }
+
+  function reset_trans_font() {
+    trans_text_font_configs.update((configs) => ({
+      ...configs,
+      [current_lang]: reset_image_font_to_default(configs[current_lang], current_lang, 'trans')
+    }));
+    clear_system_font('trans');
+  }
+
+  function select_number_main_bundled(key: fonts_type) {
+    number_font_config.update((config) => ({
+      ...config,
+      main_key: key,
+      main_family: bundled_font_family(key)
+    }));
+    clear_system_font('num_main');
+  }
+
+  function reset_number_main_font() {
+    number_font_config.update((config) => ({
+      ...config,
+      main_key: 'ADOBE_DEVANAGARI',
+      main_family: bundled_font_family('ADOBE_DEVANAGARI')
+    }));
+    clear_system_font('num_main');
+  }
+
+  function select_number_norm_bundled(key: fonts_type) {
+    number_font_config.update((config) => ({
+      ...config,
+      norm_key: key,
+      norm_family: bundled_font_family(key)
+    }));
+    clear_system_font('num_norm');
+  }
+
+  function reset_number_norm_font() {
+    number_font_config.update((config) => ({
+      ...config,
+      norm_key: 'ROBOTO',
+      norm_family: bundled_font_family('ROBOTO')
+    }));
+    clear_system_font('num_norm');
+  }
+
+  const reset_func = async () => {
     const text_row = image_text_data_q.data?.[$image_shloka];
     if (!text_row) return;
 
-    reset_to_loaded_preset();
+    await reset_to_loaded_preset();
     $image_shloka_data = deepCopy(text_row);
     if (image_trans_data_q.data?.has($image_shloka)) {
       const translation = image_trans_data_q.data.get($image_shloka)!;
@@ -460,6 +576,7 @@
           <Tabs.Trigger value="spacing" class="text-xs sm:text-sm"
             >Spacing &amp; scaling</Tabs.Trigger
           >
+          <Tabs.Trigger value="fonts" class="text-xs sm:text-sm">Fonts</Tabs.Trigger>
           <Tabs.Trigger value="text" class="text-xs sm:text-sm">Edit text</Tabs.Trigger>
           <Tabs.Trigger value="colors" class="text-xs sm:text-sm">Colours</Tabs.Trigger>
           <Tabs.Trigger value="bounding" class="text-xs sm:text-sm">Bounding boxes</Tabs.Trigger>
@@ -557,6 +674,128 @@
               'Text scaling',
               `Relative scale for ${$image_script} script`,
               scaling_fields
+            )}
+          </div>
+        </Tabs.Content>
+
+        <Tabs.Content value="fonts" class="space-y-4 pt-1">
+          <p
+            class="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
+          >
+            Project and system font choices are saved in presets. System fonts fall back to project
+            fonts on devices where they are not installed.
+          </p>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            {#snippet font_pickers()}
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <ImageFontPicker
+                  label="Main text"
+                  effectiveFamily={main_effective_family}
+                  bundledKey={$system_font_overrides.main ? null : main_font_config.key}
+                  systemFamily={$system_font_overrides.main}
+                  isDefault={is_image_font_at_default(main_font_config, $image_script, 'shloka') &&
+                    !$system_font_overrides.main}
+                  onSelectBundled={select_main_bundled}
+                  onSelectDefault={reset_main_font}
+                  onSelectSystem={(family) => set_system_font('main', family)}
+                />
+                <ImageFontPicker
+                  label="Normal text"
+                  effectiveFamily={normal_effective_family}
+                  bundledKey={$system_font_overrides.normal ? null : $normal_text_font_config.key}
+                  systemFamily={$system_font_overrides.normal}
+                  isDefault={is_image_font_at_default(
+                    $normal_text_font_config,
+                    'Normal',
+                    'shloka'
+                  ) && !$system_font_overrides.normal}
+                  onSelectBundled={select_normal_bundled}
+                  onSelectDefault={reset_normal_font}
+                  onSelectSystem={(family) => set_system_font('normal', family)}
+                />
+                <ImageFontPicker
+                  label="Translation"
+                  effectiveFamily={trans_effective_family}
+                  bundledKey={$system_font_overrides.trans ? null : trans_font_config.key}
+                  systemFamily={$system_font_overrides.trans}
+                  isDefault={is_image_font_at_default(trans_font_config, current_lang, 'trans') &&
+                    !$system_font_overrides.trans}
+                  onSelectBundled={select_trans_bundled}
+                  onSelectDefault={reset_trans_font}
+                  onSelectSystem={(family) => set_system_font('trans', family)}
+                />
+              </div>
+            {/snippet}
+            {@render option_panel(
+              'Text fonts',
+              `Font families for ${$image_script} script and ${current_lang} translation`,
+              font_pickers
+            )}
+
+            {#snippet number_font_pickers()}
+              <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                  <Switch
+                    id="use-custom-number-fonts"
+                    bind:checked={$number_font_config.use_custom}
+                  />
+                  <Label for="use-custom-number-fonts" class="cursor-pointer text-sm font-medium">
+                    Use custom number fonts
+                  </Label>
+                </div>
+                {#if $number_font_config.use_custom}
+                  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <ImageFontPicker
+                      label="Native number"
+                      effectiveFamily={resolve_effective_font_family(
+                        {
+                          key: $number_font_config.main_key,
+                          family: $number_font_config.main_family
+                        },
+                        $system_font_overrides.num_main
+                      )}
+                      bundledKey={$system_font_overrides.num_main
+                        ? null
+                        : $number_font_config.main_key}
+                      systemFamily={$system_font_overrides.num_main}
+                      isDefault={!$system_font_overrides.num_main &&
+                        $number_font_config.main_key === 'ADOBE_DEVANAGARI'}
+                      onSelectBundled={select_number_main_bundled}
+                      onSelectDefault={reset_number_main_font}
+                      onSelectSystem={(family) => set_system_font('num_main', family)}
+                    />
+                    <ImageFontPicker
+                      label="Romanized number"
+                      effectiveFamily={resolve_effective_font_family(
+                        {
+                          key: $number_font_config.norm_key,
+                          family: $number_font_config.norm_family
+                        },
+                        $system_font_overrides.num_norm
+                      )}
+                      bundledKey={$system_font_overrides.num_norm
+                        ? null
+                        : $number_font_config.norm_key}
+                      systemFamily={$system_font_overrides.num_norm}
+                      isDefault={!$system_font_overrides.num_norm &&
+                        $number_font_config.norm_key === 'ROBOTO'}
+                      onSelectBundled={select_number_norm_bundled}
+                      onSelectDefault={reset_number_norm_font}
+                      onSelectSystem={(family) => set_system_font('num_norm', family)}
+                    />
+                  </div>
+                {:else}
+                  <p class="text-xs text-muted-foreground">
+                    Numbers follow main text (native) and Roboto (romanized) by default.
+                  </p>
+                {/if}
+              </div>
+            {/snippet}
+            {@render option_panel(
+              'Number fonts',
+              'Top-right shloka number indicators',
+              number_font_pickers
             )}
           </div>
         </Tabs.Content>

@@ -592,9 +592,7 @@ export const compute_all_layouts = async (
     $system_font_overrides.trans,
     $system_font_overrides.num_main,
     $system_font_overrides.num_norm
-  ].filter(
-    (f): f is string => !!f && is_system_font_family_available(f, installed_system_fonts)
-  );
+  ].filter((f): f is string => !!f && is_system_font_family_available(f, installed_system_fonts));
 
   if (system_families.length > 0) {
     await ensure_fonts_loaded(

@@ -24,7 +24,11 @@ import {
   trans_text_font_configs,
   translation_bounding_coords
 } from './image_state';
-import { EMPTY_SYSTEM_FONT_OVERRIDES, sanitize_system_font_overrides, toast_missing_system_fonts } from './system_fonts';
+import {
+  EMPTY_SYSTEM_FONT_OVERRIDES,
+  sanitize_system_font_overrides,
+  toast_missing_system_fonts
+} from './system_fonts';
 import {
   DEFAULT_SYSTEM_FONT_PRESET,
   image_tool_preset_config_schema,

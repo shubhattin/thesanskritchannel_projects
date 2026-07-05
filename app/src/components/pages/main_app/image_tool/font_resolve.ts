@@ -3,7 +3,7 @@ import {
   type ImageFontConfig,
   type NumberFontConfig
 } from './settings';
-import { FONT_FAMILY_NAME, is_bundled_font_key, type fonts_type } from '~/tools/font_tools';
+import { FONT_FAMILY_NAME, is_bundled_font_key, bundled_font_weight, type fonts_type } from '~/tools/font_tools';
 import { is_system_font_family_available } from './system_fonts';
 
 export function resolve_effective_font_family(
@@ -33,11 +33,7 @@ export function resolve_number_font_families(
 ): { main: string; norm: string } {
   if (!number_config.use_custom) {
     return {
-      main: resolve_effective_font_family(
-        main_config,
-        system_overrides.main,
-        installed_families
-      ),
+      main: resolve_effective_font_family(main_config, system_overrides.main, installed_families),
       norm:
         system_overrides.num_norm &&
         is_system_font_family_available(system_overrides.num_norm, installed_families)
@@ -67,17 +63,19 @@ export function resolve_number_font_families(
 
 export function collect_font_load_keys(
   configs: { key: string; weight: 'normal' | 'bold' }[]
-): { family: string; weight: 'normal' | 'bold' }[] {
+): { family: string; weight: number | 'normal' | 'bold' }[] {
   const seen = new Set<string>();
-  const result: { family: string; weight: 'normal' | 'bold' }[] = [];
+  const result: { family: string; weight: number | 'normal' | 'bold' }[] = [];
 
   for (const { key, weight } of configs) {
     if (!is_bundled_font_key(key)) continue;
-    const family = FONT_FAMILY_NAME[key as fonts_type];
-    const id = `${family}:${weight}`;
+    const font_key = key as fonts_type;
+    const family = FONT_FAMILY_NAME[font_key];
+    const resolved_weight = bundled_font_weight(font_key, weight);
+    const id = `${family}:${resolved_weight}`;
     if (seen.has(id)) continue;
     seen.add(id);
-    result.push({ family, weight });
+    result.push({ family, weight: resolved_weight });
   }
 
   return result;

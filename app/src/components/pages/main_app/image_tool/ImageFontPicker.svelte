@@ -204,7 +204,9 @@
           class="mx-0.5 mt-1 flex items-start gap-1 rounded-md bg-amber-500/10 px-1.5 py-1 text-[10px] leading-snug text-amber-900 dark:text-amber-200"
         >
           <TriangleAlert class="mt-px size-2.5 shrink-0" />
-          <span>System fonts may be unavailable on other devices; project fonts are used as fallback.</span>
+          <span
+            >System fonts may be unavailable on other devices; project fonts are used as fallback.</span
+          >
         </div>
       </div>
     </Popover.Content>

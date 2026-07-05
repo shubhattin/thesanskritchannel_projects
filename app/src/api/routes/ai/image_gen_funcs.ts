@@ -1,113 +1,33 @@
-import type OpenAI from 'openai';
-import { fetch_post } from '~/tools/fetch';
+import { generateImage } from 'ai';
+import type { OpenAIImageModelGenerationOptions } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { image_gen_route_schema, type image_output_type } from './ai_types';
+import { openai } from './providers';
 
-const _make_image_dall_e = async (
+const IMAGE_SIZE = '1024x1024' as const;
+
+type image_model_type = z.infer<typeof image_gen_route_schema.input>['image_model'];
+
+const IMAGE_MODEL_OPTIONS: Record<image_model_type, OpenAIImageModelGenerationOptions> = {
+  'gpt-image-1': { quality: 'medium' },
+  'gpt-image-2': { quality: 'medium' }
+};
+
+const to_image_output = (
+  image_model: image_model_type,
   image_prompt: string,
-  number_of_images: number,
-  dall_e_version: 2 | 3
-) => {
-  const get_single_image = async () => {
-    try {
-      // getting some unexpected errors while using the `openai` npm module so using HTTP API instead
-      const req = await fetch_post('https://api.openai.com/v1/images/generations', {
-        json: {
-          model: `dall-e-${dall_e_version}`,
-          prompt: image_prompt,
-          n: 1,
-          size: '1024x1024',
-          quality: 'standard',
-          response_format: 'url'
-        } as OpenAI.Images.ImageGenerateParams,
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-        }
-      });
-      if (!req.ok) throw new Error('Failed to fetch image');
-      const raw_resp = (await req.json()) as OpenAI.Images.ImagesResponse;
-      // when returned as plain URL
-      const resp = z
-        .object({
-          created: z.int(),
-          data: z
-            .object({
-              revised_prompt: z.string().optional(),
-              url: z.string()
-            })
-            .array()
-        })
-        .parse(raw_resp);
-
-      return {
-        created: resp.created,
-        prompt: resp.data[0]?.revised_prompt ?? image_prompt,
-        url: resp.data[0].url,
-        out_format: 'url',
-        model: 'dall-e-3',
-        file_format: 'png'
-      } satisfies image_output_type;
-    } catch (e) {
-      console.error(e);
-      return null;
-    }
-  };
-  const responses = Array.from({ length: number_of_images }, () => get_single_image());
-  return await Promise.all(responses);
-};
-const make_image_dall_e_3 = (image_prompt: string, number_of_images: number) =>
-  _make_image_dall_e(image_prompt, number_of_images, 3);
-
-const make_image_gpt_1_image = async (image_prompt: string, number_of_images: number) => {
-  const get_single_image = async () => {
-    try {
-      const req = await fetch_post('https://api.openai.com/v1/images/generations', {
-        json: {
-          model: 'gpt-image-1',
-          prompt: image_prompt,
-          n: 1,
-          size: '1024x1024',
-          quality: 'medium'
-        } as OpenAI.Images.ImageGenerateParams,
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-        }
-      });
-      if (!req.ok) {
-        console.error('Error:', await req.text());
-        throw new Error('Failed to fetch image');
-      }
-      const raw_resp = (await req.json()) as OpenAI.Images.ImagesResponse;
-      // when returned as plain URL
-      const resp = z
-        .object({
-          created: z.int(),
-          data: z
-            .object({
-              revised_prompt: z.string().optional(),
-              b64_json: z.string()
-            })
-            .array()
-        })
-        .parse(raw_resp);
-
-      return {
-        created: resp.created,
-        prompt: resp.data[0]?.revised_prompt ?? image_prompt,
-        url: `data:image/png;base64,${resp.data[0].b64_json}`,
-        out_format: 'b64_json',
-        model: 'gpt-image-1',
-        file_format: 'png'
-      } satisfies image_output_type;
-    } catch (e) {
-      console.error(e);
-      return null;
-    }
-  };
-
-  const responses = Array.from({ length: number_of_images }, () => get_single_image());
-  return await Promise.all(responses);
-};
+  image_b64: string,
+  media_type: string,
+  revised_prompt: string | undefined,
+  created: number
+): image_output_type => ({
+  created,
+  prompt: revised_prompt ?? image_prompt,
+  url: `data:${media_type};base64,${image_b64}`,
+  out_format: 'b64_json',
+  model: image_model,
+  file_format: 'png'
+});
 
 export const gen_image_func = async (payload: z.infer<typeof image_gen_route_schema.input>) => {
   payload = image_gen_route_schema.input.parse(payload);
@@ -115,19 +35,39 @@ export const gen_image_func = async (payload: z.infer<typeof image_gen_route_sch
 
   try {
     const time_start = Date.now();
-    let response: (image_output_type | null)[] = null!;
-    if (image_model === 'dall-e-3')
-      response = await make_image_dall_e_3(image_prompt, number_of_images);
-    else response = await make_image_gpt_1_image(image_prompt, number_of_images);
-    // filter out any null responses to match the schema (no null elements)
-    const images = response.filter((img): img is image_output_type => img !== null);
+    const result = await generateImage({
+      model: openai.image(image_model),
+      prompt: image_prompt,
+      n: number_of_images,
+      size: IMAGE_SIZE,
+      providerOptions: {
+        openai: IMAGE_MODEL_OPTIONS[image_model] satisfies OpenAIImageModelGenerationOptions
+      }
+    });
+
+    const created = Math.trunc(result.responses[0]?.timestamp.getTime() ?? Date.now() / 1000);
+    const openai_metadata = result.providerMetadata.openai as
+      | { images?: { revisedPrompt?: string }[] }
+      | undefined;
+
+    const images = result.images.map((image, index) =>
+      to_image_output(
+        image_model,
+        image_prompt,
+        image.base64,
+        image.mediaType || 'image/png',
+        openai_metadata?.images?.[index]?.revisedPrompt,
+        created
+      )
+    );
+
     return {
       images,
       time_taken: Date.now() - time_start,
-      success: true
+      success: true as const
     };
   } catch (e) {
-    console.log(e);
-    return { success: false };
+    console.error(e);
+    return { success: false as const };
   }
 };

@@ -26,10 +26,7 @@
   import { onDestroy, onMount, untrack } from 'svelte';
   import { loadLocalConfig } from '../load_local_config';
   import { BsDownload, BsCopy, BsChevronDown, BsChevronUp } from 'svelte-icons-pack/bs';
-  import {
-    download_external_file_in_browser,
-    download_file_in_browser
-  } from '~/tools/download_file_browser';
+  import { download_file_in_browser } from '~/tools/download_file_browser';
   import { cl_join } from '~/tools/cl_join';
   import { OiStopwatch16 } from 'svelte-icons-pack/oi';
   import { BsClipboard2Check } from 'svelte-icons-pack/bs';
@@ -128,20 +125,26 @@
   });
   $effect(() => {
     if (show_image_time_status) {
-      const t_id = setTimeout(() => (show_image_time_status = false), 10 * 1000);
+      const t_id = setTimeout(
+        () => (show_image_time_status = false),
+        IMAGE_MODEL_GEN_TIME_S[image_model] * 1000
+      );
       return () => clearTimeout(t_id);
     }
   });
 
-  const ADDITIONAL_IMAGE_GEN_DELAY_S = 4;
+  type image_models_type = Parameters<typeof client.ai.gen_image.query>[0]['image_model'];
+  let image_model: image_models_type = $state('gpt-image-2');
 
-  type image_models_type = Parameters<
-    typeof client.ai.trigger_funcs.generate_image_trigger.query
-  >[0]['image_model'];
-  let image_model: image_models_type = $state('gpt-image-1');
-  const IMAGE_MODELS: Record<image_models_type, [string, string, number]> = {
-    'gpt-image-1': ['GPT', '$0.042 (₹3.5) / image', 23 + ADDITIONAL_IMAGE_GEN_DELAY_S],
-    'dall-e-3': ['DALL-E 3', '$0.04 (₹3.4) / image', 15 + ADDITIONAL_IMAGE_GEN_DELAY_S]
+  /** Expected image generation duration (seconds) — used for progress ring and interval cap. */
+  const IMAGE_MODEL_GEN_TIME_S: Record<image_models_type, number> = {
+    'gpt-image-1': 24,
+    'gpt-image-2': 35
+  };
+
+  const IMAGE_MODELS: Record<image_models_type, [label: string, cost: string]> = {
+    'gpt-image-2': ['GPT 2', '$0.042 (₹3.5) / image'],
+    'gpt-image-1': ['GPT 1', '$0.042 (₹3.5) / image']
   };
 
   let additional_prompt_info = $derived.by(() => {
@@ -196,7 +199,7 @@
     image_gen_time_taken = 0;
     image_gen_interval_obj = setInterval(() => {
       image_gen_time_taken++;
-      if (image_gen_time_taken >= Math.trunc(IMAGE_MODELS[image_model][2])) {
+      if (image_gen_time_taken >= IMAGE_MODEL_GEN_TIME_S[image_model]) {
         clearInterval(image_gen_interval_obj);
         return;
       }
@@ -269,8 +272,8 @@
           created: number;
           prompt: string;
           file_format: 'png';
-          model: 'dall-e-3';
-          out_format: 'url';
+          model: 'gpt-image-2';
+          out_format: 'b64_json';
         }[] = [];
         const permutation = get_permutations([1, 4], 1)[0];
         const { ai_sample_data } = await import('./ai_sample_data');
@@ -281,8 +284,8 @@
             created: new Date().getTime(),
             prompt: `Sample Image ${image_index + 1}`,
             file_format: 'png', // although its webp
-            model: 'dall-e-3',
-            out_format: 'url'
+            model: 'gpt-image-2',
+            out_format: 'b64_json'
           });
         }
         return { images: list, time_taken: 0 };
@@ -318,18 +321,16 @@
         });
     }
   });
-  type image_data_type = Awaited<
-    ReturnType<typeof client.ai.trigger_funcs.generate_image_trigger.query>
-  >['output_type']['images'][number];
+  type image_data_type = Extract<
+    Awaited<ReturnType<typeof client.ai.gen_image.query>>,
+    { success: true }
+  >['images'][number];
 
   const download_image = (image: image_data_type) => {
     if (!image) return;
     const file_name = `Image No. ${$index}`;
     if (load_ai_sample_data) download_file_in_browser(image.url, `${file_name}.webp`);
-    else if (image.out_format == 'url')
-      download_external_file_in_browser(image.url, `${file_name}.png`);
-    else if (image.out_format == 'b64_json')
-      download_file_in_browser(image.url, `${file_name}.png`);
+    else download_file_in_browser(image.url, `${file_name}.png`);
   };
 
   let copied_text_status = $state(false);
@@ -502,7 +503,7 @@
       </Button>
       {#if image_q.isFetching}
         <ProgressRing
-          value={(image_gen_time_taken / IMAGE_MODELS[image_model][2]) * 100}
+          value={(image_gen_time_taken / IMAGE_MODEL_GEN_TIME_S[image_model]) * 100}
           max={100}
           size="size-6"
           strokeWidth="15px"

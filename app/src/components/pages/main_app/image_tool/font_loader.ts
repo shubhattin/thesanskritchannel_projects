@@ -1,8 +1,4 @@
-import {
-  bundled_font_weight,
-  FONT_FAMILY_NAME,
-  type fonts_type
-} from '~/tools/font_tools';
+import { bundled_font_weight, FONT_FAMILY_NAME, type fonts_type } from '~/tools/font_tools';
 
 const loaded_fonts = new Set<string>();
 

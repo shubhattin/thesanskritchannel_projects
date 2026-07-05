@@ -40,7 +40,10 @@ export const load_font = async (font: string, weight: number | string = 'normal'
 export const FONT_FAMILY_NAME = {
   NIRMALA_UI: 'Nirmala UI',
   ADOBE_DEVANAGARI: 'Adobe Devanagari',
+  NOTO_SANS_DEVANAGARI: 'Noto Sans Devanagari',
+  NOTO_SERIF_DEVANAGARI: 'Noto Serif Devanagari',
   ROBOTO: 'Roboto',
+  HELVETICA: 'Helvetica',
   ADOBE_TELUGU: 'Adobe Telugu',
   NOTO_SERIF_TELUGU: 'Noto Serif Telugu',
   NOTO_SERIF_KANNADA: 'Noto Serif Kannada',
@@ -79,8 +82,20 @@ export const FONT_FILE_INFO: Record<fonts_type, FontFileInfo> = {
     file_name: 'AdobeDevanagari',
     kind: 'static'
   },
+  NOTO_SANS_DEVANAGARI: {
+    file_name: 'NotoSansDevanagari',
+    kind: 'variable'
+  },
+  NOTO_SERIF_DEVANAGARI: {
+    file_name: 'NotoSerifDevanagari',
+    kind: 'variable'
+  },
   ROBOTO: {
     file_name: 'Roboto',
+    kind: 'static'
+  },
+  HELVETICA: {
+    file_name: 'Helvetica',
     kind: 'static'
   },
   ADOBE_TELUGU: {

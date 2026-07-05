@@ -3,7 +3,12 @@ import {
   type ImageFontConfig,
   type NumberFontConfig
 } from './settings';
-import { FONT_FAMILY_NAME, is_bundled_font_key, bundled_font_weight, type fonts_type } from '~/tools/font_tools';
+import {
+  FONT_FAMILY_NAME,
+  is_bundled_font_key,
+  bundled_font_weight,
+  type fonts_type
+} from '~/tools/font_tools';
 import { is_system_font_family_available } from './system_fonts';
 
 export function resolve_effective_font_family(

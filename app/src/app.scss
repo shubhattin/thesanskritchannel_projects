@@ -16,6 +16,7 @@
 // Static bundled fonts — separate regular (400) and bold (700) woff2 files
 $fonts_static: (
   'Roboto': 'Roboto',
+  'Helvetica': 'Helvetica',
   'Nirmala': 'Nirmala UI',
   'AdobeDevanagari': 'Adobe Devanagari',
   'AdobeTelugu': 'Adobe Telugu',
@@ -41,6 +42,8 @@ $fonts_static: (
 
 // Variable bundled fonts — single woff2 per family with weight axis
 $fonts_variable: (
+  'NotoSansDevanagari': 'Noto Sans Devanagari',
+  'NotoSerifDevanagari': 'Noto Serif Devanagari',
   'NotoSerifTelugu': 'Noto Serif Telugu',
   'NotoSerifKannada': 'Noto Serif Kannada',
   'NotoSerifSinhala': 'Noto Serif Sinhala'

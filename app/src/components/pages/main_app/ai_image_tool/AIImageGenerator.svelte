@@ -76,7 +76,7 @@
     $index = get_starting_index($project_state.project_key, $selected_text_levels);
   });
   let index = writable(1);
-  let auto_gen_image = writable(false);
+  let auto_gen_image = writable(true);
   let shloka_text_prompt = writable('');
   let image_prompt = writable('');
   let load_ai_sample_data = $state(false);

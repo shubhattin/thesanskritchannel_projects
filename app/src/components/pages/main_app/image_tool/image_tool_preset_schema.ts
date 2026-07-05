@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { LANG_LIST, SCRIPT_LIST } from '~/state/lang_list';
+import { FONT_FAMILY_NAME } from '~/tools/font_tools';
 
 export const IMAGE_TOOL_PRESET_DB_PREFIX = 'image_tool_preset:';
 
@@ -73,9 +74,9 @@ const image_font_config_schema = z.object({
 export const DEFAULT_NUMBER_FONT_PRESET = {
   use_custom: false,
   main_key: 'ADOBE_DEVANAGARI',
-  main_family: 'Adobe Devanagari',
+  main_family: FONT_FAMILY_NAME.ADOBE_DEVANAGARI,
   norm_key: 'ROBOTO',
-  norm_family: 'Roboto'
+  norm_family: FONT_FAMILY_NAME.ROBOTO
 } as const;
 
 const number_font_config_schema = z.object({

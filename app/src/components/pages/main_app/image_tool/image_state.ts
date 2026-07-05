@@ -122,7 +122,7 @@ export const DEFAULT_TRANS_TEXT_FONT_CONFIGS = (() => {
 })();
 export let trans_text_font_configs = writable(copy_plain_object(DEFAULT_TRANS_TEXT_FONT_CONFIGS));
 
-/** Preview-only system font overrides — not persisted in presets. */
+/** Per-role system font family names; saved/restored via image tool presets. */
 export let system_font_overrides = writable<ImageSystemFontOverrides>(
   copy_plain_object(EMPTY_SYSTEM_FONT_OVERRIDES)
 );

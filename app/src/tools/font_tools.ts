@@ -30,13 +30,6 @@ export function get_script_for_lang(lang_id: number): script_list_type {
   return LANG_LIST[LANG_LIST_IDS.indexOf(lang_id)] as script_list_type;
 }
 
-/**
- * This loads the font family based on files defined in stylesheets
- */
-export const load_font = async (font: string, weight: number | string = 'normal') => {
-  await document.fonts.load(`${weight} 1em ${font}`);
-};
-
 export const FONT_FAMILY_NAME = {
   NIRMALA_UI: 'Nirmala UI',
   ADOBE_DEVANAGARI: 'Adobe Devanagari',
@@ -58,7 +51,7 @@ export const BUNDLED_FONT_OPTIONS = (
 ).map(([key, family]) => ({ key, family }));
 
 export function is_bundled_font_key(key: string): key is fonts_type {
-  return key in FONT_FAMILY_NAME;
+  return Object.hasOwn(FONT_FAMILY_NAME, key);
 }
 
 export function bundled_font_family(key: fonts_type): string {

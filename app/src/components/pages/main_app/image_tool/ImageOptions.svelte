@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { get_total_count, project_map_q_options } from '~/state/main_app/data.svelte';
   import { createQuery } from '@tanstack/svelte-query';
   import { project_state, text_data_present } from '~/state/main_app/state.svelte';
@@ -46,6 +45,7 @@
     is_image_font_at_default,
     reset_image_font_to_default,
     set_bundled_font_on_config,
+    DEFAULT_NUMBER_FONT_CONFIG,
     type shloka_number_type
   } from './settings';
   import { deepCopy } from '~/tools/kry';
@@ -61,16 +61,11 @@
   import { resolve_effective_font_family } from './font_resolve';
   import { bundled_font_family, type fonts_type } from '~/tools/font_tools';
   import type { ImageSystemFontRole } from './system_fonts';
-  import { preload_system_font_families } from './system_fonts';
   import {
     clearTypingContextOnKeyDown,
     createTypingContext,
     handleTypingBeforeInputEvent
   } from 'lipilekhika/typing';
-
-  onMount(() => {
-    void preload_system_font_families();
-  });
 
   const project_map_q = createQuery(() => project_map_q_options($project_state));
 
@@ -207,8 +202,8 @@
   function reset_number_main_font() {
     number_font_config.update((config) => ({
       ...config,
-      main_key: 'ADOBE_DEVANAGARI',
-      main_family: bundled_font_family('ADOBE_DEVANAGARI')
+      main_key: DEFAULT_NUMBER_FONT_CONFIG.main_key,
+      main_family: DEFAULT_NUMBER_FONT_CONFIG.main_family
     }));
     clear_system_font('num_main');
   }
@@ -225,8 +220,8 @@
   function reset_number_norm_font() {
     number_font_config.update((config) => ({
       ...config,
-      norm_key: 'ROBOTO',
-      norm_family: bundled_font_family('ROBOTO')
+      norm_key: DEFAULT_NUMBER_FONT_CONFIG.norm_key,
+      norm_family: DEFAULT_NUMBER_FONT_CONFIG.norm_family
     }));
     clear_system_font('num_norm');
   }

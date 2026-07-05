@@ -5,6 +5,7 @@
   import { BUNDLED_FONT_OPTIONS, type fonts_type } from '~/tools/font_tools';
   import {
     load_system_font_families,
+    preload_system_font_families,
     system_font_families,
     system_fonts_available,
     system_fonts_loading
@@ -53,6 +54,13 @@
   const filtered_system = $derived(
     system_list.filter((family) => family.toLowerCase().includes(search.trim().toLowerCase()))
   );
+  const SYSTEM_FONT_DISPLAY_CAP = 80;
+  const displayed_system = $derived(
+    search.trim().length >= 2 ? filtered_system : filtered_system.slice(0, SYSTEM_FONT_DISPLAY_CAP)
+  );
+  const system_list_capped = $derived(
+    filtered_system.length > SYSTEM_FONT_DISPLAY_CAP && search.trim().length < 2
+  );
   const system_unavailable = $derived(
     $system_font_families !== null && system_list.length === 0 && !system_fonts_available()
   );
@@ -86,6 +94,10 @@
     open = false;
     search = '';
   }
+
+  function on_trigger_pointerdown() {
+    void preload_system_font_families();
+  }
 </script>
 
 <div class="space-y-0.5">
@@ -108,6 +120,7 @@
     <Popover.Trigger
       type="button"
       {disabled}
+      onpointerdown={on_trigger_pointerdown}
       class={cn(
         'flex h-7 w-full items-center justify-between rounded-md border border-input bg-background px-2 text-[13px] shadow-xs ring-offset-background outline-none',
         'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
@@ -182,7 +195,7 @@
         {:else if system_empty}
           <p class="px-1.5 py-1 text-[11px] text-muted-foreground">No system fonts found.</p>
         {:else}
-          {#each filtered_system as family (family)}
+          {#each displayed_system as family (family)}
             <button
               type="button"
               class={cn(item_class, is_system_preview && systemFamily === family && 'bg-accent')}
@@ -198,6 +211,12 @@
               <span class="truncate">{family}</span>
             </button>
           {/each}
+          {#if system_list_capped}
+            <p class="px-1.5 py-1 text-[11px] text-muted-foreground">
+              Showing {SYSTEM_FONT_DISPLAY_CAP} of {filtered_system.length}. Type to search for
+              more.
+            </p>
+          {/if}
         {/if}
 
         <div

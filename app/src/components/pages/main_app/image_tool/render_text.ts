@@ -37,6 +37,7 @@ import { BASE_SCRIPT, project_state, text_data_present } from '~/state/main_app/
 import { queryClient } from '~/state/queryClient';
 import type { ScriptLangType } from 'lipilekhika';
 import { ensure_fonts_loaded, get_font_load_descriptors } from './font_loader';
+import { is_bundled_font_key, type fonts_type } from '~/tools/font_tools';
 import { load_system_font_families, is_system_font_family_available } from './system_fonts';
 import {
   collect_font_load_keys,
@@ -576,9 +577,17 @@ export const compute_all_layouts = async (
   ]);
 
   if ($number_font_config.use_custom) {
+    const number_main_key: fonts_type = is_bundled_font_key($number_font_config.main_key)
+      ? $number_font_config.main_key
+      : is_bundled_font_key(main_text_font_info.key)
+        ? main_text_font_info.key
+        : 'ADOBE_DEVANAGARI';
+    const number_norm_key: fonts_type = is_bundled_font_key($number_font_config.norm_key)
+      ? $number_font_config.norm_key
+      : 'ROBOTO';
     bundled_loads.push(
-      get_font_load_descriptors($number_font_config.main_key, 'bold'),
-      get_font_load_descriptors($number_font_config.norm_key, 'bold')
+      get_font_load_descriptors(number_main_key, 'bold'),
+      get_font_load_descriptors(number_norm_key, 'bold')
     );
   }
 

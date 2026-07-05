@@ -19,13 +19,13 @@ export async function ensure_fonts_loaded(
       const key = `${family}:${weight}`;
       try {
         await document.fonts.load(`${weight} 48px "${family}"`);
-        await document.fonts.ready;
         loaded_fonts.add(key);
       } catch {
         console.warn(`[font_loader] Could not load font: ${key}`);
       }
     })
   );
+  await document.fonts.ready;
 }
 
 /** Load a single family (bundled or system-installed). */

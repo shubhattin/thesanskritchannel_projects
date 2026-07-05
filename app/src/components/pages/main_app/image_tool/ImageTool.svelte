@@ -26,7 +26,9 @@
     fonts_loaded,
     show_image_on_top_right,
     translation_bounding_coords,
-    image_drag_reset_nonce
+    image_drag_reset_nonce,
+    system_font_overrides,
+    number_font_config
   } from './image_state';
   import {
     selected_text_levels,
@@ -255,7 +257,16 @@
       $image_trans_text,
       $show_image_on_top_right,
       $shloka_configs,
-      $translation_bounding_coords
+      $translation_bounding_coords,
+      JSON.stringify($main_text_font_configs),
+      JSON.stringify($normal_text_font_config),
+      JSON.stringify($trans_text_font_configs),
+      JSON.stringify($number_font_config),
+      $system_font_overrides.main,
+      $system_font_overrides.normal,
+      $system_font_overrides.trans,
+      $system_font_overrides.num_main,
+      $system_font_overrides.num_norm
     ].join('\x1e');
     void color_deps;
 

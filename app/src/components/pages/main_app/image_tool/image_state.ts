@@ -18,10 +18,13 @@ import { type shloka_list_type } from '~/state/data_types';
 import { copy_plain_object } from '~/tools/kry';
 import {
   DEFAULT_TRANSLATION_BOUNDING_COORDS,
+  DEFAULT_NUMBER_FONT_CONFIG,
   get_image_font_info,
   IMAGE_RENDER_COLORS,
-  type ImageTextRenderColors
+  type ImageTextRenderColors,
+  type NumberFontConfig
 } from './settings';
+import { EMPTY_SYSTEM_FONT_OVERRIDES, type ImageSystemFontOverrides } from './system_fonts';
 import type Konva from 'konva';
 
 /** Reference to the Konva Stage node — set by ImageTool once mounted. */
@@ -118,6 +121,15 @@ export const DEFAULT_TRANS_TEXT_FONT_CONFIGS = (() => {
   return res as image_font_config_type<lang_list_type>;
 })();
 export let trans_text_font_configs = writable(copy_plain_object(DEFAULT_TRANS_TEXT_FONT_CONFIGS));
+
+/** Per-role system font family names; saved/restored via image tool presets. */
+export let system_font_overrides = writable<ImageSystemFontOverrides>(
+  copy_plain_object(EMPTY_SYSTEM_FONT_OVERRIDES)
+);
+
+export let number_font_config = writable<NumberFontConfig>(
+  copy_plain_object(DEFAULT_NUMBER_FONT_CONFIG)
+);
 
 export let translation_bounding_coords = writable(
   copy_plain_object(DEFAULT_TRANSLATION_BOUNDING_COORDS)

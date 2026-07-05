@@ -1,6 +1,13 @@
 import { copy_plain_object } from '~/tools/kry';
 import { writable } from 'svelte/store';
-import { get_font_family_and_size, type font_config_type } from '~/tools/font_tools';
+import {
+  bundled_font_family,
+  FONT_FAMILY_NAME,
+  get_font_family_and_size,
+  is_bundled_font_key,
+  type font_config_type,
+  type fonts_type
+} from '~/tools/font_tools';
 import type { script_and_lang_list_type } from '~/state/lang_list';
 
 /** Canvas line strokes and text fill colors used by the image tool renderer. */
@@ -226,19 +233,35 @@ const DEFAULT_IMAGE_CONFIG = {
   space_between_main_and_normal: 1
 };
 
+export type ImageFontConfig = {
+  family: string;
+  key: string;
+  size: number;
+  new_line_spacing: number;
+  space_between_main_and_normal: number;
+  text_for_min_height: string | null;
+  font_overridden: boolean;
+};
+
 export const get_image_font_info = (
   script: script_and_lang_list_type,
   image_context: 'shloka' | 'trans' | null = null!
-) => {
-  let { family, key, size } = get_font_family_and_size(script);
+): ImageFontConfig => {
+  const base = get_font_family_and_size(script);
+  let key = base.key;
+  let family: string = base.family;
+  let { size } = base;
   let { new_line_spacing, space_between_main_and_normal } = DEFAULT_IMAGE_CONFIG;
   let text_for_min_height: string | null = null;
 
-  // Image based options
+  const apply_font_key = (font_key: fonts_type) => {
+    key = font_key;
+    family = bundled_font_family(font_key);
+  };
+
   let image_main_conf = SHLOKA_FONT_CONFIG[script];
   if (image_main_conf) {
-    // Override the default font size
-    if (image_main_conf.font) key = image_main_conf.font;
+    if (image_main_conf.font) apply_font_key(image_main_conf.font);
     if (image_main_conf.size) size = image_main_conf.size;
     if (image_main_conf.space_between_main_and_normal)
       space_between_main_and_normal = image_main_conf.space_between_main_and_normal;
@@ -247,7 +270,7 @@ export const get_image_font_info = (
   }
   image_main_conf = TRANS_FONT_CONFIG[script];
   if (image_context === 'trans' && image_main_conf) {
-    if (image_main_conf.font) key = image_main_conf.font;
+    if (image_main_conf.font) apply_font_key(image_main_conf.font);
     if (image_main_conf.size) size = image_main_conf.size;
     if (image_main_conf.new_line_spacing) new_line_spacing = image_main_conf.new_line_spacing;
     if (image_main_conf.text_for_min_line_height)
@@ -260,6 +283,65 @@ export const get_image_font_info = (
     size,
     new_line_spacing,
     space_between_main_and_normal,
-    text_for_min_height
+    text_for_min_height,
+    font_overridden: false
   };
+};
+
+export function resolve_bundled_font_family(
+  config: Pick<ImageFontConfig, 'key' | 'family'>
+): string {
+  if (is_bundled_font_key(config.key)) return bundled_font_family(config.key);
+  return config.family;
+}
+
+export function is_image_font_at_default(
+  config: ImageFontConfig,
+  script: script_and_lang_list_type,
+  image_context: 'shloka' | 'trans'
+): boolean {
+  const defaults = get_image_font_info(script, image_context);
+  return config.key === defaults.key && !config.font_overridden;
+}
+
+export function set_bundled_font_on_config(
+  config: ImageFontConfig,
+  font_key: fonts_type
+): ImageFontConfig {
+  return {
+    ...config,
+    key: font_key,
+    family: bundled_font_family(font_key),
+    font_overridden: true
+  };
+}
+
+export function reset_image_font_to_default(
+  config: ImageFontConfig,
+  script: script_and_lang_list_type,
+  image_context: 'shloka' | 'trans'
+): ImageFontConfig {
+  const defaults = get_image_font_info(script, image_context);
+  return {
+    ...config,
+    key: defaults.key,
+    family: defaults.family,
+    font_overridden: false
+  };
+}
+
+export type NumberFontConfig = {
+  use_custom: boolean;
+  main_key: fonts_type;
+  main_family: string;
+  norm_key: fonts_type;
+  norm_family: string;
+};
+
+export const DEFAULT_NUMBER_FONT_CONFIG: NumberFontConfig = {
+  use_custom: false,
+  main_key: 'ADOBE_DEVANAGARI',
+  main_family: FONT_FAMILY_NAME.ADOBE_DEVANAGARI,
+  norm_key: 'ROBOTO',
+  norm_family: FONT_FAMILY_NAME.ROBOTO
 };

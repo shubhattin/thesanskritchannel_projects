@@ -30,66 +30,120 @@ export function get_script_for_lang(lang_id: number): script_list_type {
   return LANG_LIST[LANG_LIST_IDS.indexOf(lang_id)] as script_list_type;
 }
 
-/**
- * This loads the font family based on files defined in stylesheets
- */
-export const load_font = async (font: string) => {
-  await document.fonts.load(`1em ${font}`);
-};
-
 export const FONT_FAMILY_NAME = {
   NIRMALA_UI: 'Nirmala UI',
   ADOBE_DEVANAGARI: 'Adobe Devanagari',
+  NOTO_SANS_DEVANAGARI: 'Noto Sans Devanagari',
+  NOTO_SERIF_DEVANAGARI: 'Noto Serif Devanagari',
   ROBOTO: 'Roboto',
+  HELVETICA: 'Helvetica',
   ADOBE_TELUGU: 'Adobe Telugu',
   NOTO_SERIF_TELUGU: 'Noto Serif Telugu',
   NOTO_SERIF_KANNADA: 'Noto Serif Kannada',
   NOTO_SERIF_SINHALA: 'Noto Serif Sinhala',
   ISKOOLA_POTA: 'Iskoola Pota'
+} as const;
+
+export type fonts_type = keyof typeof FONT_FAMILY_NAME;
+
+export const BUNDLED_FONT_OPTIONS = (
+  Object.entries(FONT_FAMILY_NAME) as [fonts_type, string][]
+).map(([key, family]) => ({ key, family }));
+
+export function is_bundled_font_key(key: string): key is fonts_type {
+  return Object.hasOwn(FONT_FAMILY_NAME, key);
+}
+
+export function bundled_font_family(key: fonts_type): string {
+  return FONT_FAMILY_NAME[key];
+}
+
+/** Static fonts use separate regular/bold files; variable fonts use one woff2 with a weight axis. */
+export type FontAssetKind = 'static' | 'variable';
+
+export type FontFileInfo = {
+  file_name: string;
+  kind: FontAssetKind;
 };
 
-type fonts_type = keyof typeof FONT_FAMILY_NAME;
-type supported_font_formats = 'ttf' | 'otf';
-
-const FONT_FILE_INFO: Record<
-  fonts_type,
-  {
-    file_name: string;
-    file_type: supported_font_formats;
-  }
-> = {
+export const FONT_FILE_INFO: Record<fonts_type, FontFileInfo> = {
   NIRMALA_UI: {
     file_name: 'Nirmala',
-    file_type: 'ttf'
+    kind: 'static'
   },
   ADOBE_DEVANAGARI: {
     file_name: 'AdobeDevanagari',
-    file_type: 'otf'
+    kind: 'static'
+  },
+  NOTO_SANS_DEVANAGARI: {
+    file_name: 'NotoSansDevanagari',
+    kind: 'variable'
+  },
+  NOTO_SERIF_DEVANAGARI: {
+    file_name: 'NotoSerifDevanagari',
+    kind: 'variable'
   },
   ROBOTO: {
     file_name: 'Roboto',
-    file_type: 'ttf'
+    kind: 'static'
+  },
+  HELVETICA: {
+    file_name: 'Helvetica',
+    kind: 'static'
   },
   ADOBE_TELUGU: {
     file_name: 'AdobeTelugu',
-    file_type: 'otf'
+    kind: 'static'
   },
   NOTO_SERIF_TELUGU: {
     file_name: 'NotoSerifTelugu',
-    file_type: 'ttf'
+    kind: 'variable'
   },
   NOTO_SERIF_KANNADA: {
     file_name: 'NotoSerifKannada',
-    file_type: 'ttf'
+    kind: 'variable'
   },
   NOTO_SERIF_SINHALA: {
     file_name: 'NotoSerifSinhala',
-    file_type: 'ttf'
+    kind: 'variable'
   },
   ISKOOLA_POTA: {
     file_name: 'IskoolaPota',
-    file_type: 'ttf'
+    kind: 'static'
   }
+};
+
+export function is_variable_bundled_font(font: fonts_type): boolean {
+  return FONT_FILE_INFO[font].kind === 'variable';
+}
+
+/** CSS / Font Loading API weight for bundled fonts. */
+export function bundled_font_weight(
+  font: fonts_type,
+  variant: 'regular' | 'bold' | 'normal'
+): number | 'normal' | 'bold' {
+  const is_bold = variant === 'bold';
+  if (is_variable_bundled_font(font)) {
+    return is_bold ? 700 : 400;
+  }
+  return is_bold ? 'bold' : 'normal';
+}
+
+export function get_font_asset_path(font: fonts_type, variant: 'regular' | 'bold'): string {
+  const { file_name, kind } = FONT_FILE_INFO[font];
+  if (kind === 'variable') {
+    return `variable/woff2/${file_name}.woff2`;
+  }
+  if (variant === 'bold') {
+    return `bold/woff2/${file_name}B.woff2`;
+  }
+  return `regular/woff2/${file_name}.woff2`;
+}
+
+export const get_font_url = (font: fonts_type, type: 'regular' | 'bold') => {
+  if (!browser) return '';
+  const path = get_font_asset_path(font, type);
+  return new URL(`/src/fonts/${path}`, import.meta.url).href;
 };
 
 export type font_config_type = Record<
@@ -99,23 +153,6 @@ export type font_config_type = Record<
     size?: number;
   }
 >;
-
-export const get_font_url = (font: fonts_type, type: 'regular' | 'bold') => {
-  if (!browser) return '';
-  const font_file_info = FONT_FILE_INFO[font];
-
-  const font_url = {
-    regular: new URL(
-      `/src/fonts/regular/${font_file_info.file_name}.${font_file_info.file_type}`,
-      import.meta.url
-    ).href,
-    bold: new URL(
-      `/src/fonts/bold/${font_file_info.file_name}B.${font_file_info.file_type}`,
-      import.meta.url
-    ).href
-  }[type];
-  return font_url;
-};
 
 /**
  * Default font config for main web app

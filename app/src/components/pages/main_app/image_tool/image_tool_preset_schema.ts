@@ -1,5 +1,11 @@
+/**
+ * As this data is also stored in db as jsonb so chnaging the same should always
+ * be a incremental chnage so old schemas dont become invalid to parse
+ */
+
 import { z } from 'zod';
 import { LANG_LIST, SCRIPT_LIST } from '~/state/lang_list';
+import { FONT_FAMILY_NAME } from '~/tools/font_tools';
 
 export const IMAGE_TOOL_PRESET_DB_PREFIX = 'image_tool_preset:';
 
@@ -59,7 +65,43 @@ const image_font_config_schema = z.object({
   size: z.number(),
   new_line_spacing: z.number(),
   space_between_main_and_normal: z.number(),
-  text_for_min_height: z.string().nullable()
+  // optional + default: older rows may omit these keys
+  text_for_min_height: z.string().nullable().optional().default(null),
+  font_overridden: z.boolean().optional().default(false)
+});
+
+/** Default number-font block for presets missing the key entirely (pre-font-picker rows). */
+export const DEFAULT_NUMBER_FONT_PRESET = {
+  use_custom: false,
+  main_key: 'ADOBE_DEVANAGARI',
+  main_family: FONT_FAMILY_NAME.ADOBE_DEVANAGARI,
+  norm_key: 'ROBOTO',
+  norm_family: FONT_FAMILY_NAME.ROBOTO
+} as const;
+
+const number_font_config_schema = z.object({
+  use_custom: z.boolean().optional().default(false),
+  main_key: z.string().optional().default(DEFAULT_NUMBER_FONT_PRESET.main_key),
+  main_family: z.string().optional().default(DEFAULT_NUMBER_FONT_PRESET.main_family),
+  norm_key: z.string().optional().default(DEFAULT_NUMBER_FONT_PRESET.norm_key),
+  norm_family: z.string().optional().default(DEFAULT_NUMBER_FONT_PRESET.norm_family)
+});
+
+/** Saved system font family names per text role (null = use project/bundled font). */
+export const DEFAULT_SYSTEM_FONT_PRESET = {
+  main: null,
+  normal: null,
+  trans: null,
+  num_main: null,
+  num_norm: null
+} as const;
+
+const system_font_overrides_schema = z.object({
+  main: z.string().nullable().optional().default(null),
+  normal: z.string().nullable().optional().default(null),
+  trans: z.string().nullable().optional().default(null),
+  num_main: z.string().nullable().optional().default(null),
+  num_norm: z.string().nullable().optional().default(null)
 });
 
 const main_script_enum = z.enum(MAIN_SCRIPT_KEYS);
@@ -74,7 +116,9 @@ export const image_tool_preset_config_schema = z.object({
   image_render_colors: image_text_render_colors_schema,
   main_text_font_configs: z.record(main_script_enum, image_font_config_schema),
   normal_text_font_config: image_font_config_schema,
-  trans_text_font_configs: z.record(lang_enum, image_font_config_schema)
+  trans_text_font_configs: z.record(lang_enum, image_font_config_schema),
+  number_font_config: number_font_config_schema.default({ ...DEFAULT_NUMBER_FONT_PRESET }),
+  system_font_overrides: system_font_overrides_schema.default({ ...DEFAULT_SYSTEM_FONT_PRESET })
 });
 
 export type ImageToolPresetConfig = z.infer<typeof image_tool_preset_config_schema>;

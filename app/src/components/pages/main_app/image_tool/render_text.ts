@@ -12,7 +12,9 @@ import {
   image_render_colors,
   image_trans_text,
   show_image_on_top_right,
-  translation_bounding_coords
+  translation_bounding_coords,
+  system_font_overrides,
+  number_font_config
 } from './image_state';
 import {
   IMAGE_RENDER_COLORS,
@@ -31,11 +33,17 @@ import {
   type script_list_type
 } from '~/state/lang_list';
 import { transliterate_custom } from '~/tools/converter';
-import { FONT_FAMILY_NAME } from '~/tools/font_tools';
 import { BASE_SCRIPT, project_state, text_data_present } from '~/state/main_app/state.svelte';
 import { queryClient } from '~/state/queryClient';
 import type { ScriptLangType } from 'lipilekhika';
 import { ensure_fonts_loaded, get_font_load_descriptors } from './font_loader';
+import { is_bundled_font_key, type fonts_type } from '~/tools/font_tools';
+import { load_system_font_families, is_system_font_family_available } from './system_fonts';
+import {
+  collect_font_load_keys,
+  resolve_effective_font_family,
+  resolve_number_font_families
+} from './font_resolve';
 
 // --- Types ---
 
@@ -535,6 +543,8 @@ export const compute_all_layouts = async (
   const $main_text_font_configs = get(main_text_font_configs);
   const $trans_text_font_configs = get(trans_text_font_configs);
   const $normal_text_font_config = get(normal_text_font_config);
+  const $system_font_overrides = get(system_font_overrides);
+  const $number_font_config = get(number_font_config);
   const $SPACE_ABOVE_REFERENCE_LINE = get(SPACE_ABOVE_REFERENCE_LINE);
   const $translation_bounding_coords = get(translation_bounding_coords);
   const project = get(project_state);
@@ -559,13 +569,48 @@ export const compute_all_layouts = async (
     )
   };
 
-  // Ensure fonts are loaded via browser's native API
-  await ensure_fonts_loaded([
-    get_font_load_descriptors(norm_text_font_info.key, 'normal'),
-    get_font_load_descriptors(main_text_font_info.key, 'bold'),
-    get_font_load_descriptors('ROBOTO', 'bold'),
-    get_font_load_descriptors(trans_text_font_info.key, 'normal')
+  const bundled_loads = collect_font_load_keys([
+    { key: norm_text_font_info.key, weight: 'normal' },
+    { key: main_text_font_info.key, weight: 'bold' },
+    { key: 'ROBOTO', weight: 'bold' },
+    { key: trans_text_font_info.key, weight: 'normal' }
   ]);
+
+  if ($number_font_config.use_custom) {
+    const number_main_key: fonts_type = is_bundled_font_key($number_font_config.main_key)
+      ? $number_font_config.main_key
+      : is_bundled_font_key(main_text_font_info.key)
+        ? main_text_font_info.key
+        : 'ADOBE_DEVANAGARI';
+    const number_norm_key: fonts_type = is_bundled_font_key($number_font_config.norm_key)
+      ? $number_font_config.norm_key
+      : 'ROBOTO';
+    bundled_loads.push(
+      get_font_load_descriptors(number_main_key, 'bold'),
+      get_font_load_descriptors(number_norm_key, 'bold')
+    );
+  }
+
+  await ensure_fonts_loaded(bundled_loads);
+
+  const installed_system_fonts = await load_system_font_families();
+
+  const system_families = [
+    $system_font_overrides.main,
+    $system_font_overrides.normal,
+    $system_font_overrides.trans,
+    $system_font_overrides.num_main,
+    $system_font_overrides.num_norm
+  ].filter((f): f is string => !!f && is_system_font_family_available(f, installed_system_fonts));
+
+  if (system_families.length > 0) {
+    await ensure_fonts_loaded(
+      system_families.flatMap((family) => [
+        { family, weight: 'normal' as const },
+        { family, weight: 'bold' as const }
+      ])
+    );
+  }
 
   // Shloka data: editor stores for preview/current shloka, query data for bulk exports
   const selected_shloka = get(image_shloka);
@@ -594,11 +639,32 @@ export const compute_all_layouts = async (
   const colors = get(image_render_colors);
   const texts: KonvaTextConfig[] = [];
 
-  // Font families from keys
-  const mainFontFamily = FONT_FAMILY_NAME[main_text_font_info.key];
-  const normFontFamily = FONT_FAMILY_NAME[norm_text_font_info.key];
-  const transFontFamily = FONT_FAMILY_NAME[trans_text_font_info.key];
-  const robotoFamily = FONT_FAMILY_NAME['ROBOTO'];
+  const mainFontFamily = resolve_effective_font_family(
+    main_text_font_info,
+    $system_font_overrides.main,
+    installed_system_fonts
+  );
+  const normFontFamily = resolve_effective_font_family(
+    norm_text_font_info,
+    $system_font_overrides.normal,
+    installed_system_fonts
+  );
+  const transFontFamily = resolve_effective_font_family(
+    trans_text_font_info,
+    $system_font_overrides.trans,
+    installed_system_fonts
+  );
+  const numberFonts = resolve_number_font_families(
+    $number_font_config,
+    main_text_font_info,
+    norm_text_font_info,
+    {
+      main: $system_font_overrides.main,
+      num_main: $system_font_overrides.num_main,
+      num_norm: $system_font_overrides.num_norm
+    },
+    installed_system_fonts
+  );
 
   const [main_texts, norm_texts] = await Promise.all([
     transliterate_custom(shloka_lines, BASE_SCRIPT, image_script as ScriptLangType),
@@ -681,7 +747,7 @@ export const compute_all_layouts = async (
 
       const numMainResult = compute_fitted_text({
         text: number_main_text,
-        fontFamily: mainFontFamily,
+        fontFamily: numberFonts.main,
         fontStyle: 'bold',
         baseFontSize: 42,
         fontScale: main_text_font_info.size * 0.8,
@@ -701,7 +767,7 @@ export const compute_all_layouts = async (
       const normNumText = norm_text.split(' ').at(-1)!;
       const numNormResult = compute_fitted_text({
         text: normNumText,
-        fontFamily: robotoFamily,
+        fontFamily: numberFonts.norm,
         fontStyle: 'bold',
         baseFontSize: 28,
         fontScale: norm_text_font_info.size * 0.98,

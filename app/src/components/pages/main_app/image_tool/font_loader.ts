@@ -1,14 +1,15 @@
-import { FONT_FAMILY_NAME } from '~/tools/font_tools';
+import { bundled_font_weight, FONT_FAMILY_NAME, type fonts_type } from '~/tools/font_tools';
 
 const loaded_fonts = new Set<string>();
 
+type FontWeight = 'normal' | 'bold' | number;
+
 /**
  * Ensures the given font families are loaded via the browser's native font loading API.
- * Fonts must already be declared via CSS `@font-face` rules (see `app.scss`).
- * This replaces the old HarfBuzz binary font preloading.
+ * Bundled fonts must already be declared via CSS `@font-face` rules (see `app.scss`).
  */
 export async function ensure_fonts_loaded(
-  families: { family: string; weight: 'normal' | 'bold' }[]
+  families: { family: string; weight: FontWeight; font_key?: fonts_type }[]
 ): Promise<void> {
   const to_load = families.filter((f) => !loaded_fonts.has(`${f.family}:${f.weight}`));
   if (to_load.length === 0) return;
@@ -20,19 +21,32 @@ export async function ensure_fonts_loaded(
         await document.fonts.load(`${weight} 48px "${family}"`);
         loaded_fonts.add(key);
       } catch {
-        // Font may not exist or already be loaded — continue gracefully
         console.warn(`[font_loader] Could not load font: ${key}`);
       }
     })
   );
+  await document.fonts.ready;
+}
+
+/** Load a single family (bundled or system-installed). */
+export async function ensure_family_loaded(
+  family: string,
+  weight: FontWeight = 'normal'
+): Promise<void> {
+  await ensure_fonts_loaded([{ family, weight }]);
 }
 
 /**
  * Build font-load descriptors from the image tool's font config keys.
+ * Variable fonts use numeric weights (400/700); static fonts use normal/bold.
  */
 export function get_font_load_descriptors(
   font_key: keyof typeof FONT_FAMILY_NAME,
   weight: 'normal' | 'bold'
-): { family: string; weight: 'normal' | 'bold' } {
-  return { family: FONT_FAMILY_NAME[font_key], weight };
+): { family: string; weight: FontWeight; font_key: fonts_type } {
+  return {
+    family: FONT_FAMILY_NAME[font_key],
+    weight: bundled_font_weight(font_key, weight),
+    font_key
+  };
 }

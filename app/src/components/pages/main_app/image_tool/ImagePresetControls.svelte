@@ -31,6 +31,8 @@
     image_render_colors,
     main_text_font_configs,
     normal_text_font_config,
+    number_font_config,
+    system_font_overrides,
     shaded_background_image_status,
     show_image_on_top_right,
     trans_text_font_configs,
@@ -120,6 +122,8 @@
     void $main_text_font_configs;
     void $normal_text_font_config;
     void $trans_text_font_configs;
+    void $number_font_config;
+    void $system_font_overrides;
     void $show_image_on_top_right;
     void $shaded_background_image_status;
     return collect_image_tool_preset();
@@ -129,12 +133,12 @@
   const is_server_preset = $derived(selected_preset_id !== BUILTIN_IMAGE_TOOL_PRESET_ID);
   const is_pending = $derived(upsert_mut.isPending || delete_mut.isPending);
 
-  const select_preset = (preset_id: string) => {
+  const select_preset = async (preset_id: string) => {
     const option = preset_options.find((entry) => entry.id === preset_id);
     if (!option) return;
     selected_preset_id = preset_id;
-    apply_image_tool_preset(option.config);
-    loaded_preset_snapshot.set(copy_plain_object(option.config));
+    const applied = await apply_image_tool_preset(option.config);
+    loaded_preset_snapshot.set(copy_plain_object(applied));
   };
 
   const handle_preset_change = (value: string | undefined) => {

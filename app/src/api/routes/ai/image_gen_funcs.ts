@@ -45,8 +45,8 @@ export const gen_image_func = async (payload: z.infer<typeof image_gen_route_sch
       }
     });
 
-    const created = Math.trunc(result.responses[0]?.timestamp.getTime() ?? Date.now() / 1000);
-    const openai_metadata = result.providerMetadata.openai as
+    const created = Math.trunc(result.responses[0]?.timestamp.getTime() ?? Date.now());
+    const openai_metadata = result.providerMetadata?.openai as
       | { images?: { revisedPrompt?: string }[] }
       | undefined;
 

@@ -4,7 +4,6 @@
     active_trans_en_data_q_options,
     get_starting_index,
     get_total_count,
-    project_list_q_options,
     project_map_q_options
   } from '~/state/main_app/data.svelte';
   import {
@@ -18,14 +17,13 @@
   import Icon from '~/tools/Icon.svelte';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
   import { writable } from 'svelte/store';
-  import image_tool_prompts from './image_tool_prompts.yaml';
   import { Switch } from '$lib/components/ui/switch';
   import { ProgressRing } from '$lib/components/ui/progress-ring';
   import { client } from '~/api/client';
-  import { copy_text_to_clipboard, format_string_text, get_permutations } from '~/tools/kry';
+  import { copy_text_to_clipboard, get_permutations } from '~/tools/kry';
   import { onDestroy, onMount, untrack } from 'svelte';
   import { loadLocalConfig } from '../load_local_config';
-  import { BsDownload, BsCopy, BsChevronDown, BsChevronUp } from 'svelte-icons-pack/bs';
+  import { BsDownload, BsCopy } from 'svelte-icons-pack/bs';
   import { download_file_in_browser } from '~/tools/download_file_browser';
   import { cl_join } from '~/tools/cl_join';
   import { OiStopwatch16 } from 'svelte-icons-pack/oi';
@@ -34,24 +32,12 @@
   import { delay_dev } from '~/tools/delay';
   import pretty_ms from 'pretty-ms';
   import ms from 'ms';
-  import { get_project_from_id, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import { CgClose } from 'svelte-icons-pack/cg';
-  import { slide } from 'svelte/transition';
-  import { get_result_from_trigger_run_id } from '~/tools/trigger';
   import { Button } from '$lib/components/ui/button';
   import { Textarea } from '$lib/components/ui/textarea';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import * as Select from '$lib/components/ui/select';
 
-  let base_prompts = image_tool_prompts as {
-    main_prompt: {
-      role: 'user' | 'assistant';
-      content: string;
-    }[];
-    additional_prompt_info: string;
-  };
-
-  const project_list_q = createQuery(() => project_list_q_options());
   const project_map_q = createQuery(() => project_map_q_options($project_state));
   const text_data_q = createQuery(() =>
     active_text_data_q_options(
@@ -69,18 +55,6 @@
       $editing_mode
     )
   );
-
-  let base_prompt_text = $state('');
-
-  $effect(() => {
-    const projectId = $project_state?.project_id;
-    if (projectId == null) return;
-    const project = get_project_from_id(projectId, project_list_q.data ?? EMPTY_PROJECT_REGISTRY);
-    if (!project) return;
-    base_prompt_text = format_string_text(base_prompts.main_prompt[0].content, {
-      text_name: project.name
-    });
-  });
 
   let total_count = $derived(
     project_map_q.isSuccess
@@ -138,36 +112,14 @@
 
   /** Expected image generation duration (seconds) — used for progress ring and interval cap. */
   const IMAGE_MODEL_GEN_TIME_S: Record<image_models_type, number> = {
-    'gpt-image-1': 24,
-    'gpt-image-2': 35
+    'gpt-image-1': 30,
+    'gpt-image-2': 40
   };
 
   const IMAGE_MODELS: Record<image_models_type, [label: string, cost: string]> = {
     'gpt-image-2': ['GPT 2', '$0.042 (₹3.5) / image'],
     'gpt-image-1': ['GPT 1', '$0.042 (₹3.5) / image']
   };
-
-  let additional_prompt_info = $derived.by(() => {
-    if (!$project_state) return '';
-    const project = get_project_from_id(
-      $project_state.project_id,
-      project_list_q.data ?? EMPTY_PROJECT_REGISTRY
-    );
-    if (!project) return '';
-    const { levels, level_names } = $project_state;
-    const path_params = $selected_text_levels.slice(0, levels - 1);
-    const list_level_names = level_names.slice(1);
-    const text_info = path_params
-      .map((param, index) => {
-        const level_name = list_level_names[index];
-        return `${level_name} ${param}`;
-      })
-      .join(', ');
-    return format_string_text(base_prompts.additional_prompt_info, {
-      text_info,
-      text_name: project.name
-    });
-  });
 
   $effect(() => {
     !trans_en_data_q.isFetching &&
@@ -229,12 +181,9 @@
         return { image_prompt: ai_sample_data.sample_text_prompt, time_taken: 0 };
       }
       return await client.ai.get_image_prompt.query({
-        messages: [
-          {
-            role: 'user',
-            content: base_prompt_text + additional_prompt_info + '\n\n' + $shloka_text_prompt
-          }
-        ],
+        project_key: $project_state!.project_key,
+        selected_text_levels: $selected_text_levels,
+        index: $index,
         model: selected_text_model
       });
     },
@@ -341,8 +290,6 @@
     copy_text_to_clipboard(text);
     copied_text_status = true;
   };
-
-  let base_prompt_display = $state(false);
 </script>
 
 {#if copied_text_status}
@@ -436,27 +383,6 @@
     </span>
   {/if}
 </div>
-<div class="mb-3">
-  <Button
-    variant="ghost"
-    size="sm"
-    class="space-x-2 opacity-80"
-    onclick={() => (base_prompt_display = !base_prompt_display)}
-  >
-    {#if !base_prompt_display}
-      <Icon src={BsChevronDown} class="mb-1 text-lg" />
-    {:else}
-      <Icon src={BsChevronUp} class="mb-1 text-lg" />
-    {/if}
-    Edit Base Prompt
-  </Button>
-  {#if base_prompt_display}
-    <div in:slide out:slide class="mt-1.5">
-      <Textarea class="h-36 px-1 py-0 text-sm" bind:value={base_prompt_text} spellcheck="false" />
-    </div>
-  {/if}
-</div>
-
 <div class="space-y-1">
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div

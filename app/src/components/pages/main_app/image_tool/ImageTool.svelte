@@ -27,8 +27,7 @@
     show_image_on_top_right,
     translation_bounding_coords,
     image_drag_reset_nonce,
-    system_font_overrides,
-    number_font_config
+    system_font_overrides
   } from './image_state';
   import {
     selected_text_levels,
@@ -261,12 +260,9 @@
       JSON.stringify($main_text_font_configs),
       JSON.stringify($normal_text_font_config),
       JSON.stringify($trans_text_font_configs),
-      JSON.stringify($number_font_config),
       $system_font_overrides.main,
       $system_font_overrides.normal,
-      $system_font_overrides.trans,
-      $system_font_overrides.num_main,
-      $system_font_overrides.num_norm
+      $system_font_overrides.trans
     ].join('\x1e');
     void color_deps;
 

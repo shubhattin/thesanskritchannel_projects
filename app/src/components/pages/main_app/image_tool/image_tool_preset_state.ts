@@ -93,6 +93,12 @@ export async function apply_image_tool_preset(
   const { overrides: sanitized_system_fonts, missing } = await sanitize_system_font_overrides(
     copy_plain_object(parsed.system_font_overrides ?? EMPTY_SYSTEM_FONT_OVERRIDES)
   );
+  // Legacy number-font system overrides are ignored; numbers follow main/normal fonts.
+  const system_fonts = {
+    ...sanitized_system_fonts,
+    num_main: null,
+    num_norm: null
+  };
   SPACE_ABOVE_REFERENCE_LINE.set(parsed.space_above_reference_line);
   show_image_on_top_right.set(parsed.show_image_on_top_right);
   shaded_background_image_status.set(parsed.shaded_background_image_status);
@@ -115,14 +121,14 @@ export async function apply_image_tool_preset(
     >[0]
   );
   number_font_config.set(copy_plain_object(parsed.number_font_config) as NumberFontConfig);
-  system_font_overrides.set(copy_plain_object(sanitized_system_fonts));
+  system_font_overrides.set(copy_plain_object(system_fonts));
   reset_image_drag_positions();
 
   toast_missing_system_fonts(missing);
 
   return {
     ...parsed,
-    system_font_overrides: sanitized_system_fonts
+    system_font_overrides: system_fonts
   };
 }
 

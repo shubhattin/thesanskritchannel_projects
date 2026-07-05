@@ -16,7 +16,6 @@
     show_image_on_top_right,
     trans_text_font_configs,
     system_font_overrides,
-    number_font_config,
     image_shloka_data,
     image_trans_text,
     image_render_colors,
@@ -45,7 +44,6 @@
     is_image_font_at_default,
     reset_image_font_to_default,
     set_bundled_font_on_config,
-    DEFAULT_NUMBER_FONT_CONFIG,
     type shloka_number_type
   } from './settings';
   import { deepCopy } from '~/tools/kry';
@@ -58,8 +56,16 @@
   import { Textarea } from '$lib/components/ui/textarea';
   import ImageColorField from './ImageColorField.svelte';
   import ImageFontPicker from './ImageFontPicker.svelte';
+  import {
+    default_main_font_weight,
+    default_normal_font_weight,
+    default_trans_font_weight,
+    resolve_font_weight,
+    resolve_font_italic,
+    type ImageFontWeightOption
+  } from './image_font_weight';
   import { resolve_effective_font_family } from './font_resolve';
-  import { bundled_font_family, type fonts_type } from '~/tools/font_tools';
+  import { type fonts_type } from '~/tools/font_tools';
   import type { ImageSystemFontRole } from './system_fonts';
   import {
     clearTypingContextOnKeyDown,
@@ -190,41 +196,54 @@
     clear_system_font('trans');
   }
 
-  function select_number_main_bundled(key: fonts_type) {
-    number_font_config.update((config) => ({
-      ...config,
-      main_key: key,
-      main_family: bundled_font_family(key)
+  function set_main_font_weight(weight: ImageFontWeightOption) {
+    main_text_font_configs.update((configs) => ({
+      ...configs,
+      [$image_script]: { ...configs[$image_script], font_weight: weight }
     }));
-    clear_system_font('num_main');
   }
 
-  function reset_number_main_font() {
-    number_font_config.update((config) => ({
-      ...config,
-      main_key: DEFAULT_NUMBER_FONT_CONFIG.main_key,
-      main_family: DEFAULT_NUMBER_FONT_CONFIG.main_family
-    }));
-    clear_system_font('num_main');
+  function set_normal_font_weight(weight: ImageFontWeightOption) {
+    normal_text_font_config.update((config) => ({ ...config, font_weight: weight }));
   }
 
-  function select_number_norm_bundled(key: fonts_type) {
-    number_font_config.update((config) => ({
-      ...config,
-      norm_key: key,
-      norm_family: bundled_font_family(key)
+  function set_trans_font_weight(weight: ImageFontWeightOption) {
+    trans_text_font_configs.update((configs) => ({
+      ...configs,
+      [current_lang]: { ...configs[current_lang], font_weight: weight }
     }));
-    clear_system_font('num_norm');
   }
 
-  function reset_number_norm_font() {
-    number_font_config.update((config) => ({
-      ...config,
-      norm_key: DEFAULT_NUMBER_FONT_CONFIG.norm_key,
-      norm_family: DEFAULT_NUMBER_FONT_CONFIG.norm_family
+  function set_main_font_italic(italic: boolean) {
+    main_text_font_configs.update((configs) => ({
+      ...configs,
+      [$image_script]: { ...configs[$image_script], font_italic: italic }
     }));
-    clear_system_font('num_norm');
   }
+
+  function set_normal_font_italic(italic: boolean) {
+    normal_text_font_config.update((config) => ({ ...config, font_italic: italic }));
+  }
+
+  function set_trans_font_italic(italic: boolean) {
+    trans_text_font_configs.update((configs) => ({
+      ...configs,
+      [current_lang]: { ...configs[current_lang], font_italic: italic }
+    }));
+  }
+
+  const main_font_weight = $derived(
+    resolve_font_weight(main_font_config, default_main_font_weight())
+  );
+  const normal_font_weight = $derived(
+    resolve_font_weight($normal_text_font_config, default_normal_font_weight())
+  );
+  const trans_font_weight = $derived(
+    resolve_font_weight(trans_font_config, default_trans_font_weight())
+  );
+  const main_font_italic = $derived(resolve_font_italic(main_font_config));
+  const normal_font_italic = $derived(resolve_font_italic($normal_text_font_config));
+  const trans_font_italic = $derived(resolve_font_italic(trans_font_config));
 
   const reset_func = async () => {
     const text_row = image_text_data_q.data?.[$image_shloka];
@@ -674,29 +693,28 @@
         </Tabs.Content>
 
         <Tabs.Content value="fonts" class="space-y-4 pt-1">
-          <p
-            class="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
-          >
-            Project and system font choices are saved in presets. System fonts fall back to project
-            fonts on devices where they are not installed.
-          </p>
-
-          <div class="grid gap-4 md:grid-cols-2">
+          <div class="space-y-4">
             {#snippet font_pickers()}
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div class="grid grid-cols-3 gap-2">
                 <ImageFontPicker
-                  label="Main text"
+                  compact
+                  label="Main"
                   effectiveFamily={main_effective_family}
                   bundledKey={$system_font_overrides.main ? null : main_font_config.key}
                   systemFamily={$system_font_overrides.main}
                   isDefault={is_image_font_at_default(main_font_config, $image_script, 'shloka') &&
                     !$system_font_overrides.main}
+                  fontWeight={main_font_weight}
+                  onWeightChange={set_main_font_weight}
+                  fontItalic={main_font_italic}
+                  onItalicChange={set_main_font_italic}
                   onSelectBundled={select_main_bundled}
                   onSelectDefault={reset_main_font}
                   onSelectSystem={(family) => set_system_font('main', family)}
                 />
                 <ImageFontPicker
-                  label="Normal text"
+                  compact
+                  label="Normal"
                   effectiveFamily={normal_effective_family}
                   bundledKey={$system_font_overrides.normal ? null : $normal_text_font_config.key}
                   systemFamily={$system_font_overrides.normal}
@@ -705,17 +723,26 @@
                     'Normal',
                     'shloka'
                   ) && !$system_font_overrides.normal}
+                  fontWeight={normal_font_weight}
+                  onWeightChange={set_normal_font_weight}
+                  fontItalic={normal_font_italic}
+                  onItalicChange={set_normal_font_italic}
                   onSelectBundled={select_normal_bundled}
                   onSelectDefault={reset_normal_font}
                   onSelectSystem={(family) => set_system_font('normal', family)}
                 />
                 <ImageFontPicker
-                  label="Translation"
+                  compact
+                  label="Trans"
                   effectiveFamily={trans_effective_family}
                   bundledKey={$system_font_overrides.trans ? null : trans_font_config.key}
                   systemFamily={$system_font_overrides.trans}
                   isDefault={is_image_font_at_default(trans_font_config, current_lang, 'trans') &&
                     !$system_font_overrides.trans}
+                  fontWeight={trans_font_weight}
+                  onWeightChange={set_trans_font_weight}
+                  fontItalic={trans_font_italic}
+                  onItalicChange={set_trans_font_italic}
                   onSelectBundled={select_trans_bundled}
                   onSelectDefault={reset_trans_font}
                   onSelectSystem={(family) => set_system_font('trans', family)}
@@ -724,73 +751,8 @@
             {/snippet}
             {@render option_panel(
               'Text fonts',
-              `Font families for ${$image_script} script and ${current_lang} translation`,
+              `Font families and weights for ${$image_script} script and ${current_lang} translation`,
               font_pickers
-            )}
-
-            {#snippet number_font_pickers()}
-              <div class="space-y-3">
-                <div class="flex items-center gap-2">
-                  <Switch
-                    id="use-custom-number-fonts"
-                    bind:checked={$number_font_config.use_custom}
-                  />
-                  <Label for="use-custom-number-fonts" class="cursor-pointer text-sm font-medium">
-                    Use custom number fonts
-                  </Label>
-                </div>
-                {#if $number_font_config.use_custom}
-                  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <ImageFontPicker
-                      label="Native number"
-                      effectiveFamily={resolve_effective_font_family(
-                        {
-                          key: $number_font_config.main_key,
-                          family: $number_font_config.main_family
-                        },
-                        $system_font_overrides.num_main
-                      )}
-                      bundledKey={$system_font_overrides.num_main
-                        ? null
-                        : $number_font_config.main_key}
-                      systemFamily={$system_font_overrides.num_main}
-                      isDefault={!$system_font_overrides.num_main &&
-                        $number_font_config.main_key === 'ADOBE_DEVANAGARI'}
-                      onSelectBundled={select_number_main_bundled}
-                      onSelectDefault={reset_number_main_font}
-                      onSelectSystem={(family) => set_system_font('num_main', family)}
-                    />
-                    <ImageFontPicker
-                      label="Romanized number"
-                      effectiveFamily={resolve_effective_font_family(
-                        {
-                          key: $number_font_config.norm_key,
-                          family: $number_font_config.norm_family
-                        },
-                        $system_font_overrides.num_norm
-                      )}
-                      bundledKey={$system_font_overrides.num_norm
-                        ? null
-                        : $number_font_config.norm_key}
-                      systemFamily={$system_font_overrides.num_norm}
-                      isDefault={!$system_font_overrides.num_norm &&
-                        $number_font_config.norm_key === 'ROBOTO'}
-                      onSelectBundled={select_number_norm_bundled}
-                      onSelectDefault={reset_number_norm_font}
-                      onSelectSystem={(family) => set_system_font('num_norm', family)}
-                    />
-                  </div>
-                {:else}
-                  <p class="text-xs text-muted-foreground">
-                    Numbers follow main text (native) and Roboto (romanized) by default.
-                  </p>
-                {/if}
-              </div>
-            {/snippet}
-            {@render option_panel(
-              'Number fonts',
-              'Top-right shloka number indicators',
-              number_font_pickers
             )}
           </div>
         </Tabs.Content>

@@ -8,6 +8,12 @@ import {
   type font_config_type,
   type fonts_type
 } from '~/tools/font_tools';
+import {
+  default_main_font_weight,
+  default_normal_font_weight,
+  default_trans_font_weight,
+  default_number_font_weight
+} from './image_font_weight';
 import type { script_and_lang_list_type } from '~/state/lang_list';
 
 /** Canvas line strokes and text fill colors used by the image tool renderer. */
@@ -241,6 +247,10 @@ export type ImageFontConfig = {
   space_between_main_and_normal: number;
   text_for_min_height: string | null;
   font_overridden: boolean;
+  /** Omitted in older presets — render falls back to role defaults (main 700, normal/trans 400). */
+  font_weight?: number;
+  /** Omitted in older presets — defaults to upright (false). */
+  font_italic?: boolean;
 };
 
 export const get_image_font_info = (
@@ -284,7 +294,14 @@ export const get_image_font_info = (
     new_line_spacing,
     space_between_main_and_normal,
     text_for_min_height,
-    font_overridden: false
+    font_overridden: false,
+    font_weight:
+      script === 'Normal'
+        ? default_normal_font_weight()
+        : image_context === 'trans'
+          ? default_trans_font_weight()
+          : default_main_font_weight(),
+    font_italic: false
   };
 };
 
@@ -326,7 +343,9 @@ export function reset_image_font_to_default(
     ...config,
     key: defaults.key,
     family: defaults.family,
-    font_overridden: false
+    font_overridden: false,
+    font_weight: defaults.font_weight,
+    font_italic: defaults.font_italic
   };
 }
 
@@ -336,6 +355,8 @@ export type NumberFontConfig = {
   main_family: string;
   norm_key: fonts_type;
   norm_family: string;
+  main_weight?: number;
+  norm_weight?: number;
 };
 
 export const DEFAULT_NUMBER_FONT_CONFIG: NumberFontConfig = {
@@ -343,5 +364,7 @@ export const DEFAULT_NUMBER_FONT_CONFIG: NumberFontConfig = {
   main_key: 'ADOBE_DEVANAGARI',
   main_family: FONT_FAMILY_NAME.ADOBE_DEVANAGARI,
   norm_key: 'ROBOTO',
-  norm_family: FONT_FAMILY_NAME.ROBOTO
+  norm_family: FONT_FAMILY_NAME.ROBOTO,
+  main_weight: default_number_font_weight(),
+  norm_weight: default_number_font_weight()
 };

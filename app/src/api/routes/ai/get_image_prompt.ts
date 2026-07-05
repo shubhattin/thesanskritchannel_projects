@@ -113,9 +113,7 @@ export const get_image_prompt_func = async (input: GetImagePromptInput) => {
         schema: z.object({
           image_prompt: z
             .string()
-            .describe(
-              'A single detailed English image prompt for an aesthetic illustration.'
-            )
+            .describe('A single detailed English image prompt for an aesthetic illustration.')
         })
       })
     });

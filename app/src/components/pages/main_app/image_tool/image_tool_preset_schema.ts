@@ -67,7 +67,9 @@ const image_font_config_schema = z.object({
   space_between_main_and_normal: z.number(),
   // optional + default: older rows may omit these keys
   text_for_min_height: z.string().nullable().optional().default(null),
-  font_overridden: z.boolean().optional().default(false)
+  font_overridden: z.boolean().optional().default(false),
+  font_weight: z.number().int().min(100).max(900).optional(),
+  font_italic: z.boolean().optional().default(false)
 });
 
 /** Default number-font block for presets missing the key entirely (pre-font-picker rows). */
@@ -76,7 +78,9 @@ export const DEFAULT_NUMBER_FONT_PRESET = {
   main_key: 'ADOBE_DEVANAGARI',
   main_family: FONT_FAMILY_NAME.ADOBE_DEVANAGARI,
   norm_key: 'ROBOTO',
-  norm_family: FONT_FAMILY_NAME.ROBOTO
+  norm_family: FONT_FAMILY_NAME.ROBOTO,
+  main_weight: 700,
+  norm_weight: 700
 } as const;
 
 const number_font_config_schema = z.object({
@@ -84,7 +88,21 @@ const number_font_config_schema = z.object({
   main_key: z.string().optional().default(DEFAULT_NUMBER_FONT_PRESET.main_key),
   main_family: z.string().optional().default(DEFAULT_NUMBER_FONT_PRESET.main_family),
   norm_key: z.string().optional().default(DEFAULT_NUMBER_FONT_PRESET.norm_key),
-  norm_family: z.string().optional().default(DEFAULT_NUMBER_FONT_PRESET.norm_family)
+  norm_family: z.string().optional().default(DEFAULT_NUMBER_FONT_PRESET.norm_family),
+  main_weight: z
+    .number()
+    .int()
+    .min(100)
+    .max(900)
+    .optional()
+    .default(DEFAULT_NUMBER_FONT_PRESET.main_weight),
+  norm_weight: z
+    .number()
+    .int()
+    .min(100)
+    .max(900)
+    .optional()
+    .default(DEFAULT_NUMBER_FONT_PRESET.norm_weight)
 });
 
 /** Saved system font family names per text role (null = use project/bundled font). */

@@ -57,8 +57,8 @@ const shloka_configs_from_preset = (
 export function get_builtin_default_image_tool_preset(): ImageToolPresetConfig {
   return image_tool_preset_config_schema.parse({
     space_above_reference_line: DEFAULT_SHLOKA_CONFIG_SHARED.SPACE_ABOVE_REFERENCE_LINE,
-    show_image_on_top_right: true,
-    shaded_background_image_status: import.meta.env.DEV,
+    show_image_on_top_right: false, // do not show number on top by default
+    shaded_background_image_status: false,
     shloka_configs: shloka_configs_for_preset(copy_plain_object(DEFAULT_SHLOKA_CONFIG)),
     translation_bounding_coords: copy_plain_object(DEFAULT_TRANSLATION_BOUNDING_COORDS),
     image_render_colors: copy_plain_object(DEFAULT_IMAGE_TEXT_RENDER_COLORS),

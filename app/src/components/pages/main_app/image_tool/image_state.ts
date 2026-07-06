@@ -36,7 +36,7 @@ export const BACKGROUND_IMAGE_URLS = {
   template: background_image_template_url
 } as const;
 
-export let shaded_background_image_status = writable(import.meta.env.DEV);
+export let shaded_background_image_status = writable(false);
 export let scaling_factor = writable<number>(0); // Scale factor for the canvas
 
 export const IMAGE_DIMENSIONS = [1920, 1080] as const;
@@ -48,7 +48,7 @@ export let fonts_loaded = writable(false);
 export let image_script = writable<script_list_type>();
 export let image_lang = writable<number>(lang_list_obj.English);
 export let image_selected_levels = writable<(number | null)[]>([null, null]);
-export let show_image_on_top_right = writable(true);
+export let show_image_on_top_right = writable(false);
 
 // ^ chapter will be inherited from the main during mount
 export let image_shloka = writable(1);

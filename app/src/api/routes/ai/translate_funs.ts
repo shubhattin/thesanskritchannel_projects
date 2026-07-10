@@ -15,27 +15,7 @@ import {
   SANSKRIT_SYSTEM_PROMPT,
   USER_PROMPT
 } from './translation_prompt';
-import { env } from '$env/dynamic/private';
-
-// import { createOpenAI } from '@ai-sdk/openai';
-// const openai_text_model = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const openrouter_text_model = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
-
-const MODELS = {
-  'gpt-5.2': openrouter_text_model('openai/gpt-5.2')
-} satisfies Record<ai_text_models_type, any>;
-
-const model_custom_options = {
-  'gpt-5.2': {
-    providerOptions: {
-      openrouter: {
-        reasoningEffort: 'low'
-      }
-    }
-  }
-} satisfies {
-  [key in ai_text_models_type]?: any;
-};
+import { OPENROUTER_TEXT_MODELS, text_model_custom_options } from './providers';
 
 type translation_prompt_yaml_type = Record<
   'English' | 'Sanskrit' | 'Other',
@@ -82,9 +62,9 @@ export const translate_func = async (args: TranslationInput): Promise<Translatio
 
   try {
     const response = await generateText({
-      model: MODELS[model],
+      model: OPENROUTER_TEXT_MODELS[model],
       system: translation_prompt.system_prompt,
-      ...(model_custom_options[model as keyof typeof model_custom_options] ?? {}),
+      ...(text_model_custom_options[model as keyof typeof text_model_custom_options] ?? {}),
       prompt,
       output: Output.array({
         element: translation_out_schema,

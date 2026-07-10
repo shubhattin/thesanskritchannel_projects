@@ -79,8 +79,3 @@ export let typing_assistance_modal_opened = writable(false);
 
 export let image_tool_opened = writable(false);
 export let ai_tool_opened = writable(false);
-
-// some values
-export const TEXT_MODEL_LIST = {
-  'gpt-5.2': ['gpt 5.2', '400K token context window\n$1.75/1M Input tokens & $14/1M Output tokens']
-} satisfies Record<ai_text_models_type, [string, string]>;

@@ -3,11 +3,11 @@
     editing_mode,
     get_active_translation_slot,
     selected_translation_lang_ids,
-    TEXT_MODEL_LIST,
     project_state,
     selected_text_levels,
     text_data_present
   } from '~/state/main_app/state.svelte';
+  import { TEXT_MODEL_LIST_INFO } from '~/api/routes/ai/ai_types';
   import {
     active_text_data_q_options,
     active_trans_en_data_q_options,
@@ -152,7 +152,7 @@
     }
   }
 
-  let selected_model: keyof typeof TEXT_MODEL_LIST = $state('gpt-5.2');
+  let selected_model: keyof typeof TEXT_MODEL_LIST_INFO = $state('gpt-5.2');
 
   const can_show_translate_ui = $derived.by(() => {
     if (active_translation_slot === null || active_translation_lang_id === null) return false;
@@ -412,12 +412,12 @@
   <Select.Root type="single" bind:value={selected_model as any}>
     <Select.Trigger
       class="inline-flex h-7 w-24 px-2 text-xs"
-      title={TEXT_MODEL_LIST[selected_model][1]}
+      title={TEXT_MODEL_LIST_INFO[selected_model][1]}
     >
-      {TEXT_MODEL_LIST[selected_model][0]}
+      {TEXT_MODEL_LIST_INFO[selected_model][0]}
     </Select.Trigger>
     <Select.Content>
-      {#each Object.entries(TEXT_MODEL_LIST) as [key, value] (key)}
+      {#each Object.entries(TEXT_MODEL_LIST_INFO) as [key, value] (key)}
         <Select.Item value={key} label={value[0]} title={value[1]} />
       {/each}
     </Select.Content>

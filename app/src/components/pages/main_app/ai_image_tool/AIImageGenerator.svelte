@@ -10,10 +10,10 @@
     ai_tool_opened,
     project_state,
     selected_text_levels,
-    TEXT_MODEL_LIST,
     editing_mode,
     text_data_present
   } from '~/state/main_app/state.svelte';
+  import { TEXT_MODEL_LIST_INFO } from '~/api/routes/ai/ai_types';
   import Icon from '~/tools/Icon.svelte';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
   import { writable } from 'svelte/store';
@@ -62,7 +62,7 @@
       : 0
   );
 
-  let selected_text_model: keyof typeof TEXT_MODEL_LIST = $state('gpt-5.2');
+  let selected_text_model: keyof typeof TEXT_MODEL_LIST_INFO = $state('gpt-5.2');
 
   onMount(async () => {
     if (import.meta.env.DEV) {
@@ -358,12 +358,12 @@
   <Select.Root type="single" bind:value={selected_text_model as any}>
     <Select.Trigger
       class="ml-2.5 inline-flex w-20 px-1.5 py-1 text-xs"
-      title={TEXT_MODEL_LIST[selected_text_model][1]}
+      title={TEXT_MODEL_LIST_INFO[selected_text_model][1]}
     >
-      {TEXT_MODEL_LIST[selected_text_model][0]}
+      {TEXT_MODEL_LIST_INFO[selected_text_model][0]}
     </Select.Trigger>
     <Select.Content>
-      {#each Object.entries(TEXT_MODEL_LIST) as [key, value]}
+      {#each Object.entries(TEXT_MODEL_LIST_INFO) as [key, value]}
         <Select.Item value={key} label={value[0]} title={value[1]} />
       {/each}
     </Select.Content>

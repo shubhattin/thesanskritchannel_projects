@@ -1,17 +1,14 @@
 import { protectedAdminProcedure } from '~/api/trpc_init';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
-import { env } from '$env/dynamic/private';
 import { text_models_enum, type ai_text_models_type } from './ai_types';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { format_string_text } from '~/tools/kry';
 import { CACHE } from '~/utils/cache.server/cached_loader.server';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { get_project_by_key, get_project_info_by_id } from '~/utils/project/list.server';
 import { get_path_params } from '~/state/project_list';
 import { lang_list_obj } from '~/state/lang_list';
-
-const openrouter_text_model = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
+import { OPENROUTER_TEXT_MODELS, text_model_custom_options } from './providers';
 
 const IMAGE_SYSTEM_PROMPT = `
 You write image-generation prompts for Sanskrit scripture content meant to look beautiful. It will be used in multiple places like as a backgound image to shlokas on and so on.
@@ -40,22 +37,6 @@ This Shloka is from {text_info} of {text_name}.
 
 {shloka_text}
 `.trim();
-
-const MODELS = {
-  'gpt-5.2': openrouter_text_model('openai/gpt-5.2')
-} satisfies Record<ai_text_models_type, any>;
-
-const model_custom_options = {
-  'gpt-5.2': {
-    providerOptions: {
-      openrouter: {
-        reasoningEffort: 'low'
-      }
-    }
-  }
-} satisfies {
-  [key in ai_text_models_type]?: object;
-};
 
 export const get_image_prompt_input_schema = z.object({
   project_key: z.string(),
@@ -105,9 +86,9 @@ export const get_image_prompt_func = async (input: GetImagePromptInput) => {
   try {
     const time_start = Date.now();
     const result = await generateText({
-      model: MODELS[model],
+      model: OPENROUTER_TEXT_MODELS[model],
       system: IMAGE_SYSTEM_PROMPT,
-      ...(model_custom_options[model] ?? {}),
+      ...(text_model_custom_options[model] ?? {}),
       prompt,
       output: Output.object({
         schema: z.object({
@@ -117,7 +98,7 @@ export const get_image_prompt_func = async (input: GetImagePromptInput) => {
         })
       })
     });
-    return { ...result.output, time_taken: Date.now() - time_start };
+    return { image_prompt: result.output.image_prompt, time_taken: Date.now() - time_start };
   } catch (e) {
     console.error(e);
     return { image_prompt: null, time_taken: 0 };

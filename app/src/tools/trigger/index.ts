@@ -10,6 +10,7 @@ export const get_result_from_trigger_run_id = async <T>(run_id: string, time_int
     }
   >((resolve, reject) => {
     const get_info = async () => {
+      // @ts-ignore
       const out = await client.ai.trigger_funcs.retrive_run_info.query({
         run_id: run_id!
       });

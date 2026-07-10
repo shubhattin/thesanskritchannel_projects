@@ -11,7 +11,7 @@ export const translation_out_schema = z
   .describe(
     'This object will contain the translated text and the index of the shloka to be generated.'
   );
-const AI_TEXT_MODELS = ['gpt-5.2'] as const;
+const AI_TEXT_MODELS = ['gpt-5.2', 'gpt-5.6-terra'] as const;
 export type ai_text_models_type = (typeof AI_TEXT_MODELS)[number];
 
 export const text_models_enum = z.enum(AI_TEXT_MODELS);
@@ -80,3 +80,12 @@ export const image_gen_route_schema = {
   })
 };
 export type image_output_type = z.infer<typeof image_schema>;
+
+/** For frontend info */
+export const TEXT_MODEL_LIST_INFO = {
+  'gpt-5.2': ['gpt 5.2', '400K token context window\n$1.75/1M Input tokens & $14/1M Output tokens'],
+  'gpt-5.6-terra': [
+    'gpt 5.6-terra',
+    '1M token context window\n$2.50/1M Input tokens & $151M Output tokens'
+  ]
+} satisfies Record<ai_text_models_type, [string, string]>;

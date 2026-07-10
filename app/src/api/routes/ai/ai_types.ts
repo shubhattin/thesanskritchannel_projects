@@ -39,6 +39,9 @@ export const translate_route_schema = {
   ])
 };
 
+export type translate_route_input = z.infer<typeof translate_route_schema.input>;
+export type translate_route_output = z.infer<typeof translate_route_schema.output>;
+
 export const available_image_models_schema = z.enum(['gpt-image-1', 'gpt-image-2']);
 
 const create_image_output_schema = <

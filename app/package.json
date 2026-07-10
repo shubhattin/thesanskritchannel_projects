@@ -55,6 +55,7 @@
     "json-2-csv": "^5.5.11",
     "jszip": "^3.10.1",
     "konva": "^10.3.0",
+    "ky": "^2.0.2",
     "linkedom": "^0.18.12",
     "lipilekhika": "^1.0.13",
     "lucide-svelte": "^0.563.0",

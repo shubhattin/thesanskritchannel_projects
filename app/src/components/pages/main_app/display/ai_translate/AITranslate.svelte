@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { client } from '~/api/client';
   import {
     editing_mode,
     get_active_translation_slot,
@@ -20,7 +19,6 @@
   import { toast } from 'svelte-sonner';
   import { AIIcon } from '~/components/icons';
   import Icon from '~/tools/Icon.svelte';
-  import { get_result_from_trigger_run_id } from '~/tools/trigger';
   import pretty_ms from 'pretty-ms';
   import { OiStopwatch16 } from 'svelte-icons-pack/oi';
   import { onDestroy } from 'svelte';
@@ -35,6 +33,8 @@
   import Label from '$lib/components/ui/label/label.svelte';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
+  import { translate_route_schema, type translate_route_input } from '~/api/routes/ai/ai_types';
+  import ky, { HTTPError } from 'ky';
 
   const query_client = useQueryClient();
 
@@ -144,7 +144,7 @@
   }
 
   function handle_dialog_open_change(open: boolean) {
-    if (!open && translate_sarga_mut.isPending) return;
+    if (!open && translate_mut.isPending) return;
     dialog_open = open;
     if (!open) {
       translate_error = null;
@@ -169,9 +169,9 @@
     !has_existing_translations || overwrite_confirmed === 'yes'
   );
 
-  const translate_sarga_mut = createMutation(() => ({
+  const translate_mut = createMutation(() => ({
     mutationFn: async (payload: {
-      input: Parameters<typeof client.ai.trigger_funcs.translate_trigger.mutate>[0];
+      input: translate_route_input;
       slot: number;
       active_translation_name: string;
       query_key: any;
@@ -181,11 +181,26 @@
       if (!destroyed) {
         show_time_status = false;
       }
-      const out = await client.ai.trigger_funcs.translate_trigger.mutate(payload.input);
-      const result = await get_result_from_trigger_run_id<typeof out.output_type>(out.run_id!);
+      const time_start = performance.now();
+      const body = translate_route_schema.input.parse(payload.input);
+      let out;
+      try {
+        out = await ky
+          .post('/api/translate_text', {
+            json: body,
+            timeout: 600_000,
+            retry: 0
+          })
+          .json(translate_route_schema.output);
+      } catch (err) {
+        if (err instanceof HTTPError && err.response.status === 401) {
+          throw new Error('Not a Admin User');
+        }
+        throw err;
+      }
       return {
-        result,
-        time_taken: result.time_taken,
+        result: out,
+        time_taken: performance.now() - time_start,
         slot: payload.slot,
         active_translation_name: payload.active_translation_name,
         query_key: payload.query_key,
@@ -244,7 +259,7 @@
   }));
 
   $effect(() => {
-    main_app_ai_translate_in_progress.set(translate_sarga_mut.isPending);
+    main_app_ai_translate_in_progress.set(translate_mut.isPending);
   });
 
   async function translate_sarga_func() {
@@ -280,7 +295,7 @@
     const query_key = trans_slot_data_query_key[slot];
     const slot_query = slot === 0 ? trans_slot_1_data_q : trans_slot_2_data_q;
 
-    await translate_sarga_mut.mutateAsync({
+    await translate_mut.mutateAsync({
       input: {
         project_id,
         lang_id,
@@ -303,7 +318,7 @@
       variant="secondary"
       size="sm"
       class="h-7 px-2 text-xs"
-      disabled={translate_sarga_mut.isPending}
+      disabled={translate_mut.isPending}
       onclick={open_translate_dialog}
     >
       <Icon src={AIIcon} class="-mt-0.5 mr-1 text-lg" />
@@ -311,12 +326,12 @@
     </Button>
     <Dialog.Content
       class="max-w-md"
-      showCloseButton={!translate_sarga_mut.isPending}
+      showCloseButton={!translate_mut.isPending}
       onInteractOutside={(e) => {
-        if (translate_sarga_mut.isPending) e.preventDefault();
+        if (translate_mut.isPending) e.preventDefault();
       }}
     >
-      {#if translate_sarga_mut.isPending}
+      {#if translate_mut.isPending}
         <div class="flex flex-col items-center gap-3 py-6 text-center">
           <LoaderCircle class="size-8 animate-spin text-muted-foreground" />
           <p class="text-sm font-medium">Currently translating to {active_translation_name}…</p>
@@ -407,9 +422,9 @@
       {/each}
     </Select.Content>
   </Select.Root>
-{:else if translate_sarga_mut.isSuccess && show_time_status}
+{:else if translate_mut.isSuccess && show_time_status}
   <span class="text-xs text-stone-500 select-none dark:text-stone-300">
     <Icon src={OiStopwatch16} class="text-base" />
-    {pretty_ms(translate_sarga_mut.data.time_taken)}
+    {pretty_ms(translate_mut.data.time_taken)}
   </span>
 {/if}

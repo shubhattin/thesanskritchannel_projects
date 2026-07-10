@@ -15,10 +15,11 @@ import {
   SANSKRIT_SYSTEM_PROMPT,
   USER_PROMPT
 } from './translation_prompt';
+import { env } from '$env/dynamic/private';
 
 // import { createOpenAI } from '@ai-sdk/openai';
 // const openai_text_model = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const openrouter_text_model = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY });
+const openrouter_text_model = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
 
 const MODELS = {
   'gpt-5.2': openrouter_text_model('openai/gpt-5.2')

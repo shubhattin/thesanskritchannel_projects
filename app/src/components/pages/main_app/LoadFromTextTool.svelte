@@ -34,6 +34,7 @@
     DEFAULT_ENABLED_NORMALIZATIONS,
     get_normalization_options
   } from '~/tools/text_normalizations';
+  import { derive_shloka_nums, is_shloka_text } from '~/utils/shloka_count';
 
   type SaveMode = 'use-existing' | 'overwrite';
   type ReviewedState = 'no' | 'yes';
@@ -48,6 +49,7 @@
   let save_mode = $state<SaveMode>('overwrite');
   let reviewed_output = $state<ReviewedState>('no');
   let selected_normalization_keys = $state<string[]>([...DEFAULT_ENABLED_NORMALIZATIONS]);
+  let auto_mark_shlokas = $state(true);
   const normalization_options = get_normalization_options();
   const enabled_normalizations = $derived(
     normalization_options
@@ -91,11 +93,18 @@
     const texts = parsed_rows.map((row) => row.text);
     const indices = parsed_rows.map((_, index) => index);
     const transformed_texts = apply_normalizations_to_texts(texts, indices, enabled_normalizations);
-    return parsed_rows.map((row, index) => ({
-      ...row,
-      text: transformed_texts[index] ?? row.text
-    }));
+    return parsed_rows.map((row, index) => {
+      const text = transformed_texts[index] ?? row.text;
+      return {
+        ...row,
+        text,
+        shloka_type: auto_mark_shlokas ? is_shloka_text(text) : false
+      };
+    });
   });
+  const derived_import_shloka_nums = $derived(
+    derive_shloka_nums(transformed_rows.map((row) => ({ shloka_type: row.shloka_type })))
+  );
   const target_text_count = $derived(
     save_mode === 'use-existing' ? existing_rows.length : parsed_rows.length
   );
@@ -118,6 +127,7 @@
     selected_lang_id;
     save_mode;
     selected_normalization_keys;
+    auto_mark_shlokas;
     reviewed_output = 'no';
   });
 
@@ -166,7 +176,7 @@
           rows: transformed.map((row) => ({
             source_index: null,
             text: row.text,
-            shloka_type: false
+            shloka_type: row.shloka_type
           }))
         });
       }
@@ -269,6 +279,10 @@
                   {/each}
                 </Select.Content>
               </Select.Root>
+              <label class="mt-1 inline-flex items-center gap-2 text-sm">
+                <Checkbox bind:checked={auto_mark_shlokas} />
+                Auto-mark shlokas
+              </label>
             </div>
           </div>
 
@@ -328,8 +342,13 @@
               </div>
               <div class="text-muted-foreground">
                 Existing text rows: {existing_rows.length}. New text rows: {transformed_rows.length}.
-                Imported rows are saved as regular text rows; after adding, use Edit Text to mark
-                individual rows as shlokas.
+                {#if auto_mark_shlokas && save_mode === 'overwrite'}
+                  Detected shlokas are marked automatically on overwrite; you can still adjust them
+                  later in Edit Text.
+                {:else}
+                  Imported rows are saved as regular text rows; after adding, use Edit Text to mark
+                  individual rows as shlokas.
+                {/if}
               </div>
               {#if translation_count_invalid}
                 <div class="text-destructive">
@@ -371,7 +390,15 @@
                 {#each get_preview_indexes() as index (index)}
                   {@const text = get_output_text_for_row(index)}
                   {@const translation = get_output_translation_for_row(index)}
-                  <div class="rounded-md border bg-card p-3">
+                  {@const shloka_num =
+                    save_mode === 'overwrite' ? derived_import_shloka_nums[index] : null}
+                  <div class="relative rounded-md border bg-card p-3 pt-7">
+                    <span
+                      class="absolute top-2 right-2 text-xs text-muted-foreground tabular-nums select-none"
+                    >
+                      {index}{#if shloka_num !== null}
+                        - {shloka_num}{/if}
+                    </span>
                     <div class="text-sm whitespace-pre-wrap">
                       <span class="font-semibold">{index + 1}.</span>
                       {#if text}

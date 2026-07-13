@@ -104,9 +104,12 @@
   };
 
   const groups = $derived(groups_q.data ?? []);
-  let open_batch = $state<string | undefined>(undefined);
+  let open_batches = $state<string[]>([]);
+  let did_init_open = $state(false);
   $effect(() => {
-    if (!open_batch && groups[0]) open_batch = groups[0].batch_id;
+    if (did_init_open || groups.length === 0) return;
+    open_batches = [groups[0]!.batch_id];
+    did_init_open = true;
   });
 </script>
 
@@ -171,7 +174,7 @@
       </p>
     </div>
   {:else}
-    <Accordion.Root type="single" bind:value={open_batch} class="flex flex-col gap-3">
+    <Accordion.Root type="multiple" bind:value={open_batches} class="flex flex-col gap-3">
       {#each groups as group (group.batch_id)}
         <Accordion.Item value={group.batch_id} class="rounded-xl border border-border px-4">
           <Accordion.Trigger class="py-4 hover:no-underline">

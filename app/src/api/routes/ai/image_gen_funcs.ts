@@ -7,7 +7,7 @@ import { openai } from './providers';
 import { resolveSelectedTextProjectPath } from '~/utils/project/paths_db.server';
 import { db } from '~/db/db';
 import { persistImageAsset } from '~/utils/image_assets/persist.server';
-import { getCDNUrl } from '~/constants';
+import { getCDNUrl } from '~/utils/cdn';
 
 const IMAGE_SIZE = '1024x1024' as const;
 

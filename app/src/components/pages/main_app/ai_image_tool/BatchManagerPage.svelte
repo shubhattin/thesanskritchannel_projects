@@ -10,8 +10,8 @@
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import * as Select from '$lib/components/ui/select';
   import {
-    PUZZLE_IMAGE_BATCH_STATUS_LABELS,
-    PUZZLE_IMAGE_BATCH_STATUS_VARIANTS
+    IMAGE_BATCH_STATUS_LABELS,
+    IMAGE_BATCH_STATUS_VARIANTS
   } from '~/utils/ai_batch/batch_image_status';
   import {
     invalidate_batch_ai_queries,
@@ -245,8 +245,8 @@
                             ? `:${item.shloka_num}`
                             : ''}
                         </p>
-                        <Badge variant={PUZZLE_IMAGE_BATCH_STATUS_VARIANTS[item.status]}>
-                          {PUZZLE_IMAGE_BATCH_STATUS_LABELS[item.status]}
+                        <Badge variant={IMAGE_BATCH_STATUS_VARIANTS[item.status]}>
+                          {IMAGE_BATCH_STATUS_LABELS[item.status]}
                         </Badge>
                         {#if item.auto_approved}
                           <Badge variant="outline">Auto-apply</Badge>

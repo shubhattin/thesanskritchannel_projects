@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { createMutation, createQuery } from '@tanstack/svelte-query';
   import { toast } from 'svelte-sonner';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -7,6 +8,7 @@
   import { Checkbox } from '$lib/components/ui/checkbox';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Badge } from '$lib/components/ui/badge';
+  import { Separator } from '$lib/components/ui/separator';
   import { client } from '~/api/client';
   import {
     project_state,
@@ -17,8 +19,8 @@
   import { active_text_data_q_options } from '~/state/main_app/data.svelte';
   import { invalidate_batch_ai_queries } from '~/state/main_app/batch_query_helpers';
   import {
-    PUZZLE_IMAGE_BATCH_STATUS_LABELS,
-    PUZZLE_IMAGE_BATCH_STATUS_VARIANTS
+    IMAGE_BATCH_STATUS_LABELS,
+    IMAGE_BATCH_STATUS_VARIANTS
   } from '~/utils/ai_batch/batch_image_status';
   import type { available_image_models_schema } from '~/api/routes/ai/ai_types';
   import type { z } from 'zod';
@@ -120,10 +122,26 @@
   };
 
   const toggle_index = (index: number, checked: boolean) => {
-    const next = new Set(selected_indexes);
+    const next = new Set(untrack(() => selected_indexes));
     if (checked) next.add(index);
     else next.delete(index);
     selected_indexes = next;
+  };
+
+  const bulk_rows = $derived(text_data_q.data ?? []);
+  const all_selected = $derived(
+    bulk_rows.length > 0 && bulk_rows.every((row) => selected_indexes.has(row.index))
+  );
+  const some_selected = $derived(
+    bulk_rows.some((row) => selected_indexes.has(row.index)) && !all_selected
+  );
+
+  const toggle_all = (checked: boolean) => {
+    if (checked) {
+      selected_indexes = new Set(bulk_rows.map((row) => row.index));
+      return;
+    }
+    selected_indexes = new Set();
   };
 
   const index_busy = $derived(
@@ -172,8 +190,8 @@
   {#if index_status_q.data}
     <div class="flex flex-wrap items-center gap-2 text-xs">
       <span class="text-muted-foreground">Current shloka:</span>
-      <Badge variant={PUZZLE_IMAGE_BATCH_STATUS_VARIANTS[index_status_q.data.status]}>
-        {PUZZLE_IMAGE_BATCH_STATUS_LABELS[index_status_q.data.status]}
+      <Badge variant={IMAGE_BATCH_STATUS_VARIANTS[index_status_q.data.status]}>
+        {IMAGE_BATCH_STATUS_LABELS[index_status_q.data.status]}
       </Badge>
       <a
         class="text-primary hover:underline"
@@ -189,8 +207,8 @@
   {#if path_status_q.data && path_status_q.data.custom_id !== index_status_q.data?.custom_id}
     <div class="flex flex-wrap items-center gap-2 text-xs">
       <span class="text-muted-foreground">Path batch:</span>
-      <Badge variant={PUZZLE_IMAGE_BATCH_STATUS_VARIANTS[path_status_q.data.status]}>
-        {PUZZLE_IMAGE_BATCH_STATUS_LABELS[path_status_q.data.status]}
+      <Badge variant={IMAGE_BATCH_STATUS_VARIANTS[path_status_q.data.status]}>
+        {IMAGE_BATCH_STATUS_LABELS[path_status_q.data.status]}
       </Badge>
       <a
         class="text-primary hover:underline"
@@ -273,7 +291,25 @@
 
     <ScrollArea class="h-[min(50vh,24rem)] rounded-md border p-2">
       <div class="flex flex-col gap-1">
-        {#each text_data_q.data ?? [] as row (row.index)}
+        <label
+          class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"
+        >
+          <Checkbox
+            checked={all_selected}
+            indeterminate={some_selected}
+            onCheckedChange={(checked) => toggle_all(checked === true)}
+          />
+          <span class="text-sm font-medium">
+            Select all
+            {#if bulk_rows.length > 0}
+              <span class="font-normal text-muted-foreground">
+                ({selected_indexes.size}/{bulk_rows.length})
+              </span>
+            {/if}
+          </span>
+        </label>
+        <Separator class="my-1" />
+        {#each bulk_rows as row (row.index)}
           <label
             class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"
           >

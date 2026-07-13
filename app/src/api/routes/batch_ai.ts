@@ -17,7 +17,7 @@ import {
 import { createAiBatch, getAiBatchResult, type AiBatchInput } from '~/utils/ai_batch';
 import type { AiBatchPollingStatus } from '~/utils/ai_batch/types';
 import { getShlokaImageBatchCustomId } from '~/utils/ai_batch/shloka-image';
-import { derivePuzzleImageBatchUiStatus } from '~/utils/ai_batch/batch_image_status';
+import { deriveImageBatchUiStatus } from '~/utils/ai_batch/batch_image_status';
 import {
   BATCH_POLLING_INTERVAL_S,
   image_batch_metadata_schema,
@@ -36,7 +36,7 @@ import { get_path_params } from '~/state/project_list';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
 import { available_image_models_schema } from '~/api/routes/ai/ai_types';
 import { get_image_prompt_func } from '~/api/routes/ai/get_image_prompt';
-import { getCDNUrl } from '~/constants';
+import { getCDNUrl } from '~/utils/cdn';
 import { text_models_enum } from '~/api/routes/ai/ai_types';
 import { env } from '$env/dynamic/private';
 
@@ -703,7 +703,7 @@ type EnrichedBatchItem = {
     height: number;
     description: string | null;
   } | null;
-  status: ReturnType<typeof derivePuzzleImageBatchUiStatus>;
+  status: ReturnType<typeof deriveImageBatchUiStatus>;
   openai_batch_url: string;
 };
 
@@ -805,7 +805,7 @@ async function enrichBatchRows(
             description: asset.description
           }
         : null,
-      status: derivePuzzleImageBatchUiStatus(row.output_resolved, metadata, row.auto_approved),
+      status: deriveImageBatchUiStatus(row.output_resolved, metadata, row.auto_approved),
       openai_batch_url: `https://platform.openai.com/batches/${row.batch_id}`
     };
   });

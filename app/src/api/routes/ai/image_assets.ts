@@ -6,7 +6,7 @@ import { db } from '~/db/db';
 import { text_image_assets_join, texts, image_assets } from '~/db/schema';
 import { resolveSelectedTextProjectPath } from '~/utils/project/paths_db.server';
 import { deleteImageAssetById } from '~/utils/image_assets/persist.server';
-import { getCDNUrl } from '~/constants';
+import { getCDNUrl } from '~/utils/cdn';
 
 const path_input_schema = z.object({
   project_id: z.int(),

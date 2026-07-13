@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { get_non_square_aspect_ratio_label } from '~/utils/image_assets/aspect_ratio';
-import { buildImageAssetS3Key, isValidImageAssetS3Key } from '~/utils/s3/upload_file.server';
+import { buildImageAssetS3Key, isValidImageAssetS3Key } from '~/utils/s3/image_asset_key';
 import {
   getShlokaImageBatchCustomId,
   isShlokaImageBatchCustomId,

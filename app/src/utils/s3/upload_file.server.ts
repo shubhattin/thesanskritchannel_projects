@@ -8,9 +8,15 @@ import {
   S3Client,
   StorageClass
 } from '@aws-sdk/client-s3';
-import { randomUUID } from 'node:crypto';
-import { SUB_FOLDERS, PROJECT_S3_ALIAS } from '~/constants';
 import { env } from '$env/dynamic/private';
+import {
+  buildImageAssetS3Key,
+  isValidImageAssetS3Key,
+  type ImageAssetS3Key
+} from '~/utils/s3/image_asset_key';
+
+export type { ImageAssetS3Key };
+export { buildImageAssetS3Key, isValidImageAssetS3Key };
 
 const envs_schema = z.object({
   AWS_REGION: z.string().min(1),
@@ -61,22 +67,6 @@ const getAssetBucketName = () => {
   return bucket;
 };
 
-export type ImageAssetS3Key =
-  `${typeof PROJECT_S3_ALIAS}/${(typeof SUB_FOLDERS)[number]}/image_assets/${string}.webp`;
-
-/** Flat key — no project/path/index subfolders. */
-export const buildImageAssetS3Key = (
-  project_id: number,
-  path_params: readonly number[],
-  index: number | null,
-  uuid: string = randomUUID()
-): ImageAssetS3Key => {
-  const path_part = path_params.join('-');
-  const index_part = index === null ? 'orphan' : String(index);
-  const file_name = `${project_id}:${path_part}:${index_part}:${uuid}`;
-  return `003_projects_portal/shlOkAni_texts/image_assets/${file_name}.webp`;
-};
-
 export const uploadAssetFile = async (
   key: ImageAssetS3Key,
   fileBuffer: Buffer,
@@ -92,14 +82,6 @@ export const uploadAssetFile = async (
   );
   return data;
 };
-
-/** Allows digits, letters, `_`, `.`, `-`, and `:` in the flat filename. */
-const ASSET_KEY_PATTERN = new RegExp(
-  `^${PROJECT_S3_ALIAS}/(?:${SUB_FOLDERS.join('|')})/image_assets/[\\w.:-]+\\.webp$`
-);
-
-export const isValidImageAssetS3Key = (key: string): key is ImageAssetS3Key =>
-  ASSET_KEY_PATTERN.test(key);
 
 export const deleteAssetFile = async (
   key: string,

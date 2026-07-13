@@ -142,14 +142,18 @@ export const site_lekhas = pgTable(
   (table) => [index().on(table.published_at)]
 );
 
-export const image_assets = pgTable('image_assets', {
-  id: serial().primaryKey(),
-  description: varchar('description', { length: 150 }),
-  width: smallint().notNull(),
-  height: smallint().notNull(),
-  s3_key: text().notNull(),
-  created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
-});
+export const image_assets = pgTable(
+  'image_assets',
+  {
+    id: serial().primaryKey(),
+    description: varchar('description', { length: 150 }),
+    width: smallint().notNull(),
+    height: smallint().notNull(),
+    s3_key: text().notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [unique('image_assets_s3_key_unique').on(table.s3_key)]
+);
 
 /** One OpenAI Batch API job — shared fields for all custom_id responses in the batch. */
 export const ai_batches = pgTable('ai_batches', {
@@ -185,19 +189,26 @@ export const ai_batch_responses = pgTable(
 /**
  * Used to group images under project_id+path+index/shloka
  */
-export const text_image_assets_join = pgTable('text_image_assets_join', {
-  id: serial().primaryKey(),
-  project_path_id: integer()
-    .notNull()
-    .references(() => project_paths.id, { onDelete: 'cascade' }),
-  /** Index is nullable here as if the shloka at that index has been deleted then the image can still belong
-   * to the project path
-   */
-  index: integer(),
-  image_asset_id: integer()
-    .notNull()
-    .references(() => image_assets.id, { onDelete: 'cascade' })
-});
+export const text_image_assets_join = pgTable(
+  'text_image_assets_join',
+  {
+    id: serial().primaryKey(),
+    project_path_id: integer()
+      .notNull()
+      .references(() => project_paths.id, { onDelete: 'cascade' }),
+    /** Index is nullable here as if the shloka at that index has been deleted then the image can still belong
+     * to the project path
+     */
+    index: integer(),
+    image_asset_id: integer()
+      .notNull()
+      .references(() => image_assets.id, { onDelete: 'cascade' })
+  },
+  (table) => [
+    unique('text_image_assets_join_image_asset_id_unique').on(table.image_asset_id),
+    index('text_image_assets_join_project_path_id_index_idx').on(table.project_path_id, table.index)
+  ]
+);
 
 export const user_project_join = pgTable(
   'user_project_join',
@@ -237,7 +248,8 @@ export const projectPathRelations = relations(project_paths, ({ many, one }) => 
   }),
   texts: many(texts),
   translations: many(translations),
-  media_attachment: many(media_attachment)
+  media_attachment: many(media_attachment),
+  text_image_assets: many(text_image_assets_join)
 }));
 
 export const textRelations = relations(texts, ({ one }) => ({
@@ -252,7 +264,19 @@ export const textRelations = relations(texts, ({ one }) => ({
 }));
 
 export const imageAssetRelations = relations(image_assets, ({ many }) => ({
-  texts: many(texts)
+  texts: many(texts),
+  text_image_joins: many(text_image_assets_join)
+}));
+
+export const textImageAssetsJoinRelations = relations(text_image_assets_join, ({ one }) => ({
+  project_path: one(project_paths, {
+    fields: [text_image_assets_join.project_path_id],
+    references: [project_paths.id]
+  }),
+  image_asset: one(image_assets, {
+    fields: [text_image_assets_join.image_asset_id],
+    references: [image_assets.id]
+  })
 }));
 
 export const translationRelations = relations(translations, ({ one }) => ({

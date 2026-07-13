@@ -8,7 +8,11 @@ import {
   other,
   site_lekhas,
   projects,
-  project_paths
+  project_paths,
+  image_assets,
+  text_image_assets_join,
+  ai_batches,
+  ai_batch_responses
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 import { recursive_list_schema } from '../state/data_types';
@@ -44,3 +48,10 @@ export const ProjectSchemaZod = createSelectSchema(projects, {
   updated_at: z.coerce.date().optional().nullable(),
   created_at: z.coerce.date()
 });
+
+export const ImageAssetSchemaZod = createSelectSchema(image_assets, {
+  created_at: z.coerce.date()
+});
+export const TextImageAssetsJoinSchemaZod = createSelectSchema(text_image_assets_join);
+export const AiBatchesSchemaZod = createSelectSchema(ai_batches);
+export const AiBatchResponsesSchemaZod = createSelectSchema(ai_batch_responses);

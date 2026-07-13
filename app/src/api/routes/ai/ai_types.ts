@@ -44,42 +44,38 @@ export type translate_route_output = z.infer<typeof translate_route_schema.outpu
 
 export const available_image_models_schema = z.enum(['gpt-image-1', 'gpt-image-2']);
 
-const create_image_output_schema = <
-  Model extends z.infer<typeof available_image_models_schema>,
-  ImageFormat extends 'url' | 'b64_json',
-  FileFormat extends 'png' | 'jpeg' | 'webp'
->(
-  model: Model,
-  imageFormat: ImageFormat,
-  fileFormat: FileFormat
-) =>
-  z.object({
-    created: z.int(),
-    prompt: z.string(),
-    url: z.string(),
-    model: z.literal(model),
-    out_format: z.literal(imageFormat),
-    file_format: z.literal(fileFormat)
-  });
-
-const image_schema = z.union([
-  create_image_output_schema('gpt-image-1', 'b64_json', 'png'),
-  create_image_output_schema('gpt-image-2', 'b64_json', 'png')
-]);
+const persisted_image_schema = z.object({
+  id: z.int(),
+  s3_key: z.string(),
+  url: z.string(),
+  width: z.int(),
+  height: z.int(),
+  description: z.string().nullable(),
+  prompt: z.string(),
+  created: z.int(),
+  model: available_image_models_schema,
+  file_format: z.literal('webp')
+});
 
 export const image_gen_route_schema = {
   input: z.object({
-    image_prompt: z.string(),
+    image_prompt: z.string().min(1),
     number_of_images: z.int().min(1).max(4),
-    image_model: available_image_models_schema
+    image_model: available_image_models_schema,
+    project_id: z.int(),
+    selected_text_levels: z.array(z.int().nullable()),
+    index: z.int().min(0)
   }),
-  output: z.object({
-    images: image_schema.array(),
-    time_taken: z.int(),
-    success: z.literal(true)
-  })
+  output: z.discriminatedUnion('success', [
+    z.object({
+      images: persisted_image_schema.array(),
+      time_taken: z.int(),
+      success: z.literal(true)
+    }),
+    z.object({ success: z.literal(false) })
+  ])
 };
-export type image_output_type = z.infer<typeof image_schema>;
+export type image_output_type = z.infer<typeof persisted_image_schema>;
 
 /** For frontend info */
 export const TEXT_MODEL_LIST_INFO = {

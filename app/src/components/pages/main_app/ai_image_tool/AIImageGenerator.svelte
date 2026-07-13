@@ -28,7 +28,7 @@
   import { cl_join } from '~/tools/cl_join';
   import { OiStopwatch16 } from 'svelte-icons-pack/oi';
   import { BsClipboard2Check } from 'svelte-icons-pack/bs';
-  import { createQuery } from '@tanstack/svelte-query';
+  import { createMutation, createQuery } from '@tanstack/svelte-query';
   import { delay_dev } from '~/tools/delay';
   import pretty_ms from 'pretty-ms';
   import ms from 'ms';
@@ -37,6 +37,10 @@
   import { Textarea } from '$lib/components/ui/textarea';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import * as Select from '$lib/components/ui/select';
+  import { toast } from 'svelte-sonner';
+  import BatchImageControls from './BatchImageControls.svelte';
+  import ViewImagesDialog from './ViewImagesDialog.svelte';
+  import { invalidate_text_image_queries } from '~/state/main_app/batch_query_helpers';
 
   const project_map_q = createQuery(() => project_map_q_options($project_state));
   const text_data_q = createQuery(() =>
@@ -63,6 +67,7 @@
   );
 
   let selected_text_model: keyof typeof TEXT_MODEL_LIST_INFO = $state('gpt-5.2');
+  let view_images_open = $state(false);
 
   onMount(async () => {
     if (import.meta.env.DEV) {
@@ -88,7 +93,6 @@
   onDestroy(() => {
     show_prompt_time_status = false;
     show_image_time_status = false;
-    // ^ may be not needed
   });
 
   $effect(() => {
@@ -107,18 +111,17 @@
     }
   });
 
-  type image_models_type = Parameters<typeof client.ai.gen_image.query>[0]['image_model'];
+  type image_models_type = Parameters<typeof client.ai.gen_image.mutate>[0]['image_model'];
   let image_model: image_models_type = $state('gpt-image-2');
 
-  /** Expected image generation duration (seconds) — used for progress ring and interval cap. */
   const IMAGE_MODEL_GEN_TIME_S: Record<image_models_type, number> = {
     'gpt-image-1': 30,
     'gpt-image-2': 40
   };
 
-  const IMAGE_MODELS: Record<image_models_type, [label: string, cost: string]> = {
-    'gpt-image-2': ['GPT 2', '$0.042 (₹3.5) / image'],
-    'gpt-image-1': ['GPT 1', '$0.042 (₹3.5) / image']
+  const IMAGE_MODELS: Record<image_models_type, [string, string]> = {
+    'gpt-image-2': ['GPT 2', '$0.053 (₹4.5) / image (medium 1024²)'],
+    'gpt-image-1': ['GPT 1', '$0.042 (₹3.5) / image (medium 1024²)']
   };
 
   $effect(() => {
@@ -136,17 +139,113 @@
   });
 
   $effect(() => {
-    // reset image prompt text on change of chapter or shloka
     $selected_text_levels;
     $index;
     $image_prompt = '';
+    generated_images = [];
   });
 
   const NUMBER_OF_IMAGES = 1;
   let image_gen_time_taken = $state(0);
+  let generated_images = $state<
+    {
+      id: number;
+      url: string;
+      prompt: string;
+      width: number;
+      height: number;
+      file_format: 'webp';
+    }[]
+  >([]);
 
   let image_gen_interval_obj: ReturnType<typeof setInterval> = null!;
-  // ^ Also update grid-cols-<num> in image rendering
+  let gen_request_token = 0;
+
+  const same_selection = (a: (number | null)[], b: (number | null)[]) =>
+    a.length === b.length && a.every((v, i) => v === b[i]);
+
+  const gen_image_mut = createMutation(() => ({
+    mutationFn: async () => {
+      if (!$project_state) throw new Error('No project');
+      const request_token = ++gen_request_token;
+      const request_index = $index;
+      const request_levels = [...$selected_text_levels];
+      const request_prompt = $image_prompt;
+
+      if (import.meta.env.DEV && load_ai_sample_data) {
+        await delay_dev(2000);
+        const permutation = get_permutations([1, 4], 1)[0];
+        const { ai_sample_data } = await import('./ai_sample_data');
+        return {
+          request_token,
+          request_index,
+          request_levels,
+          request_prompt,
+          result: {
+            success: true as const,
+            time_taken: 0,
+            images: Array.from({ length: NUMBER_OF_IMAGES }, (_, i) => {
+              const image_index = permutation[i]! - 1;
+              return {
+                id: -1 - i,
+                s3_key: '',
+                url: ai_sample_data.sample_images[image_index]!,
+                width: 1024,
+                height: 1024,
+                description: null,
+                prompt: `Sample Image ${image_index + 1}`,
+                created: Date.now(),
+                model: image_model,
+                file_format: 'webp' as const
+              };
+            })
+          }
+        };
+      }
+      const result = await client.ai.gen_image.mutate({
+        image_prompt: request_prompt,
+        number_of_images: NUMBER_OF_IMAGES,
+        image_model,
+        project_id: $project_state.project_id,
+        selected_text_levels: request_levels,
+        index: request_index
+      });
+      return { request_token, request_index, request_levels, request_prompt, result };
+    },
+    onSuccess: async (payload) => {
+      const { request_token, request_index, request_levels, request_prompt, result: out } = payload;
+      const is_stale =
+        request_token !== gen_request_token ||
+        request_index !== $index ||
+        !same_selection(request_levels, $selected_text_levels) ||
+        request_prompt !== $image_prompt;
+      if (is_stale) return;
+
+      if (!out.success) {
+        toast.error('Image generation failed');
+        return;
+      }
+      generated_images = out.images.map((img) => ({
+        id: img.id,
+        url: img.url,
+        prompt: img.prompt,
+        width: img.width,
+        height: img.height,
+        file_format: img.file_format
+      }));
+      show_image_time_status = true;
+      image_gen_time_taken = 0;
+      await invalidate_text_image_queries($project_state?.project_id);
+    },
+    onError: (err) => toast.error(err.message || 'Image generation failed'),
+    onSettled: () => {
+      if (image_gen_interval_obj) {
+        clearInterval(image_gen_interval_obj);
+        image_gen_interval_obj = null!;
+      }
+    }
+  }));
+
   const generate_image = async () => {
     image_gen_time_taken = 0;
     image_gen_interval_obj = setInterval(() => {
@@ -156,14 +255,7 @@
         return;
       }
     }, 1000);
-    try {
-      await image_q.refetch();
-    } finally {
-      if (image_gen_interval_obj) {
-        clearInterval(image_gen_interval_obj);
-        image_gen_interval_obj = null!;
-      }
-    }
+    await gen_image_mut.mutateAsync();
   };
 
   const image_prompt_q = createQuery(() => ({
@@ -203,83 +295,14 @@
         image_prompt_request_error = false;
         show_prompt_time_status = true;
       });
-    else image_prompt_request_error = true;
+    else if (image_prompt_q.fetchStatus !== 'idle' || image_prompt_q.isError)
+      image_prompt_request_error = true;
   });
 
-  const image_q = createQuery(() => ({
-    queryKey: [
-      'shloka_image',
-      ...$selected_text_levels.slice(0, ($project_state?.levels ?? 1) - 1).reverse(),
-      $index
-    ],
-    queryFn: async () => {
-      show_image_time_status = false;
-      if (import.meta.env.DEV && load_ai_sample_data) {
-        await delay_dev(2000);
-        const list: {
-          url: string;
-          created: number;
-          prompt: string;
-          file_format: 'png';
-          model: 'gpt-image-2';
-          out_format: 'b64_json';
-        }[] = [];
-        const permutation = get_permutations([1, 4], 1)[0];
-        const { ai_sample_data } = await import('./ai_sample_data');
-        for (let i = 0; i < NUMBER_OF_IMAGES; i++) {
-          const image_index = permutation[i] - 1;
-          list.push({
-            url: ai_sample_data.sample_images[image_index],
-            created: new Date().getTime(),
-            prompt: `Sample Image ${image_index + 1}`,
-            file_format: 'png', // although its webp
-            model: 'gpt-image-2',
-            out_format: 'b64_json'
-          });
-        }
-        return { images: list, time_taken: 0 };
-      }
-      // const { run_id, output_type } = await client.ai.trigger_funcs.generate_image_trigger.query({
-      //   image_prompt: $image_prompt,
-      //   number_of_images: NUMBER_OF_IMAGES,
-      //   image_model
-      // });
-
-      // return await get_result_from_trigger_run_id<typeof output_type>(run_id!, 2);
-      const out = await client.ai.gen_image.query({
-        image_prompt: $image_prompt,
-        number_of_images: NUMBER_OF_IMAGES,
-        image_model
-      });
-      if (!out.success) throw new Error('Image generation failed');
-      return out;
-    },
-    enabled: false,
-    placeholderData: undefined,
-    staleTime: ms('30mins')
-  }));
-  $effect(() => {
-    if (!image_q.isFetching && image_q.isSuccess) {
-      show_image_time_status = true;
-      if (image_gen_interval_obj)
-        untrack(() => {
-          // clear interval
-          clearInterval(image_gen_interval_obj);
-          image_gen_interval_obj = null!;
-          image_gen_time_taken = 0;
-        });
-    }
-  });
-  type image_data_type = Extract<
-    Awaited<ReturnType<typeof client.ai.gen_image.query>>,
-    { success: true }
-  >['images'][number];
-
-  const download_image = (image: image_data_type) => {
+  const download_image = (image: { url: string }) => {
     if (!image) return;
     const file_name = `Image No. ${$index}`;
-    if (load_ai_sample_data) download_file_in_browser(image.url, `${file_name}.webp`);
-    else download_file_in_browser(image.url, `${file_name}.png`);
+    download_file_in_browser(image.url, `${file_name}.webp`);
   };
 
   let copied_text_status = $state(false);
@@ -300,8 +323,8 @@
     Copied to Clipboard
   </div>
 {/if}
-<div class="mb-2 space-x-3">
-  <span class="space-x-1">
+<div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+  <span class="inline-flex items-center gap-1">
     <span class="font-semibold">Index No.</span>
     <button
       class="btn-hover"
@@ -345,10 +368,23 @@
       <Icon src={TiArrowForwardOutline} class="-mt-1 text-lg" />
     </button>
   </span>
+  <Button variant="outline" size="sm" onclick={() => (view_images_open = true)}>View Images</Button>
+  <Button
+    variant="ghost"
+    size="icon"
+    class="text-white hover:text-red-500"
+    onclick={() => ($ai_tool_opened = false)}
+  >
+    <Icon src={CgClose} class="text-xl" />
+  </Button>
+</div>
+
+<BatchImageControls current_index={$index} current_image_prompt={$image_prompt} {image_model} />
+
+<div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
   <Button
     onclick={async () => {
       await image_prompt_q.refetch();
-      // ^ this refetch is not a reliable alternative to onSuccess
     }}
     disabled={image_prompt_q.isFetching}
     size="sm"
@@ -357,7 +393,7 @@
   </Button>
   <Select.Root type="single" bind:value={selected_text_model as any}>
     <Select.Trigger
-      class="ml-2.5 inline-flex w-20 px-1.5 py-1 text-xs"
+      class="inline-flex w-20 px-1.5 py-1 text-xs"
       title={TEXT_MODEL_LIST_INFO[selected_text_model][1]}
     >
       {TEXT_MODEL_LIST_INFO[selected_text_model][0]}
@@ -368,16 +404,8 @@
       {/each}
     </Select.Content>
   </Select.Root>
-  <Button
-    variant="ghost"
-    size="icon"
-    class="text-white hover:text-red-500"
-    onclick={() => ($ai_tool_opened = false)}
-  >
-    <Icon src={CgClose} class="text-xl" />
-  </Button>
   {#if show_prompt_time_status && image_prompt_q.isSuccess && image_prompt_q.data.image_prompt}
-    <span class="ml-4 text-xs text-stone-500 select-none dark:text-stone-300">
+    <span class="text-xs text-stone-500 select-none dark:text-stone-300">
       <Icon src={OiStopwatch16} class="text-base" />
       {pretty_ms(image_prompt_q.data.time_taken)}
     </span>
@@ -396,7 +424,7 @@
     {/each}
   </div>
 </div>
-<div class="flex items-center space-x-3">
+<div class="flex items-center gap-3">
   <Select.Root type="single" bind:value={image_model as any}>
     <Select.Trigger class="w-24 px-1.5 py-1 text-sm" title={IMAGE_MODELS[image_model][1]}>
       {IMAGE_MODELS[image_model][0]}
@@ -414,10 +442,13 @@
   {#if image_prompt_q.isFetching || !image_prompt_q.isSuccess}
     <Skeleton class="h-80" />
   {:else}
-    <div class="space-x-3">
+    <div class="flex flex-wrap items-center gap-3">
       <span class="font-bold">Image Prompt</span>
-      <Button disabled={image_q.isFetching} onclick={generate_image} size="sm" variant="secondary"
-        >Generate Image</Button
+      <Button
+        disabled={gen_image_mut.isPending}
+        onclick={generate_image}
+        size="sm"
+        variant="secondary">Generate Image</Button
       >
       <Button
         variant="ghost"
@@ -427,7 +458,7 @@
       >
         <Icon src={BsCopy} class="text-lg" />
       </Button>
-      {#if image_q.isFetching}
+      {#if gen_image_mut.isPending}
         <ProgressRing
           value={(image_gen_time_taken / IMAGE_MODEL_GEN_TIME_S[image_model]) * 100}
           max={100}
@@ -437,10 +468,10 @@
           meterClass="stroke-primary"
           trackClass="stroke-primary/30"
         />
-      {:else if show_image_time_status && image_q.isSuccess}
-        <span class="ml-4 text-xs text-stone-500 select-none dark:text-stone-300">
+      {:else if show_image_time_status && gen_image_mut.isSuccess && gen_image_mut.data?.result.success}
+        <span class="text-xs text-stone-500 select-none dark:text-stone-300">
           <Icon src={OiStopwatch16} class="text-base" />
-          {pretty_ms(image_q.data.time_taken)}
+          {pretty_ms(gen_image_mut.data.result.time_taken)}
         </span>
       {/if}
     </div>
@@ -449,32 +480,28 @@
       spellcheck="false"
       bind:value={$image_prompt}
     />
-    {#if image_q.data}
-      {#if image_q.isFetching || !image_q.isSuccess}
+    {#if generated_images.length > 0 || gen_image_mut.isPending}
+      {#if gen_image_mut.isPending}
         <Skeleton class="h-96" />
       {:else}
         <div>
           <section class="mb-10 grid grid-cols-2 gap-3">
-            {#each image_q.data.images as image}
-              {#if image}
-                <div class="space-y-1">
-                  <img
-                    src={image.url}
-                    alt={image.prompt}
-                    title={image.prompt}
-                    class="block rounded-md border-2 border-blue-600 dark:border-blue-800"
-                    height={1024}
-                    width={1024}
-                  />
-                  <div class="flex items-center justify-center space-x-3">
-                    <Button onclick={() => download_image(image)} variant="secondary" size="icon">
-                      <Icon src={BsDownload} class="text-xl" />
-                    </Button>
-                  </div>
+            {#each generated_images as image}
+              <div class="flex flex-col gap-1">
+                <img
+                  src={image.url}
+                  alt={image.prompt}
+                  title={image.prompt}
+                  class="block aspect-square rounded-md border-2 border-blue-600 object-cover dark:border-blue-800"
+                  height={image.height}
+                  width={image.width}
+                />
+                <div class="flex items-center justify-center gap-3">
+                  <Button onclick={() => download_image(image)} variant="secondary" size="icon">
+                    <Icon src={BsDownload} class="text-xl" />
+                  </Button>
                 </div>
-              {:else}
-                error
-              {/if}
+              </div>
             {/each}
           </section>
         </div>
@@ -482,3 +509,5 @@
     {/if}
   {/if}
 {/if}
+
+<ViewImagesDialog bind:open={view_images_open} focus_index={$index} />

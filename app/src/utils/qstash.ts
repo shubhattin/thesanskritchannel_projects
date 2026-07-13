@@ -1,7 +1,11 @@
 import { Client } from '@upstash/qstash';
 import { z } from 'zod';
+import { env } from '$env/dynamic/private';
 
-const client = new Client(); // load from env
+const client = new Client({
+  token: env.QSTASH_TOKEN,
+  baseUrl: env.QSTASH_BASE_URL
+}); // load from env
 
 const QSTAHS_PUBLISH_BASE_URL = `${import.meta.env.VITE_SITE_URL}/api/qstash`;
 

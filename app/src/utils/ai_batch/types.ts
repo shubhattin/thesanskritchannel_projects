@@ -171,7 +171,7 @@ export const ai_batch_gpt_image_2_input_schema = z
     type: z.literal('image'),
     custom_id: z.string().min(1),
     prompt: z.string().min(1),
-    model: z.literal('gpt-image-2').default('gpt-image-2'),
+    model: z.literal('gpt-image-2'),
     quality: ai_batch_gpt_image_2_quality_schema.default('medium'),
     size: ai_batch_gpt_image_2_size_schema.default('1536x1024'),
     background: ai_batch_gpt_image_2_background_schema.optional(),

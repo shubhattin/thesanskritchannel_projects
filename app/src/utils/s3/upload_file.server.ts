@@ -2,7 +2,9 @@ import { z } from 'zod';
 import mime from 'mime-types';
 import type { PutObjectCommandInput } from '@aws-sdk/client-s3';
 import { DeleteObjectCommand, PutObjectCommand, S3Client, StorageClass } from '@aws-sdk/client-s3';
+import { randomUUID } from 'node:crypto';
 import { SUB_FOLDERS, PROJECT_S3_ALIAS } from '~/constants';
+import { env } from '$env/dynamic/private';
 
 const envs_schema = z.object({
   AWS_REGION: z.string().min(1),
@@ -12,7 +14,7 @@ const envs_schema = z.object({
 });
 
 export const createS3Client = (options?: { envs?: z.infer<typeof envs_schema> }) => {
-  const envs = envs_schema.parse(options?.envs ?? process.env);
+  const envs = envs_schema.parse(options?.envs ?? env);
   return new S3Client({
     region: envs.AWS_REGION,
     credentials: {
@@ -45,19 +47,39 @@ async function uploadFile(
   return data;
 }
 
-const ASSET_BUCKET_NAME = process.env?.AWS_S3_FILES_BUCKET_NAME ?? '';
+const getAssetBucketName = () => {
+  const bucket = env.AWS_S3_FILES_BUCKET_NAME;
+  if (!bucket) {
+    throw new Error('AWS_S3_FILES_BUCKET_NAME is not configured');
+  }
+  return bucket;
+};
 
-type location_types =
+export type ImageAssetS3Key =
   `${typeof PROJECT_S3_ALIAS}/${(typeof SUB_FOLDERS)[number]}/image_assets/${string}.webp`;
+
+/** Flat key — no project/path/index subfolders. */
+export const buildImageAssetS3Key = (
+  project_id: number,
+  path_params: readonly number[],
+  index: number | null,
+  uuid: string = randomUUID()
+): ImageAssetS3Key => {
+  const path_part = path_params.join('-');
+  const index_part = index === null ? 'orphan' : String(index);
+  const file_name = `${project_id}:${path_part}:${index_part}:${uuid}`;
+  return `003_projects_portal/shlOkAni_texts/image_assets/${file_name}.webp`;
+};
+
 export const uploadAssetFile = async (
-  key: location_types,
+  key: ImageAssetS3Key,
   fileBuffer: Buffer,
   options: UploadFileOptions & {
     assetBucketName?: string;
   }
 ) => {
   const data = await uploadFile(
-    options.assetBucketName ?? ASSET_BUCKET_NAME,
+    options.assetBucketName ?? getAssetBucketName(),
     key,
     fileBuffer,
     options
@@ -65,9 +87,13 @@ export const uploadAssetFile = async (
   return data;
 };
 
+/** Allows digits, letters, `_`, `.`, `-`, and `:` in the flat filename. */
 const ASSET_KEY_PATTERN = new RegExp(
-  `^${PROJECT_S3_ALIAS}/(?:${SUB_FOLDERS.join('|')})/image_assets/[\\w.-]+\\.webp$`
+  `^${PROJECT_S3_ALIAS}/(?:${SUB_FOLDERS.join('|')})/image_assets/[\\w.:-]+\\.webp$`
 );
+
+export const isValidImageAssetS3Key = (key: string): key is ImageAssetS3Key =>
+  ASSET_KEY_PATTERN.test(key);
 
 export const deleteAssetFile = async (
   key: string,
@@ -76,13 +102,13 @@ export const deleteAssetFile = async (
   }
 ) => {
   const { s3Client } = options;
-  if (!ASSET_KEY_PATTERN.test(key)) {
+  if (!isValidImageAssetS3Key(key)) {
     throw new Error(`Invalid asset key: ${key}`);
   }
 
   const data = await s3Client.send(
     new DeleteObjectCommand({
-      Bucket: options.assetBucketName ?? ASSET_BUCKET_NAME,
+      Bucket: options.assetBucketName ?? getAssetBucketName(),
       Key: key
     })
   );

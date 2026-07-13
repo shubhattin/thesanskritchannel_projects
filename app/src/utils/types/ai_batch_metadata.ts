@@ -3,7 +3,7 @@ import ms from 'ms';
 
 /*
 # Image Workflow
-- We poll on specifc intevrals and upload to the bukcet
+- We poll on specific intervals and upload to the bucket
 - Store its reference in the metadata and then use it later
 */
 
@@ -15,11 +15,18 @@ export const MAX_BATCH_POLL_ATTEMPTS = Math.ceil((24 * 60 * 60) / BATCH_POLLING_
 
 export const image_batch_metadata_schema = z.object({
   type: z.literal('shloka-image'),
-  project_id: z.string(),
-  path_params: z.number().nullable().array(),
-  index: z.number(),
+  project_id: z.number().int(),
+  /** Stable ownership key across path renames */
+  project_path_id: z.number().int(),
+  /** Snapshot used for S3 naming / UI labels (higher→lower path segments) */
+  path_params: z.number().int().array(),
+  /**
+   * Text row index within the project path.
+   * Null when the source row was deleted/orphaned after a text reorder.
+   */
+  index: z.number().int().nullable(),
   image_prompt: z.string(),
-  /** to be editted upon batch completion */
+  /** to be edited upon batch completion */
   success: z.boolean().optional(),
   /** image_assets id (upload after successful batch completion) */
   uploaded_image_id: z.number().int().optional(),

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { createMutation, createQuery } from '@tanstack/svelte-query';
   import { onMount, untrack } from 'svelte';
   import { get, writable } from 'svelte/store';
@@ -540,7 +541,7 @@
       {#if $editing_mode === 'none'}
         <EditOptionsPopover {is_admin} {can_edit_language} {viewing_script_selection} />
         {#if is_admin}
-          <div class="ml-2 border-l pl-3">
+          <div class="ml-2 flex items-center gap-2 border-l pl-3">
             <Button
               onclick={() => (load_from_text_open = true)}
               variant="secondary"

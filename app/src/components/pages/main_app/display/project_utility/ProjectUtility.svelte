@@ -21,7 +21,7 @@
   import { transliterate_xlxs_file } from '~/tools/excel/transliterate_xlsx_file';
   import { client } from '~/api/client';
   import Icon from '~/tools/Icon.svelte';
-  import { BiImage } from 'svelte-icons-pack/bi';
+  import { BiImage, BiTask } from 'svelte-icons-pack/bi';
   import type { Workbook } from 'exceljs';
   import { TrOutlineFileTypeTxt } from 'svelte-icons-pack/tr';
   import { transliterate_custom } from '~/tools/converter';
@@ -178,6 +178,16 @@
         />
         AI Image Generator
       </button>
+      <a
+        class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
+        href={resolve('/batch-manager')}
+        onclick={() => {
+          utility_popover_state = false;
+        }}
+      >
+        <Icon src={BiTask} class="-mt-1 mr-1 text-xl text-violet-600 dark:text-violet-400" />
+        Batch Manager
+      </a>
     {/if}
     <button
       class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"

@@ -23,13 +23,9 @@
   import { copy_text_to_clipboard, get_permutations } from '~/tools/kry';
   import { onDestroy, onMount, untrack } from 'svelte';
   import { loadLocalConfig } from '../load_local_config';
-  import { BsDownload, BsCopy } from 'svelte-icons-pack/bs';
+  import { BsCopy } from 'svelte-icons-pack/bs';
   import { BiImage } from 'svelte-icons-pack/bi';
-  import {
-    buildImageAssetDownloadBasename,
-    download_s3_webp_in_browser,
-    download_webp_as_png_in_browser
-  } from '~/tools/download_file_browser';
+  import { buildImageAssetDownloadBasename } from '~/tools/download_file_browser';
   import { cl_join } from '~/tools/cl_join';
   import { OiStopwatch16 } from 'svelte-icons-pack/oi';
   import { BsClipboard2Check } from 'svelte-icons-pack/bs';
@@ -42,10 +38,15 @@
   import { Textarea } from '$lib/components/ui/textarea';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import * as Select from '$lib/components/ui/select';
+  import * as Carousel from '$lib/components/ui/carousel';
   import { toast } from 'svelte-sonner';
   import BatchImageControls from './BatchImageControls.svelte';
   import ViewImagesDialog from './ViewImagesDialog.svelte';
-  import { invalidate_text_image_queries } from '~/state/main_app/batch_query_helpers';
+  import TextImageCard from './TextImageCard.svelte';
+  import {
+    invalidate_text_image_queries,
+    text_images_query_key
+  } from '~/state/main_app/batch_query_helpers';
 
   const project_map_q = createQuery(() => project_map_q_options($project_state));
   const text_data_q = createQuery(() =>
@@ -321,29 +322,25 @@
     buildImageAssetDownloadBasename($index, text_data_q.data?.[$index]?.shloka_num)
   );
 
-  const download_image_webp = async (image: { s3_key: string }) => {
-    if (!image?.s3_key) {
-      toast.error('WebP download unavailable for this image');
-      return;
-    }
-    try {
-      await download_s3_webp_in_browser(image.s3_key, download_basename);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'WebP download failed');
-    }
-  };
+  const shloka_images_q = createQuery(() => ({
+    queryKey: text_images_query_key($project_state, $selected_text_levels, $index),
+    queryFn: async () => {
+      if (!$project_state) return [];
+      return client.ai.image_assets.list.query({
+        project_id: $project_state.project_id,
+        selected_text_levels: $selected_text_levels,
+        index: $index
+      });
+    },
+    enabled: !!$project_state
+  }));
 
-  const download_image_png = async (image: { s3_key: string }) => {
-    if (!image?.s3_key) {
-      toast.error('PNG download unavailable for this image');
-      return;
-    }
-    try {
-      await download_webp_as_png_in_browser(image.s3_key, download_basename);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'PNG download failed');
-    }
-  };
+  const shloka_images = $derived(shloka_images_q.data ?? []);
+  const shloka_image_label = $derived(
+    text_data_q.data?.[$index]?.shloka_num != null
+      ? `${$index}:${text_data_q.data[$index].shloka_num}`
+      : `${$index}`
+  );
 
   let copied_text_status = $state(false);
   $effect(() => {
@@ -418,12 +415,13 @@
     View Images
   </Button>
   <Button
-    variant="ghost"
-    size="icon"
-    class="text-white hover:text-red-500"
+    variant="outline"
+    size="sm"
+    class="ms-auto gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
     onclick={() => ($ai_tool_opened = false)}
   >
-    <Icon src={CgClose} class="text-xl" />
+    <Icon src={CgClose} class="text-base" />
+    Close AI Image Generator
   </Button>
 </div>
 
@@ -532,47 +530,67 @@
       {#if gen_image_mut.isPending}
         <Skeleton class="h-96" />
       {:else}
-        <div>
-          <section class="mb-10 grid grid-cols-2 gap-3">
-            {#each generated_images as image}
-              <div class="flex flex-col gap-1">
-                <img
-                  src={image.url}
-                  alt={image.prompt}
-                  title={image.prompt}
-                  class="block aspect-square rounded-md border-2 border-blue-600 object-cover dark:border-blue-800"
-                  height={image.height}
-                  width={image.width}
-                />
-                <div class="flex items-center justify-center gap-2">
-                  <Button
-                    onclick={() => void download_image_webp(image)}
-                    variant="secondary"
-                    size="sm"
-                    class="gap-1.5"
-                    disabled={!image.s3_key}
-                  >
-                    <Icon src={BsDownload} class="text-base" />
-                    WebP
-                  </Button>
-                  <Button
-                    onclick={() => void download_image_png(image)}
-                    variant="secondary"
-                    size="sm"
-                    class="gap-1.5"
-                    disabled={!image.s3_key}
-                  >
-                    <Icon src={BsDownload} class="text-base" />
-                    PNG
-                  </Button>
-                </div>
-              </div>
-            {/each}
-          </section>
-        </div>
+        <section class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {#each generated_images as image (image.id)}
+            <div class="rounded-md border-2 border-blue-600 dark:border-blue-800">
+              <TextImageCard
+                url={image.url}
+                s3_key={image.s3_key}
+                alt={image.prompt}
+                width={image.width}
+                height={image.height}
+                label="Just generated"
+                {download_basename}
+              />
+            </div>
+          {/each}
+        </section>
       {/if}
     {/if}
   {/if}
 {/if}
+
+<section class="mt-6 flex flex-col gap-3 border-t border-border pt-4">
+  <div class="flex items-center justify-between gap-2">
+    <h3 class="text-sm font-semibold">Images for this shloka</h3>
+    {#if shloka_images_q.isSuccess}
+      <span class="text-xs text-muted-foreground">{shloka_images.length} image(s)</span>
+    {/if}
+  </div>
+
+  {#if shloka_images_q.isLoading}
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {#each Array(3) as _, i (i)}
+        <Skeleton class="aspect-square w-full rounded-md" />
+      {/each}
+    </div>
+  {:else if shloka_images_q.isError}
+    <p class="py-6 text-center text-sm text-destructive">
+      Failed to load images. {shloka_images_q.error.message}
+    </p>
+  {:else if shloka_images.length === 0}
+    <p class="py-6 text-center text-sm text-muted-foreground">No images for this shloka yet.</p>
+  {:else}
+    <Carousel.Root opts={{ align: 'start', loop: false }} class="w-full">
+      <Carousel.Content class="-ms-3">
+        {#each shloka_images as item (item.image.id)}
+          <Carousel.Item class="basis-4/5 ps-3 sm:basis-1/2 md:basis-1/3">
+            <TextImageCard
+              url={item.image.url}
+              s3_key={item.image.s3_key}
+              alt={item.image.description ?? shloka_image_label}
+              width={item.image.width}
+              height={item.image.height}
+              label={shloka_image_label}
+              {download_basename}
+            />
+          </Carousel.Item>
+        {/each}
+      </Carousel.Content>
+      <Carousel.Previous class="-left-3" />
+      <Carousel.Next class="-right-3" />
+    </Carousel.Root>
+  {/if}
+</section>
 
 <ViewImagesDialog bind:open={view_images_open} focus_index={$index} />

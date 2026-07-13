@@ -4,7 +4,7 @@
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import { Separator } from '$lib/components/ui/separator';
   import Icon from '~/tools/Icon.svelte';
-  import { BsDownload, BsThreeDots } from 'svelte-icons-pack/bs';
+  import { BsDownload, BsThreeDots, BsTrash } from 'svelte-icons-pack/bs';
   import { toast } from 'svelte-sonner';
   import {
     download_s3_webp_in_browser,
@@ -63,6 +63,7 @@
     png_downloading = true;
     try {
       await download_webp_as_png_in_browser(s3_key, download_basename);
+      menu_open = false;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'PNG download failed');
     } finally {
@@ -78,35 +79,52 @@
       <div class="absolute top-1.5 right-1.5">
         <Popover.Root bind:open={menu_open}>
           <Popover.Trigger
-            class="inline-flex size-8 items-center justify-center rounded-md border border-border bg-background/90 shadow-sm outline-none"
+            class="inline-flex size-8 items-center justify-center rounded-md bg-transparent text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] outline-none hover:bg-black/20"
             aria-label="Image actions"
           >
             <Icon src={BsThreeDots} class="text-base" />
           </Popover.Trigger>
-          <Popover.Content class="w-44 p-1" align="end">
+          <Popover.Content
+            class="w-28 border-white/10 bg-popover/85 p-0.5 shadow-lg backdrop-blur-md"
+            align="end"
+            sideOffset={6}
+          >
             {#if s3_key}
               <Button
                 variant="ghost"
-                class="w-full justify-start gap-2"
-                disabled={webp_downloading}
+                size="sm"
+                class="flex h-8 w-full items-center justify-start gap-1.5 px-2 text-xs"
+                disabled={webp_downloading || png_downloading}
                 onclick={() => void download_webp()}
               >
-                <Icon src={BsDownload} class="text-base" />
-                {webp_downloading ? 'Downloading…' : 'Download WebP'}
+                <Icon src={BsDownload} class="text-sm" />
+                {webp_downloading ? '…' : 'WebP'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                class="flex h-8 w-full items-center justify-start gap-1.5 px-2 text-xs"
+                disabled={webp_downloading || png_downloading}
+                onclick={() => void download_png()}
+              >
+                <Icon src={BsDownload} class="text-sm" />
+                {png_downloading ? '…' : 'PNG'}
               </Button>
             {/if}
             {#if s3_key && on_delete}
-              <Separator class="my-1" />
+              <Separator class="my-0.5" />
             {/if}
             {#if on_delete}
               <Button
                 variant="ghost"
-                class="w-full justify-start text-destructive hover:text-destructive"
+                size="sm"
+                class="h-8 w-full justify-start gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onclick={() => {
                   menu_open = false;
                   confirm_open = true;
                 }}
               >
+                <Icon src={BsTrash} class="text-sm" />
                 Delete
               </Button>
             {/if}
@@ -119,19 +137,6 @@
     <span class="min-w-0 flex-1 truncate font-medium text-foreground">{label}</span>
     {#if aspect}
       <span class="rounded bg-muted px-1.5 py-0.5">{aspect}</span>
-    {/if}
-    {#if s3_key}
-      <Button
-        variant="outline"
-        size="sm"
-        class="h-7 gap-1 px-2 text-xs"
-        disabled={png_downloading}
-        onclick={() => void download_png()}
-        title="Download PNG"
-      >
-        <Icon src={BsDownload} class="text-sm" />
-        {png_downloading ? '…' : 'PNG'}
-      </Button>
     {/if}
   </div>
 </div>

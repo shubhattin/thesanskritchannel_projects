@@ -76,7 +76,7 @@
       },
       "devDependencies": {
         "@internationalized/date": "^3.12.2",
-        "@lucide/svelte": "^1.21.0",
+        "@lucide/svelte": "^1.24.0",
         "@modyfi/vite-plugin-yaml": "^1.1.1",
         "@sveltejs/adapter-auto": "^7.0.1",
         "@sveltejs/adapter-netlify": "^4.4.2",
@@ -97,6 +97,7 @@
         "chalk": "^5.6.2",
         "dotenv": "^16.6.1",
         "drizzle-kit": "^0.31.10",
+        "embla-carousel-svelte": "^8.6.0",
         "mime-types": "^3.0.2",
         "postgres": "^3.4.9",
         "prettier": "^3.8.4",
@@ -2783,7 +2784,7 @@
 
     "svelte-toolbelt/runed": ["runed@0.35.1", "", { "dependencies": { "dequal": "^2.0.3", "esm-env": "^1.0.0", "lz-string": "^1.5.0" }, "peerDependencies": { "@sveltejs/kit": "^2.21.0", "svelte": "^5.7.0" }, "optionalPeers": ["@sveltejs/kit"] }, "sha512-2F4Q/FZzbeJTFdIS/PuOoPRSm92sA2LhzTnv6FXhCoENb3huf5+fDuNOg1LNvGOouy3u/225qxmuJvcV3IZK5Q=="],
 
-    "tsc_projects_app/@lucide/svelte": ["@lucide/svelte@1.21.0", "", { "peerDependencies": { "svelte": "^5" } }, "sha512-MEv//A7Jv3kHukZowv/DWp1MAtUzJKYwtJsmnQ7X98lCgtac3z3NbaToDl3Q6jO3gS9sougFpcD+t+YuxOkRMw=="],
+    "tsc_projects_app/@lucide/svelte": ["@lucide/svelte@1.24.0", "", { "peerDependencies": { "svelte": "^5" } }, "sha512-yXwewA7ANQ5hfaSDrvsecosWjZn5RglzeXUZRSnxeANBskpNwblOkEJTqD0ujDdNKIKL8E9eVc2U/P3ziJr7OA=="],
 
     "tsc_projects_app/@sveltejs/adapter-vercel": ["@sveltejs/adapter-vercel@5.10.3", "", { "dependencies": { "@vercel/nft": "^0.30.0", "esbuild": "^0.25.4" }, "peerDependencies": { "@sveltejs/kit": "^2.4.0" } }, "sha512-fW2ZhMiOrUKsJJhiB4ift9sYDSFWgvH3N22cjf8ukOyWgHolb9SmSS3owr+nHQNlgTEAdy4eIr4Fnasw3nkxTw=="],
 

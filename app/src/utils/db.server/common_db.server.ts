@@ -1,5 +1,6 @@
 // common db instantiations which both astro and sveltekit can use
 
+import '~/sync_private_env.server';
 import * as schema from '../../db/schema';
 import { drizzle as drizzle_neon } from 'drizzle-orm/neon-serverless';
 import { Pool } from '@neondatabase/serverless';

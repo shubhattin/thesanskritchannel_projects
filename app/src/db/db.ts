@@ -1,3 +1,4 @@
+import '~/sync_private_env.server';
 import * as schema from './schema';
 import { drizzle as drizzle_neon } from 'drizzle-orm/neon-serverless';
 import { Pool } from '@neondatabase/serverless';

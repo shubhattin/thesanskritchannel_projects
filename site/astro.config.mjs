@@ -23,7 +23,11 @@ export default defineConfig({
     plugins: [tailwindcss()],
     resolve: {
       alias: {
-        '@data': fileURLToPath(new URL('../data', import.meta.url))
+        '@data': fileURLToPath(new URL('../data', import.meta.url)),
+        // Shared app server modules may import this; map to a process.env shim for Astro.
+        '$env/dynamic/private': fileURLToPath(
+          new URL('./src/shims/env-dynamic-private.ts', import.meta.url)
+        )
       }
     }
   }

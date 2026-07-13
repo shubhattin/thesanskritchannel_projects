@@ -1,3 +1,4 @@
+import '~/sync_private_env.server';
 import { Redis } from '@upstash/redis/cloudflare';
 import { REDIS_CACHE_KEYS_CLIENT } from './redis_shared';
 

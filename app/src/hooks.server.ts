@@ -1,8 +1,5 @@
 import type { Handle } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
-
-/** To make process.env accessible too for environment variables */
-Object.assign(process.env, env);
+import '~/sync_private_env.server';
 
 export const handle: Handle = async ({ event, resolve }) => {
   return await resolve(event);

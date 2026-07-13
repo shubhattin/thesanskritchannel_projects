@@ -401,105 +401,105 @@ export const poll_batch_shloka_image_gen_func = async (
     [...batch.responses, ...batch.errors].map((output) => [output.custom_id, output])
   );
 
-  const items: PollItem[] = [];
-
-  for (const row of db_rows) {
-    const row_metadata = image_batch_metadata_schema.parse(row.metadata);
-    if (isResponseItemProcessed(row_metadata)) {
-      items.push(toPollItem(row.custom_id, row_metadata));
-      continue;
-    }
-
-    const claimed_row = await tryClaimBatchRow(batch_id, row.custom_id);
-    if (!claimed_row) {
-      const resolved_row = await db.query.ai_batch_responses.findFirst({
-        where: and(
-          eq(ai_batch_responses.batch_id, batch_id),
-          eq(ai_batch_responses.custom_id, row.custom_id)
-        )
-      });
-      if (resolved_row) {
-        const resolved_metadata = image_batch_metadata_schema.parse(resolved_row.metadata);
-        if (isResponseItemProcessed(resolved_metadata)) {
-          items.push(toPollItem(resolved_row.custom_id, resolved_metadata));
+  // Parallelize claim → S3 upload → DB update per row (mark resolved once after).
+  const items = (
+    await Promise.all(
+      db_rows.map(async (row): Promise<PollItem | null> => {
+        const row_metadata = image_batch_metadata_schema.parse(row.metadata);
+        if (isResponseItemProcessed(row_metadata)) {
+          return toPollItem(row.custom_id, row_metadata);
         }
-      }
-      continue;
-    }
 
-    const metadata = image_batch_metadata_schema.parse(claimed_row.metadata);
-    const output = output_by_custom_id.get(row.custom_id);
+        const claimed_row = await tryClaimBatchRow(batch_id, row.custom_id);
+        if (!claimed_row) {
+          const resolved_row = await db.query.ai_batch_responses.findFirst({
+            where: and(
+              eq(ai_batch_responses.batch_id, batch_id),
+              eq(ai_batch_responses.custom_id, row.custom_id)
+            )
+          });
+          if (resolved_row) {
+            const resolved_metadata = image_batch_metadata_schema.parse(resolved_row.metadata);
+            if (isResponseItemProcessed(resolved_metadata)) {
+              return toPollItem(resolved_row.custom_id, resolved_metadata);
+            }
+          }
+          return null;
+        }
 
-    if (!output || !output.success || output.type !== 'image' || !output.image_b64) {
-      const wrote = await db.transaction(async (tx) => {
-        const ok = await updateBatchResponse(tx, batch_id, row.custom_id, {
-          ...metadata,
-          success: false
-        });
-        await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
-        return ok;
-      });
-      if (wrote) items.push({ custom_id: row.custom_id, success: false });
-      continue;
-    }
+        const metadata = image_batch_metadata_schema.parse(claimed_row.metadata);
+        const output = output_by_custom_id.get(row.custom_id);
 
-    let upload_result: Awaited<ReturnType<typeof persistImageAsset>>;
-    try {
-      upload_result = await persistImageAsset({
-        project_id: metadata.project_id,
-        project_path_id: metadata.project_path_id,
-        path_params: metadata.path_params,
-        index: metadata.index,
-        image: output.image_b64,
-        description: metadata.image_prompt.slice(0, 150),
-        s3Client: getS3Client(),
-        // Staging only — join is created on approve / auto-approve
-        create_join: false
-      });
-    } catch (err) {
-      console.error(`Batch image upload failed for ${row.custom_id}:`, err);
-      const wrote = await db.transaction(async (tx) => {
-        const ok = await updateBatchResponse(tx, batch_id, row.custom_id, {
-          ...metadata,
-          success: false
-        });
-        await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
-        return ok;
-      });
-      if (wrote) items.push({ custom_id: row.custom_id, success: false });
-      continue;
-    }
+        if (!output || !output.success || output.type !== 'image' || !output.image_b64) {
+          const wrote = await db.transaction(async (tx) =>
+            updateBatchResponse(tx, batch_id, row.custom_id, {
+              ...metadata,
+              success: false
+            })
+          );
+          return wrote ? { custom_id: row.custom_id, success: false } : null;
+        }
 
-    const persisted = await db.transaction(async (tx) => {
-      const wrote = await updateBatchResponse(
-        tx,
-        batch_id,
-        row.custom_id,
-        {
-          ...metadata,
+        let upload_result: Awaited<ReturnType<typeof persistImageAsset>>;
+        try {
+          upload_result = await persistImageAsset({
+            project_id: metadata.project_id,
+            project_path_id: metadata.project_path_id,
+            path_params: metadata.path_params,
+            index: metadata.index,
+            image: output.image_b64,
+            description: metadata.image_prompt.slice(0, 150),
+            s3Client: getS3Client(),
+            // Staging only — join is created on approve / auto-approve
+            create_join: false
+          });
+        } catch (err) {
+          console.error(`Batch image upload failed for ${row.custom_id}:`, err);
+          const wrote = await db.transaction(async (tx) =>
+            updateBatchResponse(tx, batch_id, row.custom_id, {
+              ...metadata,
+              success: false
+            })
+          );
+          return wrote ? { custom_id: row.custom_id, success: false } : null;
+        }
+
+        const persisted = await db.transaction(async (tx) =>
+          updateBatchResponse(
+            tx,
+            batch_id,
+            row.custom_id,
+            {
+              ...metadata,
+              success: true,
+              uploaded_image_id: upload_result.id
+            },
+            batch_output_file_id
+          )
+        );
+
+        if (!persisted) {
+          await deleteImageAssetById(upload_result.id, { s3Client: getS3Client() }).catch((err) => {
+            console.error(
+              `Failed to clean up duplicate batch upload image ${upload_result.id}:`,
+              err
+            );
+          });
+          return null;
+        }
+
+        return {
+          custom_id: row.custom_id,
           success: true,
           uploaded_image_id: upload_result.id
-        },
-        batch_output_file_id
-      );
-      if (!wrote) return false;
-      await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
-      return true;
-    });
+        };
+      })
+    )
+  ).filter((item): item is PollItem => item !== null);
 
-    if (!persisted) {
-      await deleteImageAssetById(upload_result.id, { s3Client: getS3Client() }).catch((err) => {
-        console.error(`Failed to clean up duplicate batch upload image ${upload_result.id}:`, err);
-      });
-      continue;
-    }
-
-    items.push({
-      custom_id: row.custom_id,
-      success: true,
-      uploaded_image_id: upload_result.id
-    });
-  }
+  await db.transaction(async (tx) => {
+    await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
+  });
 
   const resolved_items = await autoApproveEligibleRows(batch_id, items);
   return {
@@ -567,31 +567,32 @@ const trigger_batch_shloka_image_gen_route = protectedAdminProcedure
 
     await assertNoUnresolvedDuplicates(projectPath.id, indexes);
 
-    // Resolve prompts (use provided, else generate)
-    const resolved: { index: number; image_prompt: string; custom_id: string }[] = [];
-    for (const item of items) {
-      let image_prompt = item.image_prompt?.trim() ?? '';
-      if (!image_prompt) {
-        const generated = await get_image_prompt_func({
-          project_key,
-          selected_text_levels,
-          index: item.index,
-          model: text_model
-        });
-        if (!generated.image_prompt) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: `Failed to generate image prompt for index ${item.index}`
+    // Resolve prompts in parallel (use provided, else generate)
+    const resolved = await Promise.all(
+      items.map(async (item) => {
+        let image_prompt = item.image_prompt?.trim() ?? '';
+        if (!image_prompt) {
+          const generated = await get_image_prompt_func({
+            project_key,
+            selected_text_levels,
+            index: item.index,
+            model: text_model
           });
+          if (!generated.image_prompt) {
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: `Failed to generate image prompt for index ${item.index}`
+            });
+          }
+          image_prompt = generated.image_prompt;
         }
-        image_prompt = generated.image_prompt;
-      }
-      resolved.push({
-        index: item.index,
-        image_prompt,
-        custom_id: getShlokaImageBatchCustomId(project_id, path_params, item.index)
-      });
-    }
+        return {
+          index: item.index,
+          image_prompt,
+          custom_id: getShlokaImageBatchCustomId(project_id, path_params, item.index)
+        };
+      })
+    );
 
     const batch_requests: AiBatchInput[] = resolved.map((item) => ({
       type: 'image' as const,

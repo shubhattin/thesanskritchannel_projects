@@ -55,22 +55,21 @@ export const get_image_prompt_func = async (input: GetImagePromptInput) => {
 
   const project_info = await get_project_info_by_id(project.id, cache_db_options_app);
   const path_params = get_path_params(selected_text_levels, project_info.levels);
-  const text_data = await CACHE.text_data.get(
-    { key: project_key, path_params },
-    cache_db_options_app
-  );
+  const [text_data, translations] = await Promise.all([
+    CACHE.text_data.get({ key: project_key, path_params }, cache_db_options_app),
+    CACHE.translation.get(
+      {
+        project_id: project.id,
+        lang_id: lang_list_obj.English,
+        selected_text_levels
+      },
+      cache_db_options_app
+    )
+  ]);
   const shloka = text_data[index];
   if (!shloka) return { image_prompt: null, time_taken: 0 };
 
   let shloka_text = shloka.text;
-  const translations = await CACHE.translation.get(
-    {
-      project_id: project.id,
-      lang_id: lang_list_obj.English,
-      selected_text_levels
-    },
-    cache_db_options_app
-  );
   const english_translation = translations.get(index);
   if (english_translation) shloka_text += '\n\n' + english_translation;
 

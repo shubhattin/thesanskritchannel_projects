@@ -20,19 +20,21 @@
 
   let delete_dialog_open = $state(false);
 
-  const counts_q = createQuery(() =>
-    trpc.project.edit.get_delete_resource_counts.queryOptions({
+  const counts_q = createQuery(() => ({
+    ...trpc.project.edit.get_delete_resource_counts.queryOptions({
       project_id: project.id
-    })
-  );
+    }),
+    // Always re-fetch when this tab mounts (dialog/tab open), even if cache is fresh.
+    staleTime: 0,
+    refetchOnMount: 'always'
+  }));
 
   const delete_mut = createMutation(() =>
     trpc.project.edit.delete_project.mutationOptions({
       onSuccess: async () => {
-        await invalidate_project_registry_queries(project.id);
-        delete_dialog_open = false;
-        toast.success('Project deleted');
         onDeleted?.();
+        invalidate_project_registry_queries(project.id);
+        delete_dialog_open = false;
       },
       onError: (err) => {
         toast.error(err.message || 'Failed to delete project');
@@ -46,6 +48,7 @@
           { label: 'Text rows', count: counts_q.data.texts },
           { label: 'Translations', count: counts_q.data.translations },
           { label: 'Media attachments', count: counts_q.data.media_attachment },
+          { label: 'Project paths', count: counts_q.data.project_paths },
           { label: 'User project assignments', count: counts_q.data.user_project_join },
           {
             label: 'User language assignments',
@@ -77,8 +80,8 @@
         <div class="space-y-2 text-sm">
           <p class="font-medium text-foreground">Delete this project permanently?</p>
           <p class="text-muted-foreground">
-            <strong>{project.name}</strong> has no connected texts, translations, media, or user assignments.
-            You may delete it, but this action cannot be undone.
+            <strong>{project.name}</strong> has no connected texts, translations, media, project paths,
+            or user assignments. You may delete it, but this action cannot be undone.
           </p>
         </div>
       </div>

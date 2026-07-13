@@ -27,6 +27,7 @@ import {
 } from '~/utils/project/list.server';
 import { notify_site_invalidate_project_list_caches } from '~/utils/cache.server/invalidate_site_project_cache.server';
 import { countResourcesForProject, insertProjectPaths } from '~/utils/project/paths_db.server';
+import { finalize_project_delete_resource_counts } from '~/utils/project/project_delete';
 import { ROOT_DB_PATH } from '~/utils/map_path/swap';
 import { delay_dev } from '~/tools/delay';
 import { type recursive_list_type, recursive_list_schema } from '~/state/data_types';
@@ -139,7 +140,7 @@ export const update_project_listed_route = protectedAdminProcedure
     return { success: true };
   });
 
-const get_delete_resource_counts_for_project = async (project_id: number) => {
+const get_delete_resource_counts_for_project = async (tx: transactionType, project_id: number) => {
   const count_rows_for_project = async (
     tx: transactionType,
     project_id: number,
@@ -157,31 +158,30 @@ const get_delete_resource_counts_for_project = async (project_id: number) => {
     media_count,
     project_paths_count,
     users_join_count,
-    user_languages_count
+    user_languages_count,
+    project_row
   ] = await Promise.all([
-    countResourcesForProject(db, project_id, texts),
-    countResourcesForProject(db, project_id, translations),
-    countResourcesForProject(db, project_id, media_attachment),
-    count_rows_for_project(db, project_id, project_paths),
-    count_rows_for_project(db, project_id, user_project_join),
-    count_rows_for_project(db, project_id, user_project_language_join)
+    countResourcesForProject(tx, project_id, texts),
+    countResourcesForProject(tx, project_id, translations),
+    countResourcesForProject(tx, project_id, media_attachment),
+    count_rows_for_project(tx, project_id, project_paths),
+    count_rows_for_project(tx, project_id, user_project_join),
+    count_rows_for_project(tx, project_id, user_project_language_join),
+    tx.query.projects.findFirst({
+      where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
+      columns: { map: true }
+    })
   ]);
 
-  return {
+  return finalize_project_delete_resource_counts({
+    map: project_row?.map,
     texts: texts_count,
     translations: translations_count,
     media_attachment: media_count,
     project_paths: project_paths_count,
     user_project_join: users_join_count,
-    user_project_language_join: user_languages_count,
-    total:
-      texts_count +
-      translations_count +
-      media_count +
-      project_paths_count +
-      users_join_count +
-      user_languages_count
-  };
+    user_project_language_join: user_languages_count
+  });
 };
 
 export const get_delete_resource_counts_route = protectedAdminProcedure
@@ -189,7 +189,7 @@ export const get_delete_resource_counts_route = protectedAdminProcedure
   .query(async ({ input }) => {
     await delay_dev(300);
     await require_project(db, input.project_id);
-    return get_delete_resource_counts_for_project(input.project_id);
+    return get_delete_resource_counts_for_project(db, input.project_id);
   });
 
 export const delete_project_route = protectedAdminProcedure
@@ -198,13 +198,17 @@ export const delete_project_route = protectedAdminProcedure
     await delay_dev(400);
     await db.transaction(async (tx) => {
       await require_project(tx, input.project_id);
-      const counts = await get_delete_resource_counts_for_project(input.project_id);
+      const counts = await get_delete_resource_counts_for_project(tx, input.project_id);
       if (counts.total > 0) {
         throw new TRPCError({
           code: 'PRECONDITION_FAILED',
           message:
             'This project still has connected data and cannot be deleted. Remove all related records first.'
         });
+      }
+      // Root path FK is RESTRICT — clear empty shloka root path(s) before the project row.
+      if (counts.auto_clear_project_paths) {
+        await tx.delete(project_paths).where(eq(project_paths.project_id, input.project_id));
       }
       await tx.delete(projects).where(eq(projects.id, input.project_id));
     });

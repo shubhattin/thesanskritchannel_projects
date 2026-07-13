@@ -84,6 +84,8 @@
   import Label from '~/lib/components/ui/label/label.svelte';
   import AITranslate from './display/ai_translate/AITranslate.svelte';
   import EditOptionsPopover from './display/EditOptionsPopover.svelte';
+  import { ArrowLeftRight } from '@lucide/svelte';
+  import Loader2 from '@lucide/svelte/icons/loader-2';
 
   let { path_params = [] }: { path_params?: number[] } = $props();
 
@@ -445,7 +447,15 @@
     map_root && dynamic_path.length > i ? (dynamic_path.slice(0, i + 1) as number[]) : null}
   {@const name_dev_node =
     map_root && name_dev_path?.length ? get_node_at_path(map_root, name_dev_path) : null}
-  {@const type_convert_target = get_map_metadata_type_convert_target(name_dev_node)}
+  {@const selected_type_convert_target = get_map_metadata_type_convert_target(name_dev_node)}
+  {@const root_type_convert_target =
+    i === 0 && map_root ? get_map_metadata_type_convert_target(map_root) : null}
+  {@const selector_type_convert_target = selected_type_convert_target ?? root_type_convert_target}
+  {@const type_convert_path = selected_type_convert_target
+    ? name_dev_path!
+    : root_type_convert_target
+      ? ([] as number[])
+      : null}
   {#if i === 0 || list_at_depth || initial_option.value}
     <TextLevelSelector
       name={level_name}
@@ -460,7 +470,7 @@
       controls_disabled={$editing_mode !== 'none'}
       metadata_save_pending={map_metadata_save_mut.isPending}
       show_name_dev_edit={!!name_dev_path && name_dev_path.length > 0}
-      {type_convert_target}
+      type_convert_target={selector_type_convert_target}
       on_edit_list_name={() => {
         if (!map_root || !list_name_node || list_name_node.info.type !== 'list') return;
         open_list_name_edit(map_root, list_name_path, list_name_node.info.list_name);
@@ -472,12 +482,37 @@
         open_name_dev_edit(map_root, name_dev_path, node.name_dev);
       }}
       on_convert_type={() => {
-        if (!map_root || !name_dev_path?.length || !type_convert_target) return;
-        open_type_convert_confirm(map_root, name_dev_path, type_convert_target);
+        if (!map_root || type_convert_path === null || !selector_type_convert_target) return;
+        open_type_convert_confirm(map_root, type_convert_path, selector_type_convert_target);
       }}
     />
   {/if}
 {/each}
+
+{#if is_admin && project_map_q.isSuccess && levels < 2}
+  {@const map_root = project_map_q.data}
+  {@const root_type_convert_target = get_map_metadata_type_convert_target(map_root)}
+  {#if root_type_convert_target}
+    <div class="block space-x-2 sm:space-x-3">
+      <span class="text-sm font-bold sm:text-base">Project root</span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        class="inline-flex size-8 shrink-0 align-middle"
+        title={root_type_convert_target === 'to_shloka' ? 'Convert to Shloka' : 'Convert to List'}
+        disabled={$editing_mode !== 'none' || map_metadata_save_mut.isPending}
+        onclick={() => open_type_convert_confirm(map_root, [], root_type_convert_target)}
+      >
+        {#if map_metadata_save_mut.isPending}
+          <Loader2 class="size-4 animate-spin" />
+        {:else}
+          <ArrowLeftRight class="size-4" />
+        {/if}
+      </Button>
+    </div>
+  {/if}
+{/if}
 
 {#if project_id}
   <EditListNameDialog

@@ -6,7 +6,7 @@ import {
   invalidate_project_registry_queries
 } from '~/state/main_app/data.svelte';
 import { project_state } from '~/state/main_app/state.svelte';
-import { get_level_names_from_map } from '~/state/project_list';
+import { get_level_names_from_map, get_levels_from_map } from '~/state/project_list';
 import { toast } from 'svelte-sonner';
 
 export type { MapMetadataPatch, MapMetadataTypeConvertTarget } from './map_metadata_patch';
@@ -34,11 +34,13 @@ export function create_map_metadata_save_mutation(
 
       const current_project_id = getProjectId();
       if (current_project_id === mutation_project_id) {
+        const levels = get_levels_from_map(map);
         project_state.update((s) =>
           s
             ? {
                 ...s,
-                level_names: get_level_names_from_map(map).slice(0, s.levels)
+                levels,
+                level_names: get_level_names_from_map(map).slice(0, levels)
               }
             : s
         );

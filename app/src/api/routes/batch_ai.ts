@@ -68,11 +68,16 @@ const trigger_batch_input_schema = z.object({
 async function deleteOpenAiFiles(file_ids: (string | null | undefined)[]) {
   const unique_ids = [...new Set(file_ids.filter((id): id is string => !!id))];
   await Promise.all(
-    unique_ids.map((file_id) =>
-      openai.files.delete(file_id).catch((err) => {
+    unique_ids.map(async (file_id) => {
+      try {
+        await openai.files.delete(file_id);
+      } catch (err) {
+        // OpenAI often expires/removes batch files before we clean up — 404 is expected.
+        const status = (err as { status?: number } | null)?.status;
+        if (status === 404) return;
         console.error(`Failed to delete OpenAI file ${file_id}:`, err);
-      })
-    )
+      }
+    })
   );
 }
 

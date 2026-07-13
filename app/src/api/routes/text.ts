@@ -3,7 +3,14 @@ import { TRPCError } from '@trpc/server';
 import { waitUntil } from '@vercel/functions';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
-import { project_paths, projects, texts, translations } from '~/db/schema';
+import {
+  project_paths,
+  projects,
+  texts,
+  translations,
+  ai_batch_responses,
+  text_image_assets_join
+} from '~/db/schema';
 import { delay_dev } from '~/tools/delay';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
@@ -21,12 +28,16 @@ import { requireProjectPath } from '~/utils/project/paths_db.server';
 import { SEARCH_MODE_ENUM } from '~/utils/search/search_mode';
 import { search_name_dev_in_maps } from '~/utils/search/search_name_dev.server';
 import {
+  buildOldToNewTextIndexMap,
   buildTextRowsForSave,
   cloneMapWithUpdatedLeafCounts,
   getAffectedTranslationLangIds,
+  remapBatchMetadataIndex,
+  remapTextImageJoinIndexes,
   remapTranslationsForTextRows,
   TEXT_EDIT_LOCK_NAMESPACE
 } from '~/utils/text/row_edit.server';
+import { image_batch_metadata_schema } from '~/utils/types/ai_batch_metadata';
 
 const get_text_data_route = publicProcedure
   .input(
@@ -186,8 +197,61 @@ const save_text_rows_route = protectedAdminProcedure
         .from(translations)
         .where(eq(translations.project_path_id, projectPath.id));
       const remappedTranslations = remapTranslationsForTextRows(rows, existingTranslations);
+      const old_to_new = buildOldToNewTextIndexMap(rows);
 
-      // delete lll and then insert
+      const existingImageJoins = await tx
+        .select({
+          id: text_image_assets_join.id,
+          index: text_image_assets_join.index
+        })
+        .from(text_image_assets_join)
+        .where(eq(text_image_assets_join.project_path_id, projectPath.id));
+      const remappedImageJoins = remapTextImageJoinIndexes(existingImageJoins, old_to_new);
+
+      // Unresolved batch rows for this path — remap metadata.index so late polls attach correctly
+      const pendingBatchRows = await tx
+        .select({
+          batch_id: ai_batch_responses.batch_id,
+          custom_id: ai_batch_responses.custom_id,
+          metadata: ai_batch_responses.metadata
+        })
+        .from(ai_batch_responses)
+        .where(sql`(${ai_batch_responses.metadata}->>'project_path_id')::int = ${projectPath.id}`);
+
+      for (const join of remappedImageJoins) {
+        if (join.index !== existingImageJoins.find((j) => j.id === join.id)?.index) {
+          await tx
+            .update(text_image_assets_join)
+            .set({ index: join.index })
+            .where(eq(text_image_assets_join.id, join.id));
+        }
+      }
+
+      for (const batch_row of pendingBatchRows) {
+        const parsed = image_batch_metadata_schema.safeParse(batch_row.metadata);
+        if (!parsed.success) continue;
+        if (parsed.data.success !== undefined) continue; // already finalized
+        const next_index = remapBatchMetadataIndex(parsed.data.index, old_to_new);
+        if (next_index === parsed.data.index) continue;
+        await tx
+          .update(ai_batch_responses)
+          .set({
+            metadata: {
+              ...parsed.data,
+              index: next_index
+            }
+          })
+          .where(
+            and(
+              eq(ai_batch_responses.batch_id, batch_row.batch_id),
+              eq(ai_batch_responses.custom_id, batch_row.custom_id),
+              // Don't overwrite rows finalized concurrently after the initial read
+              sql`${ai_batch_responses.metadata}->>'success' IS NULL`
+            )
+          );
+      }
+
+      // delete all and then insert
       await tx.delete(translations).where(eq(translations.project_path_id, projectPath.id));
       await tx.delete(texts).where(eq(texts.project_path_id, projectPath.id));
 

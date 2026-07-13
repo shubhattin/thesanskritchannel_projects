@@ -1,0 +1,38 @@
+import { z } from 'zod';
+import ms from 'ms';
+
+/*
+# Image Workflow
+- We poll on specific intervals and upload to the bucket
+- Store its reference in the metadata and then use it later
+*/
+
+/** Polling Interval for Batch API via QStash */
+export const BATCH_POLLING_INTERVAL_S = ms('5mins') / 1000;
+
+/** OpenAI batch completion window is 24h; stop QStash retries after that. */
+export const MAX_BATCH_POLL_ATTEMPTS = Math.ceil((24 * 60 * 60) / BATCH_POLLING_INTERVAL_S);
+
+export const image_batch_metadata_schema = z.object({
+  type: z.literal('shloka-image'),
+  project_id: z.number().int(),
+  /** Stable ownership key across path renames */
+  project_path_id: z.number().int(),
+  /** Snapshot used for S3 naming / UI labels (higher→lower path segments) */
+  path_params: z.number().int().array(),
+  /**
+   * Text row index within the project path.
+   * Null when the source row was deleted/orphaned after a text reorder.
+   */
+  index: z.number().int().nullable(),
+  image_prompt: z.string(),
+  /** to be edited upon batch completion */
+  success: z.boolean().optional(),
+  /** image_assets id (upload after successful batch completion) */
+  uploaded_image_id: z.number().int().optional(),
+  /** set while a poll worker is processing this row */
+  poll_claimed_at: z.string().optional()
+});
+
+export const batch_metadata_schema = z.discriminatedUnion('type', [image_batch_metadata_schema]);
+export type BatchMetadata = z.infer<typeof batch_metadata_schema>;

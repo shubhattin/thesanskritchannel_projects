@@ -53,6 +53,37 @@ export const buildOldToNewTextIndexMap = (rows: readonly TextEditorRowInput[]) =
   return old_to_new;
 };
 
+/**
+ * Remap text_image_assets_join.index using the same source_index map as translations.
+ * Deleted indices become null (orphan under the same project_path_id).
+ */
+export const remapTextImageJoinIndexes = (
+  joins: readonly { id: number; index: number | null }[],
+  old_to_new: ReadonlyMap<number, number>
+): { id: number; index: number | null }[] => {
+  return joins.map((join) => {
+    if (join.index === null) return join;
+    const new_index = old_to_new.get(join.index);
+    return {
+      id: join.id,
+      index: new_index === undefined ? null : new_index
+    };
+  });
+};
+
+/**
+ * Remap unresolved shloka-image batch metadata.index for a project path.
+ * Rows whose source index disappeared become index: null (orphan on approve).
+ */
+export const remapBatchMetadataIndex = (
+  metadata_index: number | null | undefined,
+  old_to_new: ReadonlyMap<number, number>
+): number | null => {
+  if (metadata_index === null || metadata_index === undefined) return null;
+  const new_index = old_to_new.get(metadata_index);
+  return new_index === undefined ? null : new_index;
+};
+
 export const remapTranslationsForTextRows = (
   rows: readonly TextEditorRowInput[],
   translations: readonly ExistingTranslationRow[]

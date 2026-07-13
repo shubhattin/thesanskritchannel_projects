@@ -186,3 +186,23 @@ export function deepCopy<T>(value: T): T {
   // Fallback: other object types (class instances, functions, etc.)
   return value;
 }
+
+export const get_rand_num = (a: number, b: number) => {
+  return Math.trunc(Math.random() * (b - a + 1)) + a;
+};
+
+export function generateRandomAlphanumeric(length: number) {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const max_unbiased = Math.floor(256 / characters.length) * characters.length;
+  let result = '';
+  while (result.length < length) {
+    const randomBytes = new Uint8Array(length - result.length);
+    crypto.getRandomValues(randomBytes);
+    for (const byte of randomBytes) {
+      if (byte >= max_unbiased) continue;
+      result += characters[byte % characters.length];
+      if (result.length === length) break;
+    }
+  }
+  return result;
+}

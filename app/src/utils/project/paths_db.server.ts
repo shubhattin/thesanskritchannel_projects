@@ -28,6 +28,28 @@ export const requireProjectPath = async (
   return row;
 };
 
+/**
+ * Resolve project_paths row from UI selection (selected_text_levels + project_id).
+ * Shared by image generation / gallery / batch routes.
+ */
+export const resolveSelectedTextProjectPath = async (
+  txOrDb: TxOrDb,
+  project_id: number,
+  selected_text_levels: (number | null)[]
+) => {
+  const { get_project_info_by_id } = await import('~/utils/project/list.server');
+  const { cache_db_options_app } = await import('~/utils/cache.server/cache_db_options.server');
+  const { get_path_params } = await import('~/state/project_list');
+
+  const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
+  const path_params = get_path_params(selected_text_levels, levels);
+  if (levels > 1 && path_params.length === 0) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });
+  }
+  const projectPath = await requireProjectPath(txOrDb, project_id, path_params.join(':'));
+  return { projectPath, path_params, levels };
+};
+
 export const requireProjectPaths = async (
   txOrDb: TxOrDb,
   project_id: number,

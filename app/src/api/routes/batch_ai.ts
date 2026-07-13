@@ -40,11 +40,10 @@ import { getCDNUrl } from '~/utils/cdn';
 import { text_models_enum } from '~/api/routes/ai/ai_types';
 import { env } from '$env/dynamic/private';
 
-const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY
-});
+/** Lazy: avoid SDK constructors during SvelteKit postbuild analyse (private env empty). */
+let openai: OpenAI | undefined;
+const getOpenAI = () => (openai ??= new OpenAI({ apiKey: env.OPENAI_API_KEY }));
 
-/** Lazy: avoid createS3Client during SvelteKit postbuild analyse (private env empty). */
 let s3Client: ReturnType<typeof createS3Client> | undefined;
 const getS3Client = () => (s3Client ??= createS3Client());
 
@@ -72,7 +71,7 @@ async function deleteOpenAiFiles(file_ids: (string | null | undefined)[]) {
   await Promise.all(
     unique_ids.map(async (file_id) => {
       try {
-        await openai.files.delete(file_id);
+        await getOpenAI().files.delete(file_id);
       } catch (err) {
         // OpenAI often expires/removes batch files before we clean up — 404 is expected.
         const status = (err as { status?: number } | null)?.status;
@@ -353,7 +352,7 @@ export const poll_batch_shloka_image_gen_func = async (
     };
   }
 
-  const batch = await getAiBatchResult(openai, batch_id, {
+  const batch = await getAiBatchResult(getOpenAI(), batch_id, {
     outputs: db_rows.map((row) => ({ type: 'image' as const, custom_id: row.custom_id }))
   });
   const batch_output_file_id = batch.output_file_id ?? null;
@@ -603,7 +602,7 @@ const trigger_batch_shloka_image_gen_route = protectedAdminProcedure
       size: '1024x1024' as const
     }));
 
-    const { batch_id, input_file_id } = await createAiBatch(openai, batch_requests);
+    const { batch_id, input_file_id } = await createAiBatch(getOpenAI(), batch_requests);
     try {
       await db.transaction(async (tx) => {
         await tx.insert(ai_batches).values({
@@ -641,9 +640,11 @@ const trigger_batch_shloka_image_gen_route = protectedAdminProcedure
         .catch((cleanup_err) => {
           console.error(`Failed to delete orphaned ai_batches row ${batch_id}:`, cleanup_err);
         });
-      await openai.batches.cancel(batch_id).catch((cancel_err) => {
-        console.error(`Failed to cancel orphaned OpenAI batch ${batch_id}:`, cancel_err);
-      });
+      await getOpenAI()
+        .batches.cancel(batch_id)
+        .catch((cancel_err) => {
+          console.error(`Failed to cancel orphaned OpenAI batch ${batch_id}:`, cancel_err);
+        });
       throw err;
     }
 

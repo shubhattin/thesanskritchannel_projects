@@ -143,13 +143,6 @@
     }
     selected_indexes = new Set();
   };
-
-  const index_busy = $derived(
-    index_status_q.data?.status === 'processing' || index_status_q.data?.status === 'auto_applying'
-  );
-  const path_busy = $derived(
-    path_status_q.data?.status === 'processing' || path_status_q.data?.status === 'auto_applying'
-  );
 </script>
 
 <section class="space-y-3 rounded-lg border border-border/80 bg-card/40 p-3">
@@ -168,7 +161,7 @@
   <div class="flex flex-wrap items-center gap-2">
     <Button
       size="sm"
-      disabled={trigger_mut.isPending || index_busy}
+      disabled={trigger_mut.isPending}
       onclick={() => {
         single_auto_approved = true;
         single_confirm_open = true;
@@ -180,7 +173,7 @@
       size="sm"
       variant="secondary"
       class="animate-pulse bg-violet-600 text-white hover:bg-violet-700 dark:bg-violet-500"
-      disabled={trigger_mut.isPending || path_busy}
+      disabled={trigger_mut.isPending}
       onclick={open_bulk}
     >
       Generate Images for All Shlokas

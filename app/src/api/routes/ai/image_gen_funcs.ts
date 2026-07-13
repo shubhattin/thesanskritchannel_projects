@@ -46,32 +46,53 @@ export const gen_image_func = async (payload: z.infer<typeof image_gen_route_sch
       | { images?: { revisedPrompt?: string }[] }
       | undefined;
 
-    const images = [];
-    for (let i = 0; i < result.images.length; i++) {
-      const image = result.images[i]!;
-      const revised = openai_metadata?.images?.[i]?.revisedPrompt;
-      const description = (revised ?? image_prompt).slice(0, 150);
-      const asset = await persistImageAsset({
-        project_id,
-        project_path_id: projectPath.id,
-        path_params,
-        index,
-        image: image.base64,
-        description,
-        create_join: true
-      });
-      images.push({
-        id: asset.id,
-        s3_key: asset.s3_key,
-        url: getCDNUrl(asset.s3_key),
-        width: asset.width,
-        height: asset.height,
-        description: asset.description,
-        prompt: revised ?? image_prompt,
-        created,
-        model: image_model,
-        file_format: 'webp' as const
-      });
+    const images: {
+      id: number;
+      s3_key: string;
+      url: string;
+      width: number;
+      height: number;
+      description: string | null;
+      prompt: string;
+      created: number;
+      model: image_model_type;
+      file_format: 'webp';
+    }[] = [];
+    try {
+      for (let i = 0; i < result.images.length; i++) {
+        const image = result.images[i]!;
+        const revised = openai_metadata?.images?.[i]?.revisedPrompt;
+        const description = (revised ?? image_prompt).slice(0, 150);
+        const asset = await persistImageAsset({
+          project_id,
+          project_path_id: projectPath.id,
+          path_params,
+          index,
+          image: image.base64,
+          description,
+          create_join: true
+        });
+        images.push({
+          id: asset.id,
+          s3_key: asset.s3_key,
+          url: getCDNUrl(asset.s3_key),
+          width: asset.width,
+          height: asset.height,
+          description: asset.description,
+          prompt: revised ?? image_prompt,
+          created,
+          model: image_model,
+          file_format: 'webp' as const
+        });
+      }
+    } catch (persist_err) {
+      if (persist_err instanceof TRPCError) throw persist_err;
+      console.error(persist_err);
+      return {
+        success: false as const,
+        images: images.length > 0 ? images : undefined,
+        time_taken: Date.now() - time_start
+      };
     }
 
     return {

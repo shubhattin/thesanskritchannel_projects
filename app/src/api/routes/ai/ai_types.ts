@@ -72,7 +72,12 @@ export const image_gen_route_schema = {
       time_taken: z.int(),
       success: z.literal(true)
     }),
-    z.object({ success: z.literal(false) })
+    z.object({
+      success: z.literal(false),
+      /** Present when some images persisted before a later failure */
+      images: persisted_image_schema.array().optional(),
+      time_taken: z.int().optional()
+    })
   ])
 };
 export type image_output_type = z.infer<typeof persisted_image_schema>;

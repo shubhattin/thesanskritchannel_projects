@@ -63,6 +63,16 @@ describe('shloka batch custom ids', () => {
       index: 0
     });
   });
+
+  it('preserves null path segments distinctly from 0', () => {
+    const id = getShlokaImageBatchCustomId(9, [1, null, 0], 2);
+    expect(id).toMatch(/^shloka-image:9-1\/_\/0-2-[A-Za-z0-9]{4}$/);
+    expect(parseShlokaImageBatchCustomId(id)).toMatchObject({
+      project_id: 9,
+      path_params: [1, null, 0],
+      index: 2
+    });
+  });
 });
 
 describe('text image index remapping', () => {

@@ -262,7 +262,7 @@ const ai_batch_image_line_body_schema = z.discriminatedUnion('model', [
       quality: ai_batch_gpt_image_1_quality_schema,
       size: ai_batch_gpt_image_1_size_schema
     })
-    .passthrough(),
+    .loose(),
   z
     .object({
       model: z.literal('gpt-image-2'),
@@ -270,7 +270,7 @@ const ai_batch_image_line_body_schema = z.discriminatedUnion('model', [
       quality: ai_batch_gpt_image_2_quality_schema,
       size: ai_batch_gpt_image_2_size_schema
     })
-    .passthrough()
+    .loose()
 ]);
 
 export const ai_batch_line_schema = z.discriminatedUnion('url', [
@@ -289,7 +289,7 @@ export const ai_batch_line_schema = z.discriminatedUnion('url', [
         model: z.string().min(1),
         input: ai_batch_response_input_schema
       })
-      .passthrough()
+      .loose()
   })
 ]);
 export type AiBatchLine = z.infer<typeof ai_batch_line_schema>;
@@ -301,7 +301,7 @@ export const ai_batch_api_error_schema = z
     param: z.string().nullable().optional(),
     type: z.string().optional()
   })
-  .passthrough();
+  .loose();
 export type AiBatchApiError = z.infer<typeof ai_batch_api_error_schema>;
 
 export const ai_batch_raw_output_line_schema = z.object({

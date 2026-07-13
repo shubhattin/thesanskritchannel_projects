@@ -244,7 +244,9 @@ const save_text_rows_route = protectedAdminProcedure
           .where(
             and(
               eq(ai_batch_responses.batch_id, batch_row.batch_id),
-              eq(ai_batch_responses.custom_id, batch_row.custom_id)
+              eq(ai_batch_responses.custom_id, batch_row.custom_id),
+              // Don't overwrite rows finalized concurrently after the initial read
+              sql`${ai_batch_responses.metadata}->>'success' IS NULL`
             )
           );
       }

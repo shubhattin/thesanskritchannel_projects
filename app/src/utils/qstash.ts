@@ -19,7 +19,14 @@ export const publishAiBatchResultsQueue = async (
   data: z.infer<typeof ai_batch_results_publish_schema>,
   delay_s: number
 ) => {
-  if (!import.meta.env.VITE_SITE_URL || !PROD_MODE) return;
+  if (!import.meta.env.VITE_SITE_URL || !PROD_MODE) {
+    console.debug(
+      `Skipping AI batch QStash publish for ${data.batch_id}: ${
+        !import.meta.env.VITE_SITE_URL ? 'VITE_SITE_URL missing' : 'not in production mode'
+      }`
+    );
+    return;
+  }
   const body = ai_batch_results_publish_schema.parse(data);
 
   await client.publishJSON({

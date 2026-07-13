@@ -324,11 +324,14 @@ export const poll_batch_shloka_image_gen_func = async (
     where: eq(ai_batches.batch_id, batch_id),
     with: { responses: true }
   });
+  // Missing/empty after approve+cleanup is a terminal success, not NOT_FOUND.
   if (!ai_batch || ai_batch.responses.length === 0) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: `No batch responses found for batch_id ${batch_id}`
-    });
+    return {
+      status: 'already_resolved' as const,
+      batch_id,
+      items: [],
+      message: `Batch ${batch_id} already resolved or cleaned up`
+    };
   }
 
   const db_rows = ai_batch.responses;

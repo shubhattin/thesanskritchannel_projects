@@ -37,6 +37,9 @@ export const POST: RequestHandler = async ({ request }) => {
 
   if (poll_attempt >= MAX_BATCH_POLL_ATTEMPTS) {
     // Preserve failed/expired inspection in DB; stop automation after ~24h.
+    console.warn(
+      `AI batch ${batch_id} stalled: exhausted poll attempts (${poll_attempt}/${MAX_BATCH_POLL_ATTEMPTS}); manual attention required`
+    );
     return new Response(
       `Batch ${batch_id} exceeded max poll attempts (${MAX_BATCH_POLL_ATTEMPTS})`,
       { status: 200 }

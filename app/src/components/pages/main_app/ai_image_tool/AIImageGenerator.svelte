@@ -228,6 +228,18 @@
       if (is_stale) return;
 
       if (!out.success) {
+        if (out.images && out.images.length > 0) {
+          generated_images = out.images.map((img) => ({
+            id: img.id,
+            url: img.url,
+            s3_key: img.s3_key,
+            prompt: img.prompt,
+            width: img.width,
+            height: img.height,
+            file_format: img.file_format
+          }));
+          await invalidate_text_image_queries($project_state?.project_id);
+        }
         toast.error('Image generation failed');
         return;
       }
@@ -302,8 +314,7 @@
         image_prompt_request_error = false;
         show_prompt_time_status = true;
       });
-    else if (image_prompt_q.fetchStatus !== 'idle' || image_prompt_q.isError)
-      image_prompt_request_error = true;
+    else if (image_prompt_q.isError) image_prompt_request_error = true;
   });
 
   const download_basename = $derived(

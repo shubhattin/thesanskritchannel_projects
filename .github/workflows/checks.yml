@@ -16,6 +16,8 @@ env:
   AWS_SECRET_ACCESS_KEY: examplesecretaccesskey123abc
   AWS_S3_FILES_BUCKET_NAME: examples3bucketname123abc
   PUBLIC_AWS_CLOUDFRONT_URL: examplecloudfronturl123abc
+  QSTASH_TOKEN: exampleqstashtoken123abc
+  QSTASH_URL: exampleqstashurl123abc
 jobs:
   tests:
     runs-on: ubuntu-latest

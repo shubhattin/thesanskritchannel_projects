@@ -150,8 +150,12 @@
         <AlertDialog.Action
           disabled={deleting}
           onclick={async () => {
-            await on_delete();
-            confirm_open = false;
+            try {
+              await on_delete();
+              confirm_open = false;
+            } catch {
+              // Keep dialog open; parent mutation onError already toasts.
+            }
           }}
         >
           {deleting ? 'Deleting…' : 'Delete'}

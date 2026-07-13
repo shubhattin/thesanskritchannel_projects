@@ -193,11 +193,16 @@ export const get_rand_num = (a: number, b: number) => {
 
 export function generateRandomAlphanumeric(length: number) {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const max_unbiased = Math.floor(256 / characters.length) * characters.length;
   let result = '';
-  const randomBytes = new Uint8Array(length);
-  crypto.getRandomValues(randomBytes);
-  for (let i = 0; i < length; i++) {
-    result += characters[randomBytes[i] % characters.length];
+  while (result.length < length) {
+    const randomBytes = new Uint8Array(length - result.length);
+    crypto.getRandomValues(randomBytes);
+    for (const byte of randomBytes) {
+      if (byte >= max_unbiased) continue;
+      result += characters[byte % characters.length];
+      if (result.length === length) break;
+    }
   }
   return result;
 }

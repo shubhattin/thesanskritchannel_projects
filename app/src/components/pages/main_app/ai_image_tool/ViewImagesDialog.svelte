@@ -21,6 +21,7 @@
     text_images_query_key
   } from '~/state/main_app/batch_query_helpers';
   import TextImageCard from './TextImageCard.svelte';
+  import { buildImageAssetDownloadBasename } from '~/tools/download_file_browser';
 
   type Props = {
     open?: boolean;
@@ -103,6 +104,9 @@
     if (index === null) return 'orphan';
     return shloka_num != null ? `${index}:${shloka_num}` : `${index}`;
   };
+
+  const download_basename_for = (index: number | null, shloka_num: number | null) =>
+    buildImageAssetDownloadBasename(index, shloka_num);
 </script>
 
 <Dialog.Root bind:open>
@@ -169,10 +173,12 @@
             {#each paged_images as item (item.image.id)}
               <TextImageCard
                 url={item.image.url}
+                s3_key={item.image.s3_key}
                 alt={item.image.description ?? label_for(item.index, item.shloka_num)}
                 width={item.image.width}
                 height={item.image.height}
                 label={label_for(item.index, item.shloka_num)}
+                download_basename={download_basename_for(item.index, item.shloka_num)}
                 deleting={deleting_id === item.image.id}
                 on_delete={async () => {
                   deleting_id = item.image.id;

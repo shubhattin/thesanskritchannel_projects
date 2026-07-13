@@ -24,7 +24,12 @@
   import { onDestroy, onMount, untrack } from 'svelte';
   import { loadLocalConfig } from '../load_local_config';
   import { BsDownload, BsCopy } from 'svelte-icons-pack/bs';
-  import { download_file_in_browser } from '~/tools/download_file_browser';
+  import { BiImage } from 'svelte-icons-pack/bi';
+  import {
+    buildImageAssetDownloadBasename,
+    download_s3_webp_in_browser,
+    download_webp_as_png_in_browser
+  } from '~/tools/download_file_browser';
   import { cl_join } from '~/tools/cl_join';
   import { OiStopwatch16 } from 'svelte-icons-pack/oi';
   import { BsClipboard2Check } from 'svelte-icons-pack/bs';
@@ -151,6 +156,7 @@
     {
       id: number;
       url: string;
+      s3_key: string;
       prompt: string;
       width: number;
       height: number;
@@ -228,6 +234,7 @@
       generated_images = out.images.map((img) => ({
         id: img.id,
         url: img.url,
+        s3_key: img.s3_key,
         prompt: img.prompt,
         width: img.width,
         height: img.height,
@@ -299,10 +306,32 @@
       image_prompt_request_error = true;
   });
 
-  const download_image = (image: { url: string }) => {
-    if (!image) return;
-    const file_name = `Image No. ${$index}`;
-    download_file_in_browser(image.url, `${file_name}.webp`);
+  const download_basename = $derived(
+    buildImageAssetDownloadBasename($index, text_data_q.data?.[$index]?.shloka_num)
+  );
+
+  const download_image_webp = async (image: { s3_key: string }) => {
+    if (!image?.s3_key) {
+      toast.error('WebP download unavailable for this image');
+      return;
+    }
+    try {
+      await download_s3_webp_in_browser(image.s3_key, download_basename);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'WebP download failed');
+    }
+  };
+
+  const download_image_png = async (image: { s3_key: string }) => {
+    if (!image?.s3_key) {
+      toast.error('PNG download unavailable for this image');
+      return;
+    }
+    try {
+      await download_webp_as_png_in_browser(image.s3_key, download_basename);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'PNG download failed');
+    }
   };
 
   let copied_text_status = $state(false);
@@ -368,7 +397,15 @@
       <Icon src={TiArrowForwardOutline} class="-mt-1 text-lg" />
     </button>
   </span>
-  <Button variant="outline" size="sm" onclick={() => (view_images_open = true)}>View Images</Button>
+  <Button
+    variant="outline"
+    size="default"
+    class="gap-1.5 border-sky-500/40 bg-sky-500/10 px-3 text-base font-bold text-sky-700 hover:bg-sky-500/20 dark:text-sky-300"
+    onclick={() => (view_images_open = true)}
+  >
+    <Icon src={BiImage} class="size-7 text-sky-500 dark:text-sky-400" />
+    View Images
+  </Button>
   <Button
     variant="ghost"
     size="icon"
@@ -496,9 +533,26 @@
                   height={image.height}
                   width={image.width}
                 />
-                <div class="flex items-center justify-center gap-3">
-                  <Button onclick={() => download_image(image)} variant="secondary" size="icon">
-                    <Icon src={BsDownload} class="text-xl" />
+                <div class="flex items-center justify-center gap-2">
+                  <Button
+                    onclick={() => void download_image_webp(image)}
+                    variant="secondary"
+                    size="sm"
+                    class="gap-1.5"
+                    disabled={!image.s3_key}
+                  >
+                    <Icon src={BsDownload} class="text-base" />
+                    WebP
+                  </Button>
+                  <Button
+                    onclick={() => void download_image_png(image)}
+                    variant="secondary"
+                    size="sm"
+                    class="gap-1.5"
+                    disabled={!image.s3_key}
+                  >
+                    <Icon src={BsDownload} class="text-base" />
+                    PNG
                   </Button>
                 </div>
               </div>

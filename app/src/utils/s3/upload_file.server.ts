@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import mime from 'mime-types';
 import type { PutObjectCommandInput } from '@aws-sdk/client-s3';
-import { DeleteObjectCommand, PutObjectCommand, S3Client, StorageClass } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+  StorageClass
+} from '@aws-sdk/client-s3';
 import { randomUUID } from 'node:crypto';
 import { SUB_FOLDERS, PROJECT_S3_ALIAS } from '~/constants';
 import { env } from '$env/dynamic/private';
@@ -113,4 +119,28 @@ export const deleteAssetFile = async (
     })
   );
   return data;
+};
+
+/** Fetch image asset bytes from S3 by validated key. */
+export const getAssetFile = async (
+  key: string,
+  options: UploadFileOptions & {
+    assetBucketName?: string;
+  }
+): Promise<Buffer> => {
+  if (!isValidImageAssetS3Key(key)) {
+    throw new Error(`Invalid asset key: ${key}`);
+  }
+
+  const result = await options.s3Client.send(
+    new GetObjectCommand({
+      Bucket: options.assetBucketName ?? getAssetBucketName(),
+      Key: key
+    })
+  );
+  const bytes = await result.Body?.transformToByteArray();
+  if (!bytes) {
+    throw new Error(`Empty S3 object body for key: ${key}`);
+  }
+  return Buffer.from(bytes);
 };

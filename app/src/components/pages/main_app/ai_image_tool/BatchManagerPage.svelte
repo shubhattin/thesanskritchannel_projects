@@ -51,7 +51,13 @@
     },
     onSuccess: async (data) => {
       await invalidate_batch_ai_queries();
-      toast.success(data.message || 'Batch polled');
+      // Custom query key is not covered by tRPC filters — same as Refresh.
+      await groups_q.refetch();
+      if (data.status === 'processed' || data.status === 'terminal_failure') {
+        toast.success(data.message || 'Batch updated');
+      } else {
+        toast.success(data.message || 'Batch polled');
+      }
     },
     onError: (err) => toast.error(err.message || 'Failed to poll batch'),
     onSettled: () => {

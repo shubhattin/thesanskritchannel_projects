@@ -8,8 +8,8 @@ export type CompressedImageResult = {
 
 const DEFAULT_WEBP_OPTIONS: WebpOptions = {
   // Near-lossless keeps visual fidelity while shrinking PNG/JPEG payloads for S3.
-  quality: 90,
-  effort: 4,
+  quality: 87,
+  effort: 5,
   nearLossless: true,
   lossless: false,
   smartSubsample: true

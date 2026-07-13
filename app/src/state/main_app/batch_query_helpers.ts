@@ -22,6 +22,9 @@ export const invalidate_batch_ai_queries = async (opts?: {
     queryClient.invalidateQueries(trpc.batch_ai.get_batch_manager_groups.queryFilter()),
     queryClient.invalidateQueries(trpc.batch_ai.get_shloka_image_batch_status.queryFilter()),
     queryClient.invalidateQueries({
+      predicate: (query) => query.queryKey[0] === 'batch_manager_groups'
+    }),
+    queryClient.invalidateQueries({
       predicate: (query) => {
         if (query.queryKey[0] !== 'shloka_batch_status') return false;
         if (opts?.project_id !== undefined && query.queryKey[1] !== opts.project_id) return false;

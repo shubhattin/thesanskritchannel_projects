@@ -28,6 +28,7 @@ import ms from 'ms';
 // Load environment variables from .env
 dotenv.config({ path: '../../../.env' });
 
+const MIN_BACKUPS_TO_KEEP = 15;
 const argv = process.argv.slice(2);
 const TRANSLATIONS_ONLY = argv.includes('--translations-only');
 
@@ -307,7 +308,6 @@ async function main() {
     const backup_key = `${BACKUP_FOLDER_NAME}/${current_date_key}.7z`;
     await uploadFile(envs.AWS_DB_BACKUP_BUCKET_NAME, backup_key, './backup/backup.7z');
 
-    const MIN_BACKUPS_TO_KEEP = 12;
     await cleanupOldBackups(
       envs.AWS_DB_BACKUP_BUCKET_NAME,
       BACKUP_FOLDER_NAME + '/',

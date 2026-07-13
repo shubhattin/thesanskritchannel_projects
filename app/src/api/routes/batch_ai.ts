@@ -44,7 +44,9 @@ const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY
 });
 
-const s3Client = createS3Client();
+/** Lazy: avoid createS3Client during SvelteKit postbuild analyse (private env empty). */
+let s3Client: ReturnType<typeof createS3Client> | undefined;
+const getS3Client = () => (s3Client ??= createS3Client());
 
 const POLL_CLAIM_STALE_MS = ms('12mins');
 
@@ -451,7 +453,7 @@ export const poll_batch_shloka_image_gen_func = async (
         index: metadata.index,
         image: output.image_b64,
         description: metadata.image_prompt.slice(0, 150),
-        s3Client,
+        s3Client: getS3Client(),
         // Staging only — join is created on approve / auto-approve
         create_join: false
       });
@@ -487,7 +489,7 @@ export const poll_batch_shloka_image_gen_func = async (
     });
 
     if (!persisted) {
-      await deleteImageAssetById(upload_result.id, { s3Client }).catch((err) => {
+      await deleteImageAssetById(upload_result.id, { s3Client: getS3Client() }).catch((err) => {
         console.error(`Failed to clean up duplicate batch upload image ${upload_result.id}:`, err);
       });
       continue;
@@ -673,7 +675,7 @@ const discard_shloka_image_batch_response_route = protectedAdminProcedure
     const metadata = image_batch_metadata_schema.parse(row.metadata);
     let deleted_image_id: number | null = null;
     if (metadata.uploaded_image_id !== undefined) {
-      await deleteImageAssetById(metadata.uploaded_image_id, { s3Client });
+      await deleteImageAssetById(metadata.uploaded_image_id, { s3Client: getS3Client() });
       deleted_image_id = metadata.uploaded_image_id;
     }
     await db

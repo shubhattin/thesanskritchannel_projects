@@ -77,6 +77,7 @@
     get_normalization_options,
     type NormalizationKey
   } from '~/tools/text_normalizations';
+  import { is_shloka_text } from '~/utils/shloka_count';
 
   type TextDraftRow = {
     client_id: string;
@@ -720,6 +721,17 @@
     text_actions_popover_open = false;
   };
 
+  const apply_auto_mark_shlokas = () => {
+    if (text_rows.length === 0) return;
+    push_undo_for_text_mutation();
+    text_rows = text_rows.map((row) => ({
+      ...row,
+      shloka_type: is_shloka_text(row.text)
+    }));
+    text_focus_group_open = false;
+    text_actions_popover_open = false;
+  };
+
   const move_translation_row = (from: number, to: number) => {
     const next = clone_translation_rows(translation_rows);
     const [row] = next.splice(from, 1);
@@ -1204,6 +1216,13 @@
           </Popover.Trigger>
           <Popover.Content align="start" class="w-[min(36rem,92vw)] p-1">
             <div class="grid grid-cols-1 gap-1 sm:grid-cols-2">
+              <button
+                type="button"
+                class="rounded-sm border border-border bg-background px-2.5 py-1.5 text-left text-xs leading-snug transition-colors hover:bg-muted sm:col-span-2"
+                onclick={apply_auto_mark_shlokas}
+              >
+                Auto-mark shlokas
+              </button>
               {#each text_normalization_options as option (option.key)}
                 <button
                   type="button"

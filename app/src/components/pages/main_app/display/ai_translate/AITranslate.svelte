@@ -300,7 +300,6 @@
         auto_approved: batch_auto_approved,
         include_english_context: is_non_english_target && batch_include_english_context,
         project_id: $project_state!.project_id,
-        project_key: $project_state!.project_key,
         lang_id: active_translation_lang_id!,
         paths: [{ path_params }]
       });

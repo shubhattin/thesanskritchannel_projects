@@ -26,7 +26,7 @@ export async function deleteOpenAiFiles(file_ids: (string | null | undefined)[])
         // OpenAI often expires/removes batch files before we clean up — 404 is expected.
         const status = (err as { status?: number } | null)?.status;
         if (status === 404) return;
-        console.error(`Failed to delete OpenAI file ${file_id}:`, err);
+        throw err;
       }
     })
   );
@@ -46,8 +46,9 @@ export function scheduleOpenAiBatchCleanup(batch_id: string) {
     });
     if (!batch) return;
 
-    await db.delete(ai_batches).where(eq(ai_batches.batch_id, batch_id));
+    // Delete remote files first so a failure keeps the DB row for retry.
     await deleteOpenAiFiles([batch.input_file_id, batch.output_file_id]);
+    await db.delete(ai_batches).where(eq(ai_batches.batch_id, batch_id));
   })().catch((err) => {
     console.error(`Failed OpenAI batch file cleanup for batch ${batch_id}:`, err);
   });

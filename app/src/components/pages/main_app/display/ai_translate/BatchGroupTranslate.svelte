@@ -87,7 +87,6 @@
         auto_approved,
         include_english_context: is_non_english && include_english_context,
         project_id: $project_state!.project_id,
-        project_key: $project_state!.project_key,
         lang_id: active_lang_id!,
         paths: selected_leaves.map((leaf) => ({ path_params: leaf.path_params }))
       }),

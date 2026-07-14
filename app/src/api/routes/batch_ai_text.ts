@@ -36,7 +36,11 @@ import {
   type TextTranslationBatchMetadata
 } from '~/utils/types/ai_batch_metadata';
 import { publishAiBatchResultsQueue } from '~/utils/qstash';
-import { get_project_info_by_id, get_project_map_by_id } from '~/utils/project/list.server';
+import {
+  get_project_by_id,
+  get_project_info_by_id,
+  get_project_map_by_id
+} from '~/utils/project/list.server';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { get_node_at_path, get_path_params } from '~/state/project_list';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
@@ -91,15 +95,18 @@ function buildProcessedMessage(items: PollItem[]) {
 
 async function load_leaf_text_context(args: {
   project_id: number;
-  project_key: string;
   path_params: number[];
   lang_id: number;
   include_english_context: boolean;
 }) {
-  const { project_id, project_key, path_params, lang_id, include_english_context } = args;
+  const { project_id, path_params, lang_id, include_english_context } = args;
+  const project = await get_project_by_id(project_id, cache_db_options_app);
+  if (!project) {
+    throw new TRPCError({ code: 'NOT_FOUND', message: `Project not found: ${project_id}` });
+  }
   const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
   const text_rows = await CACHE.text_data.get(
-    { key: project_key, path_params },
+    { key: project.key, path_params },
     cache_db_options_app
   );
   if (!text_rows.length) {
@@ -197,48 +204,55 @@ async function assertNoUnresolvedTranslationDuplicates(
 
 /** Connect staged translations into the translations table and remove the batch response row. */
 export const approve_text_translation_func = async (batch_id: string, custom_id: string) => {
-  const ai_batch_data = await db.query.ai_batch_responses.findFirst({
-    where: and(
-      eq(ai_batch_responses.batch_id, batch_id),
-      eq(ai_batch_responses.custom_id, custom_id)
-    )
-  });
-  if (!ai_batch_data) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: `No metadata found for batch_id ${batch_id} and custom_id ${custom_id}`
-    });
-  }
-  const metadata = text_translation_batch_metadata_schema.parse(ai_batch_data.metadata);
-  if (metadata.success !== true || metadata.translated_data === undefined) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: `Translation not ready for batch_id ${batch_id} and custom_id ${custom_id}`
-    });
-  }
+  const result = await db.transaction(async (tx) => {
+    const rows = await tx
+      .select()
+      .from(ai_batch_responses)
+      .where(
+        and(eq(ai_batch_responses.batch_id, batch_id), eq(ai_batch_responses.custom_id, custom_id))
+      )
+      .for('update')
+      .limit(1);
+    const ai_batch_data = rows[0];
+    if (!ai_batch_data) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `No metadata found for batch_id ${batch_id} and custom_id ${custom_id}`
+      });
+    }
+    const metadata = text_translation_batch_metadata_schema.parse(ai_batch_data.metadata);
+    if (metadata.success !== true || metadata.translated_data === undefined) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Translation not ready for batch_id ${batch_id} and custom_id ${custom_id}`
+      });
+    }
 
-  await persist_translations_for_path({
-    project_id: metadata.project_id,
-    lang_id: metadata.lang_id,
-    project_path_id: metadata.project_path_id,
-    path_params: metadata.path_params,
-    indexes: metadata.translated_data.map((row) => row.index),
-    data: metadata.translated_data.map((row) => row.text)
-  });
+    await persist_translations_for_path({
+      project_id: metadata.project_id,
+      lang_id: metadata.lang_id,
+      project_path_id: metadata.project_path_id,
+      path_params: metadata.path_params,
+      indexes: metadata.translated_data.map((row) => row.index),
+      data: metadata.translated_data.map((row) => row.text)
+    });
 
-  await db
-    .delete(ai_batch_responses)
-    .where(
-      and(eq(ai_batch_responses.batch_id, batch_id), eq(ai_batch_responses.custom_id, custom_id))
-    );
+    await tx
+      .delete(ai_batch_responses)
+      .where(
+        and(eq(ai_batch_responses.batch_id, batch_id), eq(ai_batch_responses.custom_id, custom_id))
+      );
+
+    return {
+      success: true as const,
+      project_path_id: metadata.project_path_id,
+      lang_id: metadata.lang_id,
+      item_count: metadata.translated_data.length
+    };
+  });
 
   scheduleOpenAiBatchCleanup(batch_id);
-  return {
-    success: true as const,
-    project_path_id: metadata.project_path_id,
-    lang_id: metadata.lang_id,
-    item_count: metadata.translated_data.length
-  };
+  return result;
 };
 
 async function autoApproveEligibleRows(batch_id: string, items: PollItem[]): Promise<PollItem[]> {
@@ -461,7 +475,6 @@ const trigger_batch_text_translation_input = z.object({
   auto_approved: z.boolean().default(true),
   include_english_context: z.boolean().default(false),
   project_id: z.int(),
-  project_key: z.string(),
   lang_id: z.int(),
   paths: z.array(trigger_path_schema).min(1)
 });
@@ -469,8 +482,7 @@ const trigger_batch_text_translation_input = z.object({
 const trigger_batch_text_translation_route = protectedAdminProcedure
   .input(trigger_batch_text_translation_input)
   .mutation(async ({ input }) => {
-    const { auto_approved, include_english_context, project_id, project_key, lang_id, paths } =
-      input;
+    const { auto_approved, include_english_context, project_id, lang_id, paths } = input;
 
     const path_keys = paths.map((p) => p.path_params.join(':'));
     if (new Set(path_keys).size !== path_keys.length) {
@@ -503,7 +515,6 @@ const trigger_batch_text_translation_route = protectedAdminProcedure
       paths.map(async (path) => {
         const ctx = await load_leaf_text_context({
           project_id,
-          project_key,
           path_params: path.path_params,
           lang_id,
           include_english_context
@@ -595,27 +606,39 @@ const approve_text_translation_route = protectedAdminProcedure
 const discard_text_translation_batch_response_route = protectedAdminProcedure
   .input(z.object({ batch_id: z.string(), custom_id: z.string() }))
   .mutation(async ({ input: { batch_id, custom_id } }) => {
-    const row = await db.query.ai_batch_responses.findFirst({
-      where: and(
-        eq(ai_batch_responses.batch_id, batch_id),
-        eq(ai_batch_responses.custom_id, custom_id)
-      )
+    const result = await db.transaction(async (tx) => {
+      const rows = await tx
+        .select()
+        .from(ai_batch_responses)
+        .where(
+          and(
+            eq(ai_batch_responses.batch_id, batch_id),
+            eq(ai_batch_responses.custom_id, custom_id)
+          )
+        )
+        .for('update')
+        .limit(1);
+      const row = rows[0];
+      if (!row) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Batch response not found' });
+      }
+      const metadata = text_translation_batch_metadata_schema.parse(row.metadata);
+      await tx
+        .delete(ai_batch_responses)
+        .where(
+          and(
+            eq(ai_batch_responses.batch_id, batch_id),
+            eq(ai_batch_responses.custom_id, custom_id)
+          )
+        );
+      return {
+        success: true as const,
+        project_path_id: metadata.project_path_id,
+        lang_id: metadata.lang_id
+      };
     });
-    if (!row) {
-      throw new TRPCError({ code: 'NOT_FOUND', message: 'Batch response not found' });
-    }
-    const metadata = text_translation_batch_metadata_schema.parse(row.metadata);
-    await db
-      .delete(ai_batch_responses)
-      .where(
-        and(eq(ai_batch_responses.batch_id, batch_id), eq(ai_batch_responses.custom_id, custom_id))
-      );
     scheduleOpenAiBatchCleanup(batch_id);
-    return {
-      success: true as const,
-      project_path_id: metadata.project_path_id,
-      lang_id: metadata.lang_id
-    };
+    return result;
   });
 
 type EnrichedTranslationBatchItem = {

@@ -13,7 +13,8 @@ import { env } from '$env/dynamic/private';
 
 export const config: Config = {
   split: true,
-  maxDuration: 300
+  /** More time to save bigger workfloaads */
+  maxDuration: 800
 };
 
 const receiver = new Receiver({

@@ -2,9 +2,13 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { Config } from '@sveltejs/adapter-vercel';
 import { Receiver } from '@upstash/qstash';
+import { eq } from 'drizzle-orm';
 import { ai_batch_results_publish_schema, publishAiBatchResultsQueue } from '~/utils/qstash';
 import { poll_batch_shloka_image_gen_func } from '~/api/routes/batch_ai';
+import { poll_batch_text_translation_func } from '~/api/routes/batch_ai_text';
 import { BATCH_POLLING_INTERVAL_S, MAX_BATCH_POLL_ATTEMPTS } from '~/utils/types/ai_batch_metadata';
+import { db } from '~/db/db';
+import { ai_batches } from '~/db/schema';
 import { env } from '$env/dynamic/private';
 
 export const config: Config = {
@@ -46,7 +50,20 @@ export const POST: RequestHandler = async ({ request }) => {
     );
   }
 
-  const result = await poll_batch_shloka_image_gen_func(batch_id);
+  const batch_row = await db.query.ai_batches.findFirst({
+    columns: { type: true },
+    where: eq(ai_batches.batch_id, batch_id)
+  });
+
+  // Missing batch after cleanup is a successful no-op.
+  if (!batch_row) {
+    return new Response(`Batch ${batch_id} already resolved or cleaned up`, { status: 200 });
+  }
+
+  const result =
+    batch_row.type === 'object'
+      ? await poll_batch_text_translation_func(batch_id)
+      : await poll_batch_shloka_image_gen_func(batch_id);
 
   if (result.status === 'already_resolved') {
     return new Response(`Batch ${batch_id} already resolved`, { status: 200 });

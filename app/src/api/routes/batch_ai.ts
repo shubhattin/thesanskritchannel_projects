@@ -1,11 +1,8 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { OpenAI } from 'openai';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
-import ms from 'ms';
-import { waitUntil } from '@vercel/functions';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
-import { db, type transactionType } from '~/db/db';
+import { db } from '~/db/db';
 import {
   ai_batches,
   ai_batch_responses,
@@ -16,12 +13,20 @@ import {
 } from '~/db/schema';
 import { createAiBatch, getAiBatchResult, type AiBatchInput } from '~/utils/ai_batch';
 import type { AiBatchPollingStatus } from '~/utils/ai_batch/types';
-import { getShlokaImageBatchCustomId } from '~/utils/ai_batch/shloka-image';
+import { getShlokaImageBatchCustomId } from '~/utils/ai_batch/batch_custom_id';
 import { deriveImageBatchUiStatus } from '~/utils/ai_batch/batch_image_status';
+import {
+  getOpenAI,
+  isResponseItemProcessed,
+  markBatchOutputResolvedIfComplete,
+  scheduleOpenAiBatchCleanup,
+  tryClaimBatchRow,
+  updateBatchResponse
+} from '~/utils/ai_batch/batch_lifecycle.server';
 import {
   BATCH_POLLING_INTERVAL_S,
   image_batch_metadata_schema,
-  type BatchMetadata
+  type ImageBatchMetadata
 } from '~/utils/types/ai_batch_metadata';
 import { publishAiBatchResultsQueue } from '~/utils/qstash';
 import { createS3Client } from '~/utils/s3/upload_file.server';
@@ -38,16 +43,18 @@ import { available_image_models_schema } from '~/api/routes/ai/ai_types';
 import { get_image_prompt_func } from '~/api/routes/ai/get_image_prompt';
 import { getCDNUrl } from '~/utils/cdn';
 import { text_models_enum } from '~/api/routes/ai/ai_types';
-import { env } from '$env/dynamic/private';
-
-/** Lazy: avoid SDK constructors during SvelteKit postbuild analyse (private env empty). */
-let openai: OpenAI | undefined;
-const getOpenAI = () => (openai ??= new OpenAI({ apiKey: env.OPENAI_API_KEY }));
+import {
+  trigger_batch_text_translation,
+  poll_batch_text_translation,
+  approve_text_translation,
+  discard_text_translation_batch_response,
+  get_text_translation_batch_status,
+  list_batch_translation_targets,
+  get_text_translation_batch_manager_groups
+} from './batch_ai_text';
 
 let s3Client: ReturnType<typeof createS3Client> | undefined;
 const getS3Client = () => (s3Client ??= createS3Client());
-
-const POLL_CLAIM_STALE_MS = ms('12mins');
 
 const trigger_item_schema = z.object({
   index: z.int().min(0),
@@ -65,146 +72,6 @@ const trigger_batch_input_schema = z.object({
   items: z.array(trigger_item_schema).min(1)
 });
 
-/** Delete OpenAI Files API objects (batch input/output). Ignores already-deleted files. */
-async function deleteOpenAiFiles(file_ids: (string | null | undefined)[]) {
-  const unique_ids = [...new Set(file_ids.filter((id): id is string => !!id))];
-  await Promise.all(
-    unique_ids.map(async (file_id) => {
-      try {
-        await getOpenAI().files.delete(file_id);
-      } catch (err) {
-        // OpenAI often expires/removes batch files before we clean up — 404 is expected.
-        const status = (err as { status?: number } | null)?.status;
-        if (status === 404) return;
-        console.error(`Failed to delete OpenAI file ${file_id}:`, err);
-      }
-    })
-  );
-}
-
-function scheduleOpenAiBatchCleanup(batch_id: string) {
-  const cleanup = (async () => {
-    const remaining = await db.query.ai_batch_responses.findFirst({
-      columns: { batch_id: true },
-      where: eq(ai_batch_responses.batch_id, batch_id)
-    });
-    if (remaining) return;
-
-    const batch = await db.query.ai_batches.findFirst({
-      columns: { input_file_id: true, output_file_id: true },
-      where: eq(ai_batches.batch_id, batch_id)
-    });
-    if (!batch) return;
-
-    await db.delete(ai_batches).where(eq(ai_batches.batch_id, batch_id));
-    await deleteOpenAiFiles([batch.input_file_id, batch.output_file_id]);
-  })().catch((err) => {
-    console.error(`Failed OpenAI batch file cleanup for batch ${batch_id}:`, err);
-  });
-
-  waitUntil(cleanup);
-}
-
-const responseItemUnprocessed = sql`${ai_batch_responses.metadata}->>'success' IS NULL`;
-
-async function tryClaimBatchRow(batch_id: string, custom_id: string) {
-  return db.transaction(async (tx) => {
-    const rows = await tx
-      .select()
-      .from(ai_batch_responses)
-      .where(
-        and(
-          eq(ai_batch_responses.batch_id, batch_id),
-          eq(ai_batch_responses.custom_id, custom_id),
-          responseItemUnprocessed
-        )
-      )
-      .for('update')
-      .limit(1);
-
-    const row = rows[0];
-    if (!row) return null;
-
-    const metadata = image_batch_metadata_schema.parse(row.metadata);
-    if (metadata.poll_claimed_at) {
-      const claimed_at = Date.parse(metadata.poll_claimed_at);
-      if (!Number.isNaN(claimed_at) && Date.now() - claimed_at < POLL_CLAIM_STALE_MS) {
-        return null;
-      }
-    }
-
-    const claimed_metadata = { ...metadata, poll_claimed_at: new Date().toISOString() };
-    const updated = await tx
-      .update(ai_batch_responses)
-      .set({ metadata: claimed_metadata })
-      .where(
-        and(
-          eq(ai_batch_responses.batch_id, batch_id),
-          eq(ai_batch_responses.custom_id, custom_id),
-          responseItemUnprocessed
-        )
-      )
-      .returning();
-
-    if (updated.length === 0) return null;
-    return { ...row, metadata: claimed_metadata };
-  });
-}
-
-async function updateBatchResponse(
-  tx: transactionType,
-  batch_id: string,
-  custom_id: string,
-  metadata: BatchMetadata,
-  output_file_id?: string | null
-): Promise<boolean> {
-  const updated = await tx
-    .update(ai_batch_responses)
-    .set({ metadata })
-    .where(
-      and(
-        eq(ai_batch_responses.batch_id, batch_id),
-        eq(ai_batch_responses.custom_id, custom_id),
-        responseItemUnprocessed
-      )
-    )
-    .returning();
-
-  if (updated.length === 0) return false;
-
-  if (output_file_id != null) {
-    await tx.update(ai_batches).set({ output_file_id }).where(eq(ai_batches.batch_id, batch_id));
-  }
-  return true;
-}
-
-function isResponseItemProcessed(metadata: BatchMetadata): boolean {
-  return metadata.success !== undefined;
-}
-
-async function markBatchOutputResolvedIfComplete(
-  tx: transactionType,
-  batch_id: string,
-  output_file_id?: string | null
-) {
-  const responses = await tx.query.ai_batch_responses.findMany({
-    where: eq(ai_batch_responses.batch_id, batch_id),
-    columns: { metadata: true }
-  });
-  const all_processed = responses.every((row) =>
-    isResponseItemProcessed(image_batch_metadata_schema.parse(row.metadata))
-  );
-  if (!all_processed) return;
-
-  await tx
-    .update(ai_batches)
-    .set({
-      output_resolved: true,
-      ...(output_file_id != null ? { output_file_id } : {})
-    })
-    .where(and(eq(ai_batches.batch_id, batch_id), eq(ai_batches.output_resolved, false)));
-}
-
 type PollItem = {
   custom_id: string;
   success: boolean;
@@ -220,7 +87,7 @@ type PollCoreResult =
 
 export type PollBatchShlokaImageGenResult = PollCoreResult & { message: string };
 
-function toPollItem(custom_id: string, metadata: BatchMetadata): PollItem {
+function toPollItem(custom_id: string, metadata: ImageBatchMetadata): PollItem {
   return {
     custom_id,
     success: metadata.success === true,
@@ -699,7 +566,7 @@ type EnrichedBatchItem = {
   custom_id: string;
   output_resolved: boolean;
   auto_approved: boolean;
-  metadata: BatchMetadata;
+  metadata: ImageBatchMetadata;
   project_id: number;
   project_key: string | null;
   project_name: string | null;
@@ -725,7 +592,7 @@ async function enrichBatchRows(
     custom_id: string;
     output_resolved: boolean;
     auto_approved: boolean;
-    metadata: BatchMetadata;
+    metadata: ImageBatchMetadata;
   }[]
 ): Promise<EnrichedBatchItem[]> {
   const project_ids = new Set<number>();
@@ -854,11 +721,15 @@ const get_shloka_image_batch_status_route = protectedAdminProcedure
         )
       );
 
-    const filtered = rows.filter((row) => {
-      const meta = image_batch_metadata_schema.parse(row.metadata);
-      if (input.index === undefined) return true;
-      return meta.index === input.index;
-    });
+    const filtered = rows
+      .map((row) => ({
+        ...row,
+        metadata: image_batch_metadata_schema.parse(row.metadata)
+      }))
+      .filter((row) => {
+        if (input.index === undefined) return true;
+        return row.metadata.index === input.index;
+      });
     if (filtered.length === 0) return null;
 
     const active_row =
@@ -879,12 +750,7 @@ const get_shloka_image_batch_status_route = protectedAdminProcedure
       ) ??
       filtered[filtered.length - 1]!;
 
-    const [enriched] = await enrichBatchRows([
-      {
-        ...active_row,
-        metadata: image_batch_metadata_schema.parse(active_row.metadata)
-      }
-    ]);
+    const [enriched] = await enrichBatchRows([active_row]);
     return enriched ?? null;
   });
 
@@ -952,5 +818,12 @@ export const batch_ai_router = t.router({
   approve_shloka_image: approve_shloka_image_route,
   discard_shloka_image_batch_response: discard_shloka_image_batch_response_route,
   get_shloka_image_batch_status: get_shloka_image_batch_status_route,
-  get_batch_manager_groups: get_batch_manager_groups_route
+  get_batch_manager_groups: get_batch_manager_groups_route,
+  trigger_batch_text_translation,
+  poll_batch_text_translation,
+  approve_text_translation,
+  discard_text_translation_batch_response,
+  get_text_translation_batch_status,
+  list_batch_translation_targets,
+  get_text_translation_batch_manager_groups
 });

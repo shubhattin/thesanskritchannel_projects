@@ -5,7 +5,7 @@ import {
   getShlokaImageBatchCustomId,
   isShlokaImageBatchCustomId,
   parseShlokaImageBatchCustomId
-} from '~/utils/ai_batch/shloka-image';
+} from '~/utils/ai_batch/batch_custom_id';
 import {
   buildOldToNewTextIndexMap,
   remapBatchMetadataIndex,

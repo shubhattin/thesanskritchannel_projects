@@ -186,14 +186,6 @@
       <Badge variant={IMAGE_BATCH_STATUS_VARIANTS[index_status_q.data.status]}>
         {IMAGE_BATCH_STATUS_LABELS[index_status_q.data.status]}
       </Badge>
-      <a
-        class="text-primary hover:underline"
-        href={index_status_q.data.openai_batch_url}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Inspect OpenAI batch
-      </a>
       <a class="text-primary hover:underline" href="/batch-manager">Batch Manager</a>
     </div>
   {/if}
@@ -203,14 +195,6 @@
       <Badge variant={IMAGE_BATCH_STATUS_VARIANTS[path_status_q.data.status]}>
         {IMAGE_BATCH_STATUS_LABELS[path_status_q.data.status]}
       </Badge>
-      <a
-        class="text-primary hover:underline"
-        href={path_status_q.data.openai_batch_url}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Inspect OpenAI batch
-      </a>
     </div>
   {/if}
 </section>

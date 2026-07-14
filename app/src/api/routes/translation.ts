@@ -3,7 +3,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAppScopeProcedure_ProjectsPortal, publicProcedure, t } from '~/api/trpc_init';
 import { db } from '~/db/db';
-import { project_paths, texts, translations } from '~/db/schema';
+import { texts, translations } from '~/db/schema';
 import { delay_dev } from '~/tools/delay';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { get_project_by_key, get_project_info_by_id } from '~/utils/project/list.server';
@@ -27,6 +27,136 @@ const edit_translation_input = z
   .refine(({ indexes }) => new Set(indexes).size === indexes.length, {
     message: 'indexes must be unique'
   });
+
+/** Convert higher→lower path params into selected_text_levels (lower→higher). */
+export const path_params_to_selected_text_levels = (
+  path_params: number[],
+  levels: number
+): (number | null)[] => path_params.slice(0, levels - 1).reverse() as (number | null)[];
+
+/**
+ * Persist translation rows for a project path.
+ * Overwrites existing non-null values; null deletes the row.
+ */
+export async function persist_translations_for_path(args: {
+  project_id: number;
+  lang_id: number;
+  project_path_id: number;
+  path_params: number[];
+  indexes: number[];
+  data: (string | null)[];
+}) {
+  const { project_id, lang_id, project_path_id, path_params, indexes, data } = args;
+  if (indexes.length !== data.length) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'data and indexes must have the same length'
+    });
+  }
+  if (new Set(indexes).size !== indexes.length) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'indexes must be unique' });
+  }
+  if (indexes.length === 0) return { success: true as const };
+
+  const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
+  const selected_text_levels = path_params_to_selected_text_levels(path_params, levels);
+  const indexed_indexes = indexes.map((v, i) => [v, i] as const);
+
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`);
+
+    const current_text_indexes = new Set(
+      (
+        await tx
+          .select({ index: texts.index })
+          .from(texts)
+          .where(and(eq(texts.project_path_id, project_path_id), inArray(texts.index, indexes)))
+      ).map((v) => v.index)
+    );
+    const missing_text_index = indexed_indexes.find(
+      ([index, i]) => data[i] !== null && !current_text_indexes.has(index)
+    );
+    if (missing_text_index) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Translation index has no matching text row: ${missing_text_index[0]}`
+      });
+    }
+
+    const existing_indexes = new Set(
+      (
+        await tx
+          .select({ index: translations.index })
+          .from(translations)
+          .where(
+            and(
+              eq(translations.project_path_id, project_path_id),
+              eq(translations.lang_id, lang_id),
+              inArray(translations.index, indexes)
+            )
+          )
+      ).map((v) => v.index)
+    );
+
+    const delete_entries = indexed_indexes.filter(([, i]) => data[i] === null);
+    const add_entries = indexed_indexes.filter(
+      ([index, i]) => data[i] !== null && !existing_indexes.has(index)
+    );
+    const update_entries = indexed_indexes.filter(
+      ([index, i]) => data[i] !== null && existing_indexes.has(index)
+    );
+
+    if (delete_entries.length > 0) {
+      await tx.delete(translations).where(
+        and(
+          eq(translations.project_path_id, project_path_id),
+          eq(translations.lang_id, lang_id),
+          inArray(
+            translations.index,
+            delete_entries.map(([index]) => index)
+          )
+        )
+      );
+    }
+    if (add_entries.length > 0) {
+      await tx.insert(translations).values(
+        add_entries.map(([index, i]) => ({
+          project_path_id,
+          lang_id,
+          index,
+          text: data[i] ?? ''
+        }))
+      );
+    }
+    for (const [index, dataIndex] of update_entries) {
+      await tx
+        .update(translations)
+        .set({ text: data[dataIndex] ?? '' })
+        .where(
+          and(
+            eq(translations.project_path_id, project_path_id),
+            eq(translations.lang_id, lang_id),
+            eq(translations.index, index)
+          )
+        );
+    }
+  });
+
+  await Promise.all([
+    invalidate_and_refresh_cached(
+      CACHE.translation,
+      { project_id, lang_id, selected_text_levels },
+      cache_db_options_app
+    ),
+    invalidate_and_refresh_cached(
+      CACHE.available_translation_langs,
+      { project_id, path_params },
+      cache_db_options_app
+    )
+  ]);
+
+  return { success: true as const };
+}
 
 const get_translation_route = publicProcedure
   .input(
@@ -64,107 +194,15 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
         const allowed_langs = languages.map((lang) => lang.lang_id);
         if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
       }
-      if (indexes.length === 0) return { success: true };
 
-      const indexed_indexes = indexes.map((v, i) => [v, i] as const);
-      await db.transaction(async (tx) => {
-        await tx.execute(
-          sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
-        );
-
-        const current_text_indexes = new Set(
-          (
-            await tx
-              .select({ index: texts.index })
-              .from(texts)
-              .where(and(eq(texts.project_path_id, projectPath.id), inArray(texts.index, indexes)))
-          ).map((v) => v.index)
-        );
-        const missing_text_index = indexed_indexes.find(
-          ([index, i]) => data[i] !== null && !current_text_indexes.has(index)
-        );
-        if (missing_text_index) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Translation index has no matching text row: ${missing_text_index[0]}`
-          });
-        }
-
-        const existing_indexes = new Set(
-          (
-            await tx
-              .select({ index: translations.index })
-              .from(translations)
-              .where(
-                and(
-                  eq(translations.project_path_id, projectPath.id),
-                  eq(translations.lang_id, lang_id),
-                  inArray(translations.index, indexes)
-                )
-              )
-          ).map((v) => v.index)
-        );
-
-        const delete_entries = indexed_indexes.filter(([, i]) => data[i] === null);
-        const add_entries = indexed_indexes.filter(
-          ([index, i]) => data[i] !== null && !existing_indexes.has(index)
-        );
-        const update_entries = indexed_indexes.filter(
-          ([index, i]) => data[i] !== null && existing_indexes.has(index)
-        );
-
-        if (delete_entries.length > 0) {
-          await tx.delete(translations).where(
-            and(
-              eq(translations.project_path_id, projectPath.id),
-              eq(translations.lang_id, lang_id),
-              inArray(
-                translations.index,
-                delete_entries.map(([index]) => index)
-              )
-            )
-          );
-        }
-        if (add_entries.length > 0) {
-          await tx.insert(translations).values(
-            add_entries.map(([index, i]) => ({
-              project_path_id: projectPath.id,
-              lang_id,
-              index,
-              text: data[i] ?? ''
-            }))
-          );
-        }
-        for (const [index, dataIndex] of update_entries) {
-          await tx
-            .update(translations)
-            .set({ text: data[dataIndex] ?? '' })
-            .where(
-              and(
-                eq(translations.project_path_id, projectPath.id),
-                eq(translations.lang_id, lang_id),
-                eq(translations.index, index)
-              )
-            );
-        }
+      return persist_translations_for_path({
+        project_id,
+        lang_id,
+        project_path_id: projectPath.id,
+        path_params,
+        indexes,
+        data
       });
-
-      await Promise.all([
-        invalidate_and_refresh_cached(
-          CACHE.translation,
-          { project_id, lang_id, selected_text_levels },
-          cache_db_options_app
-        ),
-        invalidate_and_refresh_cached(
-          CACHE.available_translation_langs,
-          { project_id, path_params },
-          cache_db_options_app
-        )
-      ]);
-
-      return {
-        success: true
-      };
     }
   );
 

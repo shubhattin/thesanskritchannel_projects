@@ -24,7 +24,7 @@
   import { onDestroy } from 'svelte';
   import { main_app_ai_translate_in_progress } from '~/state/main_app_content_edit_dirty.svelte';
   import { LANG_LIST, LANG_LIST_IDS, lang_list_obj } from '~/state/lang_list';
-  import { get_project_from_id } from '~/state/project_list';
+  import { get_project_from_id, get_path_params } from '~/state/project_list';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -35,6 +35,8 @@
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import { translate_route_schema, type translate_route_input } from '~/api/routes/ai/ai_types';
   import ky, { HTTPError } from 'ky';
+  import { client } from '~/api/client';
+  import { invalidate_batch_ai_queries } from '~/state/main_app/batch_query_helpers';
 
   const query_client = useQueryClient();
 
@@ -91,6 +93,9 @@
   let show_time_status = $state(false);
   let dialog_open = $state(false);
   let include_english_context = $state(false);
+  let batch_include_english_context = $state(false);
+  let batch_auto_approved = $state(true);
+  let batch_overwrite_confirmed = $state<'yes' | 'no'>('no');
   let translate_error = $state<string | null>(null);
   let overwrite_confirmed = $state<'yes' | 'no'>('no');
 
@@ -136,19 +141,44 @@
     trans_en_data_q.isSuccess && (trans_en_data_q.data?.size ?? 0) > 0
   );
 
+  const batch_status_q = createQuery(() => ({
+    queryKey: [
+      'translation_batch_status',
+      $project_state?.project_id ?? null,
+      active_translation_lang_id,
+      $selected_text_levels
+    ],
+    queryFn: async () => {
+      if (!$project_state || active_translation_lang_id === null) return null;
+      return client.batch_ai.get_text_translation_batch_status.query({
+        project_id: $project_state.project_id,
+        lang_id: active_translation_lang_id,
+        selected_text_levels: $selected_text_levels
+      });
+    },
+    enabled: !!$project_state && active_translation_lang_id !== null,
+    staleTime: 30_000
+  }));
+
   function open_translate_dialog() {
     translate_error = null;
     overwrite_confirmed = 'no';
-    if (is_non_english_target) include_english_context = english_context_available;
+    batch_overwrite_confirmed = 'no';
+    batch_auto_approved = true;
+    if (is_non_english_target) {
+      include_english_context = english_context_available;
+      batch_include_english_context = english_context_available;
+    }
     dialog_open = true;
   }
 
   function handle_dialog_open_change(open: boolean) {
-    if (!open && translate_mut.isPending) return;
+    if (!open && (translate_mut.isPending || batch_trigger_mut.isPending)) return;
     dialog_open = open;
     if (!open) {
       translate_error = null;
       overwrite_confirmed = 'no';
+      batch_overwrite_confirmed = 'no';
     }
   }
 
@@ -167,6 +197,10 @@
 
   const can_confirm_translate = $derived(
     !has_existing_translations || overwrite_confirmed === 'yes'
+  );
+
+  const can_queue_batch = $derived(
+    !batch_auto_approved || !has_existing_translations || batch_overwrite_confirmed === 'yes'
   );
 
   const translate_mut = createMutation(() => ({
@@ -258,6 +292,31 @@
     }
   }));
 
+  const batch_trigger_mut = createMutation(() => ({
+    mutationFn: () => {
+      const levels = $project_state!.levels;
+      const path_params = get_path_params($selected_text_levels, levels);
+      return client.batch_ai.trigger_batch_text_translation.mutate({
+        auto_approved: batch_auto_approved,
+        include_english_context: is_non_english_target && batch_include_english_context,
+        project_id: $project_state!.project_id,
+        lang_id: active_translation_lang_id!,
+        paths: [{ path_params }]
+      });
+    },
+    onSuccess: async (data) => {
+      await invalidate_batch_ai_queries({ project_id: $project_state?.project_id });
+      await batch_status_q.refetch();
+      if (!destroyed) {
+        dialog_open = false;
+        toast.success(`Background translation queued (${data.batch_id})`);
+      }
+    },
+    onError: (err) => {
+      if (!destroyed) toast.error(err.message || 'Failed to queue background translation');
+    }
+  }));
+
   $effect(() => {
     main_app_ai_translate_in_progress.set(translate_mut.isPending);
   });
@@ -310,25 +369,29 @@
       slot_query_data: slot_query.data
     });
   }
+
+  const batch_running = $derived(
+    batch_status_q.data?.status === 'processing' || batch_status_q.data?.status === 'auto_applying'
+  );
 </script>
 
 {#if can_show_translate_ui}
   <Dialog.Root open={dialog_open} onOpenChange={handle_dialog_open_change}>
     <Button
-      variant="secondary"
+      variant="outline"
       size="sm"
-      class="h-7 px-2 text-xs"
-      disabled={translate_mut.isPending}
+      class="h-9 gap-1.5 px-3 text-base font-semibold"
+      disabled={translate_mut.isPending || batch_trigger_mut.isPending}
       onclick={open_translate_dialog}
     >
-      <Icon src={AIIcon} class="-mt-0.5 mr-1 text-lg" />
+      <Icon src={AIIcon} class="-mt-0.5 text-xl" />
       Translate with AI
     </Button>
     <Dialog.Content
       class="max-w-md"
-      showCloseButton={!translate_mut.isPending}
+      showCloseButton={!translate_mut.isPending && !batch_trigger_mut.isPending}
       onInteractOutside={(e) => {
-        if (translate_mut.isPending) e.preventDefault();
+        if (translate_mut.isPending || batch_trigger_mut.isPending) e.preventDefault();
       }}
     >
       {#if translate_mut.isPending}
@@ -406,12 +469,72 @@
           <Button disabled={!can_confirm_translate} onclick={translate_sarga_func}>Translate</Button
           >
         </Dialog.Footer>
+
+        <div class="space-y-3 rounded-lg border border-violet-500/40 bg-violet-500/5 p-3">
+          <div class="space-y-1">
+            <p class="text-sm font-semibold text-violet-700 dark:text-violet-300">
+              Generate Translation in Background
+            </p>
+            <p class="text-xs text-muted-foreground">
+              Queues a cheaper OpenAI batch job. Source text is fetched on the server.
+            </p>
+          </div>
+          <label class="flex cursor-pointer items-center gap-2 text-sm">
+            <Checkbox bind:checked={batch_auto_approved} />
+            Auto Save when complete
+          </label>
+          {#if is_non_english_target}
+            <label class="flex cursor-pointer items-start gap-2 text-sm">
+              <Checkbox
+                checked={batch_include_english_context}
+                disabled={!english_context_available}
+                onCheckedChange={(checked) => (batch_include_english_context = checked === true)}
+              />
+              <span>Include English translation context</span>
+            </label>
+          {/if}
+          {#if batch_auto_approved && has_existing_translations}
+            <fieldset class="space-y-1.5">
+              <legend class="text-xs font-medium text-amber-800 dark:text-amber-300">
+                Confirm overwrite for Auto Save?
+              </legend>
+              <RadioGroup.Root
+                bind:value={batch_overwrite_confirmed}
+                class="flex flex-wrap gap-x-4 gap-y-1"
+              >
+                <div class="flex items-center gap-1.5">
+                  <RadioGroup.Item value="no" id="ai-batch-overwrite-no" />
+                  <Label for="ai-batch-overwrite-no" class="cursor-pointer text-xs font-normal"
+                    >No</Label
+                  >
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <RadioGroup.Item value="yes" id="ai-batch-overwrite-yes" />
+                  <Label for="ai-batch-overwrite-yes" class="cursor-pointer text-xs font-normal"
+                    >Yes</Label
+                  >
+                </div>
+              </RadioGroup.Root>
+            </fieldset>
+          {/if}
+          <Button
+            class="w-full animate-pulse bg-violet-600 text-white hover:bg-violet-700"
+            disabled={batch_trigger_mut.isPending || !can_queue_batch || batch_running}
+            onclick={() => batch_trigger_mut.mutate()}
+          >
+            {batch_trigger_mut.isPending
+              ? 'Queuing…'
+              : batch_running
+                ? 'Batch already running'
+                : 'Generate'}
+          </Button>
+        </div>
       {/if}
     </Dialog.Content>
   </Dialog.Root>
   <Select.Root type="single" bind:value={selected_model as any}>
     <Select.Trigger
-      class="inline-flex h-7 w-24 px-2 text-xs"
+      class="inline-flex h-9 w-24 px-2 text-xs"
       title={TEXT_MODEL_LIST_INFO[selected_model][1]}
     >
       {TEXT_MODEL_LIST_INFO[selected_model][0]}

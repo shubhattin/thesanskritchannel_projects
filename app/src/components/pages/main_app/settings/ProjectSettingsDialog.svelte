@@ -23,7 +23,7 @@
   const query_client = useQueryClient();
 
   // Controlled `open=true` from the Settings button may not go through onOpenChange.
-  $effect(() => {
+  $effect.pre(() => {
     if (!open) return;
     active_tab = 'name';
     void query_client.invalidateQueries({ queryKey: ['project_list'] });

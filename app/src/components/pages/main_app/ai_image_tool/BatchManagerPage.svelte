@@ -5,33 +5,59 @@
   import { Button } from '$lib/components/ui/button';
   import { Badge } from '$lib/components/ui/badge';
   import { Skeleton } from '$lib/components/ui/skeleton';
+  import { ScrollArea } from '$lib/components/ui/scroll-area';
   import * as Accordion from '$lib/components/ui/accordion';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import * as Select from '$lib/components/ui/select';
+  import * as Tabs from '$lib/components/ui/tabs';
   import {
     IMAGE_BATCH_STATUS_LABELS,
     IMAGE_BATCH_STATUS_VARIANTS
   } from '~/utils/ai_batch/batch_image_status';
   import {
+    TRANSLATION_BATCH_STATUS_LABELS,
+    TRANSLATION_BATCH_STATUS_VARIANTS
+  } from '~/utils/ai_batch/batch_translation_status';
+  import {
     invalidate_batch_ai_queries,
-    invalidate_text_image_queries
+    invalidate_text_image_queries,
+    invalidate_translation_content_queries
   } from '~/state/main_app/batch_query_helpers';
   import Icon from '~/tools/Icon.svelte';
   import { OiSync16, OiLinkExternal16 } from 'svelte-icons-pack/oi';
 
-  type Group = Awaited<ReturnType<typeof client.batch_ai.get_batch_manager_groups.query>>[number];
-  type Item = Group['items'][number];
+  type ImageGroup = Awaited<
+    ReturnType<typeof client.batch_ai.get_batch_manager_groups.query>
+  >[number];
+  type ImageItem = ImageGroup['items'][number];
+  type TranslationGroup = Awaited<
+    ReturnType<typeof client.batch_ai.get_text_translation_batch_manager_groups.query>
+  >[number];
+  type TranslationItem = TranslationGroup['items'][number];
 
   let project_filter = $state<string>('all');
-  let review_item = $state<Item | null>(null);
-  let discard_item = $state<Item | null>(null);
+  let active_tab = $state<'images' | 'translations'>('images');
+  let review_image_item = $state<ImageItem | null>(null);
+  let discard_image_item = $state<ImageItem | null>(null);
+  let review_translation_item = $state<TranslationItem | null>(null);
+  let discard_translation_item = $state<TranslationItem | null>(null);
   let polling_batch_id = $state<string | null>(null);
 
-  const groups_q = createQuery(() => ({
+  const image_groups_q = createQuery(() => ({
     queryKey: ['batch_manager_groups', project_filter],
     queryFn: () =>
       client.batch_ai.get_batch_manager_groups.query(
+        project_filter === 'all' ? undefined : { project_id: Number(project_filter) }
+      ),
+    staleTime: 90_000,
+    refetchOnWindowFocus: false
+  }));
+
+  const translation_groups_q = createQuery(() => ({
+    queryKey: ['translation_batch_manager_groups', project_filter],
+    queryFn: () =>
+      client.batch_ai.get_text_translation_batch_manager_groups.query(
         project_filter === 'all' ? undefined : { project_id: Number(project_filter) }
       ),
     staleTime: 90_000,
@@ -44,15 +70,14 @@
     staleTime: 12 * 60 * 60 * 1000
   }));
 
-  const poll_mut = createMutation(() => ({
+  const poll_image_mut = createMutation(() => ({
     mutationFn: (batch_id: string) => {
       polling_batch_id = batch_id;
       return client.batch_ai.poll_batch_shloka_image_gen.mutate({ batch_id });
     },
     onSuccess: async (data) => {
       await invalidate_batch_ai_queries();
-      // Custom query key is not covered by tRPC filters — same as Refresh.
-      await groups_q.refetch();
+      await image_groups_q.refetch();
       if (data.status === 'processed' || data.status === 'terminal_failure') {
         toast.success(data.message || 'Batch updated');
       } else {
@@ -65,8 +90,28 @@
     }
   }));
 
-  const approve_mut = createMutation(() => ({
-    mutationFn: (item: Item) =>
+  const poll_translation_mut = createMutation(() => ({
+    mutationFn: (batch_id: string) => {
+      polling_batch_id = batch_id;
+      return client.batch_ai.poll_batch_text_translation.mutate({ batch_id });
+    },
+    onSuccess: async (data) => {
+      await invalidate_batch_ai_queries();
+      await translation_groups_q.refetch();
+      if (data.status === 'processed' || data.status === 'terminal_failure') {
+        toast.success(data.message || 'Batch updated');
+      } else {
+        toast.success(data.message || 'Batch polled');
+      }
+    },
+    onError: (err) => toast.error(err.message || 'Failed to poll batch'),
+    onSettled: () => {
+      polling_batch_id = null;
+    }
+  }));
+
+  const approve_image_mut = createMutation(() => ({
+    mutationFn: (item: ImageItem) =>
       client.batch_ai.approve_shloka_image.mutate({
         batch_id: item.batch_id,
         custom_id: item.custom_id
@@ -74,13 +119,13 @@
     onSuccess: async () => {
       await Promise.all([invalidate_batch_ai_queries(), invalidate_text_image_queries()]);
       toast.success('Image saved to project path');
-      review_item = null;
+      review_image_item = null;
     },
     onError: (err) => toast.error(err.message || 'Failed to approve image')
   }));
 
-  const discard_mut = createMutation(() => ({
-    mutationFn: (item: Item) =>
+  const discard_image_mut = createMutation(() => ({
+    mutationFn: (item: ImageItem) =>
       client.batch_ai.discard_shloka_image_batch_response.mutate({
         batch_id: item.batch_id,
         custom_id: item.custom_id
@@ -88,28 +133,84 @@
     onSuccess: async () => {
       await invalidate_batch_ai_queries();
       toast.success('Batch item discarded');
-      discard_item = null;
-      review_item = null;
+      discard_image_item = null;
+      review_image_item = null;
     },
     onError: (err) => toast.error(err.message || 'Failed to discard item')
   }));
 
-  const can_discard = (item: Item) =>
+  const approve_translation_mut = createMutation(() => ({
+    mutationFn: (item: TranslationItem) =>
+      client.batch_ai.approve_text_translation.mutate({
+        batch_id: item.batch_id,
+        custom_id: item.custom_id
+      }),
+    onSuccess: async (_data, item) => {
+      await Promise.all([
+        invalidate_batch_ai_queries(),
+        invalidate_translation_content_queries({
+          project_id: item.project_id,
+          lang_id: item.lang_id
+        })
+      ]);
+      toast.success('Translations saved');
+      review_translation_item = null;
+      await translation_groups_q.refetch();
+    },
+    onError: (err) => toast.error(err.message || 'Failed to approve translations')
+  }));
+
+  const discard_translation_mut = createMutation(() => ({
+    mutationFn: (item: TranslationItem) =>
+      client.batch_ai.discard_text_translation_batch_response.mutate({
+        batch_id: item.batch_id,
+        custom_id: item.custom_id
+      }),
+    onSuccess: async () => {
+      await invalidate_batch_ai_queries();
+      toast.success('Batch item discarded');
+      discard_translation_item = null;
+      review_translation_item = null;
+      await translation_groups_q.refetch();
+    },
+    onError: (err) => toast.error(err.message || 'Failed to discard item')
+  }));
+
+  const can_discard_image = (item: ImageItem) =>
     item.status === 'processing' || item.status === 'ready_for_review' || item.status === 'failed';
 
-  const origin_href = (item: Item) => {
+  const can_discard_translation = (item: TranslationItem) =>
+    item.status === 'processing' || item.status === 'ready_for_review' || item.status === 'failed';
+
+  const origin_href = (item: { project_key: string | null; path: string | null }) => {
     if (!item.project_key) return null;
     const path = item.path ? `/${item.path.split(':').join('/')}` : '';
     return `/${item.project_key}${path}`;
   };
 
-  const groups = $derived(groups_q.data ?? []);
-  let open_batches = $state<string[]>([]);
-  let did_init_open = $state(false);
+  const image_groups = $derived(image_groups_q.data ?? []);
+  const translation_groups = $derived(translation_groups_q.data ?? []);
+  let open_image_batches = $state<string[]>([]);
+  let open_translation_batches = $state<string[]>([]);
+  let did_init_image_open = $state(false);
+  let did_init_translation_open = $state(false);
   $effect(() => {
-    if (did_init_open || groups.length === 0) return;
-    open_batches = [groups[0]!.batch_id];
-    did_init_open = true;
+    if (did_init_image_open || image_groups.length === 0) return;
+    open_image_batches = [image_groups[0]!.batch_id];
+    did_init_image_open = true;
+  });
+  $effect(() => {
+    if (did_init_translation_open || translation_groups.length === 0) return;
+    open_translation_batches = [translation_groups[0]!.batch_id];
+    did_init_translation_open = true;
+  });
+
+  const translated_by_index = $derived.by(() => {
+    const map = new Map<number, string>();
+    for (const row of review_translation_item?.translated_data ?? []) {
+      map.set(row.index, row.text);
+    }
+    return map;
   });
 </script>
 
@@ -118,7 +219,8 @@
     <div>
       <h1 class="text-2xl font-bold">Batch Manager</h1>
       <p class="text-sm text-muted-foreground">
-        Inspect ongoing AI image batches, poll locally, and review or discard staged results.
+        Inspect ongoing AI image and translation batches, poll locally, and review or discard staged
+        results.
       </p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
@@ -145,191 +247,396 @@
       <Button
         variant="outline"
         class="gap-2"
-        disabled={groups_q.isFetching}
-        onclick={() => void groups_q.refetch()}
+        disabled={image_groups_q.isFetching || translation_groups_q.isFetching}
+        onclick={() => void Promise.all([image_groups_q.refetch(), translation_groups_q.refetch()])}
       >
-        <Icon src={OiSync16} class={groups_q.isFetching ? 'animate-spin' : ''} />
+        <Icon
+          src={OiSync16}
+          class={image_groups_q.isFetching || translation_groups_q.isFetching ? 'animate-spin' : ''}
+        />
         Refresh
       </Button>
     </div>
   </div>
 
-  {#if groups_q.isLoading}
-    <div class="flex flex-col gap-3">
-      {#each Array(3) as _}
-        <Skeleton class="h-16 w-full rounded-xl" />
-      {/each}
-    </div>
-  {:else if groups_q.isError}
-    <div class="rounded-xl border border-destructive/40 bg-destructive/5 p-8 text-center">
-      <p class="font-medium text-destructive">Failed to load batch jobs</p>
-      <p class="mt-1 text-sm text-muted-foreground">{groups_q.error.message}</p>
-      <Button class="mt-4" onclick={() => void groups_q.refetch()}>Try again</Button>
-    </div>
-  {:else if groups.length === 0}
-    <div class="rounded-xl border border-dashed border-border p-8 text-center">
-      <p class="font-medium">No active batch image jobs</p>
-      <p class="mt-1 text-sm text-muted-foreground">
-        Queue background generation from the AI Image Generator.
-      </p>
-    </div>
-  {:else}
-    <Accordion.Root type="multiple" bind:value={open_batches} class="flex flex-col gap-3">
-      {#each groups as group (group.batch_id)}
-        <Accordion.Item value={group.batch_id} class="rounded-xl border border-border px-4">
-          <Accordion.Trigger class="py-4 hover:no-underline">
-            <div
-              class="flex w-full flex-col gap-2 pr-2 text-left sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div class="space-y-1">
-                <p class="font-semibold">Batch {group.batch_id}</p>
-                <p class="text-xs text-muted-foreground">{group.items.length} item(s)</p>
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <Badge variant="secondary">Pending {group.counts.pending}</Badge>
-                <Badge>Ready {group.counts.ready}</Badge>
-                <Badge variant="destructive">Failed {group.counts.failed}</Badge>
-                {#if group.counts.auto_approved > 0}
-                  <Badge variant="outline">Auto-apply {group.counts.auto_approved}</Badge>
-                {/if}
-              </div>
-            </div>
-          </Accordion.Trigger>
-          <Accordion.Content class="space-y-4 pb-4">
-            <div class="flex flex-wrap justify-end gap-2">
-              <a
-                class="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                href={group.openai_batch_url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                OpenAI batch
-                <Icon src={OiLinkExternal16} class="text-sm" />
-              </a>
-              <Button
-                size="sm"
-                variant="outline"
-                class="gap-2"
-                disabled={polling_batch_id !== null}
-                onclick={() => poll_mut.mutate(group.batch_id)}
-              >
-                <Icon
-                  src={OiSync16}
-                  class={polling_batch_id === group.batch_id ? 'animate-spin' : ''}
-                />
-                Poll now
-              </Button>
-            </div>
+  <Tabs.Root bind:value={active_tab} class="space-y-4">
+    <Tabs.List>
+      <Tabs.Trigger value="images">Images ({image_groups.length})</Tabs.Trigger>
+      <Tabs.Trigger value="translations">Translations ({translation_groups.length})</Tabs.Trigger>
+    </Tabs.List>
 
-            <div class="flex flex-col gap-3">
-              {#each group.items as item (item.custom_id)}
+    <Tabs.Content value="images" class="space-y-4">
+      {#if image_groups_q.isLoading}
+        <div class="flex flex-col gap-3">
+          {#each Array(3) as _, i (i)}
+            <Skeleton class="h-16 w-full rounded-xl" />
+          {/each}
+        </div>
+      {:else if image_groups_q.isError}
+        <div class="rounded-xl border border-destructive/40 bg-destructive/5 p-8 text-center">
+          <p class="font-medium text-destructive">Failed to load image batch jobs</p>
+          <p class="mt-1 text-sm text-muted-foreground">{image_groups_q.error.message}</p>
+          <Button class="mt-4" onclick={() => void image_groups_q.refetch()}>Try again</Button>
+        </div>
+      {:else if image_groups.length === 0}
+        <div class="rounded-xl border border-dashed border-border p-8 text-center">
+          <p class="font-medium">No active batch image jobs</p>
+          <p class="mt-1 text-sm text-muted-foreground">
+            Queue background generation from the AI Image Generator.
+          </p>
+        </div>
+      {:else}
+        <Accordion.Root type="multiple" bind:value={open_image_batches} class="flex flex-col gap-3">
+          {#each image_groups as group (group.batch_id)}
+            <Accordion.Item value={group.batch_id} class="rounded-xl border border-border px-4">
+              <Accordion.Trigger class="py-4 hover:no-underline">
                 <div
-                  class="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+                  class="flex w-full flex-col gap-2 pr-2 text-left sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div class="flex min-w-0 flex-1 items-start gap-3">
-                    {#if item.image_asset}
-                      <img
-                        src={item.image_asset.url}
-                        alt={item.metadata.image_prompt}
-                        class="size-16 shrink-0 rounded-md border border-border object-cover"
-                      />
-                    {:else}
-                      <div
-                        class="flex size-16 shrink-0 items-center justify-center rounded-md border border-dashed border-border bg-muted/30 text-xs text-muted-foreground"
-                      >
-                        {item.status === 'processing' ? '…' : 'N/A'}
-                      </div>
-                    {/if}
-                    <div class="min-w-0 space-y-1">
-                      <div class="flex flex-wrap items-center gap-2">
-                        <p class="truncate font-medium">
-                          {item.project_name ?? `Project #${item.project_id}`}
-                          · index {item.index ?? 'orphan'}{item.shloka_num != null
-                            ? `:${item.shloka_num}`
-                            : ''}
-                        </p>
-                        <Badge variant={IMAGE_BATCH_STATUS_VARIANTS[item.status]}>
-                          {IMAGE_BATCH_STATUS_LABELS[item.status]}
-                        </Badge>
-                        {#if item.auto_approved}
-                          <Badge variant="outline">Auto-apply</Badge>
-                        {/if}
-                      </div>
-                      <p class="text-xs text-muted-foreground">{item.path}</p>
-                      <p class="truncate text-xs text-muted-foreground">{item.custom_id}</p>
-                      {#if origin_href(item)}
-                        <a
-                          href={origin_href(item)!}
-                          class="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                        >
-                          Open in app
-                          <Icon src={OiLinkExternal16} class="text-sm" />
-                        </a>
-                      {/if}
-                    </div>
+                  <div class="space-y-1">
+                    <p class="font-semibold">Batch {group.batch_id}</p>
+                    <p class="text-xs text-muted-foreground">
+                      {group.items.length} item(s) · image
+                    </p>
                   </div>
                   <div class="flex flex-wrap gap-2">
-                    {#if item.status === 'ready_for_review'}
-                      <Button size="sm" onclick={() => (review_item = item)}>Review</Button>
-                    {/if}
-                    {#if can_discard(item)}
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onclick={() => (discard_item = item)}
-                        disabled={discard_mut.isPending}
-                      >
-                        Discard
-                      </Button>
+                    <Badge variant="secondary">Pending {group.counts.pending}</Badge>
+                    <Badge>Ready {group.counts.ready}</Badge>
+                    <Badge variant="destructive">Failed {group.counts.failed}</Badge>
+                    {#if group.counts.auto_approved > 0}
+                      <Badge variant="outline">Auto-apply {group.counts.auto_approved}</Badge>
                     {/if}
                   </div>
                 </div>
-              {/each}
-            </div>
-          </Accordion.Content>
-        </Accordion.Item>
-      {/each}
-    </Accordion.Root>
-  {/if}
+              </Accordion.Trigger>
+              <Accordion.Content class="space-y-4 pb-4">
+                <div class="flex flex-wrap justify-end gap-2">
+                  <a
+                    class="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    href={group.openai_batch_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    OpenAI batch
+                    <Icon src={OiLinkExternal16} class="text-sm" />
+                  </a>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    class="gap-2"
+                    disabled={polling_batch_id !== null}
+                    onclick={() => poll_image_mut.mutate(group.batch_id)}
+                  >
+                    <Icon
+                      src={OiSync16}
+                      class={polling_batch_id === group.batch_id ? 'animate-spin' : ''}
+                    />
+                    Poll now
+                  </Button>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                  {#each group.items as item (item.custom_id)}
+                    <div
+                      class="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div class="flex min-w-0 flex-1 items-start gap-3">
+                        {#if item.image_asset}
+                          <img
+                            src={item.image_asset.url}
+                            alt={item.metadata.image_prompt}
+                            class="size-16 shrink-0 rounded-md border border-border object-cover"
+                          />
+                        {:else}
+                          <div
+                            class="flex size-16 shrink-0 items-center justify-center rounded-md border border-dashed border-border bg-muted/30 text-xs text-muted-foreground"
+                          >
+                            {item.status === 'processing' ? '…' : 'N/A'}
+                          </div>
+                        {/if}
+                        <div class="min-w-0 space-y-1">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <p class="truncate font-medium">
+                              {item.project_name ?? `Project #${item.project_id}`}
+                              · index {item.index ?? 'orphan'}{item.shloka_num != null
+                                ? `:${item.shloka_num}`
+                                : ''}
+                            </p>
+                            <Badge variant={IMAGE_BATCH_STATUS_VARIANTS[item.status]}>
+                              {IMAGE_BATCH_STATUS_LABELS[item.status]}
+                            </Badge>
+                            {#if item.auto_approved}
+                              <Badge variant="outline">Auto-apply</Badge>
+                            {/if}
+                          </div>
+                          <p class="text-xs text-muted-foreground">{item.path}</p>
+                          <p class="truncate text-xs text-muted-foreground">{item.custom_id}</p>
+                          {#if origin_href(item)}
+                            <a
+                              href={origin_href(item)!}
+                              class="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                            >
+                              Open in app
+                              <Icon src={OiLinkExternal16} class="text-sm" />
+                            </a>
+                          {/if}
+                        </div>
+                      </div>
+                      <div class="flex flex-wrap gap-2">
+                        {#if item.status === 'ready_for_review'}
+                          <Button size="sm" onclick={() => (review_image_item = item)}
+                            >Review</Button
+                          >
+                        {/if}
+                        {#if can_discard_image(item)}
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onclick={() => (discard_image_item = item)}
+                            disabled={discard_image_mut.isPending}
+                          >
+                            Discard
+                          </Button>
+                        {/if}
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              </Accordion.Content>
+            </Accordion.Item>
+          {/each}
+        </Accordion.Root>
+      {/if}
+    </Tabs.Content>
+
+    <Tabs.Content value="translations" class="space-y-4">
+      {#if translation_groups_q.isLoading}
+        <div class="flex flex-col gap-3">
+          {#each Array(3) as _, i (i)}
+            <Skeleton class="h-16 w-full rounded-xl" />
+          {/each}
+        </div>
+      {:else if translation_groups_q.isError}
+        <div class="rounded-xl border border-destructive/40 bg-destructive/5 p-8 text-center">
+          <p class="font-medium text-destructive">Failed to load translation batch jobs</p>
+          <p class="mt-1 text-sm text-muted-foreground">{translation_groups_q.error.message}</p>
+          <Button class="mt-4" onclick={() => void translation_groups_q.refetch()}>Try again</Button
+          >
+        </div>
+      {:else if translation_groups.length === 0}
+        <div class="rounded-xl border border-dashed border-border p-8 text-center">
+          <p class="font-medium">No active batch translation jobs</p>
+          <p class="mt-1 text-sm text-muted-foreground">
+            Queue background translation from Translate with AI or Batch Translate.
+          </p>
+        </div>
+      {:else}
+        <Accordion.Root
+          type="multiple"
+          bind:value={open_translation_batches}
+          class="flex flex-col gap-3"
+        >
+          {#each translation_groups as group (group.batch_id)}
+            <Accordion.Item value={group.batch_id} class="rounded-xl border border-border px-4">
+              <Accordion.Trigger class="py-4 hover:no-underline">
+                <div
+                  class="flex w-full flex-col gap-2 pr-2 text-left sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div class="space-y-1">
+                    <p class="font-semibold">Batch {group.batch_id}</p>
+                    <p class="text-xs text-muted-foreground">
+                      {group.items.length} item(s) · translation
+                    </p>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <Badge variant="secondary">Pending {group.counts.pending}</Badge>
+                    <Badge>Ready {group.counts.ready}</Badge>
+                    <Badge variant="destructive">Failed {group.counts.failed}</Badge>
+                    {#if group.counts.auto_approved > 0}
+                      <Badge variant="outline">Auto-save {group.counts.auto_approved}</Badge>
+                    {/if}
+                  </div>
+                </div>
+              </Accordion.Trigger>
+              <Accordion.Content class="space-y-4 pb-4">
+                <div class="flex flex-wrap justify-end gap-2">
+                  <a
+                    class="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    href={group.openai_batch_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    OpenAI batch
+                    <Icon src={OiLinkExternal16} class="text-sm" />
+                  </a>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    class="gap-2"
+                    disabled={polling_batch_id !== null}
+                    onclick={() => poll_translation_mut.mutate(group.batch_id)}
+                  >
+                    <Icon
+                      src={OiSync16}
+                      class={polling_batch_id === group.batch_id ? 'animate-spin' : ''}
+                    />
+                    Poll now
+                  </Button>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                  {#each group.items as item (item.custom_id)}
+                    <div
+                      class="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div class="min-w-0 flex-1 space-y-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <p class="truncate font-medium">
+                            {item.project_name ?? `Project #${item.project_id}`}
+                            · {item.lang_name ?? `lang ${item.lang_id}`}
+                          </p>
+                          <Badge variant={TRANSLATION_BATCH_STATUS_VARIANTS[item.status]}>
+                            {TRANSLATION_BATCH_STATUS_LABELS[item.status]}
+                          </Badge>
+                          {#if item.auto_approved}
+                            <Badge variant="outline">Auto-save</Badge>
+                          {/if}
+                        </div>
+                        <p class="text-xs text-muted-foreground">{item.path}</p>
+                        <p class="text-xs text-muted-foreground">
+                          {item.metadata.source_indexes.length} line(s)
+                        </p>
+                        <p class="truncate text-xs text-muted-foreground">{item.custom_id}</p>
+                        {#if origin_href(item)}
+                          <a
+                            href={origin_href(item)!}
+                            class="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                          >
+                            Open in app
+                            <Icon src={OiLinkExternal16} class="text-sm" />
+                          </a>
+                        {/if}
+                      </div>
+                      <div class="flex flex-wrap gap-2">
+                        {#if item.status === 'ready_for_review'}
+                          <Button size="sm" onclick={() => (review_translation_item = item)}
+                            >Review</Button
+                          >
+                        {/if}
+                        {#if can_discard_translation(item)}
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onclick={() => (discard_translation_item = item)}
+                            disabled={discard_translation_mut.isPending}
+                          >
+                            Discard
+                          </Button>
+                        {/if}
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              </Accordion.Content>
+            </Accordion.Item>
+          {/each}
+        </Accordion.Root>
+      {/if}
+    </Tabs.Content>
+  </Tabs.Root>
 </div>
 
 <Dialog.Root
-  open={!!review_item}
+  open={!!review_image_item}
   onOpenChange={(v) => {
-    if (!v) review_item = null;
+    if (!v) review_image_item = null;
   }}
 >
   <Dialog.Content class="max-w-2xl">
-    {#if review_item}
+    {#if review_image_item}
       <Dialog.Header>
         <Dialog.Title>Review generated image</Dialog.Title>
         <Dialog.Description>
-          {review_item.project_name} · index {review_item.index ?? 'orphan'}
+          {review_image_item.project_name} · index {review_image_item.index ?? 'orphan'}
         </Dialog.Description>
       </Dialog.Header>
-      {#if review_item.image_asset}
+      {#if review_image_item.image_asset}
         <img
-          src={review_item.image_asset.url}
-          alt={review_item.metadata.image_prompt}
+          src={review_image_item.image_asset.url}
+          alt={review_image_item.metadata.image_prompt}
           class="mx-auto max-h-[50vh] rounded-md border object-contain"
         />
       {/if}
-      <p class="text-sm text-muted-foreground">{review_item.metadata.image_prompt}</p>
+      <p class="text-sm text-muted-foreground">{review_image_item.metadata.image_prompt}</p>
       <Dialog.Footer class="gap-2">
         <Button
           variant="destructive"
           onclick={() => {
-            discard_item = review_item;
+            discard_image_item = review_image_item;
           }}
-          disabled={approve_mut.isPending || discard_mut.isPending}
+          disabled={approve_image_mut.isPending || discard_image_mut.isPending}
         >
           Discard
         </Button>
         <Button
-          onclick={() => review_item && approve_mut.mutate(review_item)}
-          disabled={approve_mut.isPending || !review_item.image_asset}
+          onclick={() => review_image_item && approve_image_mut.mutate(review_image_item)}
+          disabled={approve_image_mut.isPending || !review_image_item.image_asset}
         >
-          {approve_mut.isPending ? 'Saving…' : 'Save'}
+          {approve_image_mut.isPending ? 'Saving…' : 'Save'}
+        </Button>
+      </Dialog.Footer>
+    {/if}
+  </Dialog.Content>
+</Dialog.Root>
+
+<Dialog.Root
+  open={!!review_translation_item}
+  onOpenChange={(v) => {
+    if (!v) review_translation_item = null;
+  }}
+>
+  <Dialog.Content class="flex max-h-[90vh] max-w-3xl flex-col gap-4">
+    {#if review_translation_item}
+      <Dialog.Header>
+        <Dialog.Title>Review generated translations</Dialog.Title>
+        <Dialog.Description>
+          {review_translation_item.project_name} · {review_translation_item.lang_name} · {review_translation_item.path}
+        </Dialog.Description>
+      </Dialog.Header>
+      <ScrollArea class="h-[min(60vh,32rem)] rounded-md border p-3">
+        <div class="flex flex-col gap-4">
+          {#each review_translation_item.source_texts as source (source.index)}
+            <div class="space-y-1.5 rounded-md border border-border/70 p-3">
+              <p class="text-xs font-medium text-muted-foreground">
+                Index {source.index}{source.shloka_num != null
+                  ? ` · Shloka ${source.shloka_num}`
+                  : ''}
+              </p>
+              <p class="text-sm leading-relaxed whitespace-pre-wrap">{source.text}</p>
+              <p class="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                {translated_by_index.get(source.index) ?? '—'}
+              </p>
+            </div>
+          {/each}
+        </div>
+      </ScrollArea>
+      <Dialog.Footer class="gap-2">
+        <Button
+          variant="destructive"
+          onclick={() => {
+            discard_translation_item = review_translation_item;
+          }}
+          disabled={approve_translation_mut.isPending || discard_translation_mut.isPending}
+        >
+          Discard
+        </Button>
+        <Button
+          onclick={() =>
+            review_translation_item && approve_translation_mut.mutate(review_translation_item)}
+          disabled={approve_translation_mut.isPending ||
+            !review_translation_item.translated_data?.length}
+        >
+          {approve_translation_mut.isPending ? 'Saving…' : 'Save'}
         </Button>
       </Dialog.Footer>
     {/if}
@@ -337,9 +644,9 @@
 </Dialog.Root>
 
 <AlertDialog.Root
-  open={!!discard_item}
+  open={!!discard_image_item}
   onOpenChange={(v) => {
-    if (!v) discard_item = null;
+    if (!v) discard_image_item = null;
   }}
 >
   <AlertDialog.Content>
@@ -350,12 +657,38 @@
       </AlertDialog.Description>
     </AlertDialog.Header>
     <AlertDialog.Footer>
-      <AlertDialog.Cancel disabled={discard_mut.isPending}>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Cancel disabled={discard_image_mut.isPending}>Cancel</AlertDialog.Cancel>
       <AlertDialog.Action
-        disabled={discard_mut.isPending || !discard_item}
-        onclick={() => discard_item && discard_mut.mutate(discard_item)}
+        disabled={discard_image_mut.isPending || !discard_image_item}
+        onclick={() => discard_image_item && discard_image_mut.mutate(discard_image_item)}
       >
-        {discard_mut.isPending ? 'Discarding…' : 'Discard'}
+        {discard_image_mut.isPending ? 'Discarding…' : 'Discard'}
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root
+  open={!!discard_translation_item}
+  onOpenChange={(v) => {
+    if (!v) discard_translation_item = null;
+  }}
+>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Discard translation batch item?</AlertDialog.Title>
+      <AlertDialog.Description>
+        This removes the staged translations without writing them to the project.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel disabled={discard_translation_mut.isPending}>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Action
+        disabled={discard_translation_mut.isPending || !discard_translation_item}
+        onclick={() =>
+          discard_translation_item && discard_translation_mut.mutate(discard_translation_item)}
+      >
+        {discard_translation_mut.isPending ? 'Discarding…' : 'Discard'}
       </AlertDialog.Action>
     </AlertDialog.Footer>
   </AlertDialog.Content>

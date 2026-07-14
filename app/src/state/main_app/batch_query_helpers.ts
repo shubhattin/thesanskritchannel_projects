@@ -21,8 +21,15 @@ export const invalidate_batch_ai_queries = async (opts?: {
   await Promise.all([
     queryClient.invalidateQueries(trpc.batch_ai.get_batch_manager_groups.queryFilter()),
     queryClient.invalidateQueries(trpc.batch_ai.get_shloka_image_batch_status.queryFilter()),
+    queryClient.invalidateQueries(trpc.batch_ai.get_text_translation_batch_status.queryFilter()),
+    queryClient.invalidateQueries(
+      trpc.batch_ai.get_text_translation_batch_manager_groups.queryFilter()
+    ),
     queryClient.invalidateQueries({
       predicate: (query) => query.queryKey[0] === 'batch_manager_groups'
+    }),
+    queryClient.invalidateQueries({
+      predicate: (query) => query.queryKey[0] === 'translation_batch_manager_groups'
     }),
     queryClient.invalidateQueries({
       predicate: (query) => {
@@ -31,8 +38,36 @@ export const invalidate_batch_ai_queries = async (opts?: {
         if (opts?.index !== undefined && query.queryKey[3] !== opts.index) return false;
         return true;
       }
+    }),
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        if (query.queryKey[0] !== 'translation_batch_status') return false;
+        if (opts?.project_id !== undefined && query.queryKey[1] !== opts.project_id) return false;
+        return true;
+      }
+    }),
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        if (query.queryKey[0] !== 'translation_batch_status_banner') return false;
+        if (opts?.project_id !== undefined && query.queryKey[1] !== opts.project_id) return false;
+        return true;
+      }
     })
   ]);
+};
+
+export const invalidate_translation_content_queries = async (opts?: {
+  project_id?: number;
+  lang_id?: number;
+}) => {
+  await queryClient.invalidateQueries({
+    predicate: (query) => {
+      if (query.queryKey[0] !== 'trans') return false;
+      if (opts?.project_id !== undefined && query.queryKey[1] !== opts.project_id) return false;
+      if (opts?.lang_id !== undefined && query.queryKey[2] !== opts.lang_id) return false;
+      return true;
+    }
+  });
 };
 
 export const text_images_query_key = (

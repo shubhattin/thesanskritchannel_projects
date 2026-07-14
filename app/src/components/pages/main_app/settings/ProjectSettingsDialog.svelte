@@ -31,7 +31,7 @@
 
   const on_slug_changed = (newKey: string) => {
     open = false;
-    goto(resolve(`/${newKey}`));
+    goto(`/${newKey}`);
   };
 
   const on_project_saved = () => {

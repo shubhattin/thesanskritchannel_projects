@@ -21,7 +21,7 @@ export const IMAGE_BATCH_STATUS_VARIANTS: Record<
 
 export function deriveImageBatchUiStatus(
   output_resolved: boolean,
-  metadata: BatchMetadata,
+  metadata: Extract<BatchMetadata, { type: 'shloka-image' }>,
   auto_approved: boolean
 ): ImageBatchUiStatus {
   if (!output_resolved) {

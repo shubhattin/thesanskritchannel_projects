@@ -6,13 +6,13 @@
   import { BASE_SCRIPT, selected_text_levels, viewing_script } from '~/state/main_app/state.svelte';
   import { transliterate_custom } from '~/tools/converter';
   import { get_text_font_class } from '~/tools/font_tools';
-  import type { script_list_type } from '~/state/lang_list';
   import Icon from '~/tools/Icon.svelte';
   import { AiOutlineStop } from 'svelte-icons-pack/ai';
   import { BiEdit } from 'svelte-icons-pack/bi';
   import { ArrowLeftRight } from '@lucide/svelte';
   import Loader2 from '@lucide/svelte/icons/loader-2';
   import type { MapMetadataTypeConvertTarget } from './map_metadata_patch';
+  import BatchGroupTranslate from './display/ai_translate/BatchGroupTranslate.svelte';
 
   export type selector_option_type = { text?: string; value?: number; empty_child?: boolean };
 
@@ -26,6 +26,7 @@
     metadata_save_pending = false,
     show_name_dev_edit = false,
     type_convert_target = null,
+    show_batch_translate = false,
     on_edit_list_name,
     on_edit_name_dev,
     on_convert_type
@@ -39,6 +40,8 @@
     metadata_save_pending?: boolean;
     show_name_dev_edit?: boolean;
     type_convert_target?: MapMetadataTypeConvertTarget | null;
+    /** Admin + translation mode + second-to-last selector only */
+    show_batch_translate?: boolean;
     on_edit_list_name?: () => void;
     on_edit_name_dev?: () => void;
     on_convert_type?: () => void;
@@ -159,6 +162,11 @@
       {/if}
     </Select.Content>
   </Select.Root>
+  {#if show_batch_translate}
+    <span class="inline-flex align-middle">
+      <BatchGroupTranslate level_name={name} />
+    </span>
+  {/if}
   {#if is_admin && show_name_dev_edit}
     <Button
       type="button"

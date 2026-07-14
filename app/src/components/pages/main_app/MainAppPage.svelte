@@ -83,6 +83,7 @@
   } from './map_metadata_save';
   import Label from '~/lib/components/ui/label/label.svelte';
   import AITranslate from './display/ai_translate/AITranslate.svelte';
+  import TranslationBatchStatusBanner from './display/ai_translate/TranslationBatchStatusBanner.svelte';
   import EditOptionsPopover from './display/EditOptionsPopover.svelte';
   import { ArrowLeftRight } from '@lucide/svelte';
   import Loader2 from '@lucide/svelte/icons/loader-2';
@@ -471,6 +472,10 @@
       metadata_save_pending={map_metadata_save_mut.isPending}
       show_name_dev_edit={!!name_dev_path && name_dev_path.length > 0}
       type_convert_target={selector_type_convert_target}
+      show_batch_translate={is_admin &&
+        is_editing_translation($editing_mode) &&
+        i === levels - 2 &&
+        !!$selected_text_levels[text_level_state_index]}
       on_edit_list_name={() => {
         if (!map_root || !list_name_node || list_name_node.info.type !== 'list') return;
         open_list_name_edit(map_root, list_name_path, list_name_node.info.list_name);
@@ -595,111 +600,116 @@
       {/if}
     </div>
     {#if !($ai_tool_opened && is_admin)}
-      <div class="flex flex-wrap items-end gap-x-4 gap-y-1">
-        <div class="grid max-w-md grid-cols-2 gap-x-4 gap-y-0.5">
-          {#each [0, 1] as slot (slot)}
-            <div class="text-xs text-muted-foreground">
-              <span>Lang {slot + 1}</span>
-            </div>
-          {/each}
-          {#each [0, 1] as slot (slot)}
-            {@const slot_lang_id = $selected_translation_lang_ids[slot]}
-            {@const other_lang_id = $selected_translation_lang_ids[slot === 0 ? 1 : 0]}
-            {@const { available, unavailable } = get_grouped_lang_options(
-              other_lang_id,
-              langs_with_translations_q.data
-            )}
-            <Select.Root
-              type="single"
-              value={slot_lang_id === null ? 'none' : slot_lang_id.toString()}
-              onValueChange={(v) => {
-                set_translation_slot_lang(slot as 0 | 1, v === 'none' ? null : Number(v));
-              }}
-              disabled={is_editing_translation_slot($editing_mode, slot as 0 | 1)}
-            >
-              <Select.Trigger class="inline-flex h-7 w-full max-w-34 px-2 text-xs">
-                {slot_lang_id === null ? 'None' : LANG_LIST[LANG_LIST_IDS.indexOf(slot_lang_id)]}
-              </Select.Trigger>
-              <Select.Content>
-                <Select.Item value="none">None</Select.Item>
-                {#if available.length > 0}
-                  <Select.Group>
-                    {#if unavailable.length > 0}
-                      <Select.Label>Has translation</Select.Label>
-                    {/if}
-                    {#each available as { lang, id } (id)}
-                      <Select.Item value={id.toString()}>{lang}</Select.Item>
-                    {/each}
-                  </Select.Group>
+      <div class="space-y-1.5">
+        <div class="flex flex-wrap items-end gap-x-4 gap-y-1">
+          <div class="grid max-w-md grid-cols-2 gap-x-4 gap-y-0.5">
+            {#each [0, 1] as slot (slot)}
+              <div class="text-xs text-muted-foreground">
+                <span>Lang {slot + 1}</span>
+              </div>
+            {/each}
+            {#each [0, 1] as slot (slot)}
+              {@const slot_lang_id = $selected_translation_lang_ids[slot]}
+              {@const other_lang_id = $selected_translation_lang_ids[slot === 0 ? 1 : 0]}
+              {@const { available, unavailable } = get_grouped_lang_options(
+                other_lang_id,
+                langs_with_translations_q.data
+              )}
+              <Select.Root
+                type="single"
+                value={slot_lang_id === null ? 'none' : slot_lang_id.toString()}
+                onValueChange={(v) => {
+                  set_translation_slot_lang(slot as 0 | 1, v === 'none' ? null : Number(v));
+                }}
+                disabled={is_editing_translation_slot($editing_mode, slot as 0 | 1)}
+              >
+                <Select.Trigger class="inline-flex h-7 w-full max-w-34 px-2 text-xs">
+                  {slot_lang_id === null ? 'None' : LANG_LIST[LANG_LIST_IDS.indexOf(slot_lang_id)]}
+                </Select.Trigger>
+                <Select.Content>
+                  <Select.Item value="none">None</Select.Item>
+                  {#if available.length > 0}
+                    <Select.Group>
+                      {#if unavailable.length > 0}
+                        <Select.Label>Has translation</Select.Label>
+                      {/if}
+                      {#each available as { lang, id } (id)}
+                        <Select.Item value={id.toString()}>{lang}</Select.Item>
+                      {/each}
+                    </Select.Group>
+                  {/if}
+                  {#if unavailable.length > 0}
+                    <Select.Group>
+                      <Select.Label>Translation not available</Select.Label>
+                      {#each unavailable as { lang, id } (id)}
+                        <Select.Item value={id.toString()}>{lang}</Select.Item>
+                      {/each}
+                    </Select.Group>
+                  {/if}
+                </Select.Content>
+              </Select.Root>
+            {/each}
+          </div>
+          {#if $editing_mode !== 'none'}
+            {@const show_text_checkbox = !is_editing_text($editing_mode)}
+            {@const show_lang_1_checkbox =
+              !is_editing_translation_slot($editing_mode, 0) &&
+              $selected_translation_lang_ids[0] !== null}
+            {@const show_lang_2_checkbox =
+              !is_editing_translation_slot($editing_mode, 1) &&
+              $selected_translation_lang_ids[1] !== null}
+            {@const has_any_show_checkbox =
+              show_text_checkbox || show_lang_1_checkbox || show_lang_2_checkbox}
+            {#if has_any_show_checkbox || is_editing_translation($editing_mode)}
+              <div
+                class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-0.5 text-xs text-muted-foreground"
+              >
+                {#if has_any_show_checkbox}
+                  <span class="font-medium">Show</span>
+                  {#if show_text_checkbox}
+                    <label class="inline-flex cursor-pointer items-center gap-1.5">
+                      <Checkbox
+                        checked={$edit_context_visible.text}
+                        onCheckedChange={(checked) =>
+                          set_edit_context_visible('text', checked === true)}
+                      />
+                      Text
+                    </label>
+                  {/if}
+                  {#if show_lang_1_checkbox}
+                    <label
+                      class="inline-flex cursor-pointer items-center gap-1.5 text-stone-500 dark:text-slate-400"
+                    >
+                      <Checkbox
+                        checked={$edit_context_visible.lang_1}
+                        onCheckedChange={(checked) =>
+                          set_edit_context_visible('lang_1', checked === true)}
+                      />
+                      {get_translation_slot_label(0, $selected_translation_lang_ids)}
+                    </label>
+                  {/if}
+                  {#if show_lang_2_checkbox}
+                    <label
+                      class="inline-flex cursor-pointer items-center gap-1.5 text-yellow-700 dark:text-yellow-500"
+                    >
+                      <Checkbox
+                        checked={$edit_context_visible.lang_2}
+                        onCheckedChange={(checked) =>
+                          set_edit_context_visible('lang_2', checked === true)}
+                      />
+                      {get_translation_slot_label(1, $selected_translation_lang_ids)}
+                    </label>
+                  {/if}
                 {/if}
-                {#if unavailable.length > 0}
-                  <Select.Group>
-                    <Select.Label>Translation not available</Select.Label>
-                    {#each unavailable as { lang, id } (id)}
-                      <Select.Item value={id.toString()}>{lang}</Select.Item>
-                    {/each}
-                  </Select.Group>
+                {#if is_editing_translation($editing_mode)}
+                  <AITranslate />
                 {/if}
-              </Select.Content>
-            </Select.Root>
-          {/each}
-        </div>
-        {#if $editing_mode !== 'none'}
-          {@const show_text_checkbox = !is_editing_text($editing_mode)}
-          {@const show_lang_1_checkbox =
-            !is_editing_translation_slot($editing_mode, 0) &&
-            $selected_translation_lang_ids[0] !== null}
-          {@const show_lang_2_checkbox =
-            !is_editing_translation_slot($editing_mode, 1) &&
-            $selected_translation_lang_ids[1] !== null}
-          {@const has_any_show_checkbox =
-            show_text_checkbox || show_lang_1_checkbox || show_lang_2_checkbox}
-          {#if has_any_show_checkbox || is_editing_translation($editing_mode)}
-            <div
-              class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-0.5 text-xs text-muted-foreground"
-            >
-              {#if has_any_show_checkbox}
-                <span class="font-medium">Show</span>
-                {#if show_text_checkbox}
-                  <label class="inline-flex cursor-pointer items-center gap-1.5">
-                    <Checkbox
-                      checked={$edit_context_visible.text}
-                      onCheckedChange={(checked) =>
-                        set_edit_context_visible('text', checked === true)}
-                    />
-                    Text
-                  </label>
-                {/if}
-                {#if show_lang_1_checkbox}
-                  <label
-                    class="inline-flex cursor-pointer items-center gap-1.5 text-stone-500 dark:text-slate-400"
-                  >
-                    <Checkbox
-                      checked={$edit_context_visible.lang_1}
-                      onCheckedChange={(checked) =>
-                        set_edit_context_visible('lang_1', checked === true)}
-                    />
-                    {get_translation_slot_label(0, $selected_translation_lang_ids)}
-                  </label>
-                {/if}
-                {#if show_lang_2_checkbox}
-                  <label
-                    class="inline-flex cursor-pointer items-center gap-1.5 text-yellow-700 dark:text-yellow-500"
-                  >
-                    <Checkbox
-                      checked={$edit_context_visible.lang_2}
-                      onCheckedChange={(checked) =>
-                        set_edit_context_visible('lang_2', checked === true)}
-                    />
-                    {get_translation_slot_label(1, $selected_translation_lang_ids)}
-                  </label>
-                {/if}
-              {/if}
-              {#if is_editing_translation($editing_mode)}
-                <AITranslate />
-              {/if}
-            </div>
+              </div>
+            {/if}
           {/if}
+        </div>
+        {#if is_admin && $text_data_present}
+          <TranslationBatchStatusBanner />
         {/if}
       </div>
     {/if}

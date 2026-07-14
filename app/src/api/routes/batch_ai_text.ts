@@ -13,7 +13,7 @@ import {
 } from '~/db/schema';
 import { createAiBatch, getAiBatchResult, type AiBatchInput } from '~/utils/ai_batch';
 import type { AiBatchPollingStatus } from '~/utils/ai_batch/types';
-import { getTextTranslationBatchCustomId } from '~/utils/ai_batch/text-translation';
+import { getTextTranslationBatchCustomId } from '~/utils/ai_batch/batch_custom_id';
 import {
   deriveTranslationBatchUiStatus,
   type TranslationBatchUiStatus
@@ -513,7 +513,7 @@ const trigger_batch_text_translation_route = protectedAdminProcedure
           project_path_id: ctx.projectPath.id,
           source_indexes: ctx.source_indexes,
           prompts: ctx.prompts,
-          custom_id: getTextTranslationBatchCustomId(project_id, path.path_params, lang_id)
+          custom_id: getTextTranslationBatchCustomId(project_id, path.path_params)
         };
       })
     );

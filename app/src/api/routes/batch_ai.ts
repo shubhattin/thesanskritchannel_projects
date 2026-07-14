@@ -13,7 +13,7 @@ import {
 } from '~/db/schema';
 import { createAiBatch, getAiBatchResult, type AiBatchInput } from '~/utils/ai_batch';
 import type { AiBatchPollingStatus } from '~/utils/ai_batch/types';
-import { getShlokaImageBatchCustomId } from '~/utils/ai_batch/shloka-image';
+import { getShlokaImageBatchCustomId } from '~/utils/ai_batch/batch_custom_id';
 import { deriveImageBatchUiStatus } from '~/utils/ai_batch/batch_image_status';
 import {
   getOpenAI,

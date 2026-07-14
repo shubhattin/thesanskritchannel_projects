@@ -8,7 +8,7 @@ import {
 import {
   getTextTranslationBatchCustomId,
   parseTextTranslationBatchCustomId
-} from '~/utils/ai_batch/text-translation';
+} from '~/utils/ai_batch/batch_custom_id';
 import { deriveTranslationBatchUiStatus } from '~/utils/ai_batch/batch_translation_status';
 
 describe('mapPositionalTranslationsToDbIndexes', () => {
@@ -59,7 +59,7 @@ describe('batch translation object schema + serialization', () => {
   test('toAiBatchLine builds json_schema for object type', () => {
     const line = toAiBatchLine({
       type: 'object',
-      custom_id: 'text-translation:1-2/3-1-Ab12',
+      custom_id: 'text-translation:1-2/3-Ab12',
       model: 'gpt-5.2',
       instructions: 'system',
       input: 'user prompt',
@@ -81,13 +81,22 @@ describe('batch translation object schema + serialization', () => {
 });
 
 describe('text translation custom id', () => {
-  test('round-trips path and lang', () => {
-    const custom_id = getTextTranslationBatchCustomId(7, [2, 5], 3);
+  test('round-trips multi-segment path', () => {
+    const custom_id = getTextTranslationBatchCustomId(7, [2, 5]);
+    expect(custom_id).toMatch(/^text-translation:7-2\/5-[A-Za-z0-9]{4}$/);
     const parsed = parseTextTranslationBatchCustomId(custom_id);
     expect(parsed).not.toBeNull();
     expect(parsed!.project_id).toBe(7);
     expect(parsed!.path_params).toEqual([2, 5]);
-    expect(parsed!.lang_id).toBe(3);
+    expect(parsed!.suffix).toHaveLength(4);
+  });
+
+  test('round-trips single-segment path', () => {
+    const custom_id = getTextTranslationBatchCustomId(3, [6]);
+    expect(custom_id).toMatch(/^text-translation:3-6-[A-Za-z0-9]{4}$/);
+    const parsed = parseTextTranslationBatchCustomId(custom_id);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.path_params).toEqual([6]);
   });
 });
 

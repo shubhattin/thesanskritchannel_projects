@@ -45,8 +45,18 @@ export async function persist_translations_for_path(args: {
   path_params: number[];
   indexes: number[];
   data: (string | null)[];
+  /** When true, caller must invalidate caches (e.g. batched auto-approve). */
+  skip_cache_invalidation?: boolean;
 }) {
-  const { project_id, lang_id, project_path_id, path_params, indexes, data } = args;
+  const {
+    project_id,
+    lang_id,
+    project_path_id,
+    path_params,
+    indexes,
+    data,
+    skip_cache_invalidation = false
+  } = args;
   if (indexes.length !== data.length) {
     throw new TRPCError({
       code: 'BAD_REQUEST',
@@ -56,7 +66,8 @@ export async function persist_translations_for_path(args: {
   if (new Set(indexes).size !== indexes.length) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'indexes must be unique' });
   }
-  if (indexes.length === 0) return { success: true as const };
+  if (indexes.length === 0)
+    return { success: true as const, selected_text_levels: [] as (number | null)[] };
 
   const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
   const selected_text_levels = path_params_to_selected_text_levels(path_params, levels);
@@ -128,34 +139,38 @@ export async function persist_translations_for_path(args: {
         }))
       );
     }
-    for (const [index, dataIndex] of update_entries) {
-      await tx
-        .update(translations)
-        .set({ text: data[dataIndex] ?? '' })
-        .where(
-          and(
-            eq(translations.project_path_id, project_path_id),
-            eq(translations.lang_id, lang_id),
-            eq(translations.index, index)
-          )
-        );
+    if (update_entries.length > 0) {
+      // Single statement — do not Promise.all on the same tx connection (neon/postgres-js).
+      const value_rows = update_entries.map(
+        ([index, dataIndex]) => sql`(${index}::int, ${data[dataIndex] ?? ''}::text)`
+      );
+      await tx.execute(sql`
+        UPDATE ${translations} AS t
+        SET text = v.text
+        FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(index, text)
+        WHERE t.project_path_id = ${project_path_id}
+          AND t.lang_id = ${lang_id}
+          AND t.index = v.index
+      `);
     }
   });
 
-  await Promise.all([
-    invalidate_and_refresh_cached(
-      CACHE.translation,
-      { project_id, lang_id, selected_text_levels },
-      cache_db_options_app
-    ),
-    invalidate_and_refresh_cached(
-      CACHE.available_translation_langs,
-      { project_id, path_params },
-      cache_db_options_app
-    )
-  ]);
+  if (!skip_cache_invalidation) {
+    await Promise.all([
+      invalidate_and_refresh_cached(
+        CACHE.translation,
+        { project_id, lang_id, selected_text_levels },
+        cache_db_options_app
+      ),
+      invalidate_and_refresh_cached(
+        CACHE.available_translation_langs,
+        { project_id, path_params },
+        cache_db_options_app
+      )
+    ]);
+  }
 
-  return { success: true as const };
+  return { success: true as const, selected_text_levels };
 }
 
 const get_translation_route = publicProcedure

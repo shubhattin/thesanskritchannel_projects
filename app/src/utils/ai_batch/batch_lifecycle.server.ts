@@ -15,6 +15,27 @@ const POLL_CLAIM_STALE_MS = ms('12mins');
 
 export const responseItemUnprocessed = sql`${ai_batch_responses.metadata}->>'success' IS NULL`;
 
+/** Bounded parallelism — avoids Neon/Upstash stampedes on large batches. */
+export async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const results = new Array<R>(items.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+      while (true) {
+        const i = next++;
+        if (i >= items.length) return;
+        results[i] = await mapper(items[i]!, i);
+      }
+    })
+  );
+  return results;
+}
+
 /** Delete OpenAI Files API objects (batch input/output). Ignores already-deleted files. */
 export async function deleteOpenAiFiles(file_ids: (string | null | undefined)[]) {
   const unique_ids = [...new Set(file_ids.filter((id): id is string => !!id))];

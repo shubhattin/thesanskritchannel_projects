@@ -412,13 +412,16 @@ export async function getAiBatchResult(
   }
 
   const expectations = createExpectationMap(options);
-  const responses = batch.output_file_id
-    ? parseOutputFile(await (await openai.files.content(batch.output_file_id)).text(), expectations)
-    : [];
+  const [output_text, error_text] = await Promise.all([
+    batch.output_file_id
+      ? (await openai.files.content(batch.output_file_id)).text()
+      : Promise.resolve(''),
+    batch.error_file_id
+      ? (await openai.files.content(batch.error_file_id)).text()
+      : Promise.resolve('')
+  ]);
 
-  const error_text = batch.error_file_id
-    ? await (await openai.files.content(batch.error_file_id)).text()
-    : '';
+  const responses = batch.output_file_id ? parseOutputFile(output_text, expectations) : [];
 
   if (error_text && expectations.size === 0) {
     throw new Error(formatBatchErrorFileMessage(batch.id, error_text));

@@ -25,6 +25,7 @@ import {
 import {
   getOpenAI,
   isResponseItemProcessed,
+  mapWithConcurrency,
   markBatchOutputResolvedIfComplete,
   scheduleOpenAiBatchCleanup,
   tryClaimBatchRow,
@@ -50,11 +51,14 @@ import {
   persist_translations_for_path
 } from '~/api/routes/translation';
 import { lang_list_obj, get_lang_from_id } from '~/state/lang_list';
-import { CACHE } from '~/utils/cache.server/cached_loader.server';
+import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
 import type { recursive_list_type } from '~/state/data_types';
 
 /** Soft char budget for one leaf request (gpt-5.2 ~400K tokens; leave headroom). */
 const MAX_TRANSLATION_PROMPT_CHARS = 280_000;
+
+/** Cap concurrent claim/save work so large batches don't stampede Neon. */
+const BATCH_ITEM_CONCURRENCY = 8;
 
 const TERMINAL_FAILURE_STATUSES: ReadonlySet<AiBatchPollingStatus> = new Set([
   'failed',
@@ -203,7 +207,11 @@ async function assertNoUnresolvedTranslationDuplicates(
 }
 
 /** Connect staged translations into the translations table and remove the batch response row. */
-export const approve_text_translation_func = async (batch_id: string, custom_id: string) => {
+export const approve_text_translation_func = async (
+  batch_id: string,
+  custom_id: string,
+  options?: { skip_cache_invalidation?: boolean; skip_cleanup?: boolean }
+) => {
   const result = await db.transaction(async (tx) => {
     const rows = await tx
       .select()
@@ -228,13 +236,14 @@ export const approve_text_translation_func = async (batch_id: string, custom_id:
       });
     }
 
-    await persist_translations_for_path({
+    const persist_result = await persist_translations_for_path({
       project_id: metadata.project_id,
       lang_id: metadata.lang_id,
       project_path_id: metadata.project_path_id,
       path_params: metadata.path_params,
       indexes: metadata.translated_data.map((row) => row.index),
-      data: metadata.translated_data.map((row) => row.text)
+      data: metadata.translated_data.map((row) => row.text),
+      skip_cache_invalidation: options?.skip_cache_invalidation
     });
 
     await tx
@@ -247,11 +256,14 @@ export const approve_text_translation_func = async (batch_id: string, custom_id:
       success: true as const,
       project_path_id: metadata.project_path_id,
       lang_id: metadata.lang_id,
-      item_count: metadata.translated_data.length
+      item_count: metadata.translated_data.length,
+      project_id: metadata.project_id,
+      path_params: metadata.path_params,
+      selected_text_levels: persist_result.selected_text_levels
     };
   });
 
-  scheduleOpenAiBatchCleanup(batch_id);
+  if (!options?.skip_cleanup) scheduleOpenAiBatchCleanup(batch_id);
   return result;
 };
 
@@ -264,22 +276,74 @@ async function autoApproveEligibleRows(batch_id: string, items: PollItem[]): Pro
     rows.filter((row) => row.auto_approved).map((row) => row.custom_id)
   );
 
-  return Promise.all(
-    items.map(async (item) => {
-      if (!item.success || !auto_approved_custom_ids.has(item.custom_id)) return item;
-      try {
-        const result = await approve_text_translation_func(batch_id, item.custom_id);
-        return {
-          ...item,
-          message: `Auto-saved ${result.item_count} translation(s) to path ${result.project_path_id} lang ${result.lang_id}`
-        };
-      } catch (err) {
-        const message =
-          err instanceof TRPCError ? err.message : 'Auto-approve failed to save translations';
-        return { ...item, message };
-      }
-    })
-  );
+  const cache_targets: {
+    project_id: number;
+    lang_id: number;
+    path_params: number[];
+    selected_text_levels: (number | null)[];
+  }[] = [];
+
+  const resolved = await mapWithConcurrency(items, BATCH_ITEM_CONCURRENCY, async (item) => {
+    if (!item.success || !auto_approved_custom_ids.has(item.custom_id)) return item;
+    try {
+      const result = await approve_text_translation_func(batch_id, item.custom_id, {
+        skip_cache_invalidation: true,
+        skip_cleanup: true
+      });
+      cache_targets.push({
+        project_id: result.project_id,
+        lang_id: result.lang_id,
+        path_params: result.path_params,
+        selected_text_levels: result.selected_text_levels
+      });
+      return {
+        ...item,
+        message: `Auto-saved ${result.item_count} translation(s) to path ${result.project_path_id} lang ${result.lang_id}`
+      };
+    } catch (err) {
+      const message =
+        err instanceof TRPCError ? err.message : 'Auto-approve failed to save translations';
+      return { ...item, message };
+    }
+  });
+
+  // One cache pass per unique path/lang instead of per-item roundtrips.
+  const unique_targets = [
+    ...new Map(
+      cache_targets.map((target) => [
+        `${target.project_id}:${target.lang_id}:${target.path_params.join(':')}`,
+        target
+      ])
+    ).values()
+  ];
+  // Cleanup must run even if cache invalidation fails — staging rows are already deleted.
+  if (cache_targets.length > 0) scheduleOpenAiBatchCleanup(batch_id);
+  try {
+    await Promise.all(
+      unique_targets.map((target) =>
+        Promise.all([
+          invalidate_and_refresh_cached(
+            CACHE.translation,
+            {
+              project_id: target.project_id,
+              lang_id: target.lang_id,
+              selected_text_levels: target.selected_text_levels
+            },
+            cache_db_options_app
+          ),
+          invalidate_and_refresh_cached(
+            CACHE.available_translation_langs,
+            { project_id: target.project_id, path_params: target.path_params },
+            cache_db_options_app
+          )
+        ])
+      )
+    );
+  } catch (err) {
+    console.error(`Batch ${batch_id} auto-approve cache invalidation failed:`, err);
+  }
+
+  return resolved;
 }
 
 export const poll_batch_text_translation_func = async (
@@ -370,8 +434,10 @@ export const poll_batch_text_translation_func = async (
   );
 
   const items = (
-    await Promise.all(
-      db_rows.map(async (row): Promise<PollItem | null> => {
+    await mapWithConcurrency(
+      db_rows,
+      BATCH_ITEM_CONCURRENCY,
+      async (row): Promise<PollItem | null> => {
         const row_metadata = text_translation_batch_metadata_schema.parse(row.metadata);
         if (isResponseItemProcessed(row_metadata)) {
           return toPollItem(row.custom_id, row_metadata);
@@ -450,7 +516,7 @@ export const poll_batch_text_translation_func = async (
           custom_id: row.custom_id,
           success: true
         };
-      })
+      }
     )
   ).filter((item): item is PollItem => item !== null);
 

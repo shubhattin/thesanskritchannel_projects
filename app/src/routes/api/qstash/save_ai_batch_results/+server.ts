@@ -14,7 +14,7 @@ import { env } from '$env/dynamic/private';
 export const config: Config = {
   split: true,
   /** Large translation batches need headroom for claim + auto-save. */
-  maxDuration: 1500
+  maxDuration: 700
 };
 
 const receiver = new Receiver({

@@ -13,7 +13,7 @@
     editing_mode,
     text_data_present
   } from '~/state/main_app/state.svelte';
-  import { TEXT_MODEL_LIST_INFO } from '~/api/routes/ai/ai_types';
+  import { DEFAULT_TEXT_AI_MODEL, TEXT_MODEL_LIST_INFO } from '~/api/routes/ai/ai_types';
   import Icon from '~/tools/Icon.svelte';
   import { TiArrowBackOutline, TiArrowForwardOutline } from 'svelte-icons-pack/ti';
   import { writable } from 'svelte/store';
@@ -73,7 +73,7 @@
       : 0
   );
 
-  let selected_text_model: keyof typeof TEXT_MODEL_LIST_INFO = $state('gpt-5.2');
+  let selected_text_model: keyof typeof TEXT_MODEL_LIST_INFO = $state(DEFAULT_TEXT_AI_MODEL);
   let view_images_open = $state(false);
   let download_images_zip_open = $state(false);
 
@@ -431,6 +431,7 @@
   current_index={$index}
   current_image_prompt={$image_prompt}
   {image_model}
+  text_model={selected_text_model}
   on_download_images_zip={() => (download_images_zip_open = true)}
 />
 

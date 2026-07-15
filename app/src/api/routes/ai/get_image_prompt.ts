@@ -1,7 +1,7 @@
 import { protectedAdminProcedure } from '~/api/trpc_init';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
-import { text_models_enum, type ai_text_models_type } from './ai_types';
+import { DEFAULT_TEXT_AI_MODEL, text_models_enum } from './ai_types';
 import { format_string_text } from '~/tools/kry';
 import { CACHE } from '~/utils/cache.server/cached_loader.server';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
@@ -20,6 +20,8 @@ Art direction:
 - Warm, rich palette: saffron, ochre, gold, ivory, crimson, deep teal, sunset amber. Favor harmonious warm tones that feel devotional and inviting.
 - Style may blend Indian miniature painting, soft painterly illustration, or clean modern graphic art — polished, reel-worthy, and easy to read at a glance.
 - If the idea is abstract or spiritual, express it symbolically with beauty and clarity rather than literal documentary realism.
+- Never add any text overlay on top of image anywhere.
+- Keep the like age, hairstyle, clothing consitent to what they are known to wear and portray in those contexts.
 
 Scene and context:
 - Root the scene in ancient Bharat and Hindu dharma when the shloka calls for it: appropriate deities, sages, nature, temples, rivers, forests, courts, or battlefields — only what the verse actually needs.
@@ -42,7 +44,7 @@ export const get_image_prompt_input_schema = z.object({
   project_key: z.string(),
   selected_text_levels: z.array(z.int().nullable()),
   index: z.int().min(0),
-  model: text_models_enum
+  model: text_models_enum.default(DEFAULT_TEXT_AI_MODEL)
 });
 
 type GetImagePromptInput = z.infer<typeof get_image_prompt_input_schema>;

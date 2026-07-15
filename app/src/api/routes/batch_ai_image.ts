@@ -43,15 +43,14 @@ import { requireProjectPath } from '~/utils/project/paths_db.server';
 import { available_image_models_schema } from '~/api/routes/ai/ai_types';
 import { get_image_prompt_func } from '~/api/routes/ai/get_image_prompt';
 import { getCDNUrl } from '~/utils/cdn';
-import { text_models_enum } from '~/api/routes/ai/ai_types';
+import { DEFAULT_TEXT_AI_MODEL, text_models_enum } from '~/api/routes/ai/ai_types';
 import {
   trigger_batch_text_translation,
   poll_batch_text_translation,
   approve_text_translation,
   discard_text_translation_batch_response,
   get_text_translation_batch_status,
-  list_batch_translation_targets,
-  get_text_translation_batch_manager_groups
+  list_batch_translation_targets
 } from './batch_ai_text';
 
 let s3Client: ReturnType<typeof createS3Client> | undefined;
@@ -68,7 +67,7 @@ const trigger_batch_input_schema = z.object({
   project_id: z.int(),
   selected_text_levels: z.array(z.int().nullable()),
   image_model: available_image_models_schema.default('gpt-image-2'),
-  text_model: text_models_enum.default('gpt-5.2'),
+  text_model: text_models_enum.default(DEFAULT_TEXT_AI_MODEL),
   project_key: z.string(),
   items: z.array(trigger_item_schema).min(1)
 });
@@ -816,6 +815,5 @@ export const batch_ai_router = t.router({
   approve_text_translation,
   discard_text_translation_batch_response,
   get_text_translation_batch_status,
-  list_batch_translation_targets,
-  get_text_translation_batch_manager_groups
+  list_batch_translation_targets
 });

@@ -11,10 +11,13 @@ export const translation_out_schema = z
   .describe(
     'This object will contain the translated text and the index of the shloka to be generated.'
   );
-const AI_TEXT_MODELS = ['gpt-5.2', 'gpt-5.6-terra'] as const;
+const AI_TEXT_MODELS = ['gpt-5.2', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.6-sol'] as const;
 export type ai_text_models_type = (typeof AI_TEXT_MODELS)[number];
 
 export const text_models_enum = z.enum(AI_TEXT_MODELS);
+
+/** Default balanced model for translation work (client-safe). */
+export const DEFAULT_TEXT_AI_MODEL: ai_text_models_type = 'gpt-5.6-terra';
 
 export const translate_route_schema = {
   input: z.object({
@@ -85,8 +88,16 @@ export type image_output_type = z.infer<typeof persisted_image_schema>;
 /** For frontend info */
 export const TEXT_MODEL_LIST_INFO = {
   'gpt-5.2': ['gpt 5.2', '400K token context window\n$1.75/1M Input tokens & $14/1M Output tokens'],
+  'gpt-5.6-luna': [
+    'gpt 5.6-luna',
+    '1M token context window\n$1.00/1M Input tokens & $6/1M Output tokens'
+  ],
   'gpt-5.6-terra': [
     'gpt 5.6-terra',
-    '1M token context window\n$2.50/1M Input tokens & $151M Output tokens'
+    '1M token context window\n$2.50/1M Input tokens & $15/1M Output tokens'
+  ],
+  'gpt-5.6-sol': [
+    'gpt 5.6-sol',
+    '1M token context window\n$5.00/1M Input tokens & $30/1M Output tokens'
   ]
 } satisfies Record<ai_text_models_type, [string, string]>;

@@ -4,7 +4,7 @@ import type { Config } from '@sveltejs/adapter-vercel';
 import { Receiver } from '@upstash/qstash';
 import { eq } from 'drizzle-orm';
 import { ai_batch_results_publish_schema, publishAiBatchResultsQueue } from '~/utils/qstash';
-import { poll_batch_shloka_image_gen_func } from '~/api/routes/batch_ai';
+import { poll_batch_shloka_image_gen_func } from '~/api/routes/batch_ai_image';
 import { poll_batch_text_translation_func } from '~/api/routes/batch_ai_text';
 import { BATCH_POLLING_INTERVAL_S, MAX_BATCH_POLL_ATTEMPTS } from '~/utils/types/ai_batch_metadata';
 import { db } from '~/db/db';

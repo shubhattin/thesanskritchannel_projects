@@ -28,11 +28,11 @@
   import { OiSync16, OiLinkExternal16 } from 'svelte-icons-pack/oi';
 
   type ImageGroup = Awaited<
-    ReturnType<typeof client.batch_ai.get_batch_manager_groups.query>
+    ReturnType<typeof client.batch_ai_image.get_batch_manager_groups.query>
   >[number];
   type ImageItem = ImageGroup['items'][number];
   type TranslationGroup = Awaited<
-    ReturnType<typeof client.batch_ai.get_text_translation_batch_manager_groups.query>
+    ReturnType<typeof client.batch_ai_text.get_text_translation_batch_manager_groups.query>
   >[number];
   type TranslationItem = TranslationGroup['items'][number];
 
@@ -47,7 +47,7 @@
   const image_groups_q = createQuery(() => ({
     queryKey: ['batch_manager_groups', project_filter],
     queryFn: () =>
-      client.batch_ai.get_batch_manager_groups.query(
+      client.batch_ai_image.get_batch_manager_groups.query(
         project_filter === 'all' ? undefined : { project_id: Number(project_filter) }
       ),
     staleTime: 90_000,
@@ -57,7 +57,7 @@
   const translation_groups_q = createQuery(() => ({
     queryKey: ['translation_batch_manager_groups', project_filter],
     queryFn: () =>
-      client.batch_ai.get_text_translation_batch_manager_groups.query(
+      client.batch_ai_text.get_text_translation_batch_manager_groups.query(
         project_filter === 'all' ? undefined : { project_id: Number(project_filter) }
       ),
     staleTime: 90_000,
@@ -73,7 +73,7 @@
   const poll_image_mut = createMutation(() => ({
     mutationFn: (batch_id: string) => {
       polling_batch_id = batch_id;
-      return client.batch_ai.poll_batch_shloka_image_gen.mutate({ batch_id });
+      return client.batch_ai_image.poll_batch_shloka_image_gen.mutate({ batch_id });
     },
     onSuccess: async (data) => {
       await invalidate_batch_ai_queries();
@@ -93,7 +93,7 @@
   const poll_translation_mut = createMutation(() => ({
     mutationFn: (batch_id: string) => {
       polling_batch_id = batch_id;
-      return client.batch_ai.poll_batch_text_translation.mutate({ batch_id });
+      return client.batch_ai_image.poll_batch_text_translation.mutate({ batch_id });
     },
     onSuccess: async (data) => {
       await invalidate_batch_ai_queries();
@@ -112,7 +112,7 @@
 
   const approve_image_mut = createMutation(() => ({
     mutationFn: (item: ImageItem) =>
-      client.batch_ai.approve_shloka_image.mutate({
+      client.batch_ai_image.approve_shloka_image.mutate({
         batch_id: item.batch_id,
         custom_id: item.custom_id
       }),
@@ -126,7 +126,7 @@
 
   const discard_image_mut = createMutation(() => ({
     mutationFn: (item: ImageItem) =>
-      client.batch_ai.discard_shloka_image_batch_response.mutate({
+      client.batch_ai_image.discard_shloka_image_batch_response.mutate({
         batch_id: item.batch_id,
         custom_id: item.custom_id
       }),
@@ -141,7 +141,7 @@
 
   const approve_translation_mut = createMutation(() => ({
     mutationFn: (item: TranslationItem) =>
-      client.batch_ai.approve_text_translation.mutate({
+      client.batch_ai_image.approve_text_translation.mutate({
         batch_id: item.batch_id,
         custom_id: item.custom_id
       }),
@@ -162,7 +162,7 @@
 
   const discard_translation_mut = createMutation(() => ({
     mutationFn: (item: TranslationItem) =>
-      client.batch_ai.discard_text_translation_batch_response.mutate({
+      client.batch_ai_image.discard_text_translation_batch_response.mutate({
         batch_id: item.batch_id,
         custom_id: item.custom_id
       }),

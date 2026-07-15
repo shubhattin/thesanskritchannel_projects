@@ -15,6 +15,7 @@
     editing_mode,
     get_active_translation_slot,
     project_state,
+    selected_text_ai_model,
     selected_text_levels,
     selected_translation_lang_ids
   } from '~/state/main_app/state.svelte';
@@ -55,7 +56,7 @@
     ],
     queryFn: async () => {
       if (!$project_state || active_lang_id === null) return null;
-      return client.batch_ai.list_batch_translation_targets.query({
+      return client.batch_ai_image.list_batch_translation_targets.query({
         project_id: $project_state.project_id,
         lang_id: active_lang_id,
         selected_text_levels: $selected_text_levels
@@ -83,11 +84,12 @@
 
   const trigger_mut = createMutation(() => ({
     mutationFn: () =>
-      client.batch_ai.trigger_batch_text_translation.mutate({
+      client.batch_ai_image.trigger_batch_text_translation.mutate({
         auto_approved,
         include_english_context: is_non_english && include_english_context,
         project_id: $project_state!.project_id,
         lang_id: active_lang_id!,
+        model: $selected_text_ai_model,
         paths: selected_leaves.map((leaf) => ({ path_params: leaf.path_params }))
       }),
     onSuccess: async (data) => {

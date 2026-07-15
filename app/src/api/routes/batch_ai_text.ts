@@ -54,8 +54,9 @@ import {
 import { lang_list_obj, get_lang_from_id } from '~/state/lang_list';
 import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
 import type { recursive_list_type } from '~/state/data_types';
+import { DEFAULT_TEXT_AI_MODEL, text_models_enum } from '~/api/routes/ai/ai_types';
 
-/** Soft char budget for one leaf request (gpt-5.2 ~400K tokens; leave headroom). */
+/** Soft char budget for one leaf request (leave headroom under model context). */
 const MAX_TRANSLATION_PROMPT_CHARS = 280_000;
 
 /** Cap concurrent claim/save work so large batches don't stampede Neon. */
@@ -534,13 +535,14 @@ const trigger_batch_text_translation_input = z.object({
   include_english_context: z.boolean().default(false),
   project_id: z.int(),
   lang_id: z.int(),
+  model: text_models_enum.default(DEFAULT_TEXT_AI_MODEL),
   paths: z.array(trigger_path_schema).min(1)
 });
 
 const trigger_batch_text_translation_route = protectedAdminProcedure
   .input(trigger_batch_text_translation_input)
   .mutation(async ({ input }) => {
-    const { auto_approved, include_english_context, project_id, lang_id, paths } = input;
+    const { auto_approved, include_english_context, project_id, lang_id, model, paths } = input;
 
     const path_keys = paths.map((p) => p.path_params.join(':'));
     if (new Set(path_keys).size !== path_keys.length) {
@@ -595,7 +597,7 @@ const trigger_batch_text_translation_route = protectedAdminProcedure
     const batch_requests: AiBatchInput[] = resolved.map((item) => ({
       type: 'object' as const,
       custom_id: item.custom_id,
-      model: 'gpt-5.2',
+      model,
       instructions: item.prompts.system_prompt,
       input: item.prompts.user_prompt,
       output_schema: batch_translation_object_schema,
@@ -1064,8 +1066,6 @@ export const discard_text_translation_batch_response =
   discard_text_translation_batch_response_route;
 export const get_text_translation_batch_status = get_text_translation_batch_status_route;
 export const list_batch_translation_targets = list_batch_translation_targets_route;
-export const get_text_translation_batch_manager_groups =
-  get_text_translation_batch_manager_groups_route;
 
 export const batch_ai_text_router = t.router({
   trigger_batch_text_translation: trigger_batch_text_translation_route,

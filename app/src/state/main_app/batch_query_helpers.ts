@@ -19,11 +19,13 @@ export const invalidate_batch_ai_queries = async (opts?: {
   index?: number;
 }) => {
   await Promise.all([
-    queryClient.invalidateQueries(trpc.batch_ai.get_batch_manager_groups.queryFilter()),
-    queryClient.invalidateQueries(trpc.batch_ai.get_shloka_image_batch_status.queryFilter()),
-    queryClient.invalidateQueries(trpc.batch_ai.get_text_translation_batch_status.queryFilter()),
+    queryClient.invalidateQueries(trpc.batch_ai_image.get_batch_manager_groups.queryFilter()),
+    queryClient.invalidateQueries(trpc.batch_ai_image.get_shloka_image_batch_status.queryFilter()),
     queryClient.invalidateQueries(
-      trpc.batch_ai.get_text_translation_batch_manager_groups.queryFilter()
+      trpc.batch_ai_image.get_text_translation_batch_status.queryFilter()
+    ),
+    queryClient.invalidateQueries(
+      trpc.batch_ai_text.get_text_translation_batch_manager_groups.queryFilter()
     ),
     queryClient.invalidateQueries({
       predicate: (query) => query.queryKey[0] === 'batch_manager_groups'

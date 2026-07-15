@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import type { script_list_type } from '~/state/lang_list';
-import type { ai_text_models_type } from '~/api/routes/ai/ai_types';
+import { DEFAULT_TEXT_AI_MODEL, type ai_text_models_type } from '~/api/routes/ai/ai_types';
 
 export type ProjectState = {
   project_key: string;
@@ -37,6 +37,9 @@ export type dual_edit_mode = 'text_1st_lang' | 'text_2nd_lang';
 export type editing_mode_type = 'none' | 'text' | translation_slot_mode | dual_edit_mode;
 export let selected_translation_lang_ids = writable<[number | null, number | null]>([1, null]);
 export let editing_mode = writable<editing_mode_type>('none');
+
+/** Shared text AI model for direct translate + OpenAI batch translate. */
+export let selected_text_ai_model = writable<ai_text_models_type>(DEFAULT_TEXT_AI_MODEL);
 
 export const is_editing_text = (mode: editing_mode_type) =>
   mode === 'text' || mode === 'text_1st_lang' || mode === 'text_2nd_lang';

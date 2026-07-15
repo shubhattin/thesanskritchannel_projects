@@ -22,7 +22,10 @@
     IMAGE_BATCH_STATUS_LABELS,
     IMAGE_BATCH_STATUS_VARIANTS
   } from '~/utils/ai_batch/batch_image_status';
-  import type { available_image_models_schema } from '~/api/routes/ai/ai_types';
+  import type {
+    available_image_models_schema,
+    ai_text_models_type
+  } from '~/api/routes/ai/ai_types';
   import type { z } from 'zod';
 
   type ImageModel = z.infer<typeof available_image_models_schema>;
@@ -32,11 +35,17 @@
     /** Edited prompt from the manual UI for the current index */
     current_image_prompt: string;
     image_model: ImageModel;
+    text_model: ai_text_models_type;
     on_download_images_zip?: () => void;
   };
 
-  let { current_index, current_image_prompt, image_model, on_download_images_zip }: Props =
-    $props();
+  let {
+    current_index,
+    current_image_prompt,
+    image_model,
+    text_model,
+    on_download_images_zip
+  }: Props = $props();
 
   let single_confirm_open = $state(false);
   let single_auto_approved = $state(true);
@@ -63,7 +72,7 @@
     ],
     queryFn: async () => {
       if (!$project_state) return null;
-      return client.batch_ai.get_shloka_image_batch_status.query({
+      return client.batch_ai_image.get_shloka_image_batch_status.query({
         project_id: $project_state.project_id,
         selected_text_levels: $selected_text_levels,
         index: current_index
@@ -82,7 +91,7 @@
     ],
     queryFn: async () => {
       if (!$project_state) return null;
-      return client.batch_ai.get_shloka_image_batch_status.query({
+      return client.batch_ai_image.get_shloka_image_batch_status.query({
         project_id: $project_state.project_id,
         selected_text_levels: $selected_text_levels
       });
@@ -96,12 +105,13 @@
       auto_approved: boolean;
       items: { index: number; image_prompt?: string }[];
     }) =>
-      client.batch_ai.trigger_batch_shloka_image_gen.mutate({
+      client.batch_ai_image.trigger_batch_shloka_image_gen.mutate({
         auto_approved: args.auto_approved,
         project_id: $project_state!.project_id,
         project_key: $project_state!.project_key,
         selected_text_levels: $selected_text_levels,
         image_model,
+        text_model,
         items: args.items
       }),
     onSuccess: async (data) => {

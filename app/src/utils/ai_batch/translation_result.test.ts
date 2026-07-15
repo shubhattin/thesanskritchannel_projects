@@ -60,7 +60,7 @@ describe('batch translation object schema + serialization', () => {
     const line = toAiBatchLine({
       type: 'object',
       custom_id: 'text-translation:1-2/3-Ab12',
-      model: 'gpt-5.2',
+      model: 'gpt-5.6-terra',
       instructions: 'system',
       input: 'user prompt',
       output_schema: batch_translation_object_schema,
@@ -68,7 +68,8 @@ describe('batch translation object schema + serialization', () => {
       reasoning: { effort: 'low' }
     });
     expect(line.url).toBe('/v1/responses');
-    expect(line.body.model).toBe('gpt-5.2');
+    expect(line.body.model).toBe('gpt-5.6-terra');
+    expect(line.body.reasoning).toEqual({ effort: 'low' });
     expect(line.body.text).toEqual({
       format: {
         type: 'json_schema',

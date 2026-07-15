@@ -38,7 +38,7 @@
       if (!$project_state || lang_ids.length === 0) return [];
       const results = await Promise.all(
         lang_ids.map(async (lang_id) => {
-          const status = await client.batch_ai.get_text_translation_batch_status.query({
+          const status = await client.batch_ai_image.get_text_translation_batch_status.query({
             project_id: $project_state!.project_id,
             lang_id,
             selected_text_levels: $selected_text_levels

@@ -9,14 +9,16 @@ import { grammar_router } from './routes/grammar/grammar';
 import { text_router } from './routes/text';
 import { lekha_router } from './routes/site/lekha';
 import { image_tool_router } from './routes/image_tool';
-import { batch_ai_router } from './routes/batch_ai';
+import { batch_ai_router } from './routes/batch_ai_image';
+import { batch_ai_text_router } from './routes/batch_ai_text';
 
 export const router = t.router({
   user: user_router,
   project: project_router,
   translation: translation_router,
   ai: ai_router,
-  batch_ai: batch_ai_router,
+  batch_ai_image: batch_ai_router,
+  batch_ai_text: batch_ai_text_router,
   media: media_router,
   cache: cache_router,
   grammar: grammar_router,

@@ -4,6 +4,7 @@
     get_active_translation_slot,
     selected_translation_lang_ids,
     project_state,
+    selected_text_ai_model,
     selected_text_levels,
     text_data_present
   } from '~/state/main_app/state.svelte';
@@ -150,7 +151,7 @@
     ],
     queryFn: async () => {
       if (!$project_state || active_translation_lang_id === null) return null;
-      return client.batch_ai.get_text_translation_batch_status.query({
+      return client.batch_ai_image.get_text_translation_batch_status.query({
         project_id: $project_state.project_id,
         lang_id: active_translation_lang_id,
         selected_text_levels: $selected_text_levels
@@ -181,8 +182,6 @@
       batch_overwrite_confirmed = 'no';
     }
   }
-
-  let selected_model: keyof typeof TEXT_MODEL_LIST_INFO = $state('gpt-5.2');
 
   const can_show_translate_ui = $derived.by(() => {
     if (active_translation_slot === null || active_translation_lang_id === null) return false;
@@ -296,11 +295,12 @@
     mutationFn: () => {
       const levels = $project_state!.levels;
       const path_params = get_path_params($selected_text_levels, levels);
-      return client.batch_ai.trigger_batch_text_translation.mutate({
+      return client.batch_ai_image.trigger_batch_text_translation.mutate({
         auto_approved: batch_auto_approved,
         include_english_context: is_non_english_target && batch_include_english_context,
         project_id: $project_state!.project_id,
         lang_id: active_translation_lang_id!,
+        model: $selected_text_ai_model,
         paths: [{ path_params }]
       });
     },
@@ -358,7 +358,7 @@
       input: {
         project_id,
         lang_id,
-        model: selected_model,
+        model: $selected_text_ai_model,
         text_name: project.name,
         text_data: texts_obj_list
       },
@@ -532,12 +532,12 @@
       {/if}
     </Dialog.Content>
   </Dialog.Root>
-  <Select.Root type="single" bind:value={selected_model as any}>
+  <Select.Root type="single" bind:value={$selected_text_ai_model as any}>
     <Select.Trigger
       class="inline-flex h-9 w-24 px-2 text-xs"
-      title={TEXT_MODEL_LIST_INFO[selected_model][1]}
+      title={TEXT_MODEL_LIST_INFO[$selected_text_ai_model][1]}
     >
-      {TEXT_MODEL_LIST_INFO[selected_model][0]}
+      {TEXT_MODEL_LIST_INFO[$selected_text_ai_model][0]}
     </Select.Trigger>
     <Select.Content>
       {#each Object.entries(TEXT_MODEL_LIST_INFO) as [key, value] (key)}

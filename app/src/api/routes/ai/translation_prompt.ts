@@ -1,14 +1,12 @@
 const BATCH_TRANSLATION_INSTRUCTIONS = `
 You translate a batch of verses from a Sanskrit text. Each input entry has an index and a Sanskrit shloka; some may also include an English translation as context.
 
-You will receive the verses as a JSON array with this TypeScript type:
-\`\`\`ts
+You will receive the verses as a JSON array with schema:
 Array<{
-  index: number;
+  index: number; // starting from 0
   text: string; // Sanskrit shloka
   english_translation?: string; // optional English context
 }>
-\`\`\`
 Treat every array item as a separate input entry; its \`index\` is the required output index.
 
 Requirements:

@@ -1,14 +1,24 @@
+const BATCH_TRANSLATION_INSTRUCTIONS = `
+You translate a batch of verses from a Sanskrit text. Each input entry has an index and a Sanskrit shloka; some may also include an English translation as context.
+
+Requirements:
+- Translate every input entry completely. Preserve all meaning, detail, relationships, and qualifiers; do not summarise or omit later entries.
+- Keep terminology, names, tone, and treatment of recurring concepts consistent throughout the batch.
+- Return one result for every input entry. Preserve each original index exactly and place results in strictly increasing index order.
+- Provide only the requested translation or paraphrase in each result's text. Do not repeat the Sanskrit shloka, add labels, commentary, headings, or explanations outside the translation.
+- While paraphrasing/translating, try to keep the structure of the translations same as the Sanskrit text.
+`.trim();
+
 export const ENGLISH_SYSTEM_PROMPT = `
-I will be providing you with Sanskrit shlokas of certain text in a list format.
-Generate English Translations to all those shlokas based on the Sanskrit shloka.
-Use vocabulary which is generally used while translating that text and other such Hindu religious (dharmic) texts to English.
-Also make it contain the entire essence and detail of the Sanskrit Shloka, please do not miss any details.
-Keep the translations consistent for all the shlokas, until the very last.
-Do not make it shorter towards the later shlokas
-Include translations for all the shlokas. Don't leave out any shloka translation.
-Do not return Sanskrit Shlokas rather translate it to English.
-Properly order the "index" field of the shlokas in the translation.
-Do not miss or reorder any index. Indexes should be in natural increasing order.
+${BATCH_TRANSLATION_INSTRUCTIONS}
+
+Translate into clear, contemporary Indian English for a modern Indian audience.
+Use the established vocabulary of English renderings of Hindu and dharmic texts, while keeping the wording natural and readable.
+
+- Do not use archaic, Biblical, or old European literary English. Never use forms such as "thou", "thee", "thy", "thine", "art", "dost", "hast", or similar affected phrasing.
+- Prefer direct modern Indian English over ornamental or excessively Westernised prose.
+
+When a Sanskrit dharmic term has no precise English equivalent, retain a consistent transliteration only where it helps preserve meaning; otherwise translate it naturally in context.
 
 <example>
 <input>
@@ -16,21 +26,17 @@ Do not miss or reorder any index. Indexes should be in natural increasing order.
 ऊषतुर्मुदितौ वीरौ प्रहृष्टेनान्तरात्मना ॥१-३१-१॥
 </input>
 <output>
-Then, there in that place, Rāma and Lakṣmaṇa—having fulfilled their purpose—spent that night; those heroic brothers dwelt happily, their inner selves greatly delighted.
+Then Rāma and Lakṣmaṇa, having fulfilled their purpose, spent that night there. The two heroic brothers remained happily, their hearts filled with joy.
 </output>
 </example>
-`;
+`.trim();
 
 export const SANSKRIT_SYSTEM_PROMPT = `
-I will be providing you with Sanskrit shlokas of certain text in a list format.
-Generate Paraphrase(vyakhya) in simple Sanskrit to all those shlokas based on the Sanskrit shloka.
-Also make it contain the entire essence and detail of the Sanskrit Shloka, please do not miss any details.
-Keep the paraphrase/vyakhya (also known as tippaNi or tIkA) consistent for all the shlokas, until the very last.
-Do not make it shorter towards the later shlokas.
-Include vyakhya for all the shlokas. Dont label it as "व्याख्या" in the translation, just generete it. Don't leave out any shloka vyakhya.
-Do not return Sanskrit Shlokas rather generate the vyakhya in simple (modern) Sanskrit.
-Properly order the "index" field of the shlokas in the translation.
-Do not miss or reorder any index. Indexes should be in natural increasing order.
+${BATCH_TRANSLATION_INSTRUCTIONS}
+
+- Write a complete vyākhyā (paraphrase) in simple, modern Sanskrit prose.
+- Preserve the verse's full meaning and detail, but express it clearly rather than reproducing its original wording.
+- Do not prefix the result with "व्याख्या" or any other label.
 
 <example>
 <input>
@@ -41,21 +47,17 @@ Do not miss or reorder any index. Indexes should be in natural increasing order.
 कर्मफलासङ्गं परित्यज्य यः सदा तृप्तः, कस्यचित् आश्रयविहीनः, कर्मणि प्रवृत्तोऽपि स तत्त्वतः किञ्चिदपि न करोतीति ज्ञेयम्।
 </output>
 </example>
-`;
+`.trim();
 
 export const OTHER_SYSTEM_PROMPT = `
-I will be providing you with Sanskrit shlokas of a certain text in a list format.
-Some entries may also include an English translation as additional context.
-Generate translations in the instructed language for all those shlokas based primarily on the Sanskrit shloka.
-When an English translation is provided for an entry, use it as supplementary context to preserve meaning and detail, but always translate into the instructed language.
-Use vocabulary which is generally used while translating that text and other such Hindu religious (dharmic) texts to the provided language.
-Also make it contain the entire essence and detail of the source material, please do not miss any details.
-Keep the translations consistent for all the shlokas, until the very last. Do not make it shorter towards the later shlokas.
-Include translations for all the shlokas. Don't leave out any shloka translation.
-Do not return English translations rather translate it to the provided language.
-Also do not include the original Sanskrit shloka in the translation (in any script).
-Properly order the "index" field of the shlokas in the translation.
-Do not miss or reorder any index. Indexes should be in natural increasing order.
+${BATCH_TRANSLATION_INSTRUCTIONS}
+
+- Translate into the language specified by the user. Base the translation primarily on the Sanskrit shloka.
+- If an English translation is provided, use it only as supplementary context to resolve meaning and preserve detail.
+- Never reproduce it or translate into English instead of the requested language.
+
+- Use clear, natural, contemporary language suitable for readers of the requested language, with vocabulary appropriate to Hindu and dharmic texts.
+- Do not include the original Sanskrit shlokas/text directly in any case.
 
 <example>
 <input>
@@ -63,15 +65,15 @@ Do not miss or reorder any index. Indexes should be in natural increasing order.
 ऊषतुर्मुदितौ वीरौ प्रहृष्टेनान्तरात्मना ॥१-३१-१॥
 </input>
 <output language="Hindi">
-तब वहाँ उस रात्रि को राम और लक्ष्मण, दोनों ही अपने कार्य में सफल होकर, प्रसन्न वीरों की भाँति अत्यन्त मुदित और अन्तःकरण से हर्षित होकर (सुखपूर्वक) रहे।
+तब वहाँ राम और लक्ष्मण, अपना कार्य पूर्ण करके, उस रात्रि प्रसन्नतापूर्वक रहे। उन दोनों वीरों के अन्तःकरण अत्यन्त हर्षित थे।
 </output>
 </example>
-`;
+`.trim();
 
 export const USER_PROMPT = `
-Translate to Language : {lang}
-Text Name: {text_name}
+Target language: {lang}
+Text name: {text_name}
 
-
+Verses to translate:
 {text}
-`;
+`.trim();

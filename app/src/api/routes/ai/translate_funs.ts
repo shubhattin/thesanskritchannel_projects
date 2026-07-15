@@ -1,11 +1,6 @@
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
-import {
-  translate_route_schema,
-  translation_out_schema,
-  type ai_text_models_type
-} from './ai_types';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { translate_route_schema, translation_out_schema } from './ai_types';
 import { get_lang_from_id } from '~/state/lang_list';
 import { format_string_text } from '~/tools/kry';
 import { encode } from '@toon-format/toon';

@@ -42,6 +42,7 @@
   import { toast } from 'svelte-sonner';
   import BatchImageControls from './BatchImageControls.svelte';
   import ViewImagesDialog from './ViewImagesDialog.svelte';
+  import DownloadImagesZipDialog from './DownloadImagesZipDialog.svelte';
   import TextImageCard from './TextImageCard.svelte';
   import {
     invalidate_text_image_queries,
@@ -74,6 +75,7 @@
 
   let selected_text_model: keyof typeof TEXT_MODEL_LIST_INFO = $state('gpt-5.2');
   let view_images_open = $state(false);
+  let download_images_zip_open = $state(false);
 
   onMount(async () => {
     if (import.meta.env.DEV) {
@@ -425,7 +427,12 @@
   </Button>
 </div>
 
-<BatchImageControls current_index={$index} current_image_prompt={$image_prompt} {image_model} />
+<BatchImageControls
+  current_index={$index}
+  current_image_prompt={$image_prompt}
+  {image_model}
+  on_download_images_zip={() => (download_images_zip_open = true)}
+/>
 
 <div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
   <Button
@@ -594,3 +601,4 @@
 </section>
 
 <ViewImagesDialog bind:open={view_images_open} focus_index={$index} />
+<DownloadImagesZipDialog bind:open={download_images_zip_open} />

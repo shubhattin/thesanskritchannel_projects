@@ -32,9 +32,11 @@
     /** Edited prompt from the manual UI for the current index */
     current_image_prompt: string;
     image_model: ImageModel;
+    on_download_images_zip?: () => void;
   };
 
-  let { current_index, current_image_prompt, image_model }: Props = $props();
+  let { current_index, current_image_prompt, image_model, on_download_images_zip }: Props =
+    $props();
 
   let single_confirm_open = $state(false);
   let single_auto_approved = $state(true);
@@ -178,6 +180,16 @@
     >
       Generate Images for All Shlokas
     </Button>
+    {#if on_download_images_zip}
+      <Button
+        size="sm"
+        variant="outline"
+        class="border-violet-500/50 bg-violet-500/10 text-violet-700 hover:bg-violet-500/20 dark:text-violet-300"
+        onclick={on_download_images_zip}
+      >
+        Download Images Zip
+      </Button>
+    {/if}
   </div>
 
   {#if index_status_q.data}

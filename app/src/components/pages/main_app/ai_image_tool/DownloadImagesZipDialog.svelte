@@ -152,10 +152,15 @@
         selected_ids.has(item.image.id)
       );
       const files = uniquifyZipFilenames(
-        selected_items.map((item) => ({
-          image_id: item.image.id,
-          filename: buildImageAssetDownloadBasename(item.index, item.shloka_num)
-        })),
+        selected_items.map((item) => {
+          const shloka_num =
+            item.shloka_num ??
+            (item.index != null ? (text_data_q.data?.[item.index]?.shloka_num ?? null) : null);
+          return {
+            image_id: item.image.id,
+            filename: buildImageAssetDownloadBasename(item.index, shloka_num)
+          };
+        }),
         format
       );
 

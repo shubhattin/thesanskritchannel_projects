@@ -45,6 +45,20 @@ describe('uniquifyZipFilenames', () => {
       'Image Index No. 1 (2).webp'
     ]);
   });
+
+  it('avoids collisions when a later basename matches an earlier suffix', () => {
+    const out = uniquifyZipFilenames(
+      [
+        { filename: 'foo', image_id: 1 },
+        { filename: 'foo', image_id: 2 },
+        { filename: 'foo (2)', image_id: 3 }
+      ],
+      'png'
+    );
+    const names = out.map((f) => f.filename);
+    expect(names).toEqual(['foo.png', 'foo (2).png', 'foo (2) (2).png']);
+    expect(new Set(names).size).toBe(names.length);
+  });
 });
 
 describe('download_images_zip_input_schema', () => {

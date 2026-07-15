@@ -34,19 +34,23 @@ export const buildAiImagesZipFileName = (project_key: string, path_params: reado
 
 /**
  * Normalize to the requested extension and disambiguate collisions with ` (2)`, ` (3)`, …
+ * Reserves each emitted name so inputs like `foo`, `foo`, `foo (2)` stay unique.
  */
 export const uniquifyZipFilenames = <T extends { filename: string }>(
   files: readonly T[],
   format: DownloadImagesZipFormat = 'png'
 ): T[] => {
   const ext = `.${format}`;
-  const seen = new Map<string, number>();
+  const used = new Set<string>();
   return files.map((file) => {
     const without_ext = file.filename.replace(/\.(webp|png)$/i, '');
-    const base_key = `${without_ext}${ext}`;
-    const count = (seen.get(base_key) ?? 0) + 1;
-    seen.set(base_key, count);
-    const filename = count === 1 ? base_key : `${without_ext} (${count})${ext}`;
-    return { ...file, filename };
+    let candidate = `${without_ext}${ext}`;
+    let n = 1;
+    while (used.has(candidate)) {
+      n += 1;
+      candidate = `${without_ext} (${n})${ext}`;
+    }
+    used.add(candidate);
+    return { ...file, filename: candidate };
   });
 };

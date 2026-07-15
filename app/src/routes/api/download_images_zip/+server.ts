@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { Config } from '@sveltejs/adapter-vercel';
 import { and, eq, inArray } from 'drizzle-orm';
+import { Readable } from 'node:stream';
 import JSZip from 'jszip';
 import { protected_admin_route_check } from '~/api/api_init';
 import { db } from '~/db/db';
@@ -95,16 +96,17 @@ export const POST: RequestHandler = async ({ request }) => {
       zip.file(file.filename, buffer, { compression: 'STORE' });
     }
 
-    const zip_buffer = await zip.generateAsync({
+    const node_stream = zip.generateNodeStream({
       type: 'nodebuffer',
+      streamFiles: true,
       compression: 'STORE'
     });
+    const web_stream = Readable.toWeb(node_stream as Readable) as ReadableStream;
 
-    return new Response(new Uint8Array(zip_buffer), {
+    return new Response(web_stream, {
       status: 200,
       headers: {
         'Content-Type': 'application/zip',
-        'Content-Length': String(zip_buffer.byteLength),
         'Content-Disposition': `attachment; filename="${expected_zip_name}"`,
         'Cache-Control': 'private, no-store'
       }

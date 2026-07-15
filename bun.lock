@@ -21,7 +21,6 @@
         "@shikijs/rehype": "^4.2.0",
         "@tailwindcss/vite": "^4.3.1",
         "@tanstack/svelte-query": "^6.1.34",
-        "@toon-format/toon": "^1.4.0",
         "@trigger.dev/sdk": "4.4.6",
         "@trpc/client": "^11.17.0",
         "@trpc/server": "^11.17.0",
@@ -961,8 +960,6 @@
     "@tanstack/svelte-query": ["@tanstack/svelte-query@6.1.34", "", { "dependencies": { "@tanstack/query-core": "5.101.0" }, "peerDependencies": { "svelte": "^5.25.0" } }, "sha512-b/j6OXHd285NLPTH31SqJ8+XfHKoDPV8+ZGxXjg4pSAWW2aVo/f5gbu5m32QjfdTSumib3+d1dJBv5Yupv7HKw=="],
 
     "@tanstack/svelte-query-devtools": ["@tanstack/svelte-query-devtools@6.1.34", "", { "dependencies": { "@tanstack/query-devtools": "5.101.0", "esm-env": "^1.2.1" }, "peerDependencies": { "@tanstack/svelte-query": "^6.1.34", "svelte": "^5.25.0" } }, "sha512-zVXoXqzE/n+j+Zq/47EqJf+DfmJt2+Hoz58ec8+JGa5t4k+b23Ix6Ea1W4IgHKKVVhaWhva4d6RauE4tPyW3Gw=="],
-
-    "@toon-format/toon": ["@toon-format/toon@1.4.0", "", {}, "sha512-bjdhhIPjnX2oVk+pKy/nD3bwuESDLX/5fwW0TxwpV7Q4PVNkiRSv1S0sPeuy9TI4PfAlulow1HShdmMTnYvoLg=="],
 
     "@tootallnate/once": ["@tootallnate/once@2.0.0", "", {}, "sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A=="],
 

@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { translate_route_schema, translation_out_schema } from './ai_types';
 import { get_lang_from_id } from '~/state/lang_list';
 import { format_string_text } from '~/tools/kry';
-import { encode } from '@toon-format/toon';
 import {
   ENGLISH_SYSTEM_PROMPT,
   OTHER_SYSTEM_PROMPT,
@@ -51,7 +50,7 @@ export const translate_func = async (args: TranslationInput): Promise<Translatio
 
   const prompt = format_string_text(translation_prompt.user_msg, {
     text_name,
-    text: encode(text_data),
+    text: JSON.stringify(text_data),
     lang
   });
 

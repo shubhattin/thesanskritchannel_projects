@@ -1,6 +1,5 @@
 import { get_lang_from_id } from '~/state/lang_list';
 import { format_string_text } from '~/tools/kry';
-import { encode } from '@toon-format/toon';
 import {
   ENGLISH_SYSTEM_PROMPT,
   OTHER_SYSTEM_PROMPT,
@@ -29,7 +28,7 @@ export function build_translation_prompts(args: TranslationPromptInput) {
 
   const user_prompt = format_string_text(USER_PROMPT, {
     text_name: args.text_name,
-    text: encode(args.text_data),
+    text: JSON.stringify(args.text_data),
     lang
   });
 

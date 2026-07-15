@@ -17,7 +17,7 @@ export type ai_text_models_type = (typeof AI_TEXT_MODELS)[number];
 export const text_models_enum = z.enum(AI_TEXT_MODELS);
 
 /** Default balanced model for translation work (client-safe). */
-export const DEFAULT_TEXT_AI_MODEL: ai_text_models_type = 'gpt-5.2';
+export const DEFAULT_TEXT_AI_MODEL: ai_text_models_type = 'gpt-5.6-terra';
 
 export const translate_route_schema = {
   input: z.object({

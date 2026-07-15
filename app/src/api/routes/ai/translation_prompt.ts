@@ -17,6 +17,7 @@ Requirements:
 - Return exactly one result for every input entry. Preserve each original index exactly; do not skip, duplicate, invent, renumber, or reorder indexes.
 - Provide only the requested translation or paraphrase in each result's text. Do not repeat the Sanskrit shloka, add labels, commentary, headings, or explanations outside the translation.
 - While paraphrasing/translating, try to keep the structure of the translations same as the Sanskrit text.
+- Do not and never include the shloka numbering which maybe be present in the input. for eg if the text has ॥४॥ then you dont have to add ॥4॥ in the translation.
 `.trim();
 
 const OUTPUT_FORMAT_INSTRUCTIONS = `

@@ -19,6 +19,9 @@ import {
   getOpenAI,
   isResponseItemProcessed,
   bulkFailUnprocessedBatchResponses,
+  batchFailureError,
+  discardAiBatchEntirely,
+  errMessage,
   markBatchOutputResolvedIfComplete,
   scheduleOpenAiBatchCleanup,
   tryClaimBatchRow,
@@ -49,6 +52,7 @@ import {
   poll_batch_text_translation,
   approve_text_translation,
   discard_text_translation_batch_response,
+  discard_text_translation_batch,
   get_text_translation_batch_status,
   list_batch_translation_targets
 } from './batch_ai_text';
@@ -232,10 +236,16 @@ export const poll_batch_shloka_image_gen_func = async (
           .filter(
             (row) => !isResponseItemProcessed(image_batch_metadata_schema.parse(row.metadata))
           )
-          .map((row) => ({
-            custom_id: row.custom_id,
-            metadata: image_batch_metadata_schema.parse(row.metadata)
-          }));
+          .map((row) => {
+            const metadata = image_batch_metadata_schema.parse(row.metadata);
+            return {
+              custom_id: row.custom_id,
+              metadata: {
+                ...metadata,
+                error: batchFailureError('batch_terminal', { openai_status })
+              }
+            };
+          });
         await bulkFailUnprocessedBatchResponses(tx, batch_id, failing, batch_output_file_id);
         await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
       });
@@ -292,7 +302,15 @@ export const poll_batch_shloka_image_gen_func = async (
           const wrote = await db.transaction(async (tx) =>
             updateBatchResponse(tx, batch_id, row.custom_id, {
               ...metadata,
-              success: false
+              success: false,
+              error: !output
+                ? batchFailureError('missing_output')
+                : batchFailureError('openai_item_failed', {
+                    status_code: output.status_code,
+                    message: output.error?.message,
+                    code: output.error?.code ?? undefined,
+                    type: output.error?.type
+                  })
             })
           );
           return wrote ? { custom_id: row.custom_id, success: false } : null;
@@ -316,7 +334,8 @@ export const poll_batch_shloka_image_gen_func = async (
           const wrote = await db.transaction(async (tx) =>
             updateBatchResponse(tx, batch_id, row.custom_id, {
               ...metadata,
-              success: false
+              success: false,
+              error: batchFailureError('upload_failed', { message: errMessage(err) })
             })
           );
           return wrote ? { custom_id: row.custom_id, success: false } : null;
@@ -552,6 +571,46 @@ const discard_shloka_image_batch_response_route = protectedAdminProcedure
     };
   });
 
+const discard_shloka_image_batch_route = protectedAdminProcedure
+  .input(z.object({ batch_id: z.string() }))
+  .mutation(async ({ input: { batch_id } }) => {
+    const batch = await db.query.ai_batches.findFirst({
+      where: and(eq(ai_batches.batch_id, batch_id), eq(ai_batches.type, 'image')),
+      with: { responses: true }
+    });
+    if (!batch) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Batch not found' });
+    }
+
+    // Collect asset ids first, remove DB+OpenAI next, then best-effort asset cleanup.
+    // Reversing that left orphaned batch rows when asset deletes failed mid-loop.
+    const image_ids = batch.responses.flatMap((row) => {
+      const metadata = image_batch_metadata_schema.parse(row.metadata);
+      return metadata.uploaded_image_id !== undefined ? [metadata.uploaded_image_id] : [];
+    });
+
+    const discarded = await discardAiBatchEntirely(batch_id);
+    if (!discarded) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Batch not found' });
+    }
+
+    const deleted_image_ids: number[] = [];
+    for (const image_id of image_ids) {
+      try {
+        await deleteImageAssetById(image_id, { s3Client: getS3Client() });
+        deleted_image_ids.push(image_id);
+      } catch (err) {
+        console.error(`Failed to delete staged image ${image_id} after batch discard:`, err);
+      }
+    }
+
+    return {
+      success: true as const,
+      deleted_response_count: batch.responses.length,
+      deleted_image_ids
+    };
+  });
+
 type EnrichedBatchItem = {
   batch_id: string;
   custom_id: string;
@@ -779,11 +838,19 @@ const get_batch_manager_groups_route = protectedAdminProcedure
     }
 
     const enriched = await enrichBatchRows(rows);
-    const groups = new Map<string, { batch_id: string; items: EnrichedBatchItem[] }>();
+    const groups = new Map<
+      string,
+      { batch_id: string; output_resolved: boolean; items: EnrichedBatchItem[] }
+    >();
     for (const item of enriched) {
       const existing = groups.get(item.batch_id);
       if (existing) existing.items.push(item);
-      else groups.set(item.batch_id, { batch_id: item.batch_id, items: [item] });
+      else
+        groups.set(item.batch_id, {
+          batch_id: item.batch_id,
+          output_resolved: item.output_resolved,
+          items: [item]
+        });
     }
 
     return [...groups.values()].map((group) => {
@@ -808,12 +875,14 @@ export const batch_ai_router = t.router({
   poll_batch_shloka_image_gen: poll_batch_shloka_image_gen_route,
   approve_shloka_image: approve_shloka_image_route,
   discard_shloka_image_batch_response: discard_shloka_image_batch_response_route,
+  discard_shloka_image_batch: discard_shloka_image_batch_route,
   get_shloka_image_batch_status: get_shloka_image_batch_status_route,
   get_batch_manager_groups: get_batch_manager_groups_route,
   trigger_batch_text_translation,
   poll_batch_text_translation,
   approve_text_translation,
   discard_text_translation_batch_response,
+  discard_text_translation_batch,
   get_text_translation_batch_status,
   list_batch_translation_targets
 });

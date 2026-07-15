@@ -31,6 +31,8 @@ export const image_batch_metadata_schema = z.object({
   success: z.boolean().optional(),
   /** image_assets id (upload after successful batch completion) */
   uploaded_image_id: z.number().int().optional(),
+  /** Optional error dump (would be useful for later debugging) */
+  error: z.any().optional(),
   /** set while a poll worker is processing this row */
   poll_claimed_at: z.string().optional()
 });
@@ -53,6 +55,8 @@ export const text_translation_batch_metadata_schema = z.object({
   source_indexes: z.number().int().array(),
   /** to be edited upon batch completion */
   success: z.boolean().optional(),
+  /** error dump */
+  error: z.any().optional(),
   /** translated data with DB indexes (after successful batch completion) */
   translated_data: translation_out_schema.array().optional(),
   /** set while a poll worker is processing this row */

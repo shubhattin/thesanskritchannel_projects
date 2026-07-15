@@ -40,9 +40,12 @@
   let active_tab = $state<'images' | 'translations'>('images');
   let review_image_item = $state<ImageItem | null>(null);
   let discard_image_item = $state<ImageItem | null>(null);
+  let discard_image_batch_id = $state<string | null>(null);
   let review_translation_item = $state<TranslationItem | null>(null);
   let discard_translation_item = $state<TranslationItem | null>(null);
-  let polling_batch_id = $state<string | null>(null);
+  let discard_translation_batch_id = $state<string | null>(null);
+  let polling_image_batch_id = $state<string | null>(null);
+  let polling_translation_batch_id = $state<string | null>(null);
 
   const image_groups_q = createQuery(() => ({
     queryKey: ['batch_manager_groups', project_filter],
@@ -72,7 +75,7 @@
 
   const poll_image_mut = createMutation(() => ({
     mutationFn: (batch_id: string) => {
-      polling_batch_id = batch_id;
+      polling_image_batch_id = batch_id;
       return client.batch_ai_image.poll_batch_shloka_image_gen.mutate({ batch_id });
     },
     onSuccess: async (data) => {
@@ -85,14 +88,14 @@
       }
     },
     onError: (err) => toast.error(err.message || 'Failed to poll batch'),
-    onSettled: () => {
-      polling_batch_id = null;
+    onSettled: (_data, _err, batch_id) => {
+      if (polling_image_batch_id === batch_id) polling_image_batch_id = null;
     }
   }));
 
   const poll_translation_mut = createMutation(() => ({
     mutationFn: (batch_id: string) => {
-      polling_batch_id = batch_id;
+      polling_translation_batch_id = batch_id;
       return client.batch_ai_image.poll_batch_text_translation.mutate({ batch_id });
     },
     onSuccess: async (data) => {
@@ -105,8 +108,8 @@
       }
     },
     onError: (err) => toast.error(err.message || 'Failed to poll batch'),
-    onSettled: () => {
-      polling_batch_id = null;
+    onSettled: (_data, _err, batch_id) => {
+      if (polling_translation_batch_id === batch_id) polling_translation_batch_id = null;
     }
   }));
 
@@ -137,6 +140,19 @@
       review_image_item = null;
     },
     onError: (err) => toast.error(err.message || 'Failed to discard item')
+  }));
+
+  const discard_image_batch_mut = createMutation(() => ({
+    mutationFn: (batch_id: string) =>
+      client.batch_ai_image.discard_shloka_image_batch.mutate({ batch_id }),
+    onSuccess: async () => {
+      await invalidate_batch_ai_queries();
+      toast.success('Batch discarded');
+      discard_image_batch_id = null;
+      review_image_item = null;
+      await image_groups_q.refetch();
+    },
+    onError: (err) => toast.error(err.message || 'Failed to discard batch')
   }));
 
   const approve_translation_mut = createMutation(() => ({
@@ -176,11 +192,56 @@
     onError: (err) => toast.error(err.message || 'Failed to discard item')
   }));
 
+  const discard_translation_batch_mut = createMutation(() => ({
+    mutationFn: (batch_id: string) =>
+      client.batch_ai_image.discard_text_translation_batch.mutate({ batch_id }),
+    onSuccess: async () => {
+      await invalidate_batch_ai_queries();
+      toast.success('Batch discarded');
+      discard_translation_batch_id = null;
+      review_translation_item = null;
+      await translation_groups_q.refetch();
+    },
+    onError: (err) => toast.error(err.message || 'Failed to discard batch')
+  }));
+
   const can_discard_image = (item: ImageItem) =>
     item.status === 'processing' || item.status === 'ready_for_review' || item.status === 'failed';
 
   const can_discard_translation = (item: TranslationItem) =>
     item.status === 'processing' || item.status === 'ready_for_review' || item.status === 'failed';
+
+  const can_discard_batch = (group: {
+    output_resolved: boolean;
+    counts: { failed: number; ready: number; pending: number };
+  }) =>
+    group.output_resolved &&
+    group.counts.failed > 0 &&
+    group.counts.ready === 0 &&
+    group.counts.pending === 0;
+
+  const is_discarding_image_item = (item: ImageItem | null) =>
+    !!item &&
+    discard_image_mut.isPending &&
+    discard_image_mut.variables?.batch_id === item.batch_id &&
+    discard_image_mut.variables?.custom_id === item.custom_id;
+
+  const is_discarding_translation_item = (item: TranslationItem | null) =>
+    !!item &&
+    discard_translation_mut.isPending &&
+    discard_translation_mut.variables?.batch_id === item.batch_id &&
+    discard_translation_mut.variables?.custom_id === item.custom_id;
+
+  const format_batch_error = (error: unknown): string | null => {
+    if (error == null) return null;
+    if (typeof error === 'string') return error;
+    if (typeof error !== 'object') return String(error);
+    const e = error as Record<string, unknown>;
+    const parts = [e.reason, e.message, e.openai_status, e.code]
+      .filter((v) => v != null && v !== '')
+      .map(String);
+    return parts.length > 0 ? parts.join(' · ') : null;
+  };
 
   const origin_href = (item: { project_key: string | null; path: string | null }) => {
     if (!item.project_key) return null;
@@ -320,16 +381,27 @@
                     OpenAI batch
                     <Icon src={OiLinkExternal16} class="text-sm" />
                   </a>
+                  {#if can_discard_batch(group)}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled={discard_image_batch_mut.isPending &&
+                        discard_image_batch_mut.variables === group.batch_id}
+                      onclick={() => (discard_image_batch_id = group.batch_id)}
+                    >
+                      Discard batch
+                    </Button>
+                  {/if}
                   <Button
                     size="sm"
                     variant="outline"
                     class="gap-2"
-                    disabled={polling_batch_id !== null}
+                    disabled={polling_image_batch_id === group.batch_id}
                     onclick={() => poll_image_mut.mutate(group.batch_id)}
                   >
                     <Icon
                       src={OiSync16}
-                      class={polling_batch_id === group.batch_id ? 'animate-spin' : ''}
+                      class={polling_image_batch_id === group.batch_id ? 'animate-spin' : ''}
                     />
                     Poll now
                   </Button>
@@ -371,6 +443,11 @@
                           </div>
                           <p class="text-xs text-muted-foreground">{item.path}</p>
                           <p class="truncate text-xs text-muted-foreground">{item.custom_id}</p>
+                          {#if item.status === 'failed' && format_batch_error(item.metadata.error)}
+                            <p class="text-xs text-destructive">
+                              {format_batch_error(item.metadata.error)}
+                            </p>
+                          {/if}
                           {#if origin_href(item)}
                             <a
                               href={origin_href(item)!}
@@ -393,7 +470,7 @@
                             size="sm"
                             variant="destructive"
                             onclick={() => (discard_image_item = item)}
-                            disabled={discard_image_mut.isPending}
+                            disabled={is_discarding_image_item(item)}
                           >
                             Discard
                           </Button>
@@ -469,16 +546,27 @@
                     OpenAI batch
                     <Icon src={OiLinkExternal16} class="text-sm" />
                   </a>
+                  {#if can_discard_batch(group)}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled={discard_translation_batch_mut.isPending &&
+                        discard_translation_batch_mut.variables === group.batch_id}
+                      onclick={() => (discard_translation_batch_id = group.batch_id)}
+                    >
+                      Discard batch
+                    </Button>
+                  {/if}
                   <Button
                     size="sm"
                     variant="outline"
                     class="gap-2"
-                    disabled={polling_batch_id !== null}
+                    disabled={polling_translation_batch_id === group.batch_id}
                     onclick={() => poll_translation_mut.mutate(group.batch_id)}
                   >
                     <Icon
                       src={OiSync16}
-                      class={polling_batch_id === group.batch_id ? 'animate-spin' : ''}
+                      class={polling_translation_batch_id === group.batch_id ? 'animate-spin' : ''}
                     />
                     Poll now
                   </Button>
@@ -507,6 +595,11 @@
                           {item.metadata.source_indexes.length} line(s)
                         </p>
                         <p class="truncate text-xs text-muted-foreground">{item.custom_id}</p>
+                        {#if item.status === 'failed' && format_batch_error(item.metadata.error)}
+                          <p class="text-xs text-destructive">
+                            {format_batch_error(item.metadata.error)}
+                          </p>
+                        {/if}
                         {#if origin_href(item)}
                           <a
                             href={origin_href(item)!}
@@ -528,7 +621,7 @@
                             size="sm"
                             variant="destructive"
                             onclick={() => (discard_translation_item = item)}
-                            disabled={discard_translation_mut.isPending}
+                            disabled={is_discarding_translation_item(item)}
                           >
                             Discard
                           </Button>
@@ -574,7 +667,7 @@
           onclick={() => {
             discard_image_item = review_image_item;
           }}
-          disabled={approve_image_mut.isPending || discard_image_mut.isPending}
+          disabled={approve_image_mut.isPending || is_discarding_image_item(review_image_item)}
         >
           Discard
         </Button>
@@ -626,7 +719,8 @@
           onclick={() => {
             discard_translation_item = review_translation_item;
           }}
-          disabled={approve_translation_mut.isPending || discard_translation_mut.isPending}
+          disabled={approve_translation_mut.isPending ||
+            is_discarding_translation_item(review_translation_item)}
         >
           Discard
         </Button>
@@ -669,6 +763,33 @@
 </AlertDialog.Root>
 
 <AlertDialog.Root
+  open={!!discard_image_batch_id}
+  onOpenChange={(v) => {
+    if (!v) discard_image_batch_id = null;
+  }}
+>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Discard entire image batch?</AlertDialog.Title>
+      <AlertDialog.Description>
+        Removes all staging rows, deletes any uploaded image assets, and cleans up OpenAI
+        input/output files.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel disabled={discard_image_batch_mut.isPending}>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Action
+        disabled={discard_image_batch_mut.isPending || !discard_image_batch_id}
+        onclick={() =>
+          discard_image_batch_id && discard_image_batch_mut.mutate(discard_image_batch_id)}
+      >
+        {discard_image_batch_mut.isPending ? 'Discarding…' : 'Discard batch'}
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root
   open={!!discard_translation_item}
   onOpenChange={(v) => {
     if (!v) discard_translation_item = null;
@@ -689,6 +810,35 @@
           discard_translation_item && discard_translation_mut.mutate(discard_translation_item)}
       >
         {discard_translation_mut.isPending ? 'Discarding…' : 'Discard'}
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root
+  open={!!discard_translation_batch_id}
+  onOpenChange={(v) => {
+    if (!v) discard_translation_batch_id = null;
+  }}
+>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Discard entire translation batch?</AlertDialog.Title>
+      <AlertDialog.Description>
+        Removes all staging rows for this batch and cleans up OpenAI input/output files.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel disabled={discard_translation_batch_mut.isPending}
+        >Cancel</AlertDialog.Cancel
+      >
+      <AlertDialog.Action
+        disabled={discard_translation_batch_mut.isPending || !discard_translation_batch_id}
+        onclick={() =>
+          discard_translation_batch_id &&
+          discard_translation_batch_mut.mutate(discard_translation_batch_id)}
+      >
+        {discard_translation_batch_mut.isPending ? 'Discarding…' : 'Discard batch'}
       </AlertDialog.Action>
     </AlertDialog.Footer>
   </AlertDialog.Content>

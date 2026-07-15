@@ -26,6 +26,8 @@ import {
   getOpenAI,
   isResponseItemProcessed,
   bulkFailUnprocessedBatchResponses,
+  batchFailureError,
+  discardAiBatchEntirely,
   mapWithConcurrency,
   markBatchOutputResolvedIfComplete,
   scheduleOpenAiBatchCleanup,
@@ -399,10 +401,16 @@ export const poll_batch_text_translation_func = async (
             (row) =>
               !isResponseItemProcessed(text_translation_batch_metadata_schema.parse(row.metadata))
           )
-          .map((row) => ({
-            custom_id: row.custom_id,
-            metadata: text_translation_batch_metadata_schema.parse(row.metadata)
-          }));
+          .map((row) => {
+            const metadata = text_translation_batch_metadata_schema.parse(row.metadata);
+            return {
+              custom_id: row.custom_id,
+              metadata: {
+                ...metadata,
+                error: batchFailureError('batch_terminal', { openai_status })
+              }
+            };
+          });
         await bulkFailUnprocessedBatchResponses(tx, batch_id, failing, batch_output_file_id);
         await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
       });
@@ -462,7 +470,15 @@ export const poll_batch_text_translation_func = async (
           const wrote = await db.transaction(async (tx) =>
             updateBatchResponse(tx, batch_id, row.custom_id, {
               ...metadata,
-              success: false
+              success: false,
+              error: !output
+                ? batchFailureError('missing_output')
+                : batchFailureError('openai_item_failed', {
+                    status_code: output.status_code,
+                    message: output.error?.message,
+                    code: output.error?.code ?? undefined,
+                    type: output.error?.type
+                  })
             })
           );
           return wrote ? { custom_id: row.custom_id, success: false } : null;
@@ -477,7 +493,14 @@ export const poll_batch_text_translation_func = async (
           const wrote = await db.transaction(async (tx) =>
             updateBatchResponse(tx, batch_id, row.custom_id, {
               ...metadata,
-              success: false
+              success: false,
+              error: batchFailureError('translation_rejected', {
+                message: parsed.success
+                  ? 'Length or index mismatch after mapping'
+                  : 'Output schema parse failed',
+                expected_count: metadata.source_indexes.length,
+                received_count: parsed.success ? parsed.data.translations.length : undefined
+              })
             })
           );
           return wrote
@@ -699,6 +722,27 @@ const discard_text_translation_batch_response_route = protectedAdminProcedure
     });
     scheduleOpenAiBatchCleanup(batch_id);
     return result;
+  });
+
+const discard_text_translation_batch_route = protectedAdminProcedure
+  .input(z.object({ batch_id: z.string() }))
+  .mutation(async ({ input: { batch_id } }) => {
+    const batch = await db.query.ai_batches.findFirst({
+      where: and(eq(ai_batches.batch_id, batch_id), eq(ai_batches.type, 'object')),
+      columns: { batch_id: true },
+      with: { responses: { columns: { custom_id: true } } }
+    });
+    if (!batch) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Batch not found' });
+    }
+    const discarded = await discardAiBatchEntirely(batch_id);
+    if (!discarded) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Batch not found' });
+    }
+    return {
+      success: true as const,
+      deleted_response_count: batch.responses.length
+    };
   });
 
 type EnrichedTranslationBatchItem = {
@@ -1034,11 +1078,19 @@ const get_text_translation_batch_manager_groups_route = protectedAdminProcedure
     }
 
     const enriched = await enrichTranslationBatchRows(rows);
-    const groups = new Map<string, { batch_id: string; items: EnrichedTranslationBatchItem[] }>();
+    const groups = new Map<
+      string,
+      { batch_id: string; output_resolved: boolean; items: EnrichedTranslationBatchItem[] }
+    >();
     for (const item of enriched) {
       const existing = groups.get(item.batch_id);
       if (existing) existing.items.push(item);
-      else groups.set(item.batch_id, { batch_id: item.batch_id, items: [item] });
+      else
+        groups.set(item.batch_id, {
+          batch_id: item.batch_id,
+          output_resolved: item.output_resolved,
+          items: [item]
+        });
     }
 
     return [...groups.values()].map((group) => {
@@ -1064,6 +1116,7 @@ export const poll_batch_text_translation = poll_batch_text_translation_route;
 export const approve_text_translation = approve_text_translation_route;
 export const discard_text_translation_batch_response =
   discard_text_translation_batch_response_route;
+export const discard_text_translation_batch = discard_text_translation_batch_route;
 export const get_text_translation_batch_status = get_text_translation_batch_status_route;
 export const list_batch_translation_targets = list_batch_translation_targets_route;
 
@@ -1072,6 +1125,7 @@ export const batch_ai_text_router = t.router({
   poll_batch_text_translation: poll_batch_text_translation_route,
   approve_text_translation: approve_text_translation_route,
   discard_text_translation_batch_response: discard_text_translation_batch_response_route,
+  discard_text_translation_batch: discard_text_translation_batch_route,
   get_text_translation_batch_status: get_text_translation_batch_status_route,
   list_batch_translation_targets: list_batch_translation_targets_route,
   get_text_translation_batch_manager_groups: get_text_translation_batch_manager_groups_route

@@ -53,6 +53,20 @@ export async function deleteOpenAiFiles(file_ids: (string | null | undefined)[])
   );
 }
 
+/** Delete OpenAI input/output files and the ai_batches row (cascade-deletes responses). */
+export async function discardAiBatchEntirely(batch_id: string) {
+  const batch = await db.query.ai_batches.findFirst({
+    columns: { input_file_id: true, output_file_id: true },
+    where: eq(ai_batches.batch_id, batch_id)
+  });
+  if (!batch) return false;
+
+  // Remote files first so a failure keeps the DB row for retry.
+  await deleteOpenAiFiles([batch.input_file_id, batch.output_file_id]);
+  await db.delete(ai_batches).where(eq(ai_batches.batch_id, batch_id));
+  return true;
+}
+
 export function scheduleOpenAiBatchCleanup(batch_id: string) {
   const cleanup = (async () => {
     const remaining = await db.query.ai_batch_responses.findFirst({
@@ -60,21 +74,24 @@ export function scheduleOpenAiBatchCleanup(batch_id: string) {
       where: eq(ai_batch_responses.batch_id, batch_id)
     });
     if (remaining) return;
-
-    const batch = await db.query.ai_batches.findFirst({
-      columns: { input_file_id: true, output_file_id: true },
-      where: eq(ai_batches.batch_id, batch_id)
-    });
-    if (!batch) return;
-
-    // Delete remote files first so a failure keeps the DB row for retry.
-    await deleteOpenAiFiles([batch.input_file_id, batch.output_file_id]);
-    await db.delete(ai_batches).where(eq(ai_batches.batch_id, batch_id));
+    await discardAiBatchEntirely(batch_id);
   })().catch((err) => {
     console.error(`Failed OpenAI batch file cleanup for batch ${batch_id}:`, err);
   });
 
   waitUntil(cleanup);
+}
+
+/** Compact debug payload for metadata.error (not full OpenAI bodies). */
+export function batchFailureError(
+  reason: string,
+  extra?: Record<string, unknown>
+): Record<string, unknown> {
+  return { reason, ...extra };
+}
+
+export function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 export function isResponseItemProcessed(metadata: BatchMetadata): boolean {

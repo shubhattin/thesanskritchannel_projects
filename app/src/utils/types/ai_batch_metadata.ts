@@ -9,7 +9,7 @@ import { translation_out_schema } from '~/api/routes/ai/ai_types';
 */
 
 /** Polling Interval for Batch API via QStash */
-export const BATCH_POLLING_INTERVAL_S = ms('5mins') / 1000;
+export const BATCH_POLLING_INTERVAL_S = ms('3mins') / 1000;
 
 /** OpenAI batch completion window is 24h; stop QStash retries after that. */
 export const MAX_BATCH_POLL_ATTEMPTS = Math.ceil((24 * 60 * 60) / BATCH_POLLING_INTERVAL_S);

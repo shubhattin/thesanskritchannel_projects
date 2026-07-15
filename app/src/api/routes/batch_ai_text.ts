@@ -25,6 +25,7 @@ import {
 import {
   getOpenAI,
   isResponseItemProcessed,
+  bulkFailUnprocessedBatchResponses,
   mapWithConcurrency,
   markBatchOutputResolvedIfComplete,
   scheduleOpenAiBatchCleanup,
@@ -392,25 +393,16 @@ export const poll_batch_text_translation_func = async (
     const openai_status = batch.status;
     if (TERMINAL_FAILURE_STATUSES.has(openai_status)) {
       await db.transaction(async (tx) => {
-        await Promise.all(
-          db_rows
-            .filter(
-              (row) =>
-                !isResponseItemProcessed(text_translation_batch_metadata_schema.parse(row.metadata))
-            )
-            .map((row) =>
-              updateBatchResponse(
-                tx,
-                batch_id,
-                row.custom_id,
-                {
-                  ...text_translation_batch_metadata_schema.parse(row.metadata),
-                  success: false
-                },
-                batch_output_file_id
-              )
-            )
-        );
+        const failing = db_rows
+          .filter(
+            (row) =>
+              !isResponseItemProcessed(text_translation_batch_metadata_schema.parse(row.metadata))
+          )
+          .map((row) => ({
+            custom_id: row.custom_id,
+            metadata: text_translation_batch_metadata_schema.parse(row.metadata)
+          }));
+        await bulkFailUnprocessedBatchResponses(tx, batch_id, failing, batch_output_file_id);
         await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
       });
       return {

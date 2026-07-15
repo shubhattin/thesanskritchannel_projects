@@ -218,37 +218,55 @@ const save_text_rows_route = protectedAdminProcedure
         .from(ai_batch_responses)
         .where(sql`(${ai_batch_responses.metadata}->>'project_path_id')::int = ${projectPath.id}`);
 
-      for (const join of remappedImageJoins) {
-        if (join.index !== existingImageJoins.find((j) => j.id === join.id)?.index) {
-          await tx
-            .update(text_image_assets_join)
-            .set({ index: join.index })
-            .where(eq(text_image_assets_join.id, join.id));
-        }
+      const changedImageJoins = remappedImageJoins.filter(
+        (join) => join.index !== existingImageJoins.find((j) => j.id === join.id)?.index
+      );
+      if (changedImageJoins.length > 0) {
+        // Single statement — do not Promise.all on the same tx connection (neon/postgres-js).
+        const value_rows = changedImageJoins.map(
+          (join) => sql`(${join.id}::int, ${join.index}::int)`
+        );
+        await tx.execute(sql`
+          UPDATE ${text_image_assets_join} AS t
+          SET index = v.index
+          FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(id, index)
+          WHERE t.id = v.id
+        `);
       }
 
+      const batch_metadata_updates: {
+        batch_id: string;
+        custom_id: string;
+        metadata: z.infer<typeof image_batch_metadata_schema>;
+      }[] = [];
       for (const batch_row of pendingBatchRows) {
         const parsed = image_batch_metadata_schema.safeParse(batch_row.metadata);
         if (!parsed.success) continue;
         if (parsed.data.success !== undefined) continue; // already finalized
         const next_index = remapBatchMetadataIndex(parsed.data.index, old_to_new);
         if (next_index === parsed.data.index) continue;
-        await tx
-          .update(ai_batch_responses)
-          .set({
-            metadata: {
-              ...parsed.data,
-              index: next_index
-            }
-          })
-          .where(
-            and(
-              eq(ai_batch_responses.batch_id, batch_row.batch_id),
-              eq(ai_batch_responses.custom_id, batch_row.custom_id),
-              // Don't overwrite rows finalized concurrently after the initial read
-              sql`${ai_batch_responses.metadata}->>'success' IS NULL`
-            )
-          );
+        batch_metadata_updates.push({
+          batch_id: batch_row.batch_id,
+          custom_id: batch_row.custom_id,
+          metadata: {
+            ...parsed.data,
+            index: next_index
+          }
+        });
+      }
+      if (batch_metadata_updates.length > 0) {
+        const value_rows = batch_metadata_updates.map(
+          (u) =>
+            sql`(${u.batch_id}::text, ${u.custom_id}::text, ${JSON.stringify(u.metadata)}::jsonb)`
+        );
+        await tx.execute(sql`
+          UPDATE ${ai_batch_responses} AS t
+          SET metadata = v.metadata
+          FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(batch_id, custom_id, metadata)
+          WHERE t.batch_id = v.batch_id
+            AND t.custom_id = v.custom_id
+            AND t.metadata->>'success' IS NULL
+        `);
       }
 
       // delete all and then insert

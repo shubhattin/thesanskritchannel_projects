@@ -18,6 +18,7 @@ import { deriveImageBatchUiStatus } from '~/utils/ai_batch/batch_image_status';
 import {
   getOpenAI,
   isResponseItemProcessed,
+  bulkFailUnprocessedBatchResponses,
   markBatchOutputResolvedIfComplete,
   scheduleOpenAiBatchCleanup,
   tryClaimBatchRow,
@@ -228,24 +229,15 @@ export const poll_batch_shloka_image_gen_func = async (
     const openai_status = batch.status;
     if (TERMINAL_FAILURE_STATUSES.has(openai_status)) {
       await db.transaction(async (tx) => {
-        await Promise.all(
-          db_rows
-            .filter(
-              (row) => !isResponseItemProcessed(image_batch_metadata_schema.parse(row.metadata))
-            )
-            .map((row) =>
-              updateBatchResponse(
-                tx,
-                batch_id,
-                row.custom_id,
-                {
-                  ...image_batch_metadata_schema.parse(row.metadata),
-                  success: false
-                },
-                batch_output_file_id
-              )
-            )
-        );
+        const failing = db_rows
+          .filter(
+            (row) => !isResponseItemProcessed(image_batch_metadata_schema.parse(row.metadata))
+          )
+          .map((row) => ({
+            custom_id: row.custom_id,
+            metadata: image_batch_metadata_schema.parse(row.metadata)
+          }));
+        await bulkFailUnprocessedBatchResponses(tx, batch_id, failing, batch_output_file_id);
         await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
       });
       return {

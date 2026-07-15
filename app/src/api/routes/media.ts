@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { eq, inArray } from 'drizzle-orm';
+import { inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { t, protectedProcedure, protectedAdminProcedure } from '../trpc_init';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
@@ -135,14 +135,39 @@ const apply_multimedia_save = async (
     }
   }
 
-  for (const update of updates) {
-    const { id, ...fields } = update;
-    if (Object.keys(fields).length === 0) continue;
-    await tx.update(media_attachment).set(fields).where(eq(media_attachment.id, id));
+  if (updates.length > 0) {
+    // Single statement — do not Promise.all on the same tx connection (neon/postgres-js).
+    const value_rows = updates.map(
+      (u) => sql`(
+        ${u.id}::int,
+        ${u.media_type ?? null}::text,
+        ${u.link ?? null}::text,
+        ${u.name ?? null}::text,
+        ${u.lang_id !== undefined ? u.lang_id : null}::int,
+        ${u.lang_id !== undefined}::boolean
+      )`
+    );
+    await tx.execute(sql`
+      UPDATE ${media_attachment} AS t
+      SET
+        media_type = COALESCE(v.media_type::media_type_enum, t.media_type),
+        link = COALESCE(v.link, t.link),
+        name = COALESCE(v.name, t.name),
+        lang_id = CASE WHEN v.set_lang THEN v.lang_id ELSE t.lang_id END,
+        updated_at = now()
+      FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(id, media_type, link, name, lang_id, set_lang)
+      WHERE t.id = v.id
+    `);
   }
 
-  for (const { id, order } of order_updates) {
-    await tx.update(media_attachment).set({ order }).where(eq(media_attachment.id, id));
+  if (order_updates.length > 0) {
+    const value_rows = order_updates.map(({ id, order }) => sql`(${id}::int, ${order}::int)`);
+    await tx.execute(sql`
+      UPDATE ${media_attachment} AS t
+      SET "order" = v.ord, updated_at = now()
+      FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(id, ord)
+      WHERE t.id = v.id
+    `);
   }
 
   return { id_map };

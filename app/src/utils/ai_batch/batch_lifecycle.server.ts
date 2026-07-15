@@ -152,6 +152,34 @@ export async function updateBatchResponse(
   return true;
 }
 
+/** Bulk-mark unprocessed responses as failed in one statement (avoids N updates / same-tx Promise.all). */
+export async function bulkFailUnprocessedBatchResponses(
+  tx: transactionType,
+  batch_id: string,
+  rows: { custom_id: string; metadata: BatchMetadata }[],
+  output_file_id?: string | null
+) {
+  if (rows.length === 0) return;
+
+  const value_rows = rows.map(
+    (row) =>
+      sql`(${row.custom_id}::text, ${JSON.stringify({ ...row.metadata, success: false })}::jsonb)`
+  );
+  // Single statement — do not Promise.all on the same tx connection (neon/postgres-js).
+  await tx.execute(sql`
+    UPDATE ${ai_batch_responses} AS t
+    SET metadata = v.metadata
+    FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(custom_id, metadata)
+    WHERE t.batch_id = ${batch_id}
+      AND t.custom_id = v.custom_id
+      AND t.metadata->>'success' IS NULL
+  `);
+
+  if (output_file_id != null) {
+    await tx.update(ai_batches).set({ output_file_id }).where(eq(ai_batches.batch_id, batch_id));
+  }
+}
+
 export async function markBatchOutputResolvedIfComplete(
   tx: transactionType,
   batch_id: string,

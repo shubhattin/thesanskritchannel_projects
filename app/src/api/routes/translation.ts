@@ -146,7 +146,7 @@ export async function persist_translations_for_path(args: {
       );
       await tx.execute(sql`
         UPDATE ${translations} AS t
-        SET text = v.text
+        SET text = v.text, updated_at = now()
         FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(index, text)
         WHERE t.project_path_id = ${project_path_id}
           AND t.lang_id = ${lang_id}

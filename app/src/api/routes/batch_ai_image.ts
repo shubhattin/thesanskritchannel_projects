@@ -11,7 +11,7 @@ import {
   projects,
   texts
 } from '~/db/schema';
-import { createAiBatch, getAiBatchResult, type AiBatchInput } from '~/utils/ai_batch';
+import { getAiBatchResult, type AiBatchInput } from '~/utils/ai_batch';
 import type { AiBatchPollingStatus } from '~/utils/ai_batch/types';
 import { getShlokaImageBatchCustomId } from '~/utils/ai_batch/batch_custom_id';
 import { deriveImageBatchUiStatus } from '~/utils/ai_batch/batch_image_status';
@@ -20,19 +20,20 @@ import {
   isResponseItemProcessed,
   bulkFailUnprocessedBatchResponses,
   batchFailureError,
+  claimBatchForRetry,
   discardAiBatchEntirely,
+  enqueueAiBatch,
   errMessage,
   markBatchOutputResolvedIfComplete,
+  releaseBatchRetryClaim,
   scheduleOpenAiBatchCleanup,
   tryClaimBatchRow,
   updateBatchResponse
 } from '~/utils/ai_batch/batch_lifecycle.server';
 import {
-  BATCH_POLLING_INTERVAL_S,
   image_batch_metadata_schema,
   type ImageBatchMetadata
 } from '~/utils/types/ai_batch_metadata';
-import { publishAiBatchResultsQueue } from '~/utils/qstash';
 import { createS3Client } from '~/utils/s3/upload_file.server';
 import {
   deleteImageAssetById,
@@ -43,16 +44,24 @@ import { get_project_info_by_id } from '~/utils/project/list.server';
 import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { get_path_params } from '~/state/project_list';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
-import { available_image_models_schema } from '~/api/routes/ai/ai_types';
+import {
+  available_image_models_schema,
+  DEFAULT_TEXT_AI_MODEL,
+  text_models_enum
+} from '~/api/routes/ai/ai_types';
 import { get_image_prompt_func } from '~/api/routes/ai/get_image_prompt';
 import { getCDNUrl } from '~/utils/cdn';
-import { DEFAULT_TEXT_AI_MODEL, text_models_enum } from '~/api/routes/ai/ai_types';
+import {
+  freshImageRetryMetadata,
+  validateFullyFailedBatchForRetry
+} from '~/utils/ai_batch/batch_retry';
 import {
   trigger_batch_text_translation,
   poll_batch_text_translation,
   approve_text_translation,
   discard_text_translation_batch_response,
   discard_text_translation_batch,
+  retry_failed_text_translation_batch,
   get_text_translation_batch_status,
   list_batch_translation_targets
 } from './batch_ai_text';
@@ -480,58 +489,190 @@ const trigger_batch_shloka_image_gen_route = protectedAdminProcedure
       size: '1024x1024' as const
     }));
 
-    const { batch_id, input_file_id } = await createAiBatch(getOpenAI(), batch_requests);
-    try {
-      await db.transaction(async (tx) => {
-        await tx.insert(ai_batches).values({
-          batch_id,
-          type: 'image',
-          input_file_id
+    return enqueueAiBatch({
+      batch_type: 'image',
+      batch_requests,
+      response_rows: resolved.map((item) => ({
+        custom_id: item.custom_id,
+        auto_approved,
+        metadata: {
+          type: 'shloka-image' as const,
+          project_id,
+          project_path_id: projectPath.id,
+          path_params,
+          index: item.index,
+          image_prompt: item.image_prompt
+        }
+      }))
+    });
+  });
+
+const DEFAULT_RETRY_IMAGE_MODEL = available_image_models_schema.parse('gpt-image-2');
+
+export const retry_failed_shloka_image_batch_func = async (source_batch_id: string) => {
+  type Claimed = {
+    resolved: {
+      custom_id: string;
+      auto_approved: boolean;
+      metadata: ReturnType<typeof freshImageRetryMetadata>;
+    }[];
+    image_ids: number[];
+  };
+
+  let claimed: Awaited<ReturnType<typeof claimBatchForRetry<Claimed>>>;
+  try {
+    claimed = await claimBatchForRetry({
+      batch_id: source_batch_id,
+      batch_type: 'image',
+      validateAndMap: async (batch, responses) => {
+        const parsed_rows: {
+          custom_id: string;
+          auto_approved: boolean;
+          metadata: ImageBatchMetadata;
+        }[] = [];
+        for (const row of responses) {
+          const parsed = image_batch_metadata_schema.safeParse(row.metadata);
+          if (!parsed.success) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Cannot retry batch: response ${row.custom_id} has invalid metadata`
+            });
+          }
+          parsed_rows.push({
+            custom_id: row.custom_id,
+            auto_approved: row.auto_approved,
+            metadata: parsed.data
+          });
+        }
+
+        const gate = validateFullyFailedBatchForRetry({
+          batch: { output_resolved: batch.output_resolved, responses: parsed_rows }
         });
-        await tx.insert(ai_batch_responses).values(
-          resolved.map((item) => ({
-            batch_id,
-            custom_id: item.custom_id,
-            auto_approved,
-            metadata: {
-              type: 'shloka-image' as const,
-              project_id,
-              project_path_id: projectPath.id,
-              path_params,
-              index: item.index,
-              image_prompt: item.image_prompt
-            }
-          }))
-        );
+        if (!gate.ok) {
+          throw new TRPCError({ code: gate.code, message: gate.message });
+        }
+
+        const orphan_indexes = parsed_rows.filter((row) => row.metadata.index === null);
+        if (orphan_indexes.length > 0) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Cannot retry ${orphan_indexes.length} item(s) with missing text index (source row was deleted/orphaned)`
+          });
+        }
+
+        const by_path = new Map<number, typeof parsed_rows>();
+        for (const row of parsed_rows) {
+          const list = by_path.get(row.metadata.project_path_id) ?? [];
+          list.push(row);
+          by_path.set(row.metadata.project_path_id, list);
+        }
+        for (const [project_path_id, rows] of by_path) {
+          await assertNoUnresolvedDuplicates(
+            project_path_id,
+            rows.map((row) => row.metadata.index!)
+          );
+        }
+
+        return {
+          resolved: parsed_rows.map((row) => {
+            const metadata = freshImageRetryMetadata(row.metadata);
+            return {
+              auto_approved: row.auto_approved,
+              metadata,
+              custom_id: getShlokaImageBatchCustomId(
+                metadata.project_id,
+                metadata.path_params,
+                metadata.index!
+              )
+            };
+          }),
+          image_ids: parsed_rows.flatMap((row) =>
+            row.metadata.uploaded_image_id !== undefined ? [row.metadata.uploaded_image_id] : []
+          )
+        };
+      }
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === 'BATCH_NOT_FOUND') {
+      throw new TRPCError({
+        code: 'CONFLICT',
+        message: 'Batch was already retried or discarded'
       });
-      await publishAiBatchResultsQueue({ batch_id, poll_attempt: 0 }, BATCH_POLLING_INTERVAL_S);
+    }
+    throw err;
+  }
+
+  const { resolved, image_ids } = claimed.mapped;
+
+  const batch_requests: AiBatchInput[] = resolved.map((item) => ({
+    type: 'image' as const,
+    custom_id: item.custom_id,
+    prompt: item.metadata.image_prompt,
+    model: DEFAULT_RETRY_IMAGE_MODEL,
+    quality: 'medium' as const,
+    size: '1024x1024' as const
+  }));
+
+  try {
+    const created = await enqueueAiBatch({
+      batch_type: 'image',
+      batch_requests,
+      response_rows: resolved.map((item) => ({
+        custom_id: item.custom_id,
+        auto_approved: item.auto_approved,
+        metadata: item.metadata
+      }))
+    });
+
+    let source_cleaned = true;
+    try {
+      await discardAiBatchEntirely(source_batch_id);
     } catch (err) {
-      await db
-        .delete(ai_batch_responses)
-        .where(eq(ai_batch_responses.batch_id, batch_id))
-        .catch((cleanup_err) => {
-          console.error(`Failed to delete orphaned batch responses ${batch_id}:`, cleanup_err);
-        });
-      await db
-        .delete(ai_batches)
-        .where(eq(ai_batches.batch_id, batch_id))
-        .catch((cleanup_err) => {
-          console.error(`Failed to delete orphaned ai_batches row ${batch_id}:`, cleanup_err);
-        });
-      await getOpenAI()
-        .batches.cancel(batch_id)
-        .catch((cancel_err) => {
-          console.error(`Failed to cancel orphaned OpenAI batch ${batch_id}:`, cancel_err);
-        });
-      throw err;
+      source_cleaned = false;
+      console.error(`Failed to clean up source image batch ${source_batch_id} after retry:`, err);
     }
 
-    return { batch_id, item_count: resolved.length };
-  });
+    for (const image_id of image_ids) {
+      try {
+        await deleteImageAssetById(image_id, { s3Client: getS3Client() });
+      } catch (err) {
+        console.error(`Failed to delete staged image ${image_id} after retry:`, err);
+      }
+    }
+
+    return {
+      ...created,
+      source_batch_id,
+      source_cleaned
+    };
+  } catch (err) {
+    await releaseBatchRetryClaim(source_batch_id).catch((release_err) => {
+      console.error(
+        `Failed to release retry claim for image batch ${source_batch_id}:`,
+        release_err
+      );
+    });
+    for (const image_id of image_ids) {
+      try {
+        await deleteImageAssetById(image_id, { s3Client: getS3Client() });
+      } catch (cleanup_err) {
+        console.error(
+          `Failed to delete staged image ${image_id} after failed retry enqueue:`,
+          cleanup_err
+        );
+      }
+    }
+    throw err;
+  }
+};
 
 const poll_batch_shloka_image_gen_route = protectedAdminProcedure
   .input(z.object({ batch_id: z.string() }))
   .mutation(async ({ input: { batch_id } }) => poll_batch_shloka_image_gen_func(batch_id));
+
+const retry_failed_shloka_image_batch_route = protectedAdminProcedure
+  .input(z.object({ batch_id: z.string() }))
+  .mutation(async ({ input: { batch_id } }) => retry_failed_shloka_image_batch_func(batch_id));
 
 const approve_shloka_image_route = protectedAdminProcedure
   .input(z.object({ batch_id: z.string(), custom_id: z.string() }))
@@ -873,6 +1014,7 @@ const get_batch_manager_groups_route = protectedAdminProcedure
 export const batch_ai_router = t.router({
   trigger_batch_shloka_image_gen: trigger_batch_shloka_image_gen_route,
   poll_batch_shloka_image_gen: poll_batch_shloka_image_gen_route,
+  retry_failed_shloka_image_batch: retry_failed_shloka_image_batch_route,
   approve_shloka_image: approve_shloka_image_route,
   discard_shloka_image_batch_response: discard_shloka_image_batch_response_route,
   discard_shloka_image_batch: discard_shloka_image_batch_route,
@@ -883,6 +1025,7 @@ export const batch_ai_router = t.router({
   approve_text_translation,
   discard_text_translation_batch_response,
   discard_text_translation_batch,
+  retry_failed_text_translation_batch,
   get_text_translation_batch_status,
   list_batch_translation_targets
 });

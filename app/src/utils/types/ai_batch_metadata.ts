@@ -34,7 +34,9 @@ export const image_batch_metadata_schema = z.object({
   /** Optional error dump (would be useful for later debugging) */
   error: z.any().optional(),
   /** set while a poll worker is processing this row */
-  poll_claimed_at: z.string().optional()
+  poll_claimed_at: z.string().optional(),
+  /** set while a retry request owns this completed failed row */
+  retry_claimed_at: z.string().optional()
 });
 
 export const text_translation_batch_metadata_schema = z.object({
@@ -60,7 +62,9 @@ export const text_translation_batch_metadata_schema = z.object({
   /** translated data with DB indexes (after successful batch completion) */
   translated_data: translation_out_schema.array().optional(),
   /** set while a poll worker is processing this row */
-  poll_claimed_at: z.string().optional()
+  poll_claimed_at: z.string().optional(),
+  /** set while a retry request owns this completed failed row */
+  retry_claimed_at: z.string().optional()
 });
 
 export const batch_metadata_schema = z.discriminatedUnion('type', [

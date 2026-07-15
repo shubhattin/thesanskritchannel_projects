@@ -4,7 +4,13 @@ import ms from 'ms';
 import { waitUntil } from '@vercel/functions';
 import { db, type transactionType } from '~/db/db';
 import { ai_batches, ai_batch_responses } from '~/db/schema';
-import { batch_metadata_schema, type BatchMetadata } from '~/utils/types/ai_batch_metadata';
+import { createAiBatch, type AiBatchInput } from '~/utils/ai_batch';
+import {
+  BATCH_POLLING_INTERVAL_S,
+  batch_metadata_schema,
+  type BatchMetadata
+} from '~/utils/types/ai_batch_metadata';
+import { publishAiBatchResultsQueue } from '~/utils/qstash';
 import { env } from '$env/dynamic/private';
 
 /** Lazy: avoid SDK constructors during SvelteKit postbuild analyse (private env empty). */
@@ -94,8 +100,134 @@ export function errMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+/**
+ * Lock and mark a source batch as retrying. The source stays intact until the
+ * replacement batch is persisted, so enqueue failures remain recoverable.
+ */
+export async function claimBatchForRetry<T>(args: {
+  batch_id: string;
+  batch_type: 'image' | 'object';
+  validateAndMap: (
+    batch: typeof ai_batches.$inferSelect,
+    responses: (typeof ai_batch_responses.$inferSelect)[]
+  ) => T | Promise<T>;
+}): Promise<{
+  mapped: T;
+  input_file_id: string;
+  output_file_id: string | null;
+}> {
+  return db.transaction(async (tx) => {
+    const batches = await tx
+      .select()
+      .from(ai_batches)
+      .where(and(eq(ai_batches.batch_id, args.batch_id), eq(ai_batches.type, args.batch_type)))
+      .for('update')
+      .limit(1);
+    const batch = batches[0];
+    if (!batch) {
+      throw new Error('BATCH_NOT_FOUND');
+    }
+
+    const responses = await tx
+      .select()
+      .from(ai_batch_responses)
+      .where(eq(ai_batch_responses.batch_id, args.batch_id))
+      .for('update');
+
+    const mapped = await args.validateAndMap(batch, responses);
+
+    const retry_claimed_at = new Date().toISOString();
+    for (const response of responses) {
+      const metadata = batch_metadata_schema.parse(response.metadata);
+      await tx
+        .update(ai_batch_responses)
+        .set({ metadata: { ...metadata, retry_claimed_at } })
+        .where(
+          and(
+            eq(ai_batch_responses.batch_id, args.batch_id),
+            eq(ai_batch_responses.custom_id, response.custom_id)
+          )
+        );
+    }
+
+    return {
+      mapped,
+      input_file_id: batch.input_file_id,
+      output_file_id: batch.output_file_id
+    };
+  });
+}
+
+export async function releaseBatchRetryClaim(batch_id: string) {
+  await db.execute(sql`
+    UPDATE ${ai_batch_responses}
+    SET metadata = metadata - 'retry_claimed_at'
+    WHERE batch_id = ${batch_id}
+  `);
+}
+
 export function isResponseItemProcessed(metadata: BatchMetadata): boolean {
   return metadata.success !== undefined;
+}
+
+/** Create OpenAI batch, persist rows, schedule poll — rollback OpenAI+DB on insert failure. */
+export async function enqueueAiBatch(args: {
+  batch_type: 'image' | 'object';
+  batch_requests: AiBatchInput[];
+  response_rows: {
+    custom_id: string;
+    auto_approved: boolean;
+    metadata: BatchMetadata;
+  }[];
+}): Promise<{ batch_id: string; item_count: number }> {
+  const { batch_type, batch_requests, response_rows } = args;
+  if (batch_requests.length === 0 || response_rows.length === 0) {
+    throw new Error('enqueueAiBatch requires at least one request/response row');
+  }
+  if (batch_requests.length !== response_rows.length) {
+    throw new Error('enqueueAiBatch request/response row counts must match');
+  }
+
+  const { batch_id, input_file_id } = await createAiBatch(getOpenAI(), batch_requests);
+  try {
+    await db.transaction(async (tx) => {
+      await tx.insert(ai_batches).values({
+        batch_id,
+        type: batch_type,
+        input_file_id
+      });
+      await tx.insert(ai_batch_responses).values(
+        response_rows.map((row) => ({
+          batch_id,
+          custom_id: row.custom_id,
+          auto_approved: row.auto_approved,
+          metadata: row.metadata
+        }))
+      );
+    });
+    await publishAiBatchResultsQueue({ batch_id, poll_attempt: 0 }, BATCH_POLLING_INTERVAL_S);
+  } catch (err) {
+    await db
+      .delete(ai_batch_responses)
+      .where(eq(ai_batch_responses.batch_id, batch_id))
+      .catch((cleanup_err) => {
+        console.error(`Failed to delete orphaned batch responses ${batch_id}:`, cleanup_err);
+      });
+    await db
+      .delete(ai_batches)
+      .where(eq(ai_batches.batch_id, batch_id))
+      .catch((cleanup_err) => {
+        console.error(`Failed to delete orphaned ai_batches row ${batch_id}:`, cleanup_err);
+      });
+    await getOpenAI()
+      .batches.cancel(batch_id)
+      .catch((cancel_err) => {
+        console.error(`Failed to cancel orphaned OpenAI batch ${batch_id}:`, cancel_err);
+      });
+    throw err;
+  }
+
+  return { batch_id, item_count: response_rows.length };
 }
 
 export async function tryClaimBatchRow(batch_id: string, custom_id: string) {

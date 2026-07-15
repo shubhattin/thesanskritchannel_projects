@@ -44,6 +44,8 @@
   let review_translation_item = $state<TranslationItem | null>(null);
   let discard_translation_item = $state<TranslationItem | null>(null);
   let discard_translation_batch_id = $state<string | null>(null);
+  let retry_image_batch_id = $state<string | null>(null);
+  let retry_translation_batch_id = $state<string | null>(null);
   let polling_image_batch_id = $state<string | null>(null);
   let polling_translation_batch_id = $state<string | null>(null);
 
@@ -205,13 +207,46 @@
     onError: (err) => toast.error(err.message || 'Failed to discard batch')
   }));
 
+  const retry_image_batch_mut = createMutation(() => ({
+    mutationFn: (batch_id: string) =>
+      client.batch_ai_image.retry_failed_shloka_image_batch.mutate({ batch_id }),
+    onSuccess: async (data) => {
+      await invalidate_batch_ai_queries();
+      toast.success(
+        `Retried ${data.item_count} item(s) as batch ${data.batch_id}${
+          data.source_cleaned ? '' : ' (old batch cleanup failed — discard manually)'
+        }`
+      );
+      retry_image_batch_id = null;
+      await image_groups_q.refetch();
+    },
+    onError: (err) => toast.error(err.message || 'Failed to retry batch')
+  }));
+
+  const retry_translation_batch_mut = createMutation(() => ({
+    mutationFn: (batch_id: string) =>
+      client.batch_ai_image.retry_failed_text_translation_batch.mutate({ batch_id }),
+    onSuccess: async (data) => {
+      await invalidate_batch_ai_queries();
+      toast.success(
+        `Retried ${data.item_count} item(s) as batch ${data.batch_id}${
+          data.source_cleaned ? '' : ' (old batch cleanup failed — discard manually)'
+        }`
+      );
+      retry_translation_batch_id = null;
+      await translation_groups_q.refetch();
+    },
+    onError: (err) => toast.error(err.message || 'Failed to retry batch')
+  }));
+
   const can_discard_image = (item: ImageItem) =>
     item.status === 'processing' || item.status === 'ready_for_review' || item.status === 'failed';
 
   const can_discard_translation = (item: TranslationItem) =>
     item.status === 'processing' || item.status === 'ready_for_review' || item.status === 'failed';
 
-  const can_discard_batch = (group: {
+  /** Same gate for discard-all and retry: resolved + only failed rows remain. */
+  const can_retry_or_discard_failed_batch = (group: {
     output_resolved: boolean;
     counts: { failed: number; ready: number; pending: number };
   }) =>
@@ -219,6 +254,9 @@
     group.counts.failed > 0 &&
     group.counts.ready === 0 &&
     group.counts.pending === 0;
+
+  const can_discard_batch = can_retry_or_discard_failed_batch;
+  const can_retry_batch = can_retry_or_discard_failed_batch;
 
   const is_discarding_image_item = (item: ImageItem | null) =>
     !!item &&
@@ -381,6 +419,17 @@
                     OpenAI batch
                     <Icon src={OiLinkExternal16} class="text-sm" />
                   </a>
+                  {#if can_retry_batch(group)}
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={retry_image_batch_mut.isPending &&
+                        retry_image_batch_mut.variables === group.batch_id}
+                      onclick={() => (retry_image_batch_id = group.batch_id)}
+                    >
+                      Retry failed tasks
+                    </Button>
+                  {/if}
                   {#if can_discard_batch(group)}
                     <Button
                       size="sm"
@@ -546,6 +595,17 @@
                     OpenAI batch
                     <Icon src={OiLinkExternal16} class="text-sm" />
                   </a>
+                  {#if can_retry_batch(group)}
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={retry_translation_batch_mut.isPending &&
+                        retry_translation_batch_mut.variables === group.batch_id}
+                      onclick={() => (retry_translation_batch_id = group.batch_id)}
+                    >
+                      Retry failed tasks
+                    </Button>
+                  {/if}
                   {#if can_discard_batch(group)}
                     <Button
                       size="sm"
@@ -839,6 +899,63 @@
           discard_translation_batch_mut.mutate(discard_translation_batch_id)}
       >
         {discard_translation_batch_mut.isPending ? 'Discarding…' : 'Discard batch'}
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root
+  open={!!retry_image_batch_id}
+  onOpenChange={(v) => {
+    if (!v) retry_image_batch_id = null;
+  }}
+>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Retry failed image tasks?</AlertDialog.Title>
+      <AlertDialog.Description>
+        Creates a new OpenAI batch from these failed items using the current default image model,
+        then deletes this failed batch and its OpenAI input/output files.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel disabled={retry_image_batch_mut.isPending}>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Action
+        disabled={retry_image_batch_mut.isPending || !retry_image_batch_id}
+        onclick={() => retry_image_batch_id && retry_image_batch_mut.mutate(retry_image_batch_id)}
+      >
+        {retry_image_batch_mut.isPending ? 'Retrying…' : 'Retry failed tasks'}
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root
+  open={!!retry_translation_batch_id}
+  onOpenChange={(v) => {
+    if (!v) retry_translation_batch_id = null;
+  }}
+>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Retry failed translation tasks?</AlertDialog.Title>
+      <AlertDialog.Description>
+        Creates a new OpenAI batch from these failed paths using the current default text model
+        (prompts rebuilt from current source text), then deletes this failed batch and its OpenAI
+        input/output files.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel disabled={retry_translation_batch_mut.isPending}
+        >Cancel</AlertDialog.Cancel
+      >
+      <AlertDialog.Action
+        disabled={retry_translation_batch_mut.isPending || !retry_translation_batch_id}
+        onclick={() =>
+          retry_translation_batch_id &&
+          retry_translation_batch_mut.mutate(retry_translation_batch_id)}
+      >
+        {retry_translation_batch_mut.isPending ? 'Retrying…' : 'Retry failed tasks'}
       </AlertDialog.Action>
     </AlertDialog.Footer>
   </AlertDialog.Content>

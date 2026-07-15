@@ -11,7 +11,7 @@ import {
   texts,
   translations
 } from '~/db/schema';
-import { createAiBatch, getAiBatchResult, type AiBatchInput } from '~/utils/ai_batch';
+import { getAiBatchResult, type AiBatchInput } from '~/utils/ai_batch';
 import type { AiBatchPollingStatus } from '~/utils/ai_batch/types';
 import { getTextTranslationBatchCustomId } from '~/utils/ai_batch/batch_custom_id';
 import {
@@ -27,19 +27,24 @@ import {
   isResponseItemProcessed,
   bulkFailUnprocessedBatchResponses,
   batchFailureError,
+  claimBatchForRetry,
   discardAiBatchEntirely,
+  enqueueAiBatch,
   mapWithConcurrency,
   markBatchOutputResolvedIfComplete,
+  releaseBatchRetryClaim,
   scheduleOpenAiBatchCleanup,
   tryClaimBatchRow,
   updateBatchResponse
 } from '~/utils/ai_batch/batch_lifecycle.server';
 import {
-  BATCH_POLLING_INTERVAL_S,
   text_translation_batch_metadata_schema,
   type TextTranslationBatchMetadata
 } from '~/utils/types/ai_batch_metadata';
-import { publishAiBatchResultsQueue } from '~/utils/qstash';
+import {
+  freshTextRetryMetadata,
+  validateFullyFailedBatchForRetry
+} from '~/utils/ai_batch/batch_retry';
 import {
   get_project_by_id,
   get_project_info_by_id,
@@ -628,59 +633,195 @@ const trigger_batch_text_translation_route = protectedAdminProcedure
       reasoning: { effort: 'low' as const }
     }));
 
-    const { batch_id, input_file_id } = await createAiBatch(getOpenAI(), batch_requests);
-    try {
-      await db.transaction(async (tx) => {
-        await tx.insert(ai_batches).values({
-          batch_id,
-          type: 'object',
-          input_file_id
+    return enqueueAiBatch({
+      batch_type: 'object',
+      batch_requests,
+      response_rows: resolved.map((item) => ({
+        custom_id: item.custom_id,
+        auto_approved,
+        metadata: {
+          type: 'text-translation' as const,
+          project_id,
+          project_path_id: item.project_path_id,
+          path_params: item.path_params,
+          lang_id,
+          include_english_context,
+          source_indexes: item.source_indexes
+        } satisfies TextTranslationBatchMetadata
+      }))
+    });
+  });
+
+export const retry_failed_text_translation_batch_func = async (source_batch_id: string) => {
+  type Claimed = {
+    project_id: number;
+    lang_id: number;
+    resolved: {
+      auto_approved: boolean;
+      path_params: number[];
+      project_path_id: number;
+      source_indexes: number[];
+      prompts: { system_prompt: string; user_prompt: string };
+      include_english_context: boolean;
+      custom_id: string;
+    }[];
+  };
+
+  let claimed: Awaited<ReturnType<typeof claimBatchForRetry<Claimed>>>;
+  try {
+    claimed = await claimBatchForRetry({
+      batch_id: source_batch_id,
+      batch_type: 'object',
+      validateAndMap: async (batch, responses) => {
+        const parsed_rows: {
+          custom_id: string;
+          auto_approved: boolean;
+          metadata: TextTranslationBatchMetadata;
+        }[] = [];
+        for (const row of responses) {
+          const parsed = text_translation_batch_metadata_schema.safeParse(row.metadata);
+          if (!parsed.success) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Cannot retry batch: response ${row.custom_id} has invalid metadata`
+            });
+          }
+          parsed_rows.push({
+            custom_id: row.custom_id,
+            auto_approved: row.auto_approved,
+            metadata: parsed.data
+          });
+        }
+
+        const gate = validateFullyFailedBatchForRetry({
+          batch: { output_resolved: batch.output_resolved, responses: parsed_rows }
         });
-        await tx.insert(ai_batch_responses).values(
-          resolved.map((item) => ({
-            batch_id,
-            custom_id: item.custom_id,
-            auto_approved,
-            metadata: {
-              type: 'text-translation' as const,
+        if (!gate.ok) {
+          throw new TRPCError({ code: gate.code, message: gate.message });
+        }
+
+        const lang_ids = new Set(parsed_rows.map((row) => row.metadata.lang_id));
+        if (lang_ids.size !== 1) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Cannot retry a batch that mixes multiple target languages'
+          });
+        }
+        const project_ids = new Set(parsed_rows.map((row) => row.metadata.project_id));
+        if (project_ids.size !== 1) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Cannot retry a batch that mixes multiple projects'
+          });
+        }
+
+        const lang_id = parsed_rows[0]!.metadata.lang_id;
+        const project_id = parsed_rows[0]!.metadata.project_id;
+
+        const resolved = await Promise.all(
+          parsed_rows.map(async (row) => {
+            const ctx = await load_leaf_text_context({
               project_id,
-              project_path_id: item.project_path_id,
-              path_params: item.path_params,
+              path_params: row.metadata.path_params,
               lang_id,
-              include_english_context,
-              source_indexes: item.source_indexes
-            } satisfies TextTranslationBatchMetadata
-          }))
+              include_english_context: row.metadata.include_english_context
+            });
+            return {
+              auto_approved: row.auto_approved,
+              path_params: row.metadata.path_params,
+              project_path_id: ctx.projectPath.id,
+              source_indexes: ctx.source_indexes,
+              prompts: ctx.prompts,
+              include_english_context: row.metadata.include_english_context,
+              custom_id: getTextTranslationBatchCustomId(project_id, row.metadata.path_params)
+            };
+          })
         );
+
+        // Conflict-check live path ids from context, not stale metadata snapshots.
+        await assertNoUnresolvedTranslationDuplicates(
+          resolved.map((item) => item.project_path_id),
+          lang_id
+        );
+
+        return { project_id, lang_id, resolved };
+      }
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === 'BATCH_NOT_FOUND') {
+      throw new TRPCError({
+        code: 'CONFLICT',
+        message: 'Batch was already retried or discarded'
       });
-      await publishAiBatchResultsQueue({ batch_id, poll_attempt: 0 }, BATCH_POLLING_INTERVAL_S);
+    }
+    throw err;
+  }
+
+  const { project_id, lang_id, resolved } = claimed.mapped;
+
+  const batch_requests: AiBatchInput[] = resolved.map((item) => ({
+    type: 'object' as const,
+    custom_id: item.custom_id,
+    model: DEFAULT_TEXT_AI_MODEL,
+    instructions: item.prompts.system_prompt,
+    input: item.prompts.user_prompt,
+    output_schema: batch_translation_object_schema,
+    output_schema_name: 'translations_text_schema',
+    reasoning: { effort: 'low' as const }
+  }));
+
+  try {
+    const created = await enqueueAiBatch({
+      batch_type: 'object',
+      batch_requests,
+      response_rows: resolved.map((item) => ({
+        custom_id: item.custom_id,
+        auto_approved: item.auto_approved,
+        metadata: freshTextRetryMetadata({
+          project_id,
+          project_path_id: item.project_path_id,
+          path_params: item.path_params,
+          lang_id,
+          include_english_context: item.include_english_context,
+          source_indexes: item.source_indexes
+        })
+      }))
+    });
+
+    let source_cleaned = true;
+    try {
+      await discardAiBatchEntirely(source_batch_id);
     } catch (err) {
-      await db
-        .delete(ai_batch_responses)
-        .where(eq(ai_batch_responses.batch_id, batch_id))
-        .catch((cleanup_err) => {
-          console.error(`Failed to delete orphaned batch responses ${batch_id}:`, cleanup_err);
-        });
-      await db
-        .delete(ai_batches)
-        .where(eq(ai_batches.batch_id, batch_id))
-        .catch((cleanup_err) => {
-          console.error(`Failed to delete orphaned ai_batches row ${batch_id}:`, cleanup_err);
-        });
-      await getOpenAI()
-        .batches.cancel(batch_id)
-        .catch((cancel_err) => {
-          console.error(`Failed to cancel orphaned OpenAI batch ${batch_id}:`, cancel_err);
-        });
-      throw err;
+      source_cleaned = false;
+      console.error(
+        `Failed to clean up source translation batch ${source_batch_id} after retry:`,
+        err
+      );
     }
 
-    return { batch_id, item_count: resolved.length };
-  });
+    return {
+      ...created,
+      source_batch_id,
+      source_cleaned
+    };
+  } catch (err) {
+    await releaseBatchRetryClaim(source_batch_id).catch((release_err) => {
+      console.error(
+        `Failed to release retry claim for translation batch ${source_batch_id}:`,
+        release_err
+      );
+    });
+    throw err;
+  }
+};
 
 const poll_batch_text_translation_route = protectedAdminProcedure
   .input(z.object({ batch_id: z.string() }))
   .mutation(async ({ input: { batch_id } }) => poll_batch_text_translation_func(batch_id));
+
+const retry_failed_text_translation_batch_route = protectedAdminProcedure
+  .input(z.object({ batch_id: z.string() }))
+  .mutation(async ({ input: { batch_id } }) => retry_failed_text_translation_batch_func(batch_id));
 
 const approve_text_translation_route = protectedAdminProcedure
   .input(z.object({ batch_id: z.string(), custom_id: z.string() }))
@@ -1117,6 +1258,7 @@ export const approve_text_translation = approve_text_translation_route;
 export const discard_text_translation_batch_response =
   discard_text_translation_batch_response_route;
 export const discard_text_translation_batch = discard_text_translation_batch_route;
+export const retry_failed_text_translation_batch = retry_failed_text_translation_batch_route;
 export const get_text_translation_batch_status = get_text_translation_batch_status_route;
 export const list_batch_translation_targets = list_batch_translation_targets_route;
 
@@ -1126,6 +1268,7 @@ export const batch_ai_text_router = t.router({
   approve_text_translation: approve_text_translation_route,
   discard_text_translation_batch_response: discard_text_translation_batch_response_route,
   discard_text_translation_batch: discard_text_translation_batch_route,
+  retry_failed_text_translation_batch: retry_failed_text_translation_batch_route,
   get_text_translation_batch_status: get_text_translation_batch_status_route,
   list_batch_translation_targets: list_batch_translation_targets_route,
   get_text_translation_batch_manager_groups: get_text_translation_batch_manager_groups_route

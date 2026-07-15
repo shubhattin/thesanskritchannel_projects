@@ -15,6 +15,7 @@ import {
 import { get_project_by_id } from '~/utils/project/list.server';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
 import { createS3Client, getAssetFile } from '~/utils/s3/upload_file.server';
+import { webp_to_png } from '~/utils/sharp/lossweb_compress';
 
 export const config: Config = {
   split: true,
@@ -37,7 +38,7 @@ export const POST: RequestHandler = async ({ request }) => {
     throw error(400, parsed.error.issues[0]?.message ?? 'Invalid request body');
   }
 
-  const { project_id, path_params, files, zip_file_name } = parsed.data;
+  const { project_id, path_params, files, zip_file_name, format } = parsed.data;
 
   const image_ids = files.map((f) => f.image_id);
   if (new Set(image_ids).size !== image_ids.length) {
@@ -81,7 +82,7 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   const s3_by_id = new Map(rows.map((r) => [r.id, r.s3_key] as const));
-  const zip_files = uniquifyZipFilenames(files);
+  const zip_files = uniquifyZipFilenames(files, format);
   const s3Client = createS3Client();
   const zip = new JSZip();
 
@@ -89,7 +90,8 @@ export const POST: RequestHandler = async ({ request }) => {
     for (const file of zip_files) {
       const s3_key = s3_by_id.get(file.image_id);
       if (!s3_key) throw error(404, `Image not found: ${file.image_id}`);
-      const buffer = await getAssetFile(s3_key, { s3Client });
+      const webp_buffer = await getAssetFile(s3_key, { s3Client });
+      const buffer = format === 'png' ? (await webp_to_png(webp_buffer)).buffer : webp_buffer;
       zip.file(file.filename, buffer, { compression: 'STORE' });
     }
 

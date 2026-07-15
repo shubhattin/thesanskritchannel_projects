@@ -7,9 +7,7 @@ import {
 
 describe('buildAiImagesZipFileName', () => {
   it('includes path segments when present', () => {
-    expect(buildAiImagesZipFileName('ramayanam', [1, 2])).toBe(
-      'ramayanam 1:2 (AI Images).zip'
-    );
+    expect(buildAiImagesZipFileName('ramayanam', [1, 2])).toBe('ramayanam 1:2 (AI Images).zip');
   });
 
   it('omits empty path', () => {
@@ -18,27 +16,30 @@ describe('buildAiImagesZipFileName', () => {
 });
 
 describe('uniquifyZipFilenames', () => {
-  it('keeps the first name and suffixes later collisions', () => {
+  it('defaults to png and suffixes collisions', () => {
     const out = uniquifyZipFilenames([
-      { filename: 'Image Index No. 3 Shloka No. 12.webp', image_id: 1 },
-      { filename: 'Image Index No. 3 Shloka No. 12.webp', image_id: 2 },
+      { filename: 'Image Index No. 3 Shloka No. 12', image_id: 1 },
+      { filename: 'Image Index No. 3 Shloka No. 12.png', image_id: 2 },
       { filename: 'Image Index No. 3 Shloka No. 12.webp', image_id: 3 },
-      { filename: 'Image Index No. orphan.webp', image_id: 4 }
+      { filename: 'Image Index No. orphan', image_id: 4 }
     ]);
     expect(out.map((f) => f.filename)).toEqual([
-      'Image Index No. 3 Shloka No. 12.webp',
-      'Image Index No. 3 Shloka No. 12 (2).webp',
-      'Image Index No. 3 Shloka No. 12 (3).webp',
-      'Image Index No. orphan.webp'
+      'Image Index No. 3 Shloka No. 12.png',
+      'Image Index No. 3 Shloka No. 12 (2).png',
+      'Image Index No. 3 Shloka No. 12 (3).png',
+      'Image Index No. orphan.png'
     ]);
     expect(out.map((f) => f.image_id)).toEqual([1, 2, 3, 4]);
   });
 
-  it('adds .webp when missing', () => {
-    const out = uniquifyZipFilenames([
-      { filename: 'Image Index No. 1', image_id: 9 },
-      { filename: 'Image Index No. 1', image_id: 10 }
-    ]);
+  it('uses webp when requested', () => {
+    const out = uniquifyZipFilenames(
+      [
+        { filename: 'Image Index No. 1', image_id: 9 },
+        { filename: 'Image Index No. 1', image_id: 10 }
+      ],
+      'webp'
+    );
     expect(out.map((f) => f.filename)).toEqual([
       'Image Index No. 1.webp',
       'Image Index No. 1 (2).webp'
@@ -47,14 +48,25 @@ describe('uniquifyZipFilenames', () => {
 });
 
 describe('download_images_zip_input_schema', () => {
-  it('accepts a valid payload', () => {
+  it('defaults format to png', () => {
     const parsed = download_images_zip_input_schema.parse({
       zip_file_name: 'ramayanam 1:2 (AI Images).zip',
       project_id: 12,
       path_params: [1, 2],
+      files: [{ filename: 'Image Index No. 0.png', image_id: 44 }]
+    });
+    expect(parsed.format).toBe('png');
+  });
+
+  it('accepts webp format', () => {
+    const parsed = download_images_zip_input_schema.parse({
+      zip_file_name: 'ramayanam 1:2 (AI Images).zip',
+      project_id: 12,
+      path_params: [1, 2],
+      format: 'webp',
       files: [{ filename: 'Image Index No. 0.webp', image_id: 44 }]
     });
-    expect(parsed.files).toHaveLength(1);
+    expect(parsed.format).toBe('webp');
   });
 
   it('rejects path separators in filenames', () => {

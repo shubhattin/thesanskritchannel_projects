@@ -3,8 +3,10 @@
   import { toast } from 'svelte-sonner';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Carousel from '$lib/components/ui/carousel';
+  import * as RadioGroup from '$lib/components/ui/radio-group';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
+  import { Label } from '$lib/components/ui/label';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
@@ -25,7 +27,8 @@
   import { fetch_post } from '~/tools/fetch';
   import {
     buildAiImagesZipFileName,
-    uniquifyZipFilenames
+    uniquifyZipFilenames,
+    type DownloadImagesZipFormat
   } from '~/utils/image_assets/download_images_zip';
 
   type Props = {
@@ -47,6 +50,7 @@
   let selected_ids = $state<Set<number>>(new Set());
   let processing = $state(false);
   let selection_seeded = $state(false);
+  let format = $state<DownloadImagesZipFormat>('png');
 
   const text_data_q = createQuery(() =>
     active_text_data_q_options(
@@ -120,6 +124,7 @@
       return;
     }
     if (selection_seeded || !images_q.data) return;
+    format = 'png';
     const next = new Set<number>();
     const seen_indexes = new Set<string>();
     for (const item of images_q.data) {
@@ -149,8 +154,9 @@
       const files = uniquifyZipFilenames(
         selected_items.map((item) => ({
           image_id: item.image.id,
-          filename: `${buildImageAssetDownloadBasename(item.index, item.shloka_num)}.webp`
-        }))
+          filename: buildImageAssetDownloadBasename(item.index, item.shloka_num)
+        })),
+        format
       );
 
       const req = await fetch_post('/api/download_images_zip', {
@@ -158,6 +164,7 @@
           zip_file_name,
           project_id: $project_state.project_id,
           path_params,
+          format,
           files
         }
       });
@@ -181,7 +188,7 @@
 </script>
 
 <Dialog.Root
-  open={open}
+  {open}
   onOpenChange={(next) => {
     if (processing && !next) return;
     open = next;
@@ -214,6 +221,24 @@
         </Dialog.Description>
       </Dialog.Header>
 
+      <fieldset class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <legend class="text-sm font-medium">Format</legend>
+        <RadioGroup.Root bind:value={format} class="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <div class="flex items-center gap-1.5">
+            <RadioGroup.Item value="png" id="download-zip-format-png" />
+            <Label for="download-zip-format-png" class="cursor-pointer text-sm font-normal"
+              >PNG</Label
+            >
+          </div>
+          <div class="flex items-center gap-1.5">
+            <RadioGroup.Item value="webp" id="download-zip-format-webp" />
+            <Label for="download-zip-format-webp" class="cursor-pointer text-sm font-normal"
+              >WebP</Label
+            >
+          </div>
+        </RadioGroup.Root>
+      </fieldset>
+
       <ScrollArea class="h-[min(70vh,40rem)] rounded-md border p-3">
         {#if images_q.isLoading}
           <div class="space-y-4">
@@ -233,9 +258,7 @@
               <section class="rounded-lg border border-border bg-card/40 p-3">
                 <div class="mb-2 flex items-center justify-between gap-2">
                   <h3 class="text-sm font-semibold">{group.label}</h3>
-                  <span class="text-xs text-muted-foreground"
-                    >{group.images.length} image(s)</span
-                  >
+                  <span class="text-xs text-muted-foreground">{group.images.length} image(s)</span>
                 </div>
                 <Carousel.Root opts={{ align: 'start', loop: false }} class="w-full">
                   <Carousel.Content class="-ms-2">
@@ -281,7 +304,7 @@
 
       <Dialog.Footer class="flex-wrap gap-2 sm:justify-between">
         <span class="text-xs text-muted-foreground">
-          {selected_count} selected · {zip_file_name}
+          {selected_count} selected · {format.toUpperCase()} · {zip_file_name}
         </span>
         <div class="flex gap-2">
           <Button variant="outline" onclick={() => (open = false)}>Cancel</Button>

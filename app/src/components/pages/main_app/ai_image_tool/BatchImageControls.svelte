@@ -13,6 +13,8 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Separator } from '$lib/components/ui/separator';
   import Plus from '@lucide/svelte/icons/plus';
+  import Eye from '@lucide/svelte/icons/eye';
+  import Languages from '@lucide/svelte/icons/languages';
   import { client } from '~/api/client';
   import {
     project_state,
@@ -20,7 +22,10 @@
     text_data_present,
     editing_mode
   } from '~/state/main_app/state.svelte';
-  import { active_text_data_q_options } from '~/state/main_app/data.svelte';
+  import {
+    active_text_data_q_options,
+    active_trans_en_data_q_options
+  } from '~/state/main_app/data.svelte';
   import { invalidate_batch_ai_queries } from '~/state/main_app/batch_query_helpers';
   import {
     IMAGE_BATCH_STATUS_LABELS,
@@ -73,6 +78,15 @@
 
   const text_data_q = createQuery(() =>
     active_text_data_q_options(
+      $selected_text_levels,
+      $project_state,
+      $text_data_present,
+      $editing_mode
+    )
+  );
+
+  const trans_en_data_q = createQuery(() =>
+    active_trans_en_data_q_options(
       $selected_text_levels,
       $project_state,
       $text_data_present,
@@ -412,82 +426,123 @@
           {#each bulk_rows as row (row.index)}
             {@const is_selected = selected_indexes.has(row.index)}
             {@const per_instruction = per_shloka_instructions[row.index]?.trim()}
+            {@const en_translation = trans_en_data_q.data?.get(row.index)?.trim()}
             <div class="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50">
-              <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+              <label class="flex shrink-0 cursor-pointer items-center gap-3">
                 <Checkbox
                   checked={is_selected}
                   onCheckedChange={(checked) => toggle_index(row.index, checked === true)}
                 />
-                <span class="shrink-0 text-sm font-medium">
+                <span class="text-sm font-medium">
                   {row.index}{row.shloka_num != null ? ` - ${row.shloka_num}` : ''}
                 </span>
-                <span class="truncate text-xs text-muted-foreground">{row.text.slice(0, 60)}</span>
               </label>
-              {#if is_selected}
-                <div class="relative size-6 shrink-0">
-                  <Popover.Root
-                    open={per_shloka_popover_index === row.index}
-                    onOpenChange={(open) => {
-                      if (open) open_per_shloka_popover(row.index);
-                      else if (per_shloka_popover_index === row.index) {
-                        per_shloka_popover_index = null;
-                        per_shloka_draft = '';
-                      }
-                    }}
+              <span class="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                {row.text.slice(0, 60)}
+              </span>
+              <div class="flex shrink-0 items-center gap-0.5">
+                <Popover.Root>
+                  <Popover.Trigger
+                    type="button"
+                    class="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label="View full shloka text for index {row.index}"
+                    title="View shloka"
                   >
-                    <Popover.Trigger
-                      type="button"
-                      class="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                      aria-label="Custom instruction for index {row.index}"
-                    >
-                      <Plus class="size-3.5" />
-                    </Popover.Trigger>
-                    <Popover.Content class="w-72 space-y-2 p-3" align="end">
-                      <p class="text-xs font-medium">Custom instruction</p>
-                      <Textarea
-                        class="h-20 min-h-0 resize-none px-2 py-1.5 text-sm"
-                        rows={3}
-                        spellcheck="false"
-                        placeholder="Overrides the common custom instruction…"
-                        bind:value={per_shloka_draft}
-                      />
-                      <div class="flex justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onclick={() => {
-                            per_shloka_popover_index = null;
-                            per_shloka_draft = '';
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button size="sm" onclick={() => save_per_shloka_instruction(row.index)}>
-                          Done
-                        </Button>
-                      </div>
-                    </Popover.Content>
-                  </Popover.Root>
-                  {#if per_instruction}
-                    <Tooltip.Root>
-                      <Tooltip.Trigger
+                    <Eye class="size-3.5" />
+                  </Popover.Trigger>
+                  <Popover.Content class="w-80 max-w-[min(20rem,85vw)] space-y-1.5 p-3" align="end">
+                    <p class="text-xs font-medium text-muted-foreground">Shloka</p>
+                    <p class="text-sm leading-relaxed whitespace-pre-wrap">{row.text}</p>
+                  </Popover.Content>
+                </Popover.Root>
+                <div class="size-6 shrink-0">
+                  {#if en_translation}
+                    <Popover.Root>
+                      <Popover.Trigger
                         type="button"
-                        class="absolute -top-0.5 -right-0.5 z-10 inline-flex size-3 items-center justify-center"
-                        aria-label="View custom instruction"
+                        class="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                        aria-label="View English translation for index {row.index}"
+                        title="View English translation"
                       >
-                        <span class="size-1.5 rounded-full bg-violet-500" aria-hidden="true"></span>
-                      </Tooltip.Trigger>
-                      <Tooltip.Content
-                        side="left"
-                        showArrow={false}
-                        class="max-w-xs border border-border bg-popover p-2 text-popover-foreground shadow-md"
+                        <Languages class="size-3.5" />
+                      </Popover.Trigger>
+                      <Popover.Content
+                        class="w-80 max-w-[min(20rem,85vw)] space-y-1.5 p-3"
+                        align="end"
                       >
-                        <p class="text-xs whitespace-pre-wrap">{per_instruction}</p>
-                      </Tooltip.Content>
-                    </Tooltip.Root>
+                        <p class="text-xs font-medium text-muted-foreground">English</p>
+                        <p class="text-sm leading-relaxed whitespace-pre-wrap">{en_translation}</p>
+                      </Popover.Content>
+                    </Popover.Root>
                   {/if}
                 </div>
-              {/if}
+                <div class="relative size-6 shrink-0">
+                  {#if is_selected}
+                    <Popover.Root
+                      open={per_shloka_popover_index === row.index}
+                      onOpenChange={(open) => {
+                        if (open) open_per_shloka_popover(row.index);
+                        else if (per_shloka_popover_index === row.index) {
+                          per_shloka_popover_index = null;
+                          per_shloka_draft = '';
+                        }
+                      }}
+                    >
+                      <Popover.Trigger
+                        type="button"
+                        class="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                        aria-label="Custom instruction for index {row.index}"
+                      >
+                        <Plus class="size-3.5" />
+                      </Popover.Trigger>
+                      <Popover.Content class="w-72 space-y-2 p-3" align="end">
+                        <p class="text-xs font-medium">Custom instruction</p>
+                        <Textarea
+                          class="h-20 min-h-0 resize-none px-2 py-1.5 text-sm"
+                          rows={3}
+                          spellcheck="false"
+                          placeholder="Overrides the common custom instruction…"
+                          bind:value={per_shloka_draft}
+                        />
+                        <div class="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onclick={() => {
+                              per_shloka_popover_index = null;
+                              per_shloka_draft = '';
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button size="sm" onclick={() => save_per_shloka_instruction(row.index)}>
+                            Done
+                          </Button>
+                        </div>
+                      </Popover.Content>
+                    </Popover.Root>
+                    {#if per_instruction}
+                      <Tooltip.Root>
+                        <Tooltip.Trigger
+                          type="button"
+                          class="absolute -top-0.5 -right-0.5 z-10 inline-flex size-3 items-center justify-center"
+                          aria-label="View custom instruction"
+                        >
+                          <span class="size-1.5 rounded-full bg-violet-500" aria-hidden="true"
+                          ></span>
+                        </Tooltip.Trigger>
+                        <Tooltip.Content
+                          side="left"
+                          showArrow={false}
+                          class="max-w-xs border border-border bg-popover p-2 text-popover-foreground shadow-md"
+                        >
+                          <p class="text-xs whitespace-pre-wrap">{per_instruction}</p>
+                        </Tooltip.Content>
+                      </Tooltip.Root>
+                    {/if}
+                  {/if}
+                </div>
+              </div>
             </div>
           {/each}
         </Tooltip.Provider>

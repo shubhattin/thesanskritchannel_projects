@@ -4,11 +4,15 @@
   import { toast } from 'svelte-sonner';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
+  import * as Popover from '$lib/components/ui/popover';
+  import * as Tooltip from '$lib/components/ui/tooltip';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
+  import { Textarea } from '$lib/components/ui/textarea';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Badge } from '$lib/components/ui/badge';
   import { Separator } from '$lib/components/ui/separator';
+  import Plus from '@lucide/svelte/icons/plus';
   import { client } from '~/api/client';
   import {
     project_state,
@@ -36,6 +40,9 @@
     current_image_prompt: string;
     image_model: ImageModel;
     text_model: ai_text_models_type;
+    /** Shared with AIImageGenerator custom-instruction UI */
+    use_custom_instruction?: boolean;
+    custom_instruction?: string;
     on_download_images_zip?: () => void;
   };
 
@@ -44,14 +51,25 @@
     current_image_prompt,
     image_model,
     text_model,
+    use_custom_instruction = $bindable(false),
+    custom_instruction = $bindable(''),
     on_download_images_zip
   }: Props = $props();
+
+  const effective_custom_instruction = $derived(
+    use_custom_instruction && custom_instruction.trim() ? custom_instruction.trim() : undefined
+  );
 
   let single_confirm_open = $state(false);
   let single_auto_approved = $state(true);
   let bulk_open = $state(false);
   let bulk_auto_approved = $state(true);
   let selected_indexes = $state<Set<number>>(new Set());
+  let bulk_use_custom_instruction = $state(false);
+  let bulk_custom_instruction = $state('');
+  let per_shloka_instructions = $state<Record<number, string>>({});
+  let per_shloka_draft = $state('');
+  let per_shloka_popover_index = $state<number | null>(null);
 
   const text_data_q = createQuery(() =>
     active_text_data_q_options(
@@ -100,11 +118,14 @@
     staleTime: 30_000
   }));
 
+  type TriggerItem = {
+    index: number;
+    image_prompt?: string;
+    custom_instruction?: string;
+  };
+
   const trigger_mut = createMutation(() => ({
-    mutationFn: (args: {
-      auto_approved: boolean;
-      items: { index: number; image_prompt?: string }[];
-    }) =>
+    mutationFn: (args: { auto_approved: boolean; items: TriggerItem[] }) =>
       client.batch_ai_image.trigger_batch_shloka_image_gen.mutate({
         auto_approved: args.auto_approved,
         project_id: $project_state!.project_id,
@@ -130,6 +151,11 @@
     }
     selected_indexes = defaults;
     bulk_auto_approved = true;
+    bulk_use_custom_instruction = false;
+    bulk_custom_instruction = '';
+    per_shloka_instructions = {};
+    per_shloka_popover_index = null;
+    per_shloka_draft = '';
     bulk_open = true;
   };
 
@@ -155,6 +181,41 @@
     }
     selected_indexes = new Set();
   };
+
+  const resolve_bulk_custom_instruction = (index: number): string | undefined => {
+    const per = per_shloka_instructions[index]?.trim();
+    if (per) return per;
+    if (bulk_use_custom_instruction && bulk_custom_instruction.trim()) {
+      return bulk_custom_instruction.trim();
+    }
+    return undefined;
+  };
+
+  const open_per_shloka_popover = (index: number) => {
+    per_shloka_draft = per_shloka_instructions[index] ?? '';
+    per_shloka_popover_index = index;
+  };
+
+  const save_per_shloka_instruction = (index: number) => {
+    const trimmed = per_shloka_draft.trim();
+    const next = { ...per_shloka_instructions };
+    if (trimmed) next[index] = trimmed;
+    else delete next[index];
+    per_shloka_instructions = next;
+    per_shloka_popover_index = null;
+    per_shloka_draft = '';
+  };
+
+  const build_bulk_items = (): TriggerItem[] =>
+    [...selected_indexes]
+      .sort((a, b) => a - b)
+      .map((index) => {
+        const custom = resolve_bulk_custom_instruction(index);
+        return {
+          index,
+          ...(custom ? { custom_instruction: custom } : {})
+        };
+      });
 </script>
 
 <section class="space-y-3 rounded-lg border border-border/80 bg-card/40 p-3">
@@ -173,6 +234,8 @@
   <div class="flex flex-wrap items-center gap-2">
     <Button
       size="sm"
+      variant="outline"
+      class="border-cyan-800/70 bg-cyan-100 font-semibold text-cyan-950 hover:bg-cyan-200 dark:border-cyan-700 dark:bg-cyan-950 dark:text-cyan-300 dark:hover:bg-cyan-900 dark:hover:text-cyan-200"
       disabled={trigger_mut.isPending}
       onclick={() => {
         single_auto_approved = true;
@@ -184,7 +247,7 @@
     <Button
       size="sm"
       variant="secondary"
-      class="animate-pulse bg-violet-600 text-white hover:bg-violet-700 dark:bg-violet-500"
+      class="soft-pulse bg-violet-600 font-semibold text-white hover:bg-violet-500 dark:bg-violet-500 dark:hover:bg-violet-400"
       disabled={trigger_mut.isPending}
       onclick={open_bulk}
     >
@@ -238,6 +301,21 @@
       <Checkbox bind:checked={single_auto_approved} />
       Auto-approve when complete
     </label>
+    <div class="space-y-1.5">
+      <label class="flex items-center gap-2 text-sm font-semibold">
+        <Checkbox bind:checked={use_custom_instruction} />
+        Custom Image Gen Instruction
+      </label>
+      {#if use_custom_instruction}
+        <Textarea
+          class="h-14 min-h-0 resize-none px-2 py-1.5 text-sm"
+          rows={2}
+          spellcheck="false"
+          placeholder="Optional guidance for the image prompt…"
+          bind:value={custom_instruction}
+        />
+      {/if}
+    </div>
     <AlertDialog.Footer>
       <AlertDialog.Cancel disabled={trigger_mut.isPending}>Cancel</AlertDialog.Cancel>
       <AlertDialog.Action
@@ -250,7 +328,9 @@
                 index: current_index,
                 ...(current_image_prompt.trim()
                   ? { image_prompt: current_image_prompt.trim() }
-                  : {})
+                  : effective_custom_instruction
+                    ? { custom_instruction: effective_custom_instruction }
+                    : {})
               }
             ]
           })}
@@ -276,7 +356,7 @@
         onclick={() =>
           trigger_mut.mutate({
             auto_approved: bulk_auto_approved,
-            items: [...selected_indexes].sort((a, b) => a - b).map((index) => ({ index }))
+            items: build_bulk_items()
           })}
       >
         {trigger_mut.isPending ? 'Queuing…' : 'Generate Images'}
@@ -287,6 +367,26 @@
       <Checkbox bind:checked={bulk_auto_approved} />
       Auto-approve when complete
     </label>
+
+    <div class="space-y-1.5">
+      <label class="flex items-center gap-2 text-sm font-semibold">
+        <Checkbox bind:checked={bulk_use_custom_instruction} />
+        Common Custom Image Gen Instruction
+      </label>
+      {#if bulk_use_custom_instruction}
+        <Textarea
+          class="h-14 min-h-0 resize-none px-2 py-1.5 text-sm"
+          rows={2}
+          spellcheck="false"
+          placeholder="Applied to all selected shlokas (unless overridden)…"
+          bind:value={bulk_custom_instruction}
+        />
+      {/if}
+    </div>
+
+    <p class="text-xs text-muted-foreground/80">
+      Edit a custom instruction for individual images by clicking the + button on selected shlokas.
+    </p>
 
     <ScrollArea class="h-[min(50vh,24rem)] rounded-md border p-2">
       <div class="flex flex-col gap-1">
@@ -308,20 +408,89 @@
           </span>
         </label>
         <Separator class="my-1" />
-        {#each bulk_rows as row (row.index)}
-          <label
-            class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"
-          >
-            <Checkbox
-              checked={selected_indexes.has(row.index)}
-              onCheckedChange={(checked) => toggle_index(row.index, checked === true)}
-            />
-            <span class="text-sm font-medium">
-              {row.index}{row.shloka_num != null ? ` - ${row.shloka_num}` : ''}
-            </span>
-            <span class="truncate text-xs text-muted-foreground">{row.text.slice(0, 60)}</span>
-          </label>
-        {/each}
+        <Tooltip.Provider>
+          {#each bulk_rows as row (row.index)}
+            {@const is_selected = selected_indexes.has(row.index)}
+            {@const per_instruction = per_shloka_instructions[row.index]?.trim()}
+            <div class="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50">
+              <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                <Checkbox
+                  checked={is_selected}
+                  onCheckedChange={(checked) => toggle_index(row.index, checked === true)}
+                />
+                <span class="shrink-0 text-sm font-medium">
+                  {row.index}{row.shloka_num != null ? ` - ${row.shloka_num}` : ''}
+                </span>
+                <span class="truncate text-xs text-muted-foreground">{row.text.slice(0, 60)}</span>
+              </label>
+              {#if is_selected}
+                <div class="relative size-6 shrink-0">
+                  <Popover.Root
+                    open={per_shloka_popover_index === row.index}
+                    onOpenChange={(open) => {
+                      if (open) open_per_shloka_popover(row.index);
+                      else if (per_shloka_popover_index === row.index) {
+                        per_shloka_popover_index = null;
+                        per_shloka_draft = '';
+                      }
+                    }}
+                  >
+                    <Popover.Trigger
+                      type="button"
+                      class="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                      aria-label="Custom instruction for index {row.index}"
+                    >
+                      <Plus class="size-3.5" />
+                    </Popover.Trigger>
+                    <Popover.Content class="w-72 space-y-2 p-3" align="end">
+                      <p class="text-xs font-medium">Custom instruction</p>
+                      <Textarea
+                        class="h-20 min-h-0 resize-none px-2 py-1.5 text-sm"
+                        rows={3}
+                        spellcheck="false"
+                        placeholder="Overrides the common custom instruction…"
+                        bind:value={per_shloka_draft}
+                      />
+                      <div class="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onclick={() => {
+                            per_shloka_popover_index = null;
+                            per_shloka_draft = '';
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button size="sm" onclick={() => save_per_shloka_instruction(row.index)}>
+                          Done
+                        </Button>
+                      </div>
+                    </Popover.Content>
+                  </Popover.Root>
+                  {#if per_instruction}
+                    <Tooltip.Root>
+                      <Tooltip.Trigger
+                        type="button"
+                        class="absolute -top-0.5 -right-0.5 z-10 inline-flex size-3 items-center justify-center"
+                        aria-label="View custom instruction"
+                      >
+                        <span class="size-1.5 rounded-full bg-violet-500" aria-hidden="true"></span>
+                      </Tooltip.Trigger>
+                      <Tooltip.Content
+                        side="left"
+                        showArrow={false}
+                        class="max-w-xs border border-border bg-popover p-2 text-popover-foreground shadow-md"
+                      >
+                        <p class="text-xs whitespace-pre-wrap">{per_instruction}</p>
+                      </Tooltip.Content>
+                    </Tooltip.Root>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </Tooltip.Provider>
       </div>
     </ScrollArea>
 
@@ -336,3 +505,19 @@
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>
+
+<style>
+  @keyframes soft-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.78;
+    }
+  }
+
+  :global(.soft-pulse) {
+    animation: soft-pulse 2.8s ease-in-out infinite;
+  }
+</style>

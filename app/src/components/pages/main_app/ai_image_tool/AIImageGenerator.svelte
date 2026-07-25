@@ -35,10 +35,13 @@
   import ms from 'ms';
   import { CgClose } from 'svelte-icons-pack/cg';
   import { Button } from '$lib/components/ui/button';
+  import { Checkbox } from '$lib/components/ui/checkbox';
   import { Textarea } from '$lib/components/ui/textarea';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import * as Select from '$lib/components/ui/select';
   import * as Carousel from '$lib/components/ui/carousel';
+  import * as Popover from '$lib/components/ui/popover';
+  import Info from '@lucide/svelte/icons/info';
   import { toast } from 'svelte-sonner';
   import BatchImageControls from './BatchImageControls.svelte';
   import ViewImagesDialog from './ViewImagesDialog.svelte';
@@ -76,6 +79,11 @@
   let selected_text_model: keyof typeof TEXT_MODEL_LIST_INFO = $state(DEFAULT_TEXT_AI_MODEL);
   let view_images_open = $state(false);
   let download_images_zip_open = $state(false);
+  let use_custom_instruction = $state(false);
+  let custom_instruction = $state('');
+  const effective_custom_instruction = $derived(
+    use_custom_instruction && custom_instruction.trim() ? custom_instruction.trim() : undefined
+  );
 
   onMount(async () => {
     if (import.meta.env.DEV) {
@@ -89,7 +97,7 @@
     $index = get_starting_index($project_state.project_key, $selected_text_levels);
   });
   let index = writable(1);
-  let auto_gen_image = writable(true);
+  let auto_gen_image = writable(false);
   let shloka_text_prompt = writable('');
   let image_prompt = writable('');
   let load_ai_sample_data = $state(false);
@@ -284,7 +292,8 @@
     queryKey: [
       'shloka_text_prompt',
       ...$selected_text_levels.slice(0, ($project_state?.levels ?? 1) - 1).reverse(),
-      $index
+      $index,
+      effective_custom_instruction ?? null
     ],
     queryFn: async () => {
       show_prompt_time_status = false;
@@ -298,7 +307,10 @@
         project_key: $project_state!.project_key,
         selected_text_levels: $selected_text_levels,
         index: $index,
-        model: selected_text_model
+        model: selected_text_model,
+        ...(effective_custom_instruction
+          ? { custom_instruction: effective_custom_instruction }
+          : {})
       });
     },
     enabled: false,
@@ -432,6 +444,8 @@
   current_image_prompt={$image_prompt}
   {image_model}
   text_model={selected_text_model}
+  bind:use_custom_instruction
+  bind:custom_instruction
   on_download_images_zip={() => (download_images_zip_open = true)}
 />
 
@@ -442,12 +456,13 @@
     }}
     disabled={image_prompt_q.isFetching}
     size="sm"
+    class="font-semibold"
   >
     Generate Image Prompt
   </Button>
   <Select.Root type="single" bind:value={selected_text_model as any}>
     <Select.Trigger
-      class="inline-flex w-20 px-1.5 py-1 text-xs"
+      class="inline-flex w-fit min-w-36 px-2 py-1 text-xs"
       title={TEXT_MODEL_LIST_INFO[selected_text_model][1]}
     >
       {TEXT_MODEL_LIST_INFO[selected_text_model][0]}
@@ -458,11 +473,41 @@
       {/each}
     </Select.Content>
   </Select.Root>
+  <Switch id="auto_image" bind:checked={$auto_gen_image} />
+  <label for="auto_image" class="text-sm font-semibold">Auto Generate Image</label>
+  <Popover.Root>
+    <Popover.Trigger
+      type="button"
+      class="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      aria-label="About Auto Generate Image"
+    >
+      <Info class="size-3.5" />
+    </Popover.Trigger>
+    <Popover.Content side="bottom" align="start" class="w-64 p-3 text-sm">
+      Enable this if you do not want to review the image prompt manually — the image will be
+      generated as soon as the prompt is ready.
+    </Popover.Content>
+  </Popover.Root>
   {#if show_prompt_time_status && image_prompt_q.isSuccess && image_prompt_q.data.image_prompt}
     <span class="text-xs text-stone-500 select-none dark:text-stone-300">
       <Icon src={OiStopwatch16} class="text-base" />
       {pretty_ms(image_prompt_q.data.time_taken)}
     </span>
+  {/if}
+</div>
+<div class="my-4 space-y-1.5">
+  <label class="flex items-center gap-2 text-sm font-semibold">
+    <Checkbox bind:checked={use_custom_instruction} />
+    Custom Image Gen Instruction
+  </label>
+  {#if use_custom_instruction}
+    <Textarea
+      class="h-14 min-h-0 resize-none px-2 py-1.5 text-sm"
+      rows={2}
+      spellcheck="false"
+      placeholder="Optional guidance for the image prompt…"
+      bind:value={custom_instruction}
+    />
   {/if}
 </div>
 <div class="space-y-1">
@@ -489,8 +534,6 @@
       {/each}
     </Select.Content>
   </Select.Root>
-  <Switch id="auto_image" bind:checked={$auto_gen_image} />
-  <label for="auto_image" class="text-sm">Auto Generate Image</label>
 </div>
 {#if image_prompt_q.data !== undefined || image_prompt_q.isFetching}
   {#if image_prompt_q.isFetching || !image_prompt_q.isSuccess}

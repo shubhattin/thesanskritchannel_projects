@@ -11,9 +11,12 @@ import { lang_list_obj } from '~/state/lang_list';
 import { OPENROUTER_TEXT_MODELS, text_model_custom_options } from './providers';
 
 const IMAGE_SYSTEM_PROMPT = `
-You write image-generation prompts for Sanskrit scripture content meant to look beautiful. It will be used in multiple places like as a backgound image to shlokas on and so on.
+You write image-generation prompts for Sanskrit scripture content meant to look beautiful.
+It will be used in multiple places like as a backgound image to shlokas on and so on.
 
 You will receive a Sanskrit shloka and, when available, its English translation. Produce one detailed English image prompt that captures the essence of the meaning.
+
+The user message may also include custom instructions. When present, honor them while writing the image prompt — combine them with the art direction below. Do not add text overlays or violate the constraints.
 
 Art direction:
 - Aesthetic, visually striking illustration — not photorealistic and not a plain realistic photo background.
@@ -40,17 +43,23 @@ This Shloka is from {text_info} of {text_name}.
 {shloka_text}
 `.trim();
 
+const IMAGE_CUSTOM_INSTRUCTION_PROMPT = `
+Custom instructions for Image Generation:
+{custom_instruction}
+`.trim();
+
 export const get_image_prompt_input_schema = z.object({
   project_key: z.string(),
   selected_text_levels: z.array(z.int().nullable()),
   index: z.int().min(0),
-  model: text_models_enum.default(DEFAULT_TEXT_AI_MODEL)
+  model: text_models_enum.default(DEFAULT_TEXT_AI_MODEL),
+  custom_instruction: z.string().optional()
 });
 
 type GetImagePromptInput = z.infer<typeof get_image_prompt_input_schema>;
 
 export const get_image_prompt_func = async (input: GetImagePromptInput) => {
-  const { project_key, selected_text_levels, index, model } = input;
+  const { project_key, selected_text_levels, index, model, custom_instruction } = input;
 
   const project = await get_project_by_key(project_key, cache_db_options_app);
   if (!project) return { image_prompt: null, time_taken: 0 };
@@ -78,11 +87,19 @@ export const get_image_prompt_func = async (input: GetImagePromptInput) => {
   const list_level_names = project_info.level_names.slice(1);
   const text_info = path_params.map((param, i) => `${list_level_names[i]} ${param}`).join(', ');
 
-  const prompt = format_string_text(IMAGE_USER_PROMPT, {
+  let prompt = format_string_text(IMAGE_USER_PROMPT, {
     text_name: project.name,
     text_info,
     shloka_text
   });
+  const trimmed_custom = custom_instruction?.trim();
+  if (trimmed_custom) {
+    prompt +=
+      '\n\n' +
+      format_string_text(IMAGE_CUSTOM_INSTRUCTION_PROMPT, {
+        custom_instruction: trimmed_custom
+      });
+  }
 
   try {
     const time_start = Date.now();

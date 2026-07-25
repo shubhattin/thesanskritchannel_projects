@@ -72,7 +72,8 @@ const getS3Client = () => (s3Client ??= createS3Client());
 const trigger_item_schema = z.object({
   index: z.int().min(0),
   /** Pre-generated / edited prompt; when omitted the server generates one */
-  image_prompt: z.string().min(1).optional()
+  image_prompt: z.string().min(1).optional(),
+  custom_instruction: z.string().optional()
 });
 
 const trigger_batch_input_schema = z.object({
@@ -462,7 +463,10 @@ const trigger_batch_shloka_image_gen_route = protectedAdminProcedure
             project_key,
             selected_text_levels,
             index: item.index,
-            model: text_model
+            model: text_model,
+            ...(item.custom_instruction?.trim()
+              ? { custom_instruction: item.custom_instruction.trim() }
+              : {})
           });
           if (!generated.image_prompt) {
             throw new TRPCError({

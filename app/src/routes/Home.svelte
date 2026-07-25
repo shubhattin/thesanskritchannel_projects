@@ -4,7 +4,10 @@
   import MetaTags from '~/components/tags/MetaTags.svelte';
   import PenLine from '@lucide/svelte/icons/pen-line';
   import Search from '@lucide/svelte/icons/search';
+  import Database from '@lucide/svelte/icons/database';
+  import ClipboardCheck from '@lucide/svelte/icons/clipboard-check';
   import Button from '~/lib/components/ui/button/button.svelte';
+  import * as Dialog from '$lib/components/ui/dialog';
   import { useSession } from '~/lib/auth-client';
   import { useTRPC } from '~/api/client';
   import { APP_SCOPE_ID_PROJECT_PORTAL, APP_SCOPE_ID_LEKHA } from '~/state/data_types';
@@ -15,6 +18,8 @@
   const trpc = useTRPC();
 
   const is_admin = $derived($session.data?.user.role === 'admin');
+  const is_maintainer = $derived($session.data?.user.is_maintainer === true);
+  let cache_tool_open = $state(false);
   let list_scopes_q = createQuery(() =>
     trpc.user.list_user_app_scopes.queryOptions(
       { user_id: $session.data?.user.id ?? '' },
@@ -91,6 +96,36 @@
     </div>
   {/if}
 
+  {#if is_admin || is_maintainer}
+    <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+      {#if is_admin}
+        <a href="/batch-manager" aria-label="Open Batch Manager">
+          <Button variant="outline" size="lg" class="gap-2 font-semibold">
+            <ClipboardCheck
+              class="size-5 shrink-0 text-violet-600 dark:text-violet-400"
+              aria-hidden="true"
+            />
+            <span>Batch Manager</span>
+          </Button>
+        </a>
+      {/if}
+      {#if is_maintainer}
+        <Button
+          variant="outline"
+          size="lg"
+          class="gap-2 font-semibold"
+          onclick={() => (cache_tool_open = true)}
+        >
+          <Database
+            class="size-5 shrink-0 text-yellow-600 dark:text-yellow-400"
+            aria-hidden="true"
+          />
+          <span>Cache Tool</span>
+        </Button>
+      {/if}
+    </div>
+  {/if}
+
   {#if is_admin}
     <div class="mt-8 flex justify-center">
       <a
@@ -161,3 +196,13 @@
     </div>
   {/if}
 </main>
+
+{#if is_maintainer}
+  <Dialog.Root bind:open={cache_tool_open}>
+    <Dialog.Content class="max-w-md">
+      {#await import('~/components/pages/main_app/display/project_utility/CacheTool.svelte') then CacheTool}
+        <CacheTool.default />
+      {/await}
+    </Dialog.Content>
+  </Dialog.Root>
+{/if}

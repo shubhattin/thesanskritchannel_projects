@@ -23,6 +23,8 @@
   } from '~/state/main_app/data.svelte';
   import { project_state, selected_text_levels } from '~/state/main_app/state.svelte';
   import { useSession } from '~/lib/auth-client';
+  import { fly } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
 
   let { children }: { children: Snippet } = $props();
 
@@ -123,7 +125,7 @@
             />
           </Popover.Content>
         </Popover.Root>
-        {#if $text_data_present}
+        {#if project_queries_ready}
           <div transition:fade>
             {#await import('~/components/pages/main_app/display/project_utility/ProjectUtility.svelte')}
               <button class="btn outline-hidden select-none" title="Extra Options">
@@ -144,31 +146,44 @@
       </div>
     </div>
 
-    {#if is_admin}
-      <nav
-        aria-label="Project admin views"
-        class="inline-flex h-9 w-fit max-w-full items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground"
-      >
-        <button
-          type="button"
-          class={tab_trigger_class(active_tab === 'texts')}
-          disabled={nav_disabled}
-          aria-current={active_tab === 'texts' ? 'page' : undefined}
-          onclick={go_texts}
+    <div class="flex flex-wrap items-center gap-y-2">
+      {#if is_admin}
+        <nav
+          aria-label="Project admin views"
+          class="inline-flex h-9 w-fit max-w-full items-center justify-center rounded-lg bg-muted p-0.75 text-muted-foreground"
         >
-          Texts
-        </button>
-        <button
-          type="button"
-          class={tab_trigger_class(active_tab === 'edit-map')}
-          disabled={nav_disabled}
-          aria-current={active_tab === 'edit-map' ? 'page' : undefined}
-          onclick={go_edit_map}
+          <button
+            type="button"
+            class={tab_trigger_class(active_tab === 'texts')}
+            disabled={nav_disabled}
+            aria-current={active_tab === 'texts' ? 'page' : undefined}
+            onclick={go_texts}
+          >
+            Texts
+          </button>
+          <button
+            type="button"
+            class={tab_trigger_class(active_tab === 'edit-map')}
+            disabled={nav_disabled}
+            aria-current={active_tab === 'edit-map' ? 'page' : undefined}
+            onclick={go_edit_map}
+          >
+            Edit Map
+          </button>
+        </nav>
+      {/if}
+      {#if $text_data_present}
+        <div
+          class="inline-flex"
+          in:fly={{ x: 12, duration: 320, easing: cubicOut }}
+          out:fade={{ duration: 150 }}
         >
-          Edit Map
-        </button>
-      </nav>
-    {/if}
+          {#await import('~/components/pages/main_app/display/project_utility/ProjectLeafToolButtons.svelte') then LeafTools}
+            <LeafTools.default />
+          {/await}
+        </div>
+      {/if}
+    </div>
   {/if}
 
   {@render children()}

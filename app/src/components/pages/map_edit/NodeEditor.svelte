@@ -83,7 +83,7 @@
   }
 </script>
 
-<Card.Root class="flex min-h-[420px] flex-col overflow-hidden lg:min-h-[min(72vh,640px)]">
+<Card.Root class="flex min-h-105 flex-col overflow-hidden lg:min-h-[min(72vh,640px)]">
   <div class="border-b border-border/60 bg-muted/20 px-5 py-3">
     <div class="flex items-center gap-2">
       <PenLine class="size-4 shrink-0 text-muted-foreground" />

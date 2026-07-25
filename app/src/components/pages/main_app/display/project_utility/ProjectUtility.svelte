@@ -11,7 +11,6 @@
     selected_text_levels,
     BASE_SCRIPT,
     image_tool_opened,
-    ai_tool_opened,
     project_state,
     editing_mode,
     text_data_present
@@ -21,20 +20,22 @@
   import { transliterate_xlxs_file } from '~/tools/excel/transliterate_xlsx_file';
   import { client } from '~/api/client';
   import Icon from '~/tools/Icon.svelte';
-  import { BiImage, BiTask } from 'svelte-icons-pack/bi';
+  import { BiTask } from 'svelte-icons-pack/bi';
   import type { Workbook } from 'exceljs';
   import { TrOutlineFileTypeTxt } from 'svelte-icons-pack/tr';
   import { transliterate_custom } from '~/tools/converter';
   import DownloadTextTool from './DownloadTextTool.svelte';
-  import { RiUserFacesRobot2Line } from 'svelte-icons-pack/ri';
   import { useSession } from '~/lib/auth-client';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Popover from '$lib/components/ui/popover';
+  import { Separator } from '$lib/components/ui/separator';
   import { BsThreeDots } from 'svelte-icons-pack/bs';
   import { OiCache16 } from 'svelte-icons-pack/oi';
 
   const session = useSession();
   let user_info = $derived($session.data?.user);
+  const is_admin = $derived(user_info?.role === 'admin');
+  const is_maintainer = $derived(user_info?.is_maintainer === true);
 
   const project_map_q = createQuery(() => project_map_q_options($project_state));
 
@@ -120,7 +121,6 @@
   let download_text_tool_opened = $state(false);
 
   let cache_tool_modal_opened = $state(false);
-  const tools_disabled = $derived($editing_mode !== 'none');
 </script>
 
 <Popover.Root bind:open={utility_popover_state}>
@@ -128,56 +128,7 @@
     <Icon class="mx-[0.17rem] text-lg sm:mx-0 sm:text-2xl" src={BsThreeDots} />
   </Popover.Trigger>
   <Popover.Content side="bottom" class="w-auto space-y-1 p-1 text-sm">
-    <a
-      class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
-      href={resolve('/search')}
-    >
-      <Icon src={RiSystemSearchLine} class="-mt-1 mr-1 size-5" />
-      Search
-    </a>
-    {#if user_info}
-      <button
-        class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
-        onclick={() => {
-          download_excel_file.mutate();
-          utility_popover_state = false;
-        }}
-      >
-        <Icon
-          class="-mt-1 mr-1 text-2xl text-green-600 dark:text-green-400"
-          src={RiDocumentFileExcel2Line}
-        />
-        Download Excel File
-      </button>
-    {/if}
-    <button
-      class="flex w-full items-center justify-start gap-2 rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
-      disabled={tools_disabled}
-      onclick={() => {
-        if (tools_disabled) return;
-        utility_popover_state = false;
-        image_tool_opened.set(true);
-      }}
-    >
-      <Icon src={BiImage} class="-mt-1 fill-sky-500 text-2xl dark:fill-sky-400" />
-      Image Tool
-    </button>
-    {#if user_info && user_info.role === 'admin'}
-      <button
-        class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
-        disabled={tools_disabled}
-        onclick={() => {
-          if (tools_disabled) return;
-          utility_popover_state = false;
-          $ai_tool_opened = true;
-        }}
-      >
-        <Icon
-          src={RiUserFacesRobot2Line}
-          class="-mt-1 mr-1 fill-blue-500 text-2xl dark:fill-blue-400"
-        />
-        AI Image Generator
-      </button>
+    {#if is_admin}
       <a
         class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
         href={resolve('/batch-manager')}
@@ -189,17 +140,7 @@
         Batch Manager
       </a>
     {/if}
-    <button
-      class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
-      onclick={() => {
-        utility_popover_state = false;
-        download_text_tool_opened = true;
-      }}
-    >
-      <Icon src={TrOutlineFileTypeTxt} class="mr-1 text-2xl" />
-      Download Text File
-    </button>
-    {#if user_info && user_info.role === 'admin'}
+    {#if is_maintainer}
       <button
         class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
         onclick={() => {
@@ -209,6 +150,45 @@
       >
         <Icon src={OiCache16} class="-mt-1 mr-1 text-xl text-yellow-600 dark:text-yellow-400" />
         Cache Tool
+      </button>
+    {/if}
+    <a
+      class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
+      href={resolve('/search')}
+      onclick={() => {
+        utility_popover_state = false;
+      }}
+    >
+      <Icon src={RiSystemSearchLine} class="-mt-1 mr-1 size-5" />
+      Search
+    </a>
+
+    {#if $text_data_present}
+      <Separator class="my-1" />
+      {#if user_info}
+        <button
+          class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
+          onclick={() => {
+            download_excel_file.mutate();
+            utility_popover_state = false;
+          }}
+        >
+          <Icon
+            class="-mt-1 mr-1 text-2xl text-green-600 dark:text-green-400"
+            src={RiDocumentFileExcel2Line}
+          />
+          Download Excel File
+        </button>
+      {/if}
+      <button
+        class="flex w-full items-center justify-start rounded-md px-2 py-1 text-sm font-normal transition-colors hover:bg-accent hover:text-accent-foreground"
+        onclick={() => {
+          utility_popover_state = false;
+          download_text_tool_opened = true;
+        }}
+      >
+        <Icon src={TrOutlineFileTypeTxt} class="mr-1 text-2xl" />
+        Download Text File
       </button>
     {/if}
   </Popover.Content>

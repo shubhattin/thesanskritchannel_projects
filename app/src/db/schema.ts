@@ -31,6 +31,20 @@ export const projects = pgTable('projects', {
   updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
 });
 
+
+/**
+ * Used to redirect old URLs to the new ones (like after we change the key)
+ */
+export const project_redirects = pgTable('project_redirects', {
+  id: serial().primaryKey(),
+  project_id: integer()
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  /** The old key from which we would redirect to the new key */
+  key: text().notNull().unique(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
+});
+
 export const project_paths = pgTable(
   'project_paths',
   {

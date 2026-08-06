@@ -7,9 +7,9 @@
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import { Label } from '$lib/components/ui/label';
+  import { Progress } from '$lib/components/ui/progress';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Skeleton } from '$lib/components/ui/skeleton';
-  import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import { client } from '~/api/client';
   import {
     project_state,
@@ -24,7 +24,10 @@
     buildImageAssetDownloadBasename,
     download_file_in_browser
   } from '~/tools/download_file_browser';
-  import { fetch_post } from '~/tools/fetch';
+  import {
+    build_images_zip_client,
+    type BuildImagesZipProgress
+  } from '~/utils/image_assets/build_images_zip_client';
   import {
     buildAiImagesZipFileName,
     uniquifyZipFilenames,
@@ -51,6 +54,7 @@
   let processing = $state(false);
   let selection_seeded = $state(false);
   let format = $state<DownloadImagesZipFormat>('png');
+  let zip_progress = $state<BuildImagesZipProgress | null>(null);
 
   const text_data_q = createQuery(() =>
     active_text_data_q_options(
@@ -116,11 +120,24 @@
     $project_state ? buildAiImagesZipFileName($project_state.project_key, path_params) : ''
   );
 
+  const progress_value = $derived(
+    zip_progress && zip_progress.total > 0 ? (zip_progress.done / zip_progress.total) * 100 : 0
+  );
+
+  const progress_label = $derived(
+    !zip_progress
+      ? ''
+      : zip_progress.phase === 'zipping'
+        ? 'Zipping…'
+        : `Downloading ${zip_progress.done}/${zip_progress.total}`
+  );
+
   /** Seed default selection once per open (first image per index group). */
   $effect(() => {
     if (!open) {
       processing = false;
       selection_seeded = false;
+      zip_progress = null;
       return;
     }
     if (selection_seeded || !images_q.data) return;
@@ -147,39 +164,31 @@
   const download_zip = async () => {
     if (!$project_state || selected_count === 0 || processing) return;
     processing = true;
+    zip_progress = { done: 0, total: selected_count, phase: 'downloading' };
     try {
       const selected_items = (images_q.data ?? []).filter((item) =>
         selected_ids.has(item.image.id)
       );
-      const files = uniquifyZipFilenames(
+      const named = uniquifyZipFilenames(
         selected_items.map((item) => {
           const shloka_num =
             item.shloka_num ??
             (item.index != null ? (text_data_q.data?.[item.index]?.shloka_num ?? null) : null);
           return {
-            image_id: item.image.id,
+            s3_key: item.image.s3_key,
             filename: buildImageAssetDownloadBasename(item.index, shloka_num)
           };
         }),
         format
       );
 
-      const req = await fetch_post('/api/download_images_zip', {
-        json: {
-          zip_file_name,
-          project_id: $project_state.project_id,
-          path_params,
-          format,
-          files
+      const blob = await build_images_zip_client({
+        files: named,
+        format,
+        onProgress: (p) => {
+          zip_progress = p;
         }
       });
-
-      if (!req.ok) {
-        const message = (await req.text().catch(() => '')) || 'Failed to create zip';
-        throw new Error(message);
-      }
-
-      const blob = await req.blob();
       const blob_url = URL.createObjectURL(blob);
       download_file_in_browser(blob_url, zip_file_name, true);
       toast.success('Images zip downloaded');
@@ -188,6 +197,7 @@
       toast.error(err instanceof Error ? err.message : 'Failed to download images zip');
     } finally {
       processing = false;
+      zip_progress = null;
     }
   };
 </script>
@@ -209,12 +219,12 @@
       <Dialog.Header>
         <Dialog.Title>Preparing Zip</Dialog.Title>
         <Dialog.Description>
-          Building the archive on the server. Please wait — this can take a while for many images.
+          Downloading images in your browser, then building the archive.
         </Dialog.Description>
       </Dialog.Header>
-      <div class="flex flex-col items-center justify-center gap-4 py-16">
-        <LoaderCircle class="size-12 animate-spin text-violet-600" />
-        <p class="text-sm text-muted-foreground">Generating zip file…</p>
+      <div class="flex flex-col items-center justify-center gap-5 py-16">
+        <p class="text-sm font-medium text-foreground tabular-nums">{progress_label}</p>
+        <Progress value={progress_value} max={100} class="h-2 w-full max-w-md" />
         <p class="max-w-md text-center text-xs text-muted-foreground">{zip_file_name}</p>
       </div>
     {:else}

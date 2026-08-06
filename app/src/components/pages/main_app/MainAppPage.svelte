@@ -1,9 +1,9 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
-  import { resolve } from '$app/paths';
   import { createMutation, createQuery } from '@tanstack/svelte-query';
-  import { onMount, untrack } from 'svelte';
+  import { onMount } from 'svelte';
+  import { watch } from 'runed';
   import { get, writable } from 'svelte/store';
   import { z } from 'zod';
   import { LanguageIcon, MultimediaIcon } from '~/components/icons';
@@ -260,15 +260,16 @@
       if (update_viewing_script_selection) $viewing_script_selection = script;
     }
   }));
-  $effect(() => {
-    const next = $viewing_script_selection;
-    if (next === get(viewing_script)) return;
-    const _viewing_script_mut = untrack(() => viewing_script_mut);
-    _viewing_script_mut.mutate({
-      script: next,
-      update_viewing_script_selection: false
-    });
-  });
+  watch(
+    () => $viewing_script_selection,
+    (next) => {
+      if (next === get(viewing_script)) return;
+      viewing_script_mut.mutate({
+        script: next,
+        update_viewing_script_selection: false
+      });
+    }
+  );
 
   const set_translation_slot_lang = async (slot: 0 | 1, lang_id: number | null) => {
     const next = [...$selected_translation_lang_ids] as [number | null, number | null];

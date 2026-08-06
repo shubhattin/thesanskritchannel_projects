@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { untrack } from 'svelte';
+  import { watch } from 'runed';
   import { get_page_title_info } from '~/state/page_titles';
   import type { PageData } from './$types';
   import MetaTags from '~/components/tags/MetaTags.svelte';
@@ -89,10 +90,10 @@
   }
   set_project_state();
   set_selected_text_levels();
-  $effect(() => {
+  watch([() => project_key, () => current_project, () => levels, () => level_names], () => {
     set_project_state();
   });
-  $effect(() => {
+  watch([() => levels, () => data.path_params], () => {
     set_selected_text_levels();
   });
 

@@ -4,13 +4,14 @@
   import { beforeNavigate } from '$app/navigation';
   import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
   import { onDestroy, onMount, tick, untrack } from 'svelte';
+  import { watch } from 'runed';
   import { get } from 'svelte/store';
   import { fade } from 'svelte/transition';
   import {
     ArrowDown,
     ArrowUp,
     GripVertical,
-    Loader2,
+    LoaderCircle,
     Plus,
     Save,
     Trash2,
@@ -247,13 +248,9 @@
       }
     )
   );
-  $effect(() => {
-    const lang = (active_translation_name || 'Devanagari') as lang_list_type;
-    const inherent = $sanskrit_mode !== 1;
-    untrack(() => {
-      translation_typing_ctx = createTypingContext(lang, {
-        includeInherentVowel: inherent
-      });
+  watch([() => active_translation_name, () => $sanskrit_mode], ([name, sanskrit_mode]) => {
+    translation_typing_ctx = createTypingContext((name || 'Devanagari') as lang_list_type, {
+      includeInherentVowel: sanskrit_mode !== 1
     });
   });
 
@@ -392,22 +389,30 @@
     translation_session_key = text_session_key;
   });
 
-  $effect(() => {
-    if (dual_save_in_progress) return;
-    if (
-      !is_editing_translation($editing_mode) ||
-      active_translation_lang_id === null ||
-      !active_translation_query.isSuccess ||
-      !active_translation_query.data ||
-      !translation_session_key
-    )
-      return;
+  watch(
+    [
+      () => dual_save_in_progress,
+      () => $editing_mode,
+      () => active_translation_lang_id,
+      () => active_translation_query.isSuccess,
+      () => active_translation_query.data,
+      () => translation_session_key
+    ],
+    ([dual_save, editing_mode_value, lang_id, is_success, query_data, session_key]) => {
+      if (dual_save) return;
+      if (
+        !is_editing_translation(editing_mode_value) ||
+        lang_id === null ||
+        !is_success ||
+        !query_data ||
+        !session_key
+      )
+        return;
 
-    const query_data = active_translation_query.data;
-    const query_revision = JSON.stringify([...query_data.entries()]);
-    if (query_revision === last_ai_query_revision) return;
+      const query_revision = JSON.stringify([...query_data.entries()]);
+      // Idempotency guard — intentionally not a watch source.
+      if (query_revision === last_ai_query_revision) return;
 
-    untrack(() => {
       const ai_merges: { index: number; value: string }[] = [];
 
       for (const row of translation_rows) {
@@ -417,7 +422,7 @@
       }
 
       if (ai_merges.length > 0) {
-        if (is_dual_edit_mode($editing_mode)) {
+        if (is_dual_edit_mode(editing_mode_value)) {
           push_dual_undo();
         } else {
           translation_undo_stack = [
@@ -433,8 +438,8 @@
       }
 
       last_ai_query_revision = query_revision;
-    });
-  });
+    }
+  );
 
   // The .ready promises on typing contexts resolve internally;
   // no need for a reactive effect to subscribe to them.
@@ -1013,7 +1018,7 @@
         <AlertDialog.Cancel disabled={save_pending}>Cancel</AlertDialog.Cancel>
         <AlertDialog.Action disabled={save_pending} onclick={confirm_save}>
           {#if save_pending}
-            <Loader2 class="size-4 animate-spin" />
+            <LoaderCircle class="size-4 animate-spin" />
           {/if}
           Save
         </AlertDialog.Action>

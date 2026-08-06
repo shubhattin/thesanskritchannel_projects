@@ -2,7 +2,7 @@
   import MetaTags from '~/components/tags/MetaTags.svelte';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import ProjectMapEditor from '~/components/pages/map_edit/ProjectMapEditor.svelte';
-  import { untrack } from 'svelte';
+  import { watch } from 'runed';
   import { get_project_from_key, EMPTY_PROJECT_REGISTRY } from '~/state/project_list';
   import { createQuery } from '@tanstack/svelte-query';
   import { project_list_q_options, project_map_q_options } from '~/state/main_app/data.svelte';
@@ -26,7 +26,8 @@
     const project = current_project;
     if (!project) return;
 
-    const prev = untrack(() => get(project_state));
+    // Callback of `watch` is untracked; prev snapshot must not be a source.
+    const prev = get(project_state);
 
     if (
       prev?.project_key === project_key &&
@@ -45,9 +46,7 @@
     });
   }
 
-  $effect(() => {
-    project_key;
-    current_project;
+  watch([() => project_key, () => current_project], () => {
     sync_project_state();
   });
 </script>

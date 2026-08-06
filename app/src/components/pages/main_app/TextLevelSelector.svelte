@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import { untrack } from 'svelte';
+  import { watch } from 'runed';
   import { Button } from '$lib/components/ui/button';
   import * as Select from '$lib/components/ui/select';
   import { BASE_SCRIPT, selected_text_levels, viewing_script } from '~/state/main_app/state.svelte';
@@ -49,13 +49,14 @@
 
   // Memoized transliterated label — avoids creating a new promise on every render
   let label_text = $state('Select');
-  $effect(() => {
-    const selected_value = $selected_text_levels[text_level_state_index];
-    const script = $viewing_script;
-    const opts = options;
-    const initial = initial_option;
-
-    untrack(() => {
+  watch(
+    [
+      () => $selected_text_levels[text_level_state_index],
+      () => $viewing_script,
+      () => options,
+      () => initial_option
+    ],
+    ([selected_value, script, opts, initial]) => {
       (async () => {
         if (!selected_value) {
           label_text = 'Select';
@@ -75,29 +76,24 @@
         const text_tr = await transliterate_custom(selected_text, BASE_SCRIPT, script);
         label_text = `${selected_value}. ${text_tr}`;
       })();
-    });
-  });
+    }
+  );
 
   // Memoized transliterated options — avoids creating a new promise on every render
   let options_transliterated = $state<selector_option_type[] | null>(null);
-  $effect(() => {
-    const opts = options;
-    const script = $viewing_script;
-
-    untrack(() => {
-      if (!opts || !browser) {
-        options_transliterated = opts || null;
-        return;
-      }
-      (async () => {
-        const transliterate_texts = await transliterate_custom(
-          opts.map((v) => v.text!),
-          BASE_SCRIPT,
-          script
-        );
-        options_transliterated = opts.map((v, i) => ({ ...v, text: transliterate_texts[i] }));
-      })();
-    });
+  watch([() => options, () => $viewing_script], ([opts, script]) => {
+    if (!opts || !browser) {
+      options_transliterated = opts || null;
+      return;
+    }
+    (async () => {
+      const transliterate_texts = await transliterate_custom(
+        opts.map((v) => v.text!),
+        BASE_SCRIPT,
+        script
+      );
+      options_transliterated = opts.map((v, i) => ({ ...v, text: transliterate_texts[i] }));
+    })();
   });
 </script>
 

@@ -21,7 +21,8 @@
   import { ProgressRing } from '$lib/components/ui/progress-ring';
   import { client } from '~/api/client';
   import { copy_text_to_clipboard, get_permutations } from '~/tools/kry';
-  import { onDestroy, onMount, untrack } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
+  import { watch } from 'runed';
   import { loadLocalConfig } from '../load_local_config';
   import { BsCopy } from 'svelte-icons-pack/bs';
   import { BiImage } from 'svelte-icons-pack/bi';
@@ -318,19 +319,27 @@
     staleTime: ms('30mins')
   }));
   let auto_image_generated = false;
-  $effect(() => {
-    if (!image_prompt_q.isFetching && image_prompt_q.isSuccess && image_prompt_q.data.image_prompt)
-      untrack(() => {
-        $image_prompt = image_prompt_q.data.image_prompt!;
+  watch(
+    [
+      () => image_prompt_q.isFetching,
+      () => image_prompt_q.isSuccess,
+      () => image_prompt_q.isError,
+      () => image_prompt_q.data?.image_prompt
+    ],
+    ([is_fetching, is_success, is_error, prompt]) => {
+      if (!is_fetching && is_success && prompt) {
+        $image_prompt = prompt;
         if (!auto_image_generated && $auto_gen_image) {
           generate_image();
           auto_image_generated = true;
         }
         image_prompt_request_error = false;
         show_prompt_time_status = true;
-      });
-    else if (image_prompt_q.isError) image_prompt_request_error = true;
-  });
+      } else if (is_error) {
+        image_prompt_request_error = true;
+      }
+    }
+  );
 
   const download_basename = $derived(
     buildImageAssetDownloadBasename($index, text_data_q.data?.[$index]?.shloka_num)

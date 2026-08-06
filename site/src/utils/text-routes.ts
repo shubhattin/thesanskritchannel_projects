@@ -12,9 +12,9 @@ import {
   parse_pretty_route_segment
 } from '$app/utils/project_site_paths';
 import {
-  get_project_by_key,
   get_project_info_by_key,
-  get_project_map_by_key
+  get_project_map_by_key,
+  resolve_project_by_key
 } from '$app/utils/project/list.server';
 import { cache_db_options_site } from '~/db/cache_db_options';
 
@@ -48,11 +48,14 @@ export const resolve_text_route = async (
   raw_project_key: string,
   raw_segments: string[]
 ): Promise<resolved_text_route_type | null> => {
-  const project = await get_project_by_key(raw_project_key, cache_db_options_site, {
+  const resolved_project = await resolve_project_by_key(raw_project_key, cache_db_options_site, {
     listed_only: true
   });
-  if (!project) return null;
+  if (!resolved_project) return null;
+
+  const project = resolved_project.project;
   const project_key = project.key;
+  const key_changed = resolved_project.was_redirect;
   const project_info = await get_project_info_by_key(project_key, cache_db_options_site);
   const map = await get_project_map_by_key(project_key, cache_db_options_site);
   const segments = raw_segments.filter((segment) => segment.length > 0);
@@ -122,7 +125,8 @@ export const resolve_text_route = async (
     path_names,
     path_level_names,
     canonical_path,
-    redirect_to: null
+    // Old project key → redirect to canonical path under the new key (suffix preserved).
+    redirect_to: key_changed ? canonical_path : null
   };
 };
 

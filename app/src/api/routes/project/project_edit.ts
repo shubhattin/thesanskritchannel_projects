@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { count, eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { waitUntil } from '@vercel/functions';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
@@ -7,6 +7,7 @@ import { db, type transactionType } from '~/db/db';
 import {
   media_attachment,
   project_paths,
+  project_redirects,
   projects,
   texts,
   translations,
@@ -23,7 +24,8 @@ import { lekhaUrlSlugify } from '~/lib/carta_markdown/markdown';
 import { is_reserved_project_route_slug } from '~/utils/reserved_project_route_slugs';
 import {
   clear_server_project_map_cache,
-  clear_project_registry_cache
+  clear_project_registry_cache,
+  clear_server_project_info_cache
 } from '~/utils/project/list.server';
 import { notify_site_invalidate_project_list_caches } from '~/utils/cache.server/invalidate_site_project_cache.server';
 import { countResourcesForProject, insertProjectPaths } from '~/utils/project/paths_db.server';
@@ -90,14 +92,25 @@ export const update_project_name_description_route = protectedAdminProcedure
 export const edit_project_slug_route = protectedAdminProcedure
   .input(
     project_id_input.extend({
-      key: z.string().trim().min(1).max(100)
+      key: z.string().trim().min(1).max(100),
+      /** When true, keep the previous key as a redirect to this project. Default true. */
+      redirect_old_url: z.boolean().default(true)
     })
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
     await delay_dev(400);
+    let previous_key: string | null = null;
+
     await db.transaction(async (tx) => {
-      await require_project(tx, input.project_id);
+      const project = await require_project(tx, input.project_id);
+      previous_key = project.key;
       const key = lekhaUrlSlugify(input.key);
+      if (!key) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Slug must contain at least one alphanumeric character'
+        });
+      }
       if (is_reserved_project_route_slug(key)) {
         throw new TRPCError({
           code: 'CONFLICT',
@@ -105,19 +118,82 @@ export const edit_project_slug_route = protectedAdminProcedure
         });
       }
 
+      if (key === project.key) {
+        return;
+      }
+
       const conflict = await tx.query.projects.findFirst({
-        where: (tbl, { eq }) => eq(tbl.key, key),
+        where: (tbl, { eq: eqKey }) => eqKey(tbl.key, key),
         columns: { id: true }
       });
       if (conflict) {
-        throw new TRPCError({ code: 'CONFLICT', message: 'This slug is already in use' });
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: 'This slug is already used by another project. You cannot use it.'
+        });
       }
 
+      // Claiming a key that currently redirects somewhere else replaces that rule.
+      await tx.delete(project_redirects).where(eq(project_redirects.key, key));
+
       await tx.update(projects).set({ key }).where(eq(projects.id, input.project_id));
+
+      if (input.redirect_old_url) {
+        await tx
+          .insert(project_redirects)
+          .values({ project_id: input.project_id, key: project.key })
+          .onConflictDoUpdate({
+            target: project_redirects.key,
+            set: { project_id: input.project_id }
+          });
+      }
+    });
+
+    if (previous_key) {
+      clear_server_project_info_cache(previous_key);
+    }
+    await invalidate_project_list_caches(cookie);
+    return { success: true };
+  });
+
+export const list_project_redirects_route = protectedAdminProcedure
+  .input(project_id_input)
+  .query(async ({ input }) => {
+    await delay_dev(200);
+    await require_project(db, input.project_id);
+    return db.query.project_redirects.findMany({
+      where: (tbl, { eq: eqId }) => eqId(tbl.project_id, input.project_id),
+      columns: { id: true, key: true, created_at: true },
+      orderBy: (tbl, { desc }) => [desc(tbl.created_at)]
+    });
+  });
+
+export const delete_project_redirect_route = protectedAdminProcedure
+  .input(
+    project_id_input.extend({
+      redirect_id: z.int()
+    })
+  )
+  .mutation(async ({ input, ctx: { cookie } }) => {
+    await delay_dev(300);
+    await db.transaction(async (tx) => {
+      await require_project(tx, input.project_id);
+      const deleted = await tx
+        .delete(project_redirects)
+        .where(
+          and(
+            eq(project_redirects.id, input.redirect_id),
+            eq(project_redirects.project_id, input.project_id)
+          )
+        )
+        .returning();
+      if (deleted.length === 0) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Redirect rule not found' });
+      }
     });
 
     await invalidate_project_list_caches(cookie);
-    return { success: true };
+    return { success: true as const };
   });
 
 export const update_project_listed_route = protectedAdminProcedure
@@ -219,21 +295,42 @@ export const delete_project_route = protectedAdminProcedure
   });
 
 export const check_project_slug_route = protectedAdminProcedure
-  .input(z.object({ slug: z.string().max(100) }))
+  .input(
+    z.object({
+      slug: z.string().max(100),
+      /** When editing, ignore this project's own current key as a conflict. */
+      exclude_project_id: z.int().optional()
+    })
+  )
   .query(async ({ input }) => {
     await delay_dev(200);
     const key = lekhaUrlSlugify(input.slug);
     if (!key) {
-      return { available: false, key: '' };
+      return { available: false, key: '', replaces_redirect: false as const };
     }
     if (is_reserved_project_route_slug(key)) {
-      return { available: false, key };
+      return { available: false, key, replaces_redirect: false as const };
     }
+
     const conflict = await db.query.projects.findFirst({
       where: (tbl, { eq: eqId }) => eqId(tbl.key, key),
       columns: { id: true }
     });
-    return { available: !conflict, key };
+    const active_conflict =
+      !!conflict &&
+      (input.exclude_project_id === undefined || conflict.id !== input.exclude_project_id);
+
+    const redirect = await db.query.project_redirects.findFirst({
+      where: (tbl, { eq: eqKey }) => eqKey(tbl.key, key),
+      columns: { id: true, project_id: true, key: true }
+    });
+
+    return {
+      available: !active_conflict,
+      key,
+      replaces_redirect: !!redirect,
+      redirect_key: redirect?.key ?? null
+    };
   });
 
 const add_new_project_route = protectedAdminProcedure
@@ -270,6 +367,9 @@ const add_new_project_route = protectedAdminProcedure
         throw new TRPCError({ code: 'CONFLICT', message: 'This slug is already in use' });
       }
 
+      // New project claiming a former redirect key replaces that rule.
+      await tx.delete(project_redirects).where(eq(project_redirects.key, key));
+
       const [inserted] = await tx
         .insert(projects)
         .values({
@@ -304,5 +404,7 @@ export const project_edit_router = t.router({
   get_delete_resource_counts: get_delete_resource_counts_route,
   delete_project: delete_project_route,
   check_project_slug: check_project_slug_route,
+  list_project_redirects: list_project_redirects_route,
+  delete_project_redirect: delete_project_redirect_route,
   add_new_project: add_new_project_route
 });

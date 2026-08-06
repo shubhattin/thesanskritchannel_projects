@@ -23,7 +23,7 @@ if (!resolved) {
   Astro.response.status = 404;
 }
 
-if (resolved?.redirect_to) {
+if (resolved?.redirect_to && resolved.redirect_to !== Astro.url.pathname) {
   return Astro.redirect(resolved.redirect_to, 301);
 }
 

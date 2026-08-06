@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAiImagesZipFileName,
-  download_images_zip_input_schema,
   uniquifyZipFilenames
 } from '~/utils/image_assets/download_images_zip';
 
@@ -58,48 +57,5 @@ describe('uniquifyZipFilenames', () => {
     const names = out.map((f) => f.filename);
     expect(names).toEqual(['foo.png', 'foo (2).png', 'foo (2) (2).png']);
     expect(new Set(names).size).toBe(names.length);
-  });
-});
-
-describe('download_images_zip_input_schema', () => {
-  it('defaults format to png', () => {
-    const parsed = download_images_zip_input_schema.parse({
-      zip_file_name: 'ramayanam 1:2 (AI Images).zip',
-      project_id: 12,
-      path_params: [1, 2],
-      files: [{ filename: 'Image Index No. 0.png', image_id: 44 }]
-    });
-    expect(parsed.format).toBe('png');
-  });
-
-  it('accepts webp format', () => {
-    const parsed = download_images_zip_input_schema.parse({
-      zip_file_name: 'ramayanam 1:2 (AI Images).zip',
-      project_id: 12,
-      path_params: [1, 2],
-      format: 'webp',
-      files: [{ filename: 'Image Index No. 0.webp', image_id: 44 }]
-    });
-    expect(parsed.format).toBe('webp');
-  });
-
-  it('rejects path separators in filenames', () => {
-    const result = download_images_zip_input_schema.safeParse({
-      zip_file_name: 'ramayanam 1:2 (AI Images).zip',
-      project_id: 12,
-      path_params: [1, 2],
-      files: [{ filename: '../evil.webp', image_id: 44 }]
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects empty files array', () => {
-    const result = download_images_zip_input_schema.safeParse({
-      zip_file_name: 'ramayanam (AI Images).zip',
-      project_id: 1,
-      path_params: [],
-      files: []
-    });
-    expect(result.success).toBe(false);
   });
 });

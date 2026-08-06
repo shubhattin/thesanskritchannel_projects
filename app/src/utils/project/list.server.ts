@@ -187,6 +187,40 @@ export const get_project_by_key = async (
   return project;
 };
 
+export type resolved_project_by_key = {
+  project: project_type;
+  /** Key from the request URL (may be an old redirect key). */
+  requested_key: string;
+  /** True when `requested_key` was resolved via `project_redirects`. */
+  was_redirect: boolean;
+};
+
+/**
+ * Resolves a URL key to a project. Active project keys always win over redirect rules.
+ * Falls back to `project_redirects` when the key is not a live project key.
+ */
+export const resolve_project_by_key = async (
+  key: string,
+  options: db_options,
+  lookup_options?: project_lookup_options
+): Promise<resolved_project_by_key | undefined> => {
+  const direct = await get_project_by_key(key, options, lookup_options);
+  if (direct) {
+    return { project: direct, requested_key: key, was_redirect: false };
+  }
+
+  const redirect = await options.db.query.project_redirects.findFirst({
+    where: (tbl, { eq: eqKey }) => eqKey(tbl.key, key),
+    columns: { project_id: true }
+  });
+  if (!redirect) return undefined;
+
+  const project = await get_project_by_id(redirect.project_id, options, lookup_options);
+  if (!project) return undefined;
+
+  return { project, requested_key: key, was_redirect: true };
+};
+
 export const get_project_map_by_id = async (
   id: number,
   options: db_options

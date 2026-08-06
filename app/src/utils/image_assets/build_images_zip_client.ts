@@ -32,15 +32,22 @@ export const build_images_zip_client = async ({
   onProgress?.({ done, total, phase: 'downloading' });
 
   const zip = new JSZip();
-  await Promise.all(
-    files.map(async (file) => {
+  const concurrency = Math.min(4, total);
+  let next = 0;
+
+  const worker = async () => {
+    while (next < total) {
+      const i = next++;
+      const file = files[i]!;
       let blob = await fetch_image_asset_blob(file.s3_key);
       if (format === 'png') blob = await webp_blob_to_png_blob(blob);
       zip.file(file.filename, blob, { compression: 'STORE' });
       done += 1;
       onProgress?.({ done, total, phase: 'downloading' });
-    })
-  );
+    }
+  };
+
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
 
   onProgress?.({ done: total, total, phase: 'zipping' });
   return zip.generateAsync({ type: 'blob', compression: 'STORE' });

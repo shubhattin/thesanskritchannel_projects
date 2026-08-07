@@ -7,12 +7,16 @@ import {
   StorageClass,
   type PutObjectCommandInput
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import mime from 'mime-types';
 import { isValidImageAssetS3Key, type ImageAssetS3Key } from '~/utils/s3/image_asset_key';
 import { AppConfig } from './config';
 import { StorageError } from './errors';
 
 export type { ImageAssetS3Key };
+
+/** Presigned GET URL lifetime for browser downloads. */
+export const PRESIGNED_DOWNLOAD_EXPIRES_IN_SECONDS = 10 * 60;
 
 const tryStorage = <A>(operation: string, key: string | undefined, run: () => Promise<A>) =>
   Effect.tryPromise({
@@ -29,6 +33,10 @@ export class ObjectStorage extends Context.Service<
     ) => Effect.Effect<unknown, StorageError>;
     readonly deleteAssetFile: (key: string) => Effect.Effect<unknown, StorageError>;
     readonly getAssetFile: (key: string) => Effect.Effect<Buffer, StorageError>;
+    /** Publicly fetchable GET URLs (10 min). Keys must be valid image asset keys. */
+    readonly getPresignedDownloadUrls: (
+      keys: readonly string[]
+    ) => Effect.Effect<Record<string, string>, StorageError>;
   }
 >()('ObjectStorage') {
   static readonly Live = Layer.effect(ObjectStorage)(
@@ -86,6 +94,21 @@ export class ObjectStorage extends Context.Service<
               throw new Error(`Empty S3 object body for key: ${key}`);
             }
             return Buffer.from(bytes);
+          }),
+        getPresignedDownloadUrls: (keys) =>
+          tryStorage('getPresignedDownloadUrls', keys[0], async () => {
+            const urls: Record<string, string> = {};
+            for (const key of keys) {
+              if (!isValidImageAssetS3Key(key)) {
+                throw new Error(`Invalid asset key: ${key}`);
+              }
+              urls[key] = await getSignedUrl(
+                s3,
+                new GetObjectCommand({ Bucket: bucket, Key: key }),
+                { expiresIn: PRESIGNED_DOWNLOAD_EXPIRES_IN_SECONDS }
+              );
+            }
+            return urls;
           })
       };
     })

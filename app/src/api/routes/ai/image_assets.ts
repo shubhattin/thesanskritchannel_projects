@@ -10,6 +10,7 @@ import { resolveSelectedTextProjectPath } from '~/utils/project/paths_db.server'
 import { deleteImageAssetById } from '~/utils/image_assets/persist.server';
 import { getCDNUrlSync } from '~/utils/cdn';
 import { get_project_info_by_id } from '~/utils/project/list.server';
+import { getPresignedDownloadUrls } from '~/utils/s3/upload_file.server';
 
 const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
   runTrpcEffect(dbRun(operation, run));
@@ -101,7 +102,19 @@ const delete_text_image_route = protectedAdminProcedure
     return { success: true as const };
   });
 
+const get_presigned_urls_route = protectedAdminProcedure
+  .input(
+    z.object({
+      s3_keys: z.array(z.string().min(1)).min(1).max(200)
+    })
+  )
+  .query(async ({ input }) => {
+    const urls = await runTrpcEffect(getPresignedDownloadUrls(input.s3_keys));
+    return { urls };
+  });
+
 export const image_assets_router = t.router({
   list: list_text_images_route,
-  delete: delete_text_image_route
+  delete: delete_text_image_route,
+  get_presigned_urls: get_presigned_urls_route
 });

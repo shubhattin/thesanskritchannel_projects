@@ -27,3 +27,10 @@ export const getAssetFile = (key: string) =>
     const storage = yield* ObjectStorage;
     return yield* storage.getAssetFile(key);
   });
+
+/** Presigned GET URLs for browser download (10 min TTL). */
+export const getPresignedDownloadUrls = (keys: readonly string[]) =>
+  Effect.gen(function* () {
+    const storage = yield* ObjectStorage;
+    return yield* storage.getPresignedDownloadUrls(keys);
+  });

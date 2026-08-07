@@ -1,5 +1,8 @@
 import JSZip from 'jszip';
-import { fetch_image_asset_blob, webp_blob_to_png_blob } from '~/tools/download_file_browser';
+import {
+  get_image_asset_presigned_urls,
+  webp_blob_to_png_blob
+} from '~/tools/download_file_browser';
 import type { DownloadImagesZipFormat } from '~/utils/image_assets/download_images_zip';
 
 export type ZipImageFile = {
@@ -19,7 +22,7 @@ type BuildImagesZipOptions = {
   onProgress?: (progress: BuildImagesZipProgress) => void;
 };
 
-/** Fetch images via same-origin proxy in parallel, optionally convert to PNG, build STORE zip. */
+/** Presign once, fetch images from S3 in parallel, optionally convert to PNG, build STORE zip. */
 export const build_images_zip_client = async ({
   files,
   format,
@@ -31,6 +34,8 @@ export const build_images_zip_client = async ({
   let done = 0;
   onProgress?.({ done, total, phase: 'downloading' });
 
+  const urls = await get_image_asset_presigned_urls(files.map((f) => f.s3_key));
+
   const zip = new JSZip();
   const concurrency = Math.min(4, total);
   let next = 0;
@@ -39,7 +44,15 @@ export const build_images_zip_client = async ({
     while (next < total) {
       const i = next++;
       const file = files[i]!;
-      let blob = await fetch_image_asset_blob(file.s3_key);
+      const url = urls[file.s3_key];
+      if (!url) throw new Error(`Missing presigned URL for ${file.s3_key}`);
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(
+          (await res.text().catch(() => '')) || `Failed to fetch image (${res.status})`
+        );
+      }
+      let blob = await res.blob();
       if (format === 'png') blob = await webp_blob_to_png_blob(blob);
       zip.file(file.filename, blob, { compression: 'STORE' });
       done += 1;

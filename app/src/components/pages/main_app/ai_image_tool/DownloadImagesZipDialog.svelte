@@ -219,7 +219,7 @@
       <Dialog.Header>
         <Dialog.Title>Preparing Zip</Dialog.Title>
         <Dialog.Description>
-          Downloading images in your browser, then building the archive.
+          Fetching images via short-lived download links, then building the archive in your browser.
         </Dialog.Description>
       </Dialog.Header>
       <div class="flex flex-col items-center justify-center gap-5 py-16">

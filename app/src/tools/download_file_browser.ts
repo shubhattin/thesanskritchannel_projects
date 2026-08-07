@@ -1,4 +1,4 @@
-import { fetch_get } from './fetch';
+import { client } from '~/api/client';
 
 export const download_file_in_browser = (
   link: string,
@@ -31,14 +31,23 @@ const download_blob = (blob: Blob, file_name: string) => {
   download_file_in_browser(blob_url, file_name, true);
 };
 
-/**
- * Fetch image bytes via same-origin proxy (avoids CloudFront CORS cache issues).
- * PNG conversion / zipping stay on the client.
- */
-export const fetch_image_asset_blob = async (s3_key: string): Promise<Blob> => {
-  const res = await fetch_get('/api/download_image_asset', {
-    params: { s3_key }
+/** Batch-presign image asset keys (10 min TTL), returns s3_key → url map. */
+export const get_image_asset_presigned_urls = async (
+  s3_keys: readonly string[]
+): Promise<Record<string, string>> => {
+  if (s3_keys.length === 0) return {};
+  const { urls } = await client.ai.image_assets.get_presigned_urls.query({
+    s3_keys: [...s3_keys]
   });
+  return urls;
+};
+
+/** Fetch image bytes via short-lived S3 presigned URL. */
+export const fetch_image_asset_blob = async (s3_key: string): Promise<Blob> => {
+  const urls = await get_image_asset_presigned_urls([s3_key]);
+  const url = urls[s3_key];
+  if (!url) throw new Error('Failed to get presigned download URL');
+  const res = await fetch(url);
   if (!res.ok) {
     throw new Error((await res.text().catch(() => '')) || `Failed to fetch image (${res.status})`);
   }
@@ -74,14 +83,14 @@ export const webp_blob_to_png_blob = async (blob: Blob): Promise<Blob> => {
   }
 };
 
-/** Force-download a stored WebP via same-origin proxy. */
+/** Force-download a stored WebP via presigned URL. */
 export const download_s3_webp_in_browser = async (s3_key: string, basename: string) => {
   const blob = await fetch_image_asset_blob(s3_key);
   const file_name = basename.endsWith('.webp') ? basename : `${basename}.webp`;
   download_blob(blob, file_name);
 };
 
-/** Download a stored WebP as PNG via proxy fetch + in-browser canvas conversion. */
+/** Download a stored WebP as PNG via presigned fetch + in-browser canvas conversion. */
 export const download_webp_as_png_in_browser = async (s3_key: string, basename: string) => {
   const webp = await fetch_image_asset_blob(s3_key);
   const png = await webp_blob_to_png_blob(webp);

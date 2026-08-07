@@ -22,7 +22,8 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.7",
-    "@aws-sdk/client-s3": "^3.1070.0",
+    "@aws-sdk/client-s3": "^3.1105.0",
+    "@aws-sdk/s3-request-presigner": "^3.1105.0",
     "@cartamd/plugin-code": "^4.2.0",
     "@floating-ui/dom": "^1.7.6",
     "@fontsource/roboto": "^5.2.10",

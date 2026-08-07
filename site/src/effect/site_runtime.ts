@@ -8,6 +8,7 @@
  */
 import { Effect, type ManagedRuntime } from 'effect';
 import { resolveDbUrl, SharedConfig, type SharedConfigInput } from '$app/effect/config';
+import { envBagFromUnknown, pickEnv } from '$app/effect/env';
 import { createRunners, type EffectRunners } from '$app/effect/run';
 import { makeSiteRuntime, type SiteRuntime } from '$app/effect/runtime';
 
@@ -17,33 +18,22 @@ type SiteRuntimeError =
   SiteRuntime extends ManagedRuntime.ManagedRuntime<infer _R, infer E> ? E : never;
 type SiteRunners = EffectRunners<SiteRuntimeServices, SiteRuntimeError>;
 
-const nonEmpty = (value: string | undefined): string | undefined =>
-  value !== undefined && value !== '' ? value : undefined;
-
-const fromMeta = (value: unknown): string | undefined =>
-  typeof value === 'string' ? nonEmpty(value) : undefined;
-
 export const loadSiteConfigInput = (): SharedConfigInput => {
-  const meta = import.meta.env;
-  const dbUrl = resolveDbUrl({
-    DB_MODE: process.env.DB_MODE ?? fromMeta(meta.DB_MODE),
-    PG_DATABASE_URL: process.env.PG_DATABASE_URL ?? fromMeta(meta.PG_DATABASE_URL),
-    PG_DATABASE_URL1: process.env.PG_DATABASE_URL1 ?? fromMeta(meta.PG_DATABASE_URL1),
-    PG_DATABASE_URL2: process.env.PG_DATABASE_URL2 ?? fromMeta(meta.PG_DATABASE_URL2)
-  });
-
+  // Public / Vite bag first, then process.env (server secrets on Astro/Vercel).
+  const v = pickEnv(envBagFromUnknown(import.meta.env));
   return {
-    dbUrl: dbUrl ?? '',
-    upstashRedisUrl:
-      nonEmpty(process.env.UPSTASH_REDIS_REST_URL) ?? fromMeta(meta.UPSTASH_REDIS_REST_URL) ?? '',
-    upstashRedisToken:
-      nonEmpty(process.env.UPSTASH_REDIS_REST_TOKEN) ??
-      fromMeta(meta.UPSTASH_REDIS_REST_TOKEN) ??
-      '',
-    betterAuthUrl:
-      fromMeta(meta.VITE_BETTER_AUTH_URL) ?? nonEmpty(process.env.VITE_BETTER_AUTH_URL) ?? '',
-    isDev: Boolean(meta.DEV),
-    isProd: Boolean(meta.PROD)
+    dbUrl:
+      resolveDbUrl({
+        DB_MODE: v('DB_MODE'),
+        PG_DATABASE_URL: v('PG_DATABASE_URL'),
+        PG_DATABASE_URL1: v('PG_DATABASE_URL1'),
+        PG_DATABASE_URL2: v('PG_DATABASE_URL2')
+      }) ?? '',
+    upstashRedisUrl: v('UPSTASH_REDIS_REST_URL') ?? '',
+    upstashRedisToken: v('UPSTASH_REDIS_REST_TOKEN') ?? '',
+    betterAuthUrl: v('VITE_BETTER_AUTH_URL') ?? '',
+    isDev: Boolean(import.meta.env.DEV),
+    isProd: Boolean(import.meta.env.PROD)
   };
 };
 

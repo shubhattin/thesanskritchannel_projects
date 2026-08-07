@@ -1,7 +1,7 @@
-import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 import { get_user_app_scope_status } from '~/utils/auth/app_scope_utils.server';
 import { APP_SCOPE_ID_LEKHA } from '~/state/data_types';
+import { runServerEffect } from '~/effect/app_runtime.server';
 
 export const load: LayoutServerLoad = async ({ parent, request }) => {
   const { user_info } = await parent();
@@ -10,10 +10,8 @@ export const load: LayoutServerLoad = async ({ parent, request }) => {
       is_lekha_scope_allowed: true
     };
   const cookie = request.headers.get('cookie') ?? '';
-  const is_current_app_scope = await get_user_app_scope_status(
-    user_info!.id,
-    APP_SCOPE_ID_LEKHA,
-    cookie
+  const is_current_app_scope = await runServerEffect(
+    get_user_app_scope_status(user_info!.id, APP_SCOPE_ID_LEKHA, cookie)
   );
   return {
     is_lekha_scope_allowed: is_current_app_scope

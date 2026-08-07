@@ -1,15 +1,20 @@
+import { dbRun, dbTransaction } from '~/effect/database';
 import { TRPCError } from '@trpc/server';
 import { inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { t, protectedProcedure, protectedAdminProcedure } from '../trpc_init';
-import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
 import { get_project_info_by_id } from '~/utils/project/list.server';
-import { db } from '~/db/db';
-import type { pgTransactionType } from '~/db/db_types';
+import type { TxOrDb } from '~/effect/database';
 import { media_attachment } from '~/db/schema';
 import { get_path_params } from '~/state/project_list';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
+
+const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
+  runTrpcEffect(dbRun(operation, run));
+const runTx = <A>(operation: string, run: Parameters<typeof dbTransaction<A>>[1]) =>
+  runTrpcEffect(dbTransaction(operation, run));
 
 const media_type_schema = z.enum(['pdf', 'text', 'video', 'audio']);
 
@@ -69,7 +74,7 @@ const assert_unique_ids = (label: string, ids: number[]) => {
 };
 
 const apply_multimedia_save = async (
-  tx: pgTransactionType,
+  tx: TxOrDb,
   project_path_id: number,
   { creates, updates, deletes, order_updates }: MediaSavePayload
 ) => {
@@ -181,9 +186,9 @@ const get_media_list_route = protectedProcedure
     })
   )
   .query(async ({ input: { project_id, selected_text_levels } }) => {
-    const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
+    const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
     const path_params = get_path_params(selected_text_levels, levels);
-    return CACHE.media_links.get({ project_id, path_params }, cache_db_options_app);
+    return runTrpcEffect(CACHE.media_links.get({ project_id, path_params }));
   });
 
 const save_project_multimedia_route = protectedAdminProcedure
@@ -192,10 +197,10 @@ const save_project_multimedia_route = protectedAdminProcedure
     async ({
       input: { project_id, selected_text_levels, creates, updates, deletes, order_updates }
     }) => {
-      const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
+      const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
       const path_params = get_path_params(selected_text_levels, levels);
 
-      const result = await db.transaction(async (tx) => {
+      const result = await runTx('media.tx.1', async (tx) => {
         const projectPath = await requireProjectPath(tx, project_id, path_params.join(':'));
         return apply_multimedia_save(tx, projectPath.id, {
           creates,
@@ -205,10 +210,8 @@ const save_project_multimedia_route = protectedAdminProcedure
         });
       });
 
-      await invalidate_and_refresh_cached(
-        CACHE.media_links,
-        { project_id, path_params },
-        cache_db_options_app
+      await runTrpcEffect(
+        invalidate_and_refresh_cached(CACHE.media_links, { project_id, path_params })
       );
 
       return result;

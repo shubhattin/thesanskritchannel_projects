@@ -1,3 +1,4 @@
+import { Effect } from 'effect';
 import type { recursive_list_type } from '../../../app/src/state/data_types';
 import {
   get_list_name_for_path_param_index,
@@ -12,11 +13,10 @@ import {
   parse_pretty_route_segment
 } from '$app/utils/project_site_paths';
 import {
-  get_project_info_by_key,
-  get_project_map_by_key,
-  resolve_project_by_key
-} from '$app/utils/project/list.server';
-import { cache_db_options_site } from '~/db/cache_db_options';
+  getProjectInfoByKey,
+  getProjectMapByKey,
+  resolveProjectByKey
+} from '$app/effect/project_registry';
 
 export {
   build_project_path,
@@ -44,28 +44,72 @@ export type resolved_text_route_type = {
   redirect_to: string | null;
 };
 
-export const resolve_text_route = async (
-  raw_project_key: string,
-  raw_segments: string[]
-): Promise<resolved_text_route_type | null> => {
-  const resolved_project = await resolve_project_by_key(raw_project_key, cache_db_options_site, {
-    listed_only: true
-  });
-  if (!resolved_project) return null;
+/** Domain Effect — run only at an Astro page/endpoint boundary. */
+export const resolve_text_route = (raw_project_key: string, raw_segments: string[]) =>
+  Effect.gen(function* () {
+    const resolved_project = yield* resolveProjectByKey(raw_project_key, { listed_only: true });
+    if (!resolved_project) return null;
 
-  const project = resolved_project.project;
-  const project_key = project.key;
-  const key_changed = resolved_project.was_redirect;
-  const project_info = await get_project_info_by_key(project_key, cache_db_options_site);
-  const map = await get_project_map_by_key(project_key, cache_db_options_site);
-  const segments = raw_segments.filter((segment) => segment.length > 0);
+    const project = resolved_project.project;
+    const project_key = project.key;
+    const key_changed = resolved_project.was_redirect;
+    const project_info = yield* getProjectInfoByKey(project_key);
+    const map = yield* getProjectMapByKey(project_key);
+    const segments = raw_segments.filter((segment) => segment.length > 0);
 
-  if (segments.length > project_info.levels - 1) return null;
+    if (segments.length > project_info.levels - 1) return null;
 
-  if (is_numeric_route(segments)) {
-    const path_params = segments.map((segment) => Number(segment));
+    if (is_numeric_route(segments)) {
+      const path_params = segments.map((segment) => Number(segment));
+      const canonical_path = build_project_path(project_key, map, path_params);
+      if (!canonical_path) return null;
+      return {
+        project_id: project.id,
+        project_key,
+        project_name: project.name,
+        level_names: project_info.level_names.slice(0, project_info.levels),
+        levels: project_info.levels,
+        map,
+        node: get_node_at_path(map, path_params) ?? map,
+        path_params,
+        path_names: [],
+        path_level_names: [],
+        canonical_path,
+        redirect_to: canonical_path
+      } satisfies resolved_text_route_type;
+    }
+
+    const path_params: number[] = [];
+    const path_names: string[] = [];
+    const path_level_names: string[] = [];
+    let node: recursive_list_type = map;
+
+    for (const segment of segments) {
+      if (node.info.type !== 'list') return null;
+      const parsed_segment = parse_pretty_route_segment(segment);
+      if (!parsed_segment) return null;
+
+      const expected_level_name = get_list_name_for_path_param_index(
+        map,
+        [...path_params, parsed_segment.num],
+        path_params.length,
+        'Level'
+      );
+      const expected_slug = normalize_level_name_for_url(expected_level_name);
+      if (parsed_segment.level_slug !== expected_slug) return null;
+
+      const list = node.list ?? [];
+      if (!(parsed_segment.num >= 1 && parsed_segment.num <= list.length)) return null;
+
+      node = list[parsed_segment.num - 1]!;
+      path_params.push(parsed_segment.num);
+      path_names.push(node.name_dev);
+      path_level_names.push(expected_level_name);
+    }
+
     const canonical_path = build_project_path(project_key, map, path_params);
     if (!canonical_path) return null;
+
     return {
       project_id: project.id,
       project_key,
@@ -73,62 +117,14 @@ export const resolve_text_route = async (
       level_names: project_info.level_names.slice(0, project_info.levels),
       levels: project_info.levels,
       map,
-      node: get_node_at_path(map, path_params) ?? map,
+      node,
       path_params,
-      path_names: [],
-      path_level_names: [],
+      path_names,
+      path_level_names,
       canonical_path,
-      redirect_to: canonical_path
-    };
-  }
-
-  const path_params: number[] = [];
-  const path_names: string[] = [];
-  const path_level_names: string[] = [];
-  let node: recursive_list_type = map;
-
-  for (const segment of segments) {
-    if (node.info.type !== 'list') return null;
-    const parsed_segment = parse_pretty_route_segment(segment);
-    if (!parsed_segment) return null;
-
-    const expected_level_name = get_list_name_for_path_param_index(
-      map,
-      [...path_params, parsed_segment.num],
-      path_params.length,
-      'Level'
-    );
-    const expected_slug = normalize_level_name_for_url(expected_level_name);
-    if (parsed_segment.level_slug !== expected_slug) return null;
-
-    const list = node.list ?? [];
-    if (!(parsed_segment.num >= 1 && parsed_segment.num <= list.length)) return null;
-
-    node = list[parsed_segment.num - 1]!;
-    path_params.push(parsed_segment.num);
-    path_names.push(node.name_dev);
-    path_level_names.push(expected_level_name);
-  }
-
-  const canonical_path = build_project_path(project_key, map, path_params);
-  if (!canonical_path) return null;
-
-  return {
-    project_id: project.id,
-    project_key,
-    project_name: project.name,
-    level_names: project_info.level_names.slice(0, project_info.levels),
-    levels: project_info.levels,
-    map,
-    node,
-    path_params,
-    path_names,
-    path_level_names,
-    canonical_path,
-    // Old project key → redirect to canonical path under the new key (suffix preserved).
-    redirect_to: key_changed ? canonical_path : null
-  };
-};
+      redirect_to: key_changed ? canonical_path : null
+    } satisfies resolved_text_route_type;
+  });
 
 export const get_child_route_items = (
   project_key: string,

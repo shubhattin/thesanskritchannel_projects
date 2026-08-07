@@ -1,12 +1,8 @@
 import { z } from 'zod';
+import { resolveDbUrl, type DbUrlEnv } from '../effect/config';
 
-export const get_db_url = (env: any): string => {
-  let url: string = null!;
-  if (typeof process !== 'undefined') {
-    if (process.env.DB_MODE === 'PROD') url = env.PG_DATABASE_URL1;
-    else if (process.env.DB_MODE === 'PREVIEW') url = env.PG_DATABASE_URL2;
-    else url = env.PG_DATABASE_URL;
-  } else url = env.PG_DATABASE_URL;
+export const get_db_url = (env: DbUrlEnv): string => {
+  const url = resolveDbUrl(env);
   const url_parse = z
     .string({
       message: 'Connection string for PostgreSQL'

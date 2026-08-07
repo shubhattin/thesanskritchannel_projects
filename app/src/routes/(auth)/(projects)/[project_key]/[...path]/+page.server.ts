@@ -5,9 +5,9 @@ import {
   get_levels_from_map,
   get_list_name_for_path_param_index
 } from '~/state/project_list';
-import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { get_project_map_by_key, resolve_project_by_key } from '~/utils/project/list.server';
 import { z } from 'zod';
+import { runServerEffect } from '~/effect/app_runtime.server';
 
 const path_params_schema = z.array(z.coerce.number().int());
 
@@ -28,7 +28,7 @@ const parse_path_params = (path: string | undefined) => {
 export const load: PageServerLoad = async (opts) => {
   const { params } = opts;
   const project_key = params.project_key;
-  const resolved = await resolve_project_by_key(project_key, cache_db_options_app);
+  const resolved = await runServerEffect(resolve_project_by_key(project_key));
   if (!resolved) error(404, 'Not found');
 
   if (resolved.was_redirect) {
@@ -36,7 +36,7 @@ export const load: PageServerLoad = async (opts) => {
     redirect(301, `/${resolved.project.key}${suffix}`);
   }
 
-  const project_map = await get_project_map_by_key(resolved.project.key, cache_db_options_app);
+  const project_map = await runServerEffect(get_project_map_by_key(resolved.project.key));
   const levels = get_levels_from_map(project_map);
   const level_names = get_level_names_from_map(project_map).slice(0, levels);
   const path_params = parse_path_params(params.path);

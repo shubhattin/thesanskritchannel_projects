@@ -1,12 +1,11 @@
+import { Effect } from 'effect';
 import { t, protectedAdminProcedure } from '~/api/trpc_init';
 import grammar_PROMPT from './grammar_prompt.md?raw';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { z } from 'zod';
 import { generateText, streamText, type ModelMessage } from 'ai';
 import { format_string_text } from '~/tools/kry';
-import { env } from '$env/dynamic/private';
-
-const openrouter_text_model = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
+import { AiProvider } from '~/effect/ai';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
 
 const MODELS_LIST = [
   'gpt-4.1',
@@ -19,16 +18,16 @@ const MODELS_LIST = [
   'gemini-2.5-flash'
 ] as const;
 
-const MODELS = {
-  'gpt-4.1': openrouter_text_model('openai/gpt-4.1'),
-  'gpt-4.1-mini': openrouter_text_model('openai/gpt-4.1-mini'),
-  'gpt-4.1-nano': openrouter_text_model('openai/gpt-4.1-nano'),
-  'gpt-5': openrouter_text_model('openai/gpt-5'),
-  'gpt-5-mini': openrouter_text_model('openai/gpt-5-mini'),
-  'gpt-5-nano': openrouter_text_model('openai/gpt-5-nano'),
-  'gemini-2.0-flash': openrouter_text_model('google/gemini-2.0-flash-001'),
-  'gemini-2.5-flash': openrouter_text_model('google/gemini-2.5-flash')
-} as const;
+const MODEL_IDS = {
+  'gpt-4.1': 'openai/gpt-4.1',
+  'gpt-4.1-mini': 'openai/gpt-4.1-mini',
+  'gpt-4.1-nano': 'openai/gpt-4.1-nano',
+  'gpt-5': 'openai/gpt-5',
+  'gpt-5-mini': 'openai/gpt-5-mini',
+  'gpt-5-nano': 'openai/gpt-5-nano',
+  'gemini-2.0-flash': 'google/gemini-2.0-flash-001',
+  'gemini-2.5-flash': 'google/gemini-2.5-flash'
+} as const satisfies Record<(typeof MODELS_LIST)[number], string>;
 
 export const get_grammar_analysis_input_schema = z.object({
   shloka: z.string(),
@@ -43,58 +42,69 @@ const get_messages = (shloka: string, lang: string) => {
   ] satisfies ModelMessage[];
 };
 
-const get_grammar_analysis_text = async (
-  shloka: string,
-  lang: string,
-  model: keyof typeof MODELS
-) => {
-  const response = await generateText({
-    model: MODELS[model],
-    messages: get_messages(shloka, lang),
-    ...(model.startsWith('gpt-5')
-      ? {
-          providerOptions: {
-            openai: {
-              reasoningEffort: 'low'
-            }
-          }
-        }
-      : {})
+const resolveGrammarModel = (model: keyof typeof MODEL_IDS) =>
+  Effect.gen(function* () {
+    const ai = yield* AiProvider;
+    return ai.openrouterModel(MODEL_IDS[model]);
   });
-  return response.text;
-};
 
-export const get_grammar_analysis_text_stream = async (
-  shloka: string,
-  lang: string,
-  model: keyof typeof MODELS
-) => {
-  const response = await streamText({
-    model: MODELS[model],
-    messages: get_messages(shloka, lang),
-    ...(model.startsWith('gpt-5')
-      ? {
-          providerOptions: {
-            openai: {
-              reasoningEffort: 'low'
-            }
+const gpt5Options = (model: keyof typeof MODEL_IDS) =>
+  model.startsWith('gpt-5')
+    ? {
+        providerOptions: {
+          openrouter: {
+            reasoningEffort: 'low' as const
           }
         }
-      : {})
+      }
+    : {};
+
+const get_grammar_analysis_text = (shloka: string, lang: string, model: keyof typeof MODEL_IDS) =>
+  Effect.gen(function* () {
+    const languageModel = yield* resolveGrammarModel(model);
+    return yield* Effect.promise(async () => {
+      const response = await generateText({
+        model: languageModel,
+        messages: get_messages(shloka, lang),
+        ...gpt5Options(model)
+      });
+      return response.text;
+    });
   });
-  return response;
-};
+
+/** Domain Effect — run only at a HTTP/tRPC boundary. */
+export const get_grammar_analysis_text_stream = (
+  shloka: string,
+  lang: string,
+  model: keyof typeof MODEL_IDS
+) =>
+  Effect.gen(function* () {
+    const languageModel = yield* resolveGrammarModel(model);
+    return yield* Effect.promise(() =>
+      Promise.resolve(
+        streamText({
+          model: languageModel,
+          messages: get_messages(shloka, lang),
+          ...gpt5Options(model)
+        })
+      )
+    );
+  });
 
 const grammar_analysis_route = protectedAdminProcedure
   .input(get_grammar_analysis_input_schema)
-  .query(async ({ input }) => {
-    const time = new Date();
-    const out = await get_grammar_analysis_text(input.shloka, input.lang, input.model);
-    return {
-      text: out,
-      time_ms: new Date().getTime() - time.getTime()
-    };
-  });
+  .query(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const time = new Date();
+        const out = yield* get_grammar_analysis_text(input.shloka, input.lang, input.model);
+        return {
+          text: out,
+          time_ms: new Date().getTime() - time.getTime()
+        };
+      })
+    )
+  );
 
 export const grammar_router = t.router({
   grammar_analysis: grammar_analysis_route

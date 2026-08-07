@@ -1,13 +1,7 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { env } from '$env/dynamic/private';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { Effect } from 'effect';
 import type { LanguageModel } from 'ai';
 import { DEFAULT_TEXT_AI_MODEL, type ai_text_models_type } from './ai_types';
-
-/** OpenAI provider for image generation (not OpenRouter). */
-export const openai = createOpenAI({ apiKey: env.OPENAI_API_KEY });
-
-export const openrouter = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
+import { AiProvider } from '~/effect/ai';
 
 export const OPENAI_IMAGE_MODELS = {
   'gpt-image-1': 'gpt-image-1',
@@ -15,12 +9,21 @@ export const OPENAI_IMAGE_MODELS = {
   default: 'gpt-image-2'
 } as const;
 
-export const OPENROUTER_TEXT_MODELS = {
-  'gpt-5.6-terra': openrouter('openai/gpt-5.6-terra'),
-  'gpt-5.2': openrouter('openai/gpt-5.2'),
-  'gpt-5.6-luna': openrouter('openai/gpt-5.6-luna'),
-  'gpt-5.6-sol': openrouter('openai/gpt-5.6-sol')
-} satisfies Record<ai_text_models_type, LanguageModel>;
+export const OPENROUTER_TEXT_MODEL_IDS = {
+  'gpt-5.6-terra': 'openai/gpt-5.6-terra',
+  'gpt-5.2': 'openai/gpt-5.2',
+  'gpt-5.6-luna': 'openai/gpt-5.6-luna',
+  'gpt-5.6-sol': 'openai/gpt-5.6-sol'
+} as const satisfies Record<ai_text_models_type, string>;
+
+/** Resolve OpenRouter text model via AiProvider (no $env). */
+export const resolveOpenRouterTextModel = (
+  model: ai_text_models_type
+): Effect.Effect<LanguageModel, never, AiProvider> =>
+  Effect.gen(function* () {
+    const ai = yield* AiProvider;
+    return ai.openrouterModel(OPENROUTER_TEXT_MODEL_IDS[model]);
+  });
 
 /** Default Balanced Model for translation work */
 export const DEFAULT_OPENROUTER_TEXT_MODEL = DEFAULT_TEXT_AI_MODEL;

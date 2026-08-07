@@ -1,8 +1,8 @@
+import { dbRun, dbTransaction } from '~/effect/database';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { waitUntil } from '@vercel/functions';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
-import { db } from '~/db/db';
+import { enqueueBackground } from '~/effect/background';
 import {
   project_paths,
   projects,
@@ -12,7 +12,6 @@ import {
   text_image_assets_join
 } from '~/db/schema';
 import { delay_dev } from '~/tools/delay';
-import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
 import {
   clear_server_project_info_cache,
@@ -38,6 +37,12 @@ import {
   TEXT_EDIT_LOCK_NAMESPACE
 } from '~/utils/text/row_edit.server';
 import { image_batch_metadata_schema } from '~/utils/types/ai_batch_metadata';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
+
+const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
+  runTrpcEffect(dbRun(operation, run));
+const runTx = <A>(operation: string, run: Parameters<typeof dbTransaction<A>>[1]) =>
+  runTrpcEffect(dbTransaction(operation, run));
 
 const get_text_data_route = publicProcedure
   .input(
@@ -48,7 +53,7 @@ const get_text_data_route = publicProcedure
   )
   .query(async ({ input: { project_key, path_params } }) => {
     await delay_dev(350);
-    const data = await CACHE.text_data.get({ key: project_key, path_params }, cache_db_options_app);
+    const data = await runTrpcEffect(CACHE.text_data.get({ key: project_key, path_params }));
     return data;
   });
 
@@ -74,7 +79,7 @@ export const search_text_in_texts_route = publicProcedure
   .query(async ({ input: { project_keys, search_text, path_prefixes, mode, limit, offset } }) => {
     const project_ids: number[] = [];
     for (const key of project_keys) {
-      const project = await get_project_by_key(key, cache_db_options_app);
+      const project = await runTrpcEffect(get_project_by_key(key));
       if (!project) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: `Project not found: ${key}` });
       }
@@ -85,7 +90,7 @@ export const search_text_in_texts_route = publicProcedure
       const projects = await Promise.all(
         project_ids.map(async (id) => ({
           id,
-          map: await get_project_map_by_id(id, cache_db_options_app)
+          map: await runTrpcEffect(get_project_map_by_id(id))
         }))
       );
       return search_name_dev_in_maps({
@@ -112,21 +117,23 @@ export const search_text_in_texts_route = publicProcedure
       }
     }
 
-    const data = await db
-      .select({
-        project_id: project_paths.project_id,
-        path: project_paths.path,
-        index: texts.index,
-        shloka_num: texts.shloka_num,
-        text: texts.text,
-        totalCount: sql<number>`count(*) over()`
-      })
-      .from(texts)
-      .innerJoin(project_paths, eq(texts.project_path_id, project_paths.id))
-      .where(and(...conditions))
-      .orderBy(project_paths.project_id, project_paths.path, texts.index)
-      .limit(limit + 1)
-      .offset(offset);
+    const data = await runDb('text.ml.1', (db) =>
+      db
+        .select({
+          project_id: project_paths.project_id,
+          path: project_paths.path,
+          index: texts.index,
+          shloka_num: texts.shloka_num,
+          text: texts.text,
+          totalCount: sql<number>`count(*) over()`
+        })
+        .from(texts)
+        .innerJoin(project_paths, eq(texts.project_path_id, project_paths.id))
+        .where(and(...conditions))
+        .orderBy(project_paths.project_id, project_paths.path, texts.index)
+        .limit(limit + 1)
+        .offset(offset)
+    );
 
     const hasMore = data.length > limit;
     const items = hasMore ? data.slice(0, limit) : data;
@@ -159,7 +166,7 @@ const save_text_rows_route = protectedAdminProcedure
     })
   )
   .mutation(async ({ input: { project_id, selected_text_levels, rows }, ctx: { cookie } }) => {
-    const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
+    const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
     const path_params = get_path_params(selected_text_levels, levels);
     if (levels > 1 && path_params.length === 0) {
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });
@@ -168,7 +175,7 @@ const save_text_rows_route = protectedAdminProcedure
     const textRows = buildTextRowsForSave(rows);
     const shloka_count = textRows.filter((row) => row.shloka_num !== null).length;
 
-    const { affectedLangIds, mapChanged, projectKey } = await db.transaction(async (tx) => {
+    const { affectedLangIds, mapChanged, projectKey } = await runTx('text.tx.1', async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
       );
@@ -300,32 +307,40 @@ const save_text_rows_route = protectedAdminProcedure
     });
 
     await Promise.all([
-      invalidate_and_refresh_cached(
-        CACHE.text_data,
-        { key: projectKey, path_params: [...path_params] },
-        cache_db_options_app
+      runTrpcEffect(
+        invalidate_and_refresh_cached(CACHE.text_data, {
+          key: projectKey,
+          path_params: [...path_params]
+        })
       ),
       // the delete might have affected the available translation langs
-      invalidate_and_refresh_cached(
-        CACHE.available_translation_langs,
-        { project_id, path_params },
-        cache_db_options_app
+      runTrpcEffect(
+        invalidate_and_refresh_cached(CACHE.available_translation_langs, {
+          project_id,
+          path_params
+        })
       )
     ]);
     for (const lang_id of affectedLangIds) {
-      waitUntil(
-        invalidate_and_refresh_cached(
-          CACHE.translation,
-          { project_id, lang_id, selected_text_levels },
-          cache_db_options_app
+      void runTrpcEffect(
+        enqueueBackground(() =>
+          runTrpcEffect(
+            invalidate_and_refresh_cached(CACHE.translation, {
+              project_id,
+              lang_id,
+              selected_text_levels
+            })
+          )
         )
       );
     }
     if (mapChanged) {
-      await invalidate_and_refresh_cached(CACHE.project_map, { project_id }, cache_db_options_app);
+      await runTrpcEffect(invalidate_and_refresh_cached(CACHE.project_map, { project_id }));
       clear_server_project_map_cache(project_id);
       clear_server_project_info_cache(projectKey);
-      waitUntil(notify_site_invalidate_project_map_cache(cookie, project_id));
+      void runTrpcEffect(
+        enqueueBackground(() => notify_site_invalidate_project_map_cache(cookie, project_id))
+      );
     }
 
     return { success: true as const };

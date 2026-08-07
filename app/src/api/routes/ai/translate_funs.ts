@@ -1,3 +1,4 @@
+import { Effect } from 'effect';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { translate_route_schema, translation_out_schema } from './ai_types';
@@ -9,7 +10,8 @@ import {
   SANSKRIT_SYSTEM_PROMPT,
   USER_PROMPT
 } from './translation_prompt';
-import { OPENROUTER_TEXT_MODELS, text_model_custom_options } from './providers';
+import { resolveOpenRouterTextModel, text_model_custom_options } from './providers';
+import type { AiProvider } from '~/effect/ai';
 
 type translation_prompt_yaml_type = Record<
   'English' | 'Sanskrit' | 'Other',
@@ -37,50 +39,61 @@ const translation_prompt_langs: translation_prompt_yaml_type = {
 type TranslationInput = z.infer<typeof translate_route_schema.input>;
 type TranslationOutput = z.infer<typeof translate_route_schema.output>;
 
-export const translate_func = async (args: TranslationInput): Promise<TranslationOutput> => {
-  const { text_data, model, lang_id, text_name } = args;
-  const lang = get_lang_from_id(lang_id);
+/** Domain Effect — run only at a HTTP/tRPC boundary. */
+export const translate_func = (
+  args: TranslationInput
+): Effect.Effect<TranslationOutput, never, AiProvider> =>
+  Effect.gen(function* () {
+    const { text_data, model, lang_id, text_name } = args;
+    const lang = get_lang_from_id(lang_id);
 
-  const translation_prompt =
-    lang === 'English'
-      ? translation_prompt_langs.English
-      : lang === 'Sanskrit'
-        ? translation_prompt_langs.Sanskrit
-        : translation_prompt_langs.Other;
+    const translation_prompt =
+      lang === 'English'
+        ? translation_prompt_langs.English
+        : lang === 'Sanskrit'
+          ? translation_prompt_langs.Sanskrit
+          : translation_prompt_langs.Other;
 
-  const prompt = format_string_text(translation_prompt.user_msg, {
-    text_name,
-    text: JSON.stringify(text_data),
-    lang
-  });
-
-  try {
-    const response = await generateText({
-      model: OPENROUTER_TEXT_MODELS[model],
-      system: translation_prompt.system_prompt,
-      ...(text_model_custom_options[model as keyof typeof text_model_custom_options] ?? {}),
-      prompt,
-      output: Output.array({
-        element: translation_out_schema,
-        description:
-          'This should be an array of objects, each object containing the translation text and the index of the shloka to be generated.',
-        name: 'translations_text_schema'
-      })
+    const prompt = format_string_text(translation_prompt.user_msg, {
+      text_name,
+      text: JSON.stringify(text_data),
+      lang
     });
-    const translations = response.output;
-    if (
-      translations.length !== text_data.length ||
-      translations.some((translation, i) => translation.index !== i)
-    ) {
-      console.error('Translation Rejected: Length mismatch or order mismatch');
-      return { success: false, error: 'Translation Rejected: Length mismatch or order mismatch' };
-    }
-    return {
-      translations,
-      success: true
-    };
-  } catch (e) {
-    console.log(e);
-    return { success: false, error: 'Translation Failed: ' };
-  }
-};
+
+    const modelInstance = yield* resolveOpenRouterTextModel(model);
+
+    return yield* Effect.promise(async (): Promise<TranslationOutput> => {
+      try {
+        const response = await generateText({
+          model: modelInstance,
+          instructions: translation_prompt.system_prompt,
+          ...(text_model_custom_options[model] ?? {}),
+          prompt,
+          output: Output.array({
+            element: translation_out_schema,
+            description:
+              'This should be an array of objects, each object containing the translation text and the index of the shloka to be generated.',
+            name: 'translations_text_schema'
+          })
+        });
+        const translations = response.output;
+        if (
+          translations.length !== text_data.length ||
+          translations.some((translation, i) => translation.index !== i)
+        ) {
+          console.error('Translation Rejected: Length mismatch or order mismatch');
+          return {
+            success: false,
+            error: 'Translation Rejected: Length mismatch or order mismatch'
+          };
+        }
+        return {
+          translations,
+          success: true
+        };
+      } catch (e) {
+        console.log(e);
+        return { success: false, error: 'Translation Failed: ' };
+      }
+    });
+  });

@@ -1,8 +1,5 @@
 import { z } from 'zod';
 
-export const TRANSLATE_TRIGGER_ID = 'ai_text_translate';
-export const IMAGE_GENERATE_TRIGGER_ID = 'ai_image_generate';
-
 export const translation_out_schema = z
   .object({
     text: z.string().describe('The translation text'),

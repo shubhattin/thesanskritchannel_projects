@@ -2,6 +2,10 @@ import type { recursive_list_type } from '../state/data_types';
 import { get_path_params } from '../state/project_list';
 import { build_project_path } from '../utils/project_site_paths';
 
+/**
+ * Client-safe main site origin. Server code preferring Effect should use
+ * `getAppPublicConfig().mainSiteUrl` / `AppPublicConfig` instead.
+ */
 export const get_main_site_origin = () =>
   (typeof import.meta.env.VITE_MAIN_SITE_URL === 'string'
     ? import.meta.env.VITE_MAIN_SITE_URL.trim()

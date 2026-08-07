@@ -1,11 +1,10 @@
 import type { LiveLoader } from 'astro/loaders';
 import { transliterate_node } from 'lipilekhika/node';
 import { get_script_from_id, type script_list_type } from '$app/state/lang_list';
-import { CACHE } from '$app/utils/cache.server/cached_loader.server';
-import { NO_CACHE_PARAMS } from '$app/utils/cache.server/create_cached_loader.server';
+import { CACHE, NO_CACHE_PARAMS } from '$app/effect/cache_loaders';
 import { renderLekhaMarkdownToHtml } from '$app/lib/carta_markdown/markdown';
-import { cache_db_options_site } from '~/db/cache_db_options';
 import { DEFAULT_SCRIPT_ID } from '~/lib/cookies';
+import { runServerEffect } from '~/effect/site_runtime';
 
 // enforces default script id if not provided
 function script_from_id(script_id: number | undefined): script_list_type {
@@ -29,7 +28,7 @@ export function lekhaDbLiveLoader(): LiveLoader<
     name: 'lekha-db-live',
     loadCollection: async () => {
       try {
-        const rows = await CACHE.site_lekha_list.get(NO_CACHE_PARAMS, cache_db_options_site);
+        const rows = await runServerEffect(CACHE.site_lekha_list.get(NO_CACHE_PARAMS));
         const entries = rows.map((row) => ({
           id: row.url_slug, // the collection needs a slug as id
           data: row
@@ -45,7 +44,7 @@ export function lekhaDbLiveLoader(): LiveLoader<
       const slug = filter.id;
       const script = script_from_id(filter.scriptId);
       try {
-        const row = await CACHE.site_lekha_data.get({ url_slug: slug }, cache_db_options_site);
+        const row = await runServerEffect(CACHE.site_lekha_data.get({ url_slug: slug }));
         if (!row) return void 0;
         if (row.draft || !row.listed) return void 0;
 

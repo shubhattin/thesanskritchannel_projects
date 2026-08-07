@@ -19,7 +19,7 @@ import {
 export const prerender = false;
 
 const slug = Astro.params.slug?.split('/') ?? [];
-const resolved = await resolve_text_route(Astro.params.key ?? '', slug);
+const resolved = await runServerEffect(resolve_text_route(Astro.params.key ?? '', slug));
 if (!resolved) {
   Astro.response.status = 404;
 }

@@ -3,6 +3,7 @@ import { get_image_prompt_route } from './get_image_prompt';
 import { image_gen_route_schema } from './ai_types';
 import { gen_image_func } from './image_gen_funcs';
 import { image_assets_router } from './image_assets';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
 
 export const ai_router = t.router({
   get_image_prompt: get_image_prompt_route,
@@ -10,8 +11,5 @@ export const ai_router = t.router({
   gen_image: protectedAdminProcedure
     .input(image_gen_route_schema.input)
     .output(image_gen_route_schema.output)
-    .mutation(async ({ input }) => {
-      const out = await gen_image_func(input);
-      return out;
-    })
+    .mutation(({ input }) => runTrpcEffect(gen_image_func(input)))
 });

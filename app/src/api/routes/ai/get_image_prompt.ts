@@ -1,3 +1,4 @@
+import { Effect } from 'effect';
 import { protectedAdminProcedure } from '~/api/trpc_init';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
@@ -58,71 +59,76 @@ export const get_image_prompt_input_schema = z.object({
 
 type GetImagePromptInput = z.infer<typeof get_image_prompt_input_schema>;
 
-export const get_image_prompt_func = async (input: GetImagePromptInput) => {
-  const { project_key, selected_text_levels, index, model, custom_instruction } = input;
+/** Domain Effect — run only at a HTTP/tRPC boundary. */
+export const get_image_prompt_func = (input: GetImagePromptInput) =>
+  Effect.gen(function* () {
+    const { project_key, selected_text_levels, index, model, custom_instruction } = input;
 
-  const project = await runTrpcEffect(get_project_by_key(project_key));
-  if (!project) return { image_prompt: null, time_taken: 0 };
+    const project = yield* get_project_by_key(project_key);
+    if (!project) return { image_prompt: null as string | null, time_taken: 0 };
 
-  const project_info = await runTrpcEffect(get_project_info_by_id(project.id));
-  const path_params = get_path_params(selected_text_levels, project_info.levels);
-  const [text_data, translations] = await Promise.all([
-    runTrpcEffect(CACHE.text_data.get({ key: project_key, path_params })),
-    runTrpcEffect(
-      CACHE.translation.get({
-        project_id: project.id,
-        lang_id: lang_list_obj.English,
-        selected_text_levels
-      })
-    )
-  ]);
-  const shloka = text_data[index];
-  if (!shloka) return { image_prompt: null, time_taken: 0 };
-
-  let shloka_text = shloka.text;
-  const english_translation = translations.get(index);
-  if (english_translation) shloka_text += '\n\n' + english_translation;
-
-  const list_level_names = project_info.level_names.slice(1);
-  const text_info = path_params.map((param, i) => `${list_level_names[i]} ${param}`).join(', ');
-
-  let prompt = format_string_text(IMAGE_USER_PROMPT, {
-    text_name: project.name,
-    text_info,
-    shloka_text
-  });
-  const trimmed_custom = custom_instruction?.trim();
-  if (trimmed_custom) {
-    prompt +=
-      '\n\n' +
-      format_string_text(IMAGE_CUSTOM_INSTRUCTION_PROMPT, {
-        custom_instruction: trimmed_custom
-      });
-  }
-
-  try {
-    const time_start = Date.now();
-    const modelInstance = await runTrpcEffect(resolveOpenRouterTextModel(model));
-    const result = await generateText({
-      model: modelInstance,
-      instructions: IMAGE_SYSTEM_PROMPT,
-      ...(text_model_custom_options[model] ?? {}),
-      prompt,
-      output: Output.object({
-        schema: z.object({
-          image_prompt: z
-            .string()
-            .describe('A single detailed English image prompt for an aesthetic illustration.')
+    const project_info = yield* get_project_info_by_id(project.id);
+    const path_params = get_path_params(selected_text_levels, project_info.levels);
+    const [text_data, translations] = yield* Effect.all(
+      [
+        CACHE.text_data.get({ key: project_key, path_params }),
+        CACHE.translation.get({
+          project_id: project.id,
+          lang_id: lang_list_obj.English,
+          selected_text_levels
         })
-      })
+      ],
+      { concurrency: 'unbounded' }
+    );
+    const shloka = text_data[index];
+    if (!shloka) return { image_prompt: null as string | null, time_taken: 0 };
+
+    let shloka_text = shloka.text;
+    const english_translation = translations.get(index);
+    if (english_translation) shloka_text += '\n\n' + english_translation;
+
+    const list_level_names = project_info.level_names.slice(1);
+    const text_info = path_params.map((param, i) => `${list_level_names[i]} ${param}`).join(', ');
+
+    let prompt = format_string_text(IMAGE_USER_PROMPT, {
+      text_name: project.name,
+      text_info,
+      shloka_text
     });
-    return { image_prompt: result.output.image_prompt, time_taken: Date.now() - time_start };
-  } catch (e) {
-    console.error(e);
-    return { image_prompt: null, time_taken: 0 };
-  }
-};
+    const trimmed_custom = custom_instruction?.trim();
+    if (trimmed_custom) {
+      prompt +=
+        '\n\n' +
+        format_string_text(IMAGE_CUSTOM_INSTRUCTION_PROMPT, {
+          custom_instruction: trimmed_custom
+        });
+    }
+
+    const modelInstance = yield* resolveOpenRouterTextModel(model);
+    return yield* Effect.promise(async () => {
+      try {
+        const time_start = Date.now();
+        const result = await generateText({
+          model: modelInstance,
+          instructions: IMAGE_SYSTEM_PROMPT,
+          ...(text_model_custom_options[model] ?? {}),
+          prompt,
+          output: Output.object({
+            schema: z.object({
+              image_prompt: z
+                .string()
+                .describe('A single detailed English image prompt for an aesthetic illustration.')
+            })
+          })
+        });
+        return { image_prompt: result.output.image_prompt, time_taken: Date.now() - time_start };
+      } catch (e) {
+        console.error(e);
+        return { image_prompt: null as string | null, time_taken: 0 };
+      }
+    });
+  });
 
 export const get_image_prompt_route = protectedAdminProcedure
   .input(get_image_prompt_input_schema)
-  .query(async ({ input }) => get_image_prompt_func(input));
+  .query(({ input }) => runTrpcEffect(get_image_prompt_func(input)));

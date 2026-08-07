@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import ms from 'ms';
 import { protected_admin_route_check } from '~/api/api_init';
 import { getAssetFile, isValidImageAssetS3Key } from '~/utils/s3/upload_file.server';
+import { runServerEffect } from '~/effect/app_runtime.server';
 
 type StreamImageAssetOptions = {
   request: Request;
@@ -23,7 +24,7 @@ export const streamImageAssetResponse = async ({
   error_log_label,
   error_message
 }: StreamImageAssetOptions) => {
-  const user = await protected_admin_route_check(request.headers);
+  const user = await runServerEffect(protected_admin_route_check(request.headers));
   if (!user || user.role !== 'admin') throw error(401, 'UNAUTHORIZED');
 
   const s3_key = url.searchParams.get('s3_key');
@@ -40,7 +41,7 @@ export const streamImageAssetResponse = async ({
       : 'inline';
 
   try {
-    const webp_buffer = await getAssetFile(s3_key);
+    const webp_buffer = await runServerEffect(getAssetFile(s3_key));
     const body = transform ? await transform(webp_buffer) : webp_buffer;
 
     return new Response(new Uint8Array(body), {

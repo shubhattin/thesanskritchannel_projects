@@ -22,7 +22,7 @@ export type AppConfigInput = SharedConfigInput & {
   qstashToken: string;
   qstashCurrentSigningKey: string;
   qstashNextSigningKey: string;
-  qstashBaseUrl?: string;
+  qstashBaseUrl: string;
   siteUrl: string;
   mainSiteUrl: string;
   cloudfrontUrl: string;
@@ -79,7 +79,7 @@ const AppConfigSchema = Schema.Struct({
   qstashToken: NonEmptyString,
   qstashCurrentSigningKey: NonEmptyString,
   qstashNextSigningKey: NonEmptyString,
-  qstashBaseUrl: Schema.optional(NonEmptyString),
+  qstashBaseUrl: NonEmptyString,
   siteUrl: NonEmptyString,
   mainSiteUrl: NonEmptyString,
   cloudfrontUrl: NonEmptyString,

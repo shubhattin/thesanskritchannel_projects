@@ -81,7 +81,8 @@ export const loadAppConfigInput = (): AppConfigInput => {
     qstashBaseUrl:
       nonEmpty(process.env.QSTASH_URL) ??
       nonEmpty(env.QSTASH_URL) ??
-      nonEmpty(process.env.QSTASH_BASE_URL),
+      nonEmpty(process.env.QSTASH_BASE_URL) ??
+      '',
     siteUrl: viteString(import.meta.env.VITE_SITE_URL) ?? '',
     mainSiteUrl: viteString(import.meta.env.VITE_MAIN_SITE_URL) ?? '',
     cloudfrontUrl: nonEmpty(PUBLIC_AWS_CLOUDFRONT_URL) ?? '',

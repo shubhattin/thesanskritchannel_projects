@@ -120,7 +120,7 @@ const get_user_app_scope_status_route = protectedProcedure
   .input(z.object({ user_id: z.string(), scope_name: APP_SCOPES_ENUM }))
   .query(async ({ input: { user_id, scope_name }, ctx: { user, cookie } }) => {
     if (user.role !== 'admin' && user.id !== user_id) return false;
-    return await get_user_app_scope_status(user_id, scope_name, cookie);
+    return await runTrpcEffect(get_user_app_scope_status(user_id, scope_name, cookie));
   });
 
 const list_user_app_scopes_route = protectedProcedure

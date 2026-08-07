@@ -34,14 +34,10 @@ export class QStashPublisher extends Context.Service<
   static readonly Live = Layer.effect(QStashPublisher)(
     Effect.gen(function* () {
       const config = yield* AppConfig;
-      const client = config.qstashBaseUrl
-        ? new Client({
-            token: Redacted.value(config.qstashToken),
-            baseUrl: config.qstashBaseUrl
-          })
-        : new Client({
-            token: Redacted.value(config.qstashToken)
-          });
+      const client = new Client({
+        token: Redacted.value(config.qstashToken),
+        baseUrl: config.qstashBaseUrl
+      });
       const callbackBase = `${config.siteUrl}/api/qstash`;
       const enabled = config.isQstashEnabled;
 

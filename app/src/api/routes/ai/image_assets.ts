@@ -1,5 +1,6 @@
 import { runTrpcEffect } from '~/effect/app_runtime.server';
 import { dbRun, dbTransaction } from '~/effect/database';
+import { Effect } from 'effect';
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -8,6 +9,7 @@ import { text_image_assets_join, texts, image_assets } from '~/db/schema';
 import { resolveSelectedTextProjectPath } from '~/utils/project/paths_db.server';
 import { deleteImageAssetById } from '~/utils/image_assets/persist.server';
 import { getCDNUrlSync } from '~/utils/cdn';
+import { get_project_info_by_id } from '~/utils/project/list.server';
 
 const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
   runTrpcEffect(dbRun(operation, run));
@@ -27,8 +29,13 @@ const list_images_input_schema = path_input_schema.extend({
 const list_text_images_route = protectedAdminProcedure
   .input(list_images_input_schema)
   .query(async ({ input }) => {
-    const { projectPath } = await runDb('image_assets.resolve_path', (db) =>
-      resolveSelectedTextProjectPath(db, input.project_id, input.selected_text_levels)
+    const { projectPath } = await runTrpcEffect(
+      Effect.gen(function* () {
+        const { levels } = yield* get_project_info_by_id(input.project_id);
+        return yield* dbRun('image_assets.resolve_path', (db) =>
+          resolveSelectedTextProjectPath(db, input.project_id, input.selected_text_levels, levels)
+        );
+      })
     );
 
     const index_filter =

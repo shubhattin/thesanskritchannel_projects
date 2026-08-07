@@ -15,7 +15,7 @@ export const GET: APIRoute = async ({ request, params }) =>
   runRouteEffect(
     Effect.gen(function* () {
       const cookie = request.headers.get('cookie') ?? '';
-      const session = yield* Effect.promise(() => get_session_from_cookie(cookie));
+      const session = yield* get_session_from_cookie(cookie);
       if (!session?.user || session.user.role !== 'admin') {
         return yield* Effect.fail(UnauthorizedError.make({ message: 'Admin required' }));
       }

@@ -1,25 +1,32 @@
+import { Effect } from 'effect';
 import type { authClient } from '$lib/auth-client';
 import { z } from 'zod';
-import { getAppPublicConfig } from '~/effect/app_runtime.server';
+import { AppPublicConfig } from '~/effect/config';
 
-const get_session_from_cookie = async (cookie: string, betterAuthUrl?: string) => {
-  try {
-    const url = betterAuthUrl ?? getAppPublicConfig().betterAuthUrl;
-    const res = await fetch(`${url}/api/auth/get-session`, {
-      method: 'GET',
-      headers: {
-        Cookie: cookie
+type Session = typeof authClient.$Infer.Session;
+
+/** Fetch Better Auth session from cookie. Run only at a framework boundary. */
+export const get_session_from_cookie = (
+  cookie: string,
+  betterAuthUrl?: string
+): Effect.Effect<Session | null, never, AppPublicConfig> =>
+  Effect.gen(function* () {
+    const url = betterAuthUrl ?? (yield* AppPublicConfig).betterAuthUrl;
+    return yield* Effect.promise(async () => {
+      try {
+        const res = await fetch(`${url}/api/auth/get-session`, {
+          method: 'GET',
+          headers: { Cookie: cookie }
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch session: ${res.statusText}`);
+        }
+        return (await res.json()) as Session;
+      } catch {
+        return null;
       }
     });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch session: ${res.statusText}`);
-    }
-    const session = (await res.json()) as typeof authClient.$Infer.Session;
-    return session;
-  } catch {
-    return null;
-  }
-};
+  });
 
 const jwt_response_schema = z.object({
   valid: z.boolean(),
@@ -30,20 +37,19 @@ const jwt_response_schema = z.object({
   })
 });
 
-export const verify_jwt_token = async (token: string, betterAuthUrl?: string) => {
-  const url = betterAuthUrl ?? getAppPublicConfig().betterAuthUrl;
-  const res = await fetch(`${url}/api/jwt/verify/?token=${token}`, {
-    method: 'GET'
+export const verify_jwt_token = (token: string, betterAuthUrl?: string) =>
+  Effect.gen(function* () {
+    const url = betterAuthUrl ?? (yield* AppPublicConfig).betterAuthUrl;
+    return yield* Effect.promise(async () => {
+      const res = await fetch(`${url}/api/jwt/verify/?token=${token}`, {
+        method: 'GET'
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const data_parse = jwt_response_schema.safeParse(data);
+      if (!data_parse.success) return null;
+      return data_parse.data;
+    });
   });
-  if (!res.ok) {
-    return null;
-  }
-  const data = await res.json();
-  const data_parse = jwt_response_schema.safeParse(data);
-  if (!data_parse.success) {
-    return null;
-  }
-  return data_parse.data;
-};
 
 export default get_session_from_cookie;

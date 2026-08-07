@@ -32,6 +32,7 @@ const sampleApp = (): AppConfigInput => ({
   qstashToken: 'qstash-token',
   qstashCurrentSigningKey: 'sig_current',
   qstashNextSigningKey: 'sig_next',
+  qstashBaseUrl: 'https://qstash.example.com',
   siteUrl: 'http://localhost:5173',
   mainSiteUrl: 'https://example.com',
   cloudfrontUrl: 'https://d123.cloudfront.net',

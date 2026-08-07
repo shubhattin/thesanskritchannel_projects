@@ -18,7 +18,7 @@ import {
 
 export const prerender = false;
 
-const resolved = await resolve_text_route(Astro.params.key ?? '', []);
+const resolved = await runServerEffect(resolve_text_route(Astro.params.key ?? '', []));
 if (!resolved) {
   Astro.response.status = 404;
 }

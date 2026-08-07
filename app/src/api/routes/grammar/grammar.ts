@@ -48,60 +48,63 @@ const resolveGrammarModel = (model: keyof typeof MODEL_IDS) =>
     return ai.openrouterModel(MODEL_IDS[model]);
   });
 
-const get_grammar_analysis_text = async (
-  shloka: string,
-  lang: string,
-  model: keyof typeof MODEL_IDS
-) => {
-  const languageModel = await runTrpcEffect(resolveGrammarModel(model));
-  const response = await generateText({
-    model: languageModel,
-    messages: get_messages(shloka, lang),
-    ...(model.startsWith('gpt-5')
-      ? {
-          providerOptions: {
-            openai: {
-              reasoningEffort: 'low'
-            }
+const gpt5Options = (model: keyof typeof MODEL_IDS) =>
+  model.startsWith('gpt-5')
+    ? {
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'low' as const
           }
         }
-      : {})
-  });
-  return response.text;
-};
+      }
+    : {};
 
-export const get_grammar_analysis_text_stream = async (
+const get_grammar_analysis_text = (shloka: string, lang: string, model: keyof typeof MODEL_IDS) =>
+  Effect.gen(function* () {
+    const languageModel = yield* resolveGrammarModel(model);
+    return yield* Effect.promise(async () => {
+      const response = await generateText({
+        model: languageModel,
+        messages: get_messages(shloka, lang),
+        ...gpt5Options(model)
+      });
+      return response.text;
+    });
+  });
+
+/** Domain Effect — run only at a HTTP/tRPC boundary. */
+export const get_grammar_analysis_text_stream = (
   shloka: string,
   lang: string,
   model: keyof typeof MODEL_IDS
-) => {
-  const languageModel = await runTrpcEffect(resolveGrammarModel(model));
-  const response = await streamText({
-    model: languageModel,
-    messages: get_messages(shloka, lang),
-    ...(model.startsWith('gpt-5')
-      ? {
-          providerOptions: {
-            openai: {
-              reasoningEffort: 'low'
-            }
-          }
-        }
-      : {})
+) =>
+  Effect.gen(function* () {
+    const languageModel = yield* resolveGrammarModel(model);
+    return yield* Effect.promise(() =>
+      Promise.resolve(
+        streamText({
+          model: languageModel,
+          messages: get_messages(shloka, lang),
+          ...gpt5Options(model)
+        })
+      )
+    );
   });
-  return response;
-};
 
 const grammar_analysis_route = protectedAdminProcedure
   .input(get_grammar_analysis_input_schema)
-  .query(async ({ input }) => {
-    const time = new Date();
-    const out = await get_grammar_analysis_text(input.shloka, input.lang, input.model);
-    return {
-      text: out,
-      time_ms: new Date().getTime() - time.getTime()
-    };
-  });
+  .query(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const time = new Date();
+        const out = yield* get_grammar_analysis_text(input.shloka, input.lang, input.model);
+        return {
+          text: out,
+          time_ms: new Date().getTime() - time.getTime()
+        };
+      })
+    )
+  );
 
 export const grammar_router = t.router({
   grammar_analysis: grammar_analysis_route

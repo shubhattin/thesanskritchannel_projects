@@ -485,15 +485,17 @@ const trigger_batch_shloka_image_gen_route = protectedAdminProcedure
       items.map(async (item) => {
         let image_prompt = item.image_prompt?.trim() ?? '';
         if (!image_prompt) {
-          const generated = await get_image_prompt_func({
-            project_key,
-            selected_text_levels,
-            index: item.index,
-            model: text_model,
-            ...(item.custom_instruction?.trim()
-              ? { custom_instruction: item.custom_instruction.trim() }
-              : {})
-          });
+          const generated = await runTrpcEffect(
+            get_image_prompt_func({
+              project_key,
+              selected_text_levels,
+              index: item.index,
+              model: text_model,
+              ...(item.custom_instruction?.trim()
+                ? { custom_instruction: item.custom_instruction.trim() }
+                : {})
+            })
+          );
           if (!generated.image_prompt) {
             throw new TRPCError({
               code: 'INTERNAL_SERVER_ERROR',

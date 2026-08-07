@@ -31,17 +31,16 @@ export const requireProjectPath = async (
 /**
  * Resolve project_paths row from UI selection (selected_text_levels + project_id).
  * Shared by image generation / gallery / batch routes.
+ * Caller must supply `levels` (e.g. from `get_project_info_by_id`) — no Effect run here.
  */
 export const resolveSelectedTextProjectPath = async (
   txOrDb: TxOrDb,
   project_id: number,
-  selected_text_levels: (number | null)[]
+  selected_text_levels: (number | null)[],
+  levels: number
 ) => {
-  const { get_project_info_by_id } = await import('~/utils/project/list.server');
-  const { runServerEffect } = await import('~/effect/app_runtime.server');
   const { get_path_params } = await import('~/state/project_list');
 
-  const { levels } = await runServerEffect(get_project_info_by_id(project_id));
   const path_params = get_path_params(selected_text_levels, levels);
   if (levels > 1 && path_params.length === 0) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });

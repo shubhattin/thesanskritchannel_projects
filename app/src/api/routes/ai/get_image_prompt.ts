@@ -4,11 +4,11 @@ import { z } from 'zod';
 import { DEFAULT_TEXT_AI_MODEL, text_models_enum } from './ai_types';
 import { format_string_text } from '~/tools/kry';
 import { CACHE } from '~/utils/cache.server/cached_loader.server';
-import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { get_project_by_key, get_project_info_by_id } from '~/utils/project/list.server';
 import { get_path_params } from '~/state/project_list';
 import { lang_list_obj } from '~/state/lang_list';
-import { OPENROUTER_TEXT_MODELS, text_model_custom_options } from './providers';
+import { text_model_custom_options, resolveOpenRouterTextModel } from './providers';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
 
 const IMAGE_SYSTEM_PROMPT = `
 You write image-generation prompts for Sanskrit scripture content meant to look beautiful.
@@ -61,20 +61,19 @@ type GetImagePromptInput = z.infer<typeof get_image_prompt_input_schema>;
 export const get_image_prompt_func = async (input: GetImagePromptInput) => {
   const { project_key, selected_text_levels, index, model, custom_instruction } = input;
 
-  const project = await get_project_by_key(project_key, cache_db_options_app);
+  const project = await runTrpcEffect(get_project_by_key(project_key));
   if (!project) return { image_prompt: null, time_taken: 0 };
 
-  const project_info = await get_project_info_by_id(project.id, cache_db_options_app);
+  const project_info = await runTrpcEffect(get_project_info_by_id(project.id));
   const path_params = get_path_params(selected_text_levels, project_info.levels);
   const [text_data, translations] = await Promise.all([
-    CACHE.text_data.get({ key: project_key, path_params }, cache_db_options_app),
-    CACHE.translation.get(
-      {
+    runTrpcEffect(CACHE.text_data.get({ key: project_key, path_params })),
+    runTrpcEffect(
+      CACHE.translation.get({
         project_id: project.id,
         lang_id: lang_list_obj.English,
         selected_text_levels
-      },
-      cache_db_options_app
+      })
     )
   ]);
   const shloka = text_data[index];
@@ -103,9 +102,10 @@ export const get_image_prompt_func = async (input: GetImagePromptInput) => {
 
   try {
     const time_start = Date.now();
+    const modelInstance = await runTrpcEffect(resolveOpenRouterTextModel(model));
     const result = await generateText({
-      model: OPENROUTER_TEXT_MODELS[model],
-      system: IMAGE_SYSTEM_PROMPT,
+      model: modelInstance,
+      instructions: IMAGE_SYSTEM_PROMPT,
       ...(text_model_custom_options[model] ?? {}),
       prompt,
       output: Output.object({

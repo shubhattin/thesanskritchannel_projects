@@ -1,3 +1,4 @@
+import { Effect } from 'effect';
 import type { recursive_list_type } from '../../../app/src/state/data_types';
 import {
   get_list_name_for_path_param_index,
@@ -12,11 +13,11 @@ import {
   parse_pretty_route_segment
 } from '$app/utils/project_site_paths';
 import {
-  get_project_info_by_key,
-  get_project_map_by_key,
-  resolve_project_by_key
-} from '$app/utils/project/list.server';
-import { cache_db_options_site } from '~/db/cache_db_options';
+  getProjectInfoByKey,
+  getProjectMapByKey,
+  resolveProjectByKey
+} from '$app/effect/project_registry';
+import { runServerEffect } from '~/effect/site_runtime';
 
 export {
   build_project_path,
@@ -48,16 +49,21 @@ export const resolve_text_route = async (
   raw_project_key: string,
   raw_segments: string[]
 ): Promise<resolved_text_route_type | null> => {
-  const resolved_project = await resolve_project_by_key(raw_project_key, cache_db_options_site, {
-    listed_only: true
-  });
+  const resolved_project = await runServerEffect(
+    resolveProjectByKey(raw_project_key, { listed_only: true })
+  );
   if (!resolved_project) return null;
 
   const project = resolved_project.project;
   const project_key = project.key;
   const key_changed = resolved_project.was_redirect;
-  const project_info = await get_project_info_by_key(project_key, cache_db_options_site);
-  const map = await get_project_map_by_key(project_key, cache_db_options_site);
+  const { project_info, map } = await runServerEffect(
+    Effect.gen(function* () {
+      const project_info = yield* getProjectInfoByKey(project_key);
+      const map = yield* getProjectMapByKey(project_key);
+      return { project_info, map };
+    })
+  );
   const segments = raw_segments.filter((segment) => segment.length > 0);
 
   if (segments.length > project_info.levels - 1) return null;

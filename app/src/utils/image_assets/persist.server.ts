@@ -1,15 +1,15 @@
 import { eq } from 'drizzle-orm';
-import type { S3Client } from '@aws-sdk/client-s3';
-import { db, type transactionType } from '~/db/db';
+import { Effect } from 'effect';
 import { image_assets, text_image_assets_join } from '~/db/schema';
-import { compress_to_webp } from '~/utils/sharp/lossweb_compress';
+import { dbRun, dbTransaction, type TxOrDb } from '~/effect/database';
+import { ImageProcessor } from '~/effect/image';
+import { ObjectStorage } from '~/effect/storage';
+import { BadRequestError, StorageError } from '~/effect/errors';
 import {
   buildImageAssetS3Key,
-  createS3Client,
-  deleteAssetFile,
-  uploadAssetFile,
+  isValidImageAssetS3Key,
   type ImageAssetS3Key
-} from '~/utils/s3/upload_file.server';
+} from '~/utils/s3/image_asset_key';
 
 export type PersistImageAssetInput = {
   project_id: number;
@@ -19,7 +19,6 @@ export type PersistImageAssetInput = {
   /** Raw image bytes or base64 string (PNG/JPEG/WebP) */
   image: Buffer | string;
   description?: string | null;
-  s3Client?: S3Client;
   /** When false, only upload + insert image_assets (batch staging). Default true. */
   create_join?: boolean;
 };
@@ -32,15 +31,13 @@ export type PersistImageAssetResult = {
   description: string | null;
 };
 
-const getS3 = (client?: S3Client) => client ?? createS3Client();
-
 /**
  * Compress → upload WebP → insert image_assets (+ optional text_image_assets_join).
  * Compensates by deleting the S3 object if the DB insert fails.
  */
-export const persistImageAsset = async (
+export const persistImageAsset = Effect.fn('persistImageAsset')(function* (
   input: PersistImageAssetInput
-): Promise<PersistImageAssetResult> => {
+) {
   const {
     project_id,
     project_path_id,
@@ -50,18 +47,22 @@ export const persistImageAsset = async (
     description = null,
     create_join = true
   } = input;
-  const s3Client = getS3(input.s3Client);
 
-  const compressed = await compress_to_webp(image);
+  const imageProcessor = yield* ImageProcessor;
+  const storage = yield* ObjectStorage;
+
+  const compressed = yield* imageProcessor.compressToWebp(image);
   if (!compressed.width || !compressed.height) {
-    throw new Error('Compressed image is missing width/height metadata');
+    return yield* Effect.fail(
+      BadRequestError.make({ message: 'Compressed image is missing width/height metadata' })
+    );
   }
 
   const s3_key = buildImageAssetS3Key(project_id, path_params, index);
-  await uploadAssetFile(s3_key, compressed.buffer, { s3Client });
+  yield* storage.uploadAssetFile(s3_key, compressed.buffer);
 
   try {
-    const result = await db.transaction(async (tx) => {
+    return yield* dbTransaction('persistImageAsset.insert', async (tx) => {
       const [asset] = await tx
         .insert(image_assets)
         .values({
@@ -74,6 +75,10 @@ export const persistImageAsset = async (
 
       if (!asset) throw new Error('Failed to insert image_assets row');
 
+      if (!isValidImageAssetS3Key(asset.s3_key)) {
+        throw new Error(`Invalid s3_key returned from DB: ${asset.s3_key}`);
+      }
+
       if (create_join) {
         await tx.insert(text_image_assets_join).values({
           project_path_id,
@@ -84,24 +89,27 @@ export const persistImageAsset = async (
 
       return {
         id: asset.id,
-        s3_key: asset.s3_key as ImageAssetS3Key,
+        s3_key: asset.s3_key,
         width: asset.width,
         height: asset.height,
         description: asset.description
-      };
+      } satisfies PersistImageAssetResult;
     });
-    return result;
   } catch (err) {
-    await deleteAssetFile(s3_key, { s3Client }).catch((cleanup_err) => {
-      console.error(`Failed to clean up S3 key after DB failure: ${s3_key}`, cleanup_err);
-    });
-    throw err;
+    yield* Effect.promise(() =>
+      Effect.runPromise(storage.deleteAssetFile(s3_key)).catch((cleanup_err) => {
+        console.error(`Failed to clean up S3 key after DB failure: ${s3_key}`, cleanup_err);
+      })
+    );
+    return yield* Effect.fail(
+      StorageError.make({ operation: 'persistImageAsset', key: s3_key, cause: err })
+    );
   }
-};
+});
 
 /** Link an already-uploaded image_assets row into text_image_assets_join. */
 export const linkImageAssetToText = async (
-  txOrDb: transactionType,
+  txOrDb: TxOrDb,
   args: {
     project_path_id: number;
     index: number | null;
@@ -125,17 +133,20 @@ export const linkImageAssetToText = async (
  * DB first so a failed S3 delete can be retried without orphan joins (cascade also
  * clears joins / texts.image_id via FK).
  */
-export const deleteImageAssetById = async (image_id: number, options?: { s3Client?: S3Client }) => {
-  const s3Client = getS3(options?.s3Client);
-  const asset = await db.query.image_assets.findFirst({
-    columns: { id: true, s3_key: true },
-    where: eq(image_assets.id, image_id)
-  });
+export const deleteImageAssetById = Effect.fn('deleteImageAssetById')(function* (image_id: number) {
+  const storage = yield* ObjectStorage;
+
+  const asset = yield* dbRun('deleteImageAssetById.lookup', (db) =>
+    db.query.image_assets.findFirst({
+      columns: { id: true, s3_key: true },
+      where: eq(image_assets.id, image_id)
+    })
+  );
   if (!asset) {
     return { deleted: false as const };
   }
 
-  await db.transaction(async (tx) => {
+  yield* dbTransaction('deleteImageAssetById.db', async (tx) => {
     await tx
       .delete(text_image_assets_join)
       .where(eq(text_image_assets_join.image_asset_id, image_id));
@@ -145,17 +156,25 @@ export const deleteImageAssetById = async (image_id: number, options?: { s3Clien
   const maxAttempts = 3;
   let lastError: unknown;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      await deleteAssetFile(asset.s3_key, { s3Client });
+    const result = yield* storage.deleteAssetFile(asset.s3_key).pipe(
+      Effect.as({ ok: true as const }),
+      Effect.catch((cause) => Effect.succeed({ ok: false as const, cause }))
+    );
+    if (result.ok) {
       return { deleted: true as const, s3_key: asset.s3_key };
-    } catch (err) {
-      lastError = err;
-      if (attempt < maxAttempts) {
-        await new Promise((resolve) => setTimeout(resolve, 200 * attempt));
-      }
+    }
+    lastError = result.cause;
+    if (attempt < maxAttempts) {
+      yield* Effect.sleep(`${200 * attempt} millis`);
     }
   }
-  throw new Error(
-    `Removed DB rows for image ${image_id}, but failed to delete S3 object ${asset.s3_key}: ${String(lastError)}`
+  return yield* Effect.fail(
+    StorageError.make({
+      operation: 'deleteImageAssetById',
+      key: asset.s3_key,
+      cause: new Error(
+        `Removed DB rows for image ${image_id}, but failed to delete S3 object ${asset.s3_key}: ${String(lastError)}`
+      )
+    })
   );
-};
+});

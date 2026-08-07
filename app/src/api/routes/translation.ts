@@ -1,17 +1,22 @@
+import { dbRun, dbTransaction } from '~/effect/database';
 import { TRPCError } from '@trpc/server';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAppScopeProcedure_ProjectsPortal, publicProcedure, t } from '~/api/trpc_init';
-import { db } from '~/db/db';
 import { texts, translations } from '~/db/schema';
 import { delay_dev } from '~/tools/delay';
-import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { get_project_by_key, get_project_info_by_id } from '~/utils/project/list.server';
 import { get_languages_for_project_user } from './project/project';
 import { get_path_params } from '~/state/project_list';
 import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
 import { TEXT_EDIT_LOCK_NAMESPACE } from '~/utils/text/row_edit.server';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
+
+const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
+  runTrpcEffect(dbRun(operation, run));
+const runTx = <A>(operation: string, run: Parameters<typeof dbTransaction<A>>[1]) =>
+  runTrpcEffect(dbTransaction(operation, run));
 
 const edit_translation_input = z
   .object({
@@ -69,11 +74,11 @@ export async function persist_translations_for_path(args: {
   if (indexes.length === 0)
     return { success: true as const, selected_text_levels: [] as (number | null)[] };
 
-  const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
+  const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
   const selected_text_levels = path_params_to_selected_text_levels(path_params, levels);
   const indexed_indexes = indexes.map((v, i) => [v, i] as const);
 
-  await db.transaction(async (tx) => {
+  await runTx('translation.tx.1', async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`);
 
     const current_text_indexes = new Set(
@@ -157,15 +162,18 @@ export async function persist_translations_for_path(args: {
 
   if (!skip_cache_invalidation) {
     await Promise.all([
-      invalidate_and_refresh_cached(
-        CACHE.translation,
-        { project_id, lang_id, selected_text_levels },
-        cache_db_options_app
+      runTrpcEffect(
+        invalidate_and_refresh_cached(CACHE.translation, {
+          project_id,
+          lang_id,
+          selected_text_levels
+        })
       ),
-      invalidate_and_refresh_cached(
-        CACHE.available_translation_langs,
-        { project_id, path_params },
-        cache_db_options_app
+      runTrpcEffect(
+        invalidate_and_refresh_cached(CACHE.available_translation_langs, {
+          project_id,
+          path_params
+        })
       )
     ]);
   }
@@ -182,10 +190,7 @@ const get_translation_route = publicProcedure
     })
   )
   .query(async ({ input: { project_id, lang_id, selected_text_levels } }) => {
-    return CACHE.translation.get(
-      { project_id, lang_id, selected_text_levels },
-      cache_db_options_app
-    );
+    return runTrpcEffect(CACHE.translation.get({ project_id, lang_id, selected_text_levels }));
   });
 
 const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
@@ -195,17 +200,19 @@ const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
       ctx: { user },
       input: { project_id, lang_id, selected_text_levels, data, indexes }
     }) => {
-      const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
+      const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
       const path_params = get_path_params(selected_text_levels, levels);
       if (levels > 1 && path_params.length === 0) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });
       }
       const path = path_params.join(':');
-      const projectPath = await requireProjectPath(db, project_id, path);
+      const projectPath = await runDb('translation.path.1', (db) =>
+        requireProjectPath(db, project_id, path)
+      );
 
       // authorization check to edit or add lang records
       if (user.role !== 'admin') {
-        const languages = await get_languages_for_project_user(user.id, project_id, db);
+        const languages = await runTrpcEffect(get_languages_for_project_user(user.id, project_id));
         const allowed_langs = languages.map((lang) => lang.lang_id);
         if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
       }
@@ -229,14 +236,13 @@ const get_langs_with_translations_route = protectedAppScopeProcedure_ProjectsPor
     })
   )
   .query(async ({ input: { project_key, path_params } }) => {
-    const project = await get_project_by_key(project_key, cache_db_options_app);
+    const project = await runTrpcEffect(get_project_by_key(project_key));
     if (!project) {
       throw new TRPCError({ code: 'NOT_FOUND', message: `Project not found: ${project_key}` });
     }
 
-    return CACHE.available_translation_langs.get(
-      { project_id: project.id, path_params },
-      cache_db_options_app
+    return runTrpcEffect(
+      CACHE.available_translation_langs.get({ project_id: project.id, path_params })
     );
   });
 
@@ -250,22 +256,26 @@ const get_all_langs_translation_route = protectedAppScopeProcedure_ProjectsPorta
   .query(async ({ input: { project_id, selected_text_levels } }) => {
     await delay_dev(400);
 
-    const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
+    const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
     const path_params = get_path_params(selected_text_levels, levels);
     if (levels > 1 && path_params.length === 0) {
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });
     }
     const path = path_params.join(':');
-    const projectPath = await requireProjectPath(db, project_id, path);
-    const data = await db
-      .select({
-        index: translations.index,
-        text: translations.text,
-        lang_id: translations.lang_id
-      })
-      .from(translations)
-      .where(eq(translations.project_path_id, projectPath.id))
-      .orderBy(translations.lang_id, translations.index);
+    const projectPath = await runDb('translation.path.2', (db) =>
+      requireProjectPath(db, project_id, path)
+    );
+    const data = await runDb('translation.ml.1', (db) =>
+      db
+        .select({
+          index: translations.index,
+          text: translations.text,
+          lang_id: translations.lang_id
+        })
+        .from(translations)
+        .where(eq(translations.project_path_id, projectPath.id))
+        .orderBy(translations.lang_id, translations.index)
+    );
     const data_map = new Map<number, Map<number, string>>();
     for (let i = 0; i < data.length; i++) {
       if (!data_map.has(data[i].lang_id)) data_map.set(data[i].lang_id, new Map());

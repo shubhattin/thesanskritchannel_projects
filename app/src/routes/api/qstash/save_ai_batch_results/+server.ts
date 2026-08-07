@@ -1,15 +1,19 @@
-import { error } from '@sveltejs/kit';
+import { Effect } from 'effect';
 import type { RequestHandler } from './$types';
 import type { Config } from '@sveltejs/adapter-vercel';
-import { Receiver } from '@upstash/qstash';
 import { eq } from 'drizzle-orm';
-import { ai_batch_results_publish_schema, publishAiBatchResultsQueue } from '~/utils/qstash';
 import { poll_batch_shloka_image_gen_func } from '~/api/routes/batch_ai_image';
 import { poll_batch_text_translation_func } from '~/api/routes/batch_ai_text';
 import { BATCH_POLLING_INTERVAL_S, MAX_BATCH_POLL_ATTEMPTS } from '~/utils/types/ai_batch_metadata';
-import { db } from '~/db/db';
 import { ai_batches } from '~/db/schema';
-import { env } from '$env/dynamic/private';
+import { runQstashEffect } from '~/effect/app_runtime.server';
+import { dbRun } from '~/effect/database';
+import {
+  QStashPublisher,
+  aiBatchResultsPayloadSchema,
+  decodeQstashPayload,
+  verifyQstashSignature
+} from '~/effect/qstash';
 
 export const config: Config = {
   split: true,
@@ -17,79 +21,65 @@ export const config: Config = {
   maxDuration: 700
 };
 
-const receiver = new Receiver({
-  currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY ?? '',
-  nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY ?? ''
-});
-
 export const POST: RequestHandler = async ({ request }) => {
   const signature = request.headers.get('upstash-signature') ?? '';
   const body_text = await request.text();
 
-  try {
-    await receiver.verify({
-      signature,
-      body: body_text
-    });
-  } catch (err) {
-    console.error('QStash signature verification failed', err);
-    throw error(401, 'Invalid QStash signature');
-  }
+  return runQstashEffect(
+    Effect.gen(function* () {
+      yield* verifyQstashSignature(signature, body_text);
 
-  console.log('QStash AI batch poll request received', new Date());
-  const body = ai_batch_results_publish_schema.parse(JSON.parse(body_text));
-  const { batch_id, poll_attempt } = body;
+      console.log('QStash AI batch poll request received', new Date());
+      const body = yield* decodeQstashPayload(aiBatchResultsPayloadSchema, JSON.parse(body_text));
+      const { batch_id, poll_attempt } = body;
 
-  if (poll_attempt >= MAX_BATCH_POLL_ATTEMPTS) {
-    // Preserve failed/expired inspection in DB; stop automation after ~24h.
-    console.warn(
-      `AI batch ${batch_id} stalled: exhausted poll attempts (${poll_attempt}/${MAX_BATCH_POLL_ATTEMPTS}); manual attention required`
-    );
-    return new Response(
-      `Batch ${batch_id} exceeded max poll attempts (${MAX_BATCH_POLL_ATTEMPTS})`,
-      { status: 200 }
-    );
-  }
+      if (poll_attempt >= MAX_BATCH_POLL_ATTEMPTS) {
+        // Preserve failed/expired inspection in DB; stop automation after ~24h.
+        console.warn(
+          `AI batch ${batch_id} stalled: exhausted poll attempts (${poll_attempt}/${MAX_BATCH_POLL_ATTEMPTS}); manual attention required`
+        );
+        return `Batch ${batch_id} exceeded max poll attempts (${MAX_BATCH_POLL_ATTEMPTS})`;
+      }
 
-  const batch_row = await db.query.ai_batches.findFirst({
-    columns: { type: true },
-    where: eq(ai_batches.batch_id, batch_id)
-  });
+      const batch_row = yield* dbRun('qstash.batch.lookup', (db) =>
+        db.query.ai_batches.findFirst({
+          columns: { type: true },
+          where: eq(ai_batches.batch_id, batch_id)
+        })
+      );
 
-  // Missing batch after cleanup is a successful no-op.
-  if (!batch_row) {
-    return new Response(`Batch ${batch_id} already resolved or cleaned up`, { status: 200 });
-  }
+      // Missing batch after cleanup is a successful no-op.
+      if (!batch_row) {
+        return `Batch ${batch_id} already resolved or cleaned up`;
+      }
 
-  const result =
-    batch_row.type === 'object'
-      ? await poll_batch_text_translation_func(batch_id)
-      : await poll_batch_shloka_image_gen_func(batch_id);
+      const result =
+        batch_row.type === 'object'
+          ? yield* Effect.promise(() => poll_batch_text_translation_func(batch_id))
+          : yield* Effect.promise(() => poll_batch_shloka_image_gen_func(batch_id));
 
-  if (result.status === 'already_resolved') {
-    return new Response(`Batch ${batch_id} already resolved`, { status: 200 });
-  }
+      if (result.status === 'already_resolved') {
+        return `Batch ${batch_id} already resolved`;
+      }
 
-  if (result.status === 'pending') {
-    await publishAiBatchResultsQueue(
-      { batch_id, poll_attempt: poll_attempt + 1 },
-      BATCH_POLLING_INTERVAL_S
-    );
-    return new Response(
-      `Batch ${batch_id} still ${result.openai_status}; next poll scheduled in ${BATCH_POLLING_INTERVAL_S}s (attempt ${poll_attempt + 1}/${MAX_BATCH_POLL_ATTEMPTS})`,
-      { status: 200 }
-    );
-  }
+      if (result.status === 'pending') {
+        const qstash = yield* QStashPublisher;
+        yield* qstash.publishAiBatchResults(
+          { batch_id, poll_attempt: poll_attempt + 1 },
+          BATCH_POLLING_INTERVAL_S
+        );
+        return `Batch ${batch_id} still ${result.openai_status}; next poll scheduled in ${BATCH_POLLING_INTERVAL_S}s (attempt ${poll_attempt + 1}/${MAX_BATCH_POLL_ATTEMPTS})`;
+      }
 
-  if (result.status === 'terminal_failure') {
-    return new Response(`Batch ${batch_id} failed with status ${result.openai_status}`, {
-      status: 200
-    });
-  }
+      if (result.status === 'terminal_failure') {
+        return `Batch ${batch_id} failed with status ${result.openai_status}`;
+      }
 
-  const succeeded = result.items.filter((item) => item.success).length;
-  return new Response(
-    `Batch ${batch_id} processed: ${succeeded}/${result.items.length} items succeeded`,
-    { status: 200 }
+      const succeeded = result.items.filter((item) => item.success).length;
+      return `Batch ${batch_id} processed: ${succeeded}/${result.items.length} items succeeded`;
+    }),
+    {
+      onSuccess: (message) => new Response(message, { status: 200 })
+    }
   );
 };

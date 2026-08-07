@@ -1,7 +1,8 @@
+import { dbRun, dbTransaction } from '~/effect/database';
 import { TRPCError } from '@trpc/server';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { waitUntil } from '@vercel/functions';
+import { enqueueBackground } from '~/effect/background';
 import {
   applyDeletePathCompactions,
   collectDeleteInvalidation,
@@ -15,9 +16,7 @@ import {
   validateDeletedPathsInMap
 } from '~/utils/map_path/delete.server';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
-import { db } from '~/db/db';
 import { projects } from '~/db/schema';
-import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import {
   CACHE,
   invalidate_and_refresh_cached,
@@ -60,6 +59,12 @@ import {
   validate_explicit_to_add_paths
 } from '~/utils/project/map_sync.server';
 import { TEXT_EDIT_LOCK_NAMESPACE } from '~/utils/text/row_edit.server';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
+
+const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
+  runTrpcEffect(dbRun(operation, run));
+const runTx = <A>(operation: string, run: Parameters<typeof dbTransaction<A>>[1]) =>
+  runTrpcEffect(dbTransaction(operation, run));
 
 const project_id_input = z.object({
   project_id: z.int()
@@ -75,10 +80,10 @@ const invalidate_project_caches = async (
   clear_server_project_map_cache(project_id);
   clear_server_project_info_cache(project_key);
   await Promise.all([
-    invalidate_and_refresh_cached(CACHE.project_map, { project_id }, cache_db_options_app),
-    invalidate_and_refresh_cached(CACHE.project_list, NO_CACHE_PARAMS, cache_db_options_app),
+    runTrpcEffect(invalidate_and_refresh_cached(CACHE.project_map, { project_id })),
+    runTrpcEffect(invalidate_and_refresh_cached(CACHE.project_list, NO_CACHE_PARAMS)),
     pathInvalidation
-      ? invalidate_path_caches(project_id, project_key, pathInvalidation, cache_db_options_app)
+      ? runTrpcEffect(invalidate_path_caches(project_id, project_key, pathInvalidation))
       : Promise.resolve(),
     notify_site_invalidate_project_map_cache(cookie, project_id),
     notify_site_invalidate_project_list_caches(cookie)
@@ -94,7 +99,7 @@ export const update_project_map_route = protectedAdminProcedure
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
     await delay_dev(400);
-    const project = await db.transaction(async (tx) => {
+    const project = await runTx('project_map_edit.tx.1', async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${input.project_id})`
       );
@@ -134,7 +139,9 @@ export const update_project_map_route = protectedAdminProcedure
       return { key: existing.key, map };
     });
 
-    waitUntil(invalidate_project_caches(cookie, input.project_id, project.key));
+    void runTrpcEffect(
+      enqueueBackground(() => invalidate_project_caches(cookie, input.project_id, project.key))
+    );
     return { success: true as const, map: project.map };
   });
 
@@ -174,7 +181,7 @@ const save_project_map_order = protectedAdminProcedure
       project,
       map: derivedMap,
       pathInvalidation
-    } = await db.transaction(async (tx) => {
+    } = await runTx('project_map_edit.tx.2', async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
       );
@@ -219,7 +226,11 @@ const save_project_map_order = protectedAdminProcedure
       };
     });
 
-    waitUntil(invalidate_project_caches(cookie, project_id, project.key, pathInvalidation));
+    void runTrpcEffect(
+      enqueueBackground(() =>
+        invalidate_project_caches(cookie, project_id, project.key, pathInvalidation)
+      )
+    );
 
     return { success: true as const, swap_count: parsedEdits.length, map: derivedMap };
   });
@@ -238,7 +249,7 @@ const delete_project_map_nodes = protectedAdminProcedure
 
     await delay_dev(400);
 
-    const { project, map, pathInvalidation } = await db.transaction(async (tx) => {
+    const { project, map, pathInvalidation } = await runTx('project_map_edit.tx.3', async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
       );
@@ -288,7 +299,11 @@ const delete_project_map_nodes = protectedAdminProcedure
       };
     });
 
-    waitUntil(invalidate_project_caches(cookie, project_id, project.key, pathInvalidation));
+    void runTrpcEffect(
+      enqueueBackground(() =>
+        invalidate_project_caches(cookie, project_id, project.key, pathInvalidation)
+      )
+    );
 
     return { success: true as const, deleted_count: minimized.length, map };
   });
@@ -300,15 +315,17 @@ const get_delete_node_resource_counts = protectedAdminProcedure
     })
   )
   .query(async ({ input: { project_id, paths } }) => {
-    const project = await db.query.projects.findFirst({
-      where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
-      columns: { id: true }
-    });
+    const project = await runDb('project_map_edit.db.1', (db) =>
+      db.query.projects.findFirst({
+        where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
+        columns: { id: true }
+      })
+    );
     if (!project) {
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
     }
 
-    return db.transaction(async (tx) => {
+    return runTx('project_map_edit.tx.4', async (tx) => {
       const countsByPath: Record<string, Awaited<ReturnType<typeof countExactPathResources>>> = {};
       for (const path of [...new Set(paths)]) {
         countsByPath[path] = await countExactPathResources(tx, project_id, path);

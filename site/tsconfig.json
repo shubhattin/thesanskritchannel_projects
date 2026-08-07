@@ -5,11 +5,29 @@
   "compilerOptions": {
     "paths": {
       "$components/*": ["./src/components/*"],
-      "~/*": ["./src/*"],
       "$lib": ["./src/lib"],
       "$lib/*": ["./src/lib/*"],
       "$app/*": ["../app/src/*"],
-      "@data/*": ["../data/*"]
+      "@data/*": ["../data/*"],
+
+      // Site-owned modules must win over app `~/` remaps below (longest prefix / exact).
+      "~/effect/site_runtime": ["./src/effect/site_runtime.ts"],
+      "~/utils/text-routes": ["./src/utils/text-routes.ts"],
+      "~/lib/*": ["./src/lib/*"],
+      "~/components/*": ["./src/components/*"],
+
+      // When Astro typechecks `$app/*` sources, resolve their `~/` imports to app.
+      "~/db/*": ["../app/src/db/*"],
+      "~/effect/*": ["../app/src/effect/*"],
+      "~/state/*": ["../app/src/state/*"],
+      "~/utils/*": ["../app/src/utils/*"],
+      "~/tools/*": ["../app/src/tools/*"],
+      "~/api/*": ["../app/src/api/*"],
+      "~/constants": ["../app/src/constants.ts"],
+      "~/constants.ts": ["../app/src/constants.ts"],
+
+      // Fallback for remaining site `~/` paths
+      "~/*": ["./src/*"]
     }
   }
 }

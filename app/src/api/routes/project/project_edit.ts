@@ -1,9 +1,9 @@
+import { dbRun, dbTransaction, type TxOrDb } from '~/effect/database';
 import { TRPCError } from '@trpc/server';
 import { and, count, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { waitUntil } from '@vercel/functions';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
-import { db, type transactionType } from '~/db/db';
+import { enqueueBackground } from '~/effect/background';
 import {
   media_attachment,
   project_paths,
@@ -14,7 +14,6 @@ import {
   user_project_join,
   user_project_language_join
 } from '~/db/schema';
-import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import {
   CACHE,
   invalidate_and_refresh_cached,
@@ -33,6 +32,12 @@ import { finalize_project_delete_resource_counts } from '~/utils/project/project
 import { ROOT_DB_PATH } from '~/utils/map_path/swap';
 import { delay_dev } from '~/tools/delay';
 import { type recursive_list_type, recursive_list_schema } from '~/state/data_types';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
+
+const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
+  runTrpcEffect(dbRun(operation, run));
+const runTx = <A>(operation: string, run: Parameters<typeof dbTransaction<A>>[1]) =>
+  runTrpcEffect(dbTransaction(operation, run));
 
 const project_id_input = z.object({
   project_id: z.int()
@@ -40,12 +45,12 @@ const project_id_input = z.object({
 
 const invalidate_project_list_caches = async (cookie: string) => {
   clear_project_registry_cache();
-  await invalidate_and_refresh_cached(CACHE.project_list, NO_CACHE_PARAMS, cache_db_options_app);
-  waitUntil(notify_site_invalidate_project_list_caches(cookie));
+  await runTrpcEffect(invalidate_and_refresh_cached(CACHE.project_list, NO_CACHE_PARAMS));
+  void runTrpcEffect(enqueueBackground(() => notify_site_invalidate_project_list_caches(cookie)));
 };
 
 /** Ensures `project_id` exists; throws NOT_FOUND otherwise. */
-const require_project = async (tx: transactionType, project_id: number) => {
+const require_project = async (tx: TxOrDb, project_id: number) => {
   const project = await tx.query.projects.findFirst({
     where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
     columns: { id: true, key: true, listed: true }
@@ -66,7 +71,7 @@ export const update_project_name_description_route = protectedAdminProcedure
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
     await delay_dev(400);
-    await db.transaction(async (tx) => {
+    await runTx('project_edit.tx.1', async (tx) => {
       await require_project(tx, input.project_id);
       const { map: project_map } = (await tx.query.projects.findFirst({
         where: ({ id }, { eq }) => eq(id, input.project_id),
@@ -101,7 +106,7 @@ export const edit_project_slug_route = protectedAdminProcedure
     await delay_dev(400);
     let previous_key: string | null = null;
 
-    await db.transaction(async (tx) => {
+    await runTx('project_edit.tx.2', async (tx) => {
       const project = await require_project(tx, input.project_id);
       previous_key = project.key;
       const key = lekhaUrlSlugify(input.key);
@@ -160,12 +165,14 @@ export const list_project_redirects_route = protectedAdminProcedure
   .input(project_id_input)
   .query(async ({ input }) => {
     await delay_dev(200);
-    await require_project(db, input.project_id);
-    return db.query.project_redirects.findMany({
-      where: (tbl, { eq: eqId }) => eqId(tbl.project_id, input.project_id),
-      columns: { id: true, key: true, created_at: true },
-      orderBy: (tbl, { desc }) => [desc(tbl.created_at)]
-    });
+    await runDb('project_edit.require', (db) => require_project(db, input.project_id));
+    return runDb('project_edit.db.1', (db) =>
+      db.query.project_redirects.findMany({
+        where: (tbl, { eq: eqId }) => eqId(tbl.project_id, input.project_id),
+        columns: { id: true, key: true, created_at: true },
+        orderBy: (tbl, { desc }) => [desc(tbl.created_at)]
+      })
+    );
   });
 
 export const delete_project_redirect_route = protectedAdminProcedure
@@ -176,7 +183,7 @@ export const delete_project_redirect_route = protectedAdminProcedure
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
     await delay_dev(300);
-    await db.transaction(async (tx) => {
+    await runTx('project_edit.tx.3', async (tx) => {
       await require_project(tx, input.project_id);
       const deleted = await tx
         .delete(project_redirects)
@@ -204,7 +211,7 @@ export const update_project_listed_route = protectedAdminProcedure
   )
   .mutation(async ({ input, ctx: { cookie } }) => {
     await delay_dev(400);
-    await db.transaction(async (tx) => {
+    await runTx('project_edit.tx.4', async (tx) => {
       await require_project(tx, input.project_id);
       await tx
         .update(projects)
@@ -216,9 +223,9 @@ export const update_project_listed_route = protectedAdminProcedure
     return { success: true };
   });
 
-const get_delete_resource_counts_for_project = async (tx: transactionType, project_id: number) => {
+const get_delete_resource_counts_for_project = async (tx: TxOrDb, project_id: number) => {
   const count_rows_for_project = async (
-    tx: transactionType,
+    tx: TxOrDb,
     project_id: number,
     table: typeof project_paths | typeof user_project_join | typeof user_project_language_join
   ) => {
@@ -264,15 +271,17 @@ export const get_delete_resource_counts_route = protectedAdminProcedure
   .input(project_id_input)
   .query(async ({ input }) => {
     await delay_dev(300);
-    await require_project(db, input.project_id);
-    return get_delete_resource_counts_for_project(db, input.project_id);
+    return runDb('project_edit.delete_counts', async (db) => {
+      await require_project(db, input.project_id);
+      return get_delete_resource_counts_for_project(db, input.project_id);
+    });
   });
 
 export const delete_project_route = protectedAdminProcedure
   .input(project_id_input)
   .mutation(async ({ input, ctx: { cookie } }) => {
     await delay_dev(400);
-    await db.transaction(async (tx) => {
+    await runTx('project_edit.tx.5', async (tx) => {
       await require_project(tx, input.project_id);
       const counts = await get_delete_resource_counts_for_project(tx, input.project_id);
       if (counts.total > 0) {
@@ -312,18 +321,22 @@ export const check_project_slug_route = protectedAdminProcedure
       return { available: false, key, replaces_redirect: false as const };
     }
 
-    const conflict = await db.query.projects.findFirst({
-      where: (tbl, { eq: eqId }) => eqId(tbl.key, key),
-      columns: { id: true }
-    });
+    const conflict = await runDb('project_edit.db.2', (db) =>
+      db.query.projects.findFirst({
+        where: (tbl, { eq: eqId }) => eqId(tbl.key, key),
+        columns: { id: true }
+      })
+    );
     const active_conflict =
       !!conflict &&
       (input.exclude_project_id === undefined || conflict.id !== input.exclude_project_id);
 
-    const redirect = await db.query.project_redirects.findFirst({
-      where: (tbl, { eq: eqKey }) => eqKey(tbl.key, key),
-      columns: { id: true, project_id: true, key: true }
-    });
+    const redirect = await runDb('project_edit.db.3', (db) =>
+      db.query.project_redirects.findFirst({
+        where: (tbl, { eq: eqKey }) => eqKey(tbl.key, key),
+        columns: { id: true, project_id: true, key: true }
+      })
+    );
 
     return {
       available: !active_conflict,
@@ -358,7 +371,7 @@ const add_new_project_route = protectedAdminProcedure
       });
     }
 
-    const project = await db.transaction(async (tx) => {
+    const project = await runTx('project_edit.tx.6', async (tx) => {
       const conflict = await tx.query.projects.findFirst({
         where: (tbl, { eq: eqId }) => eqId(tbl.key, key),
         columns: { id: true }

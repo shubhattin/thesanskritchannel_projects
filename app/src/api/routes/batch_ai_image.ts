@@ -1,8 +1,10 @@
+import { OpenAiBatchClient } from '~/effect/ai';
+import { dbRun, dbTransaction } from '~/effect/database';
+import { Effect } from 'effect';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
-import { db } from '~/db/db';
 import {
   ai_batches,
   ai_batch_responses,
@@ -16,7 +18,6 @@ import type { AiBatchPollingStatus } from '~/utils/ai_batch/types';
 import { getShlokaImageBatchCustomId } from '~/utils/ai_batch/batch_custom_id';
 import { deriveImageBatchUiStatus } from '~/utils/ai_batch/batch_image_status';
 import {
-  getOpenAI,
   isResponseItemProcessed,
   bulkFailUnprocessedBatchResponses,
   batchFailureError,
@@ -34,14 +35,12 @@ import {
   image_batch_metadata_schema,
   type ImageBatchMetadata
 } from '~/utils/types/ai_batch_metadata';
-import { createS3Client } from '~/utils/s3/upload_file.server';
 import {
   deleteImageAssetById,
   linkImageAssetToText,
   persistImageAsset
 } from '~/utils/image_assets/persist.server';
 import { get_project_info_by_id } from '~/utils/project/list.server';
-import { cache_db_options_app } from '~/utils/cache.server/cache_db_options.server';
 import { get_path_params } from '~/state/project_list';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
 import {
@@ -50,7 +49,7 @@ import {
   text_models_enum
 } from '~/api/routes/ai/ai_types';
 import { get_image_prompt_func } from '~/api/routes/ai/get_image_prompt';
-import { getCDNUrl } from '~/utils/cdn';
+import { getCDNUrlSync } from '~/utils/cdn';
 import {
   freshImageRetryMetadata,
   validateFullyFailedBatchForRetry
@@ -65,9 +64,19 @@ import {
   get_text_translation_batch_status,
   list_batch_translation_targets
 } from './batch_ai_text';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
 
-let s3Client: ReturnType<typeof createS3Client> | undefined;
-const getS3Client = () => (s3Client ??= createS3Client());
+const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
+  runTrpcEffect(dbRun(operation, run));
+const runTx = <A>(operation: string, run: Parameters<typeof dbTransaction<A>>[1]) =>
+  runTrpcEffect(dbTransaction(operation, run));
+const getOpenAiClient = () =>
+  runTrpcEffect(
+    Effect.gen(function* () {
+      const { client } = yield* OpenAiBatchClient;
+      return client;
+    })
+  );
 
 const trigger_item_schema = z.object({
   index: z.int().min(0),
@@ -127,7 +136,7 @@ const TERMINAL_FAILURE_STATUSES: ReadonlySet<AiBatchPollingStatus> = new Set([
 
 /** Connect staged image into text_image_assets_join and remove the batch response row. */
 export const approve_connect_shloka_image_func = async (batch_id: string, custom_id: string) => {
-  const result = await db.transaction(async (tx) => {
+  const result = await runTx('batch_ai_image.tx.1', async (tx) => {
     const ai_batch_data = await tx.query.ai_batch_responses.findFirst({
       where: and(
         eq(ai_batch_responses.batch_id, batch_id),
@@ -168,15 +177,17 @@ export const approve_connect_shloka_image_func = async (batch_id: string, custom
     };
   });
 
-  scheduleOpenAiBatchCleanup(batch_id);
+  void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id));
   return result;
 };
 
 async function autoApproveEligibleRows(batch_id: string, items: PollItem[]): Promise<PollItem[]> {
-  const rows = await db.query.ai_batch_responses.findMany({
-    where: eq(ai_batch_responses.batch_id, batch_id),
-    columns: { custom_id: true, auto_approved: true }
-  });
+  const rows = await runDb('batch_ai_image.db.1', (db) =>
+    db.query.ai_batch_responses.findMany({
+      where: eq(ai_batch_responses.batch_id, batch_id),
+      columns: { custom_id: true, auto_approved: true }
+    })
+  );
   const auto_approved_custom_ids = new Set(
     rows.filter((row) => row.auto_approved).map((row) => row.custom_id)
   );
@@ -202,10 +213,12 @@ async function autoApproveEligibleRows(batch_id: string, items: PollItem[]): Pro
 export const poll_batch_shloka_image_gen_func = async (
   batch_id: string
 ): Promise<PollBatchShlokaImageGenResult> => {
-  const ai_batch = await db.query.ai_batches.findFirst({
-    where: eq(ai_batches.batch_id, batch_id),
-    with: { responses: true }
-  });
+  const ai_batch = await runDb('batch_ai_image.db.2', (db) =>
+    db.query.ai_batches.findFirst({
+      where: eq(ai_batches.batch_id, batch_id),
+      with: { responses: true }
+    })
+  );
   // Missing/empty after approve+cleanup is a terminal success, not NOT_FOUND.
   if (!ai_batch || ai_batch.responses.length === 0) {
     return {
@@ -233,7 +246,7 @@ export const poll_batch_shloka_image_gen_func = async (
     };
   }
 
-  const batch = await getAiBatchResult(getOpenAI(), batch_id, {
+  const batch = await getAiBatchResult(await getOpenAiClient(), batch_id, {
     outputs: db_rows.map((row) => ({ type: 'image' as const, custom_id: row.custom_id }))
   });
   const batch_output_file_id = batch.output_file_id ?? null;
@@ -241,7 +254,7 @@ export const poll_batch_shloka_image_gen_func = async (
   if (batch.status !== 'completed') {
     const openai_status = batch.status;
     if (TERMINAL_FAILURE_STATUSES.has(openai_status)) {
-      await db.transaction(async (tx) => {
+      await runTx('batch_ai_image.tx.2', async (tx) => {
         const failing = db_rows
           .filter(
             (row) => !isResponseItemProcessed(image_batch_metadata_schema.parse(row.metadata))
@@ -288,14 +301,16 @@ export const poll_batch_shloka_image_gen_func = async (
           return toPollItem(row.custom_id, row_metadata);
         }
 
-        const claimed_row = await tryClaimBatchRow(batch_id, row.custom_id);
+        const claimed_row = await runTrpcEffect(tryClaimBatchRow(batch_id, row.custom_id));
         if (!claimed_row) {
-          const resolved_row = await db.query.ai_batch_responses.findFirst({
-            where: and(
-              eq(ai_batch_responses.batch_id, batch_id),
-              eq(ai_batch_responses.custom_id, row.custom_id)
-            )
-          });
+          const resolved_row = await runDb('batch_ai_image.db.3', (db) =>
+            db.query.ai_batch_responses.findFirst({
+              where: and(
+                eq(ai_batch_responses.batch_id, batch_id),
+                eq(ai_batch_responses.custom_id, row.custom_id)
+              )
+            })
+          );
           if (resolved_row) {
             const resolved_metadata = image_batch_metadata_schema.parse(resolved_row.metadata);
             if (isResponseItemProcessed(resolved_metadata)) {
@@ -309,7 +324,7 @@ export const poll_batch_shloka_image_gen_func = async (
         const output = output_by_custom_id.get(row.custom_id);
 
         if (!output || !output.success || output.type !== 'image' || !output.image_b64) {
-          const wrote = await db.transaction(async (tx) =>
+          const wrote = await runTx('batch_ai_image.tx.3', async (tx) =>
             updateBatchResponse(tx, batch_id, row.custom_id, {
               ...metadata,
               success: false,
@@ -326,22 +341,29 @@ export const poll_batch_shloka_image_gen_func = async (
           return wrote ? { custom_id: row.custom_id, success: false } : null;
         }
 
-        let upload_result: Awaited<ReturnType<typeof persistImageAsset>>;
+        let upload_result: {
+          id: number;
+          s3_key: string;
+          width: number;
+          height: number;
+          description: string | null;
+        };
         try {
-          upload_result = await persistImageAsset({
-            project_id: metadata.project_id,
-            project_path_id: metadata.project_path_id,
-            path_params: metadata.path_params,
-            index: metadata.index,
-            image: output.image_b64,
-            description: metadata.image_prompt.slice(0, 150),
-            s3Client: getS3Client(),
-            // Staging only — join is created on approve / auto-approve
-            create_join: false
-          });
+          upload_result = await runTrpcEffect(
+            persistImageAsset({
+              project_id: metadata.project_id,
+              project_path_id: metadata.project_path_id,
+              path_params: metadata.path_params,
+              index: metadata.index,
+              image: output.image_b64,
+              description: metadata.image_prompt.slice(0, 150),
+              // Staging only — join is created on approve / auto-approve
+              create_join: false
+            })
+          );
         } catch (err) {
           console.error(`Batch image upload failed for ${row.custom_id}:`, err);
-          const wrote = await db.transaction(async (tx) =>
+          const wrote = await runTx('batch_ai_image.tx.4', async (tx) =>
             updateBatchResponse(tx, batch_id, row.custom_id, {
               ...metadata,
               success: false,
@@ -351,7 +373,7 @@ export const poll_batch_shloka_image_gen_func = async (
           return wrote ? { custom_id: row.custom_id, success: false } : null;
         }
 
-        const persisted = await db.transaction(async (tx) =>
+        const persisted = await runTx('batch_ai_image.tx.5', async (tx) =>
           updateBatchResponse(
             tx,
             batch_id,
@@ -366,7 +388,7 @@ export const poll_batch_shloka_image_gen_func = async (
         );
 
         if (!persisted) {
-          await deleteImageAssetById(upload_result.id, { s3Client: getS3Client() }).catch((err) => {
+          await runTrpcEffect(deleteImageAssetById(upload_result.id)).catch((err) => {
             console.error(
               `Failed to clean up duplicate batch upload image ${upload_result.id}:`,
               err
@@ -384,7 +406,7 @@ export const poll_batch_shloka_image_gen_func = async (
     )
   ).filter((item): item is PollItem => item !== null);
 
-  await db.transaction(async (tx) => {
+  await runTx('batch_ai_image.tx.6', async (tx) => {
     await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
   });
 
@@ -398,20 +420,22 @@ export const poll_batch_shloka_image_gen_func = async (
 };
 
 async function assertNoUnresolvedDuplicates(project_path_id: number, indexes: number[]) {
-  const rows = await db
-    .select({
-      metadata: ai_batch_responses.metadata,
-      batch_id: ai_batch_responses.batch_id
-    })
-    .from(ai_batch_responses)
-    .innerJoin(ai_batches, eq(ai_batch_responses.batch_id, ai_batches.batch_id))
-    .where(
-      and(
-        eq(ai_batches.type, 'image'),
-        eq(ai_batches.output_resolved, false),
-        sql`(${ai_batch_responses.metadata}->>'project_path_id')::int = ${project_path_id}`
+  const rows = await runDb('batch_ai_image.ml.1', (db) =>
+    db
+      .select({
+        metadata: ai_batch_responses.metadata,
+        batch_id: ai_batch_responses.batch_id
+      })
+      .from(ai_batch_responses)
+      .innerJoin(ai_batches, eq(ai_batch_responses.batch_id, ai_batches.batch_id))
+      .where(
+        and(
+          eq(ai_batches.type, 'image'),
+          eq(ai_batches.output_resolved, false),
+          sql`(${ai_batch_responses.metadata}->>'project_path_id')::int = ${project_path_id}`
+        )
       )
-    );
+  );
 
   const busy = new Set<number>();
   for (const row of rows) {
@@ -440,12 +464,14 @@ const trigger_batch_shloka_image_gen_route = protectedAdminProcedure
       items
     } = input;
 
-    const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
+    const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
     const path_params = get_path_params(selected_text_levels, levels);
     if (levels > 1 && path_params.length === 0) {
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });
     }
-    const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
+    const projectPath = await runDb('batch_ai_image.path.1', (db) =>
+      requireProjectPath(db, project_id, path_params.join(':'))
+    );
 
     const indexes = items.map((item) => item.index);
     if (new Set(indexes).size !== indexes.length) {
@@ -493,22 +519,24 @@ const trigger_batch_shloka_image_gen_route = protectedAdminProcedure
       size: '1024x1024' as const
     }));
 
-    return enqueueAiBatch({
-      batch_type: 'image',
-      batch_requests,
-      response_rows: resolved.map((item) => ({
-        custom_id: item.custom_id,
-        auto_approved,
-        metadata: {
-          type: 'shloka-image' as const,
-          project_id,
-          project_path_id: projectPath.id,
-          path_params,
-          index: item.index,
-          image_prompt: item.image_prompt
-        }
-      }))
-    });
+    return runTrpcEffect(
+      enqueueAiBatch({
+        batch_type: 'image',
+        batch_requests,
+        response_rows: resolved.map((item) => ({
+          custom_id: item.custom_id,
+          auto_approved,
+          metadata: {
+            type: 'shloka-image' as const,
+            project_id,
+            project_path_id: projectPath.id,
+            path_params,
+            index: item.index,
+            image_prompt: item.image_prompt
+          }
+        }))
+      })
+    );
   });
 
 const DEFAULT_RETRY_IMAGE_MODEL = available_image_models_schema.parse('gpt-image-2');
@@ -523,79 +551,85 @@ export const retry_failed_shloka_image_batch_func = async (source_batch_id: stri
     image_ids: number[];
   };
 
-  let claimed: Awaited<ReturnType<typeof claimBatchForRetry<Claimed>>>;
+  let claimed: {
+    mapped: Claimed;
+    input_file_id: string;
+    output_file_id: string | null;
+  };
   try {
-    claimed = await claimBatchForRetry({
-      batch_id: source_batch_id,
-      batch_type: 'image',
-      validateAndMap: async (batch, responses) => {
-        const parsed_rows: {
-          custom_id: string;
-          auto_approved: boolean;
-          metadata: ImageBatchMetadata;
-        }[] = [];
-        for (const row of responses) {
-          const parsed = image_batch_metadata_schema.safeParse(row.metadata);
-          if (!parsed.success) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: `Cannot retry batch: response ${row.custom_id} has invalid metadata`
+    claimed = await runTrpcEffect(
+      claimBatchForRetry({
+        batch_id: source_batch_id,
+        batch_type: 'image',
+        validateAndMap: async (batch, responses) => {
+          const parsed_rows: {
+            custom_id: string;
+            auto_approved: boolean;
+            metadata: ImageBatchMetadata;
+          }[] = [];
+          for (const row of responses) {
+            const parsed = image_batch_metadata_schema.safeParse(row.metadata);
+            if (!parsed.success) {
+              throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message: `Cannot retry batch: response ${row.custom_id} has invalid metadata`
+              });
+            }
+            parsed_rows.push({
+              custom_id: row.custom_id,
+              auto_approved: row.auto_approved,
+              metadata: parsed.data
             });
           }
-          parsed_rows.push({
-            custom_id: row.custom_id,
-            auto_approved: row.auto_approved,
-            metadata: parsed.data
+
+          const gate = validateFullyFailedBatchForRetry({
+            batch: { output_resolved: batch.output_resolved, responses: parsed_rows }
           });
-        }
+          if (!gate.ok) {
+            throw new TRPCError({ code: gate.code, message: gate.message });
+          }
 
-        const gate = validateFullyFailedBatchForRetry({
-          batch: { output_resolved: batch.output_resolved, responses: parsed_rows }
-        });
-        if (!gate.ok) {
-          throw new TRPCError({ code: gate.code, message: gate.message });
-        }
+          const orphan_indexes = parsed_rows.filter((row) => row.metadata.index === null);
+          if (orphan_indexes.length > 0) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Cannot retry ${orphan_indexes.length} item(s) with missing text index (source row was deleted/orphaned)`
+            });
+          }
 
-        const orphan_indexes = parsed_rows.filter((row) => row.metadata.index === null);
-        if (orphan_indexes.length > 0) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Cannot retry ${orphan_indexes.length} item(s) with missing text index (source row was deleted/orphaned)`
-          });
-        }
+          const by_path = new Map<number, typeof parsed_rows>();
+          for (const row of parsed_rows) {
+            const list = by_path.get(row.metadata.project_path_id) ?? [];
+            list.push(row);
+            by_path.set(row.metadata.project_path_id, list);
+          }
+          for (const [project_path_id, rows] of by_path) {
+            await assertNoUnresolvedDuplicates(
+              project_path_id,
+              rows.map((row) => row.metadata.index!)
+            );
+          }
 
-        const by_path = new Map<number, typeof parsed_rows>();
-        for (const row of parsed_rows) {
-          const list = by_path.get(row.metadata.project_path_id) ?? [];
-          list.push(row);
-          by_path.set(row.metadata.project_path_id, list);
+          return {
+            resolved: parsed_rows.map((row) => {
+              const metadata = freshImageRetryMetadata(row.metadata);
+              return {
+                auto_approved: row.auto_approved,
+                metadata,
+                custom_id: getShlokaImageBatchCustomId(
+                  metadata.project_id,
+                  metadata.path_params,
+                  metadata.index!
+                )
+              };
+            }),
+            image_ids: parsed_rows.flatMap((row) =>
+              row.metadata.uploaded_image_id !== undefined ? [row.metadata.uploaded_image_id] : []
+            )
+          };
         }
-        for (const [project_path_id, rows] of by_path) {
-          await assertNoUnresolvedDuplicates(
-            project_path_id,
-            rows.map((row) => row.metadata.index!)
-          );
-        }
-
-        return {
-          resolved: parsed_rows.map((row) => {
-            const metadata = freshImageRetryMetadata(row.metadata);
-            return {
-              auto_approved: row.auto_approved,
-              metadata,
-              custom_id: getShlokaImageBatchCustomId(
-                metadata.project_id,
-                metadata.path_params,
-                metadata.index!
-              )
-            };
-          }),
-          image_ids: parsed_rows.flatMap((row) =>
-            row.metadata.uploaded_image_id !== undefined ? [row.metadata.uploaded_image_id] : []
-          )
-        };
-      }
-    });
+      })
+    );
   } catch (err) {
     if (err instanceof Error && err.message === 'BATCH_NOT_FOUND') {
       throw new TRPCError({
@@ -618,19 +652,21 @@ export const retry_failed_shloka_image_batch_func = async (source_batch_id: stri
   }));
 
   try {
-    const created = await enqueueAiBatch({
-      batch_type: 'image',
-      batch_requests,
-      response_rows: resolved.map((item) => ({
-        custom_id: item.custom_id,
-        auto_approved: item.auto_approved,
-        metadata: item.metadata
-      }))
-    });
+    const created = await runTrpcEffect(
+      enqueueAiBatch({
+        batch_type: 'image',
+        batch_requests,
+        response_rows: resolved.map((item) => ({
+          custom_id: item.custom_id,
+          auto_approved: item.auto_approved,
+          metadata: item.metadata
+        }))
+      })
+    );
 
     let source_cleaned = true;
     try {
-      await discardAiBatchEntirely(source_batch_id);
+      await runTrpcEffect(discardAiBatchEntirely(source_batch_id));
     } catch (err) {
       source_cleaned = false;
       console.error(`Failed to clean up source image batch ${source_batch_id} after retry:`, err);
@@ -638,7 +674,7 @@ export const retry_failed_shloka_image_batch_func = async (source_batch_id: stri
 
     for (const image_id of image_ids) {
       try {
-        await deleteImageAssetById(image_id, { s3Client: getS3Client() });
+        await runTrpcEffect(deleteImageAssetById(image_id));
       } catch (err) {
         console.error(`Failed to delete staged image ${image_id} after retry:`, err);
       }
@@ -650,7 +686,7 @@ export const retry_failed_shloka_image_batch_func = async (source_batch_id: stri
       source_cleaned
     };
   } catch (err) {
-    await releaseBatchRetryClaim(source_batch_id).catch((release_err) => {
+    await runTrpcEffect(releaseBatchRetryClaim(source_batch_id)).catch((release_err) => {
       console.error(
         `Failed to release retry claim for image batch ${source_batch_id}:`,
         release_err
@@ -658,7 +694,7 @@ export const retry_failed_shloka_image_batch_func = async (source_batch_id: stri
     });
     for (const image_id of image_ids) {
       try {
-        await deleteImageAssetById(image_id, { s3Client: getS3Client() });
+        await runTrpcEffect(deleteImageAssetById(image_id));
       } catch (cleanup_err) {
         console.error(
           `Failed to delete staged image ${image_id} after failed retry enqueue:`,
@@ -687,27 +723,34 @@ const approve_shloka_image_route = protectedAdminProcedure
 const discard_shloka_image_batch_response_route = protectedAdminProcedure
   .input(z.object({ batch_id: z.string(), custom_id: z.string() }))
   .mutation(async ({ input: { batch_id, custom_id } }) => {
-    const row = await db.query.ai_batch_responses.findFirst({
-      where: and(
-        eq(ai_batch_responses.batch_id, batch_id),
-        eq(ai_batch_responses.custom_id, custom_id)
-      )
-    });
+    const row = await runDb('batch_ai_image.db.4', (db) =>
+      db.query.ai_batch_responses.findFirst({
+        where: and(
+          eq(ai_batch_responses.batch_id, batch_id),
+          eq(ai_batch_responses.custom_id, custom_id)
+        )
+      })
+    );
     if (!row) {
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Batch response not found' });
     }
     const metadata = image_batch_metadata_schema.parse(row.metadata);
     let deleted_image_id: number | null = null;
     if (metadata.uploaded_image_id !== undefined) {
-      await deleteImageAssetById(metadata.uploaded_image_id, { s3Client: getS3Client() });
+      await runTrpcEffect(deleteImageAssetById(metadata.uploaded_image_id));
       deleted_image_id = metadata.uploaded_image_id;
     }
-    await db
-      .delete(ai_batch_responses)
-      .where(
-        and(eq(ai_batch_responses.batch_id, batch_id), eq(ai_batch_responses.custom_id, custom_id))
-      );
-    scheduleOpenAiBatchCleanup(batch_id);
+    await runDb('batch_ai_image.ml.2', async (db) => {
+      await db
+        .delete(ai_batch_responses)
+        .where(
+          and(
+            eq(ai_batch_responses.batch_id, batch_id),
+            eq(ai_batch_responses.custom_id, custom_id)
+          )
+        );
+    });
+    void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id));
     return {
       success: true as const,
       deleted_image_id,
@@ -719,10 +762,12 @@ const discard_shloka_image_batch_response_route = protectedAdminProcedure
 const discard_shloka_image_batch_route = protectedAdminProcedure
   .input(z.object({ batch_id: z.string() }))
   .mutation(async ({ input: { batch_id } }) => {
-    const batch = await db.query.ai_batches.findFirst({
-      where: and(eq(ai_batches.batch_id, batch_id), eq(ai_batches.type, 'image')),
-      with: { responses: true }
-    });
+    const batch = await runDb('batch_ai_image.db.5', (db) =>
+      db.query.ai_batches.findFirst({
+        where: and(eq(ai_batches.batch_id, batch_id), eq(ai_batches.type, 'image')),
+        with: { responses: true }
+      })
+    );
     if (!batch) {
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Batch not found' });
     }
@@ -734,7 +779,7 @@ const discard_shloka_image_batch_route = protectedAdminProcedure
       return metadata.uploaded_image_id !== undefined ? [metadata.uploaded_image_id] : [];
     });
 
-    const discarded = await discardAiBatchEntirely(batch_id);
+    const discarded = await runTrpcEffect(discardAiBatchEntirely(batch_id));
     if (!discarded) {
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Batch not found' });
     }
@@ -742,7 +787,7 @@ const discard_shloka_image_batch_route = protectedAdminProcedure
     const deleted_image_ids: number[] = [];
     for (const image_id of image_ids) {
       try {
-        await deleteImageAssetById(image_id, { s3Client: getS3Client() });
+        await runTrpcEffect(deleteImageAssetById(image_id));
         deleted_image_ids.push(image_id);
       } catch (err) {
         console.error(`Failed to delete staged image ${image_id} after batch discard:`, err);
@@ -803,38 +848,46 @@ async function enrichBatchRows(
 
   const [project_rows, path_rows, assets, text_rows] = await Promise.all([
     project_ids.size
-      ? db.query.projects.findMany({
-          columns: { id: true, key: true, name: true },
-          where: inArray(projects.id, [...project_ids])
-        })
+      ? runDb('batch_ai_image.bare.1', (db) =>
+          db.query.projects.findMany({
+            columns: { id: true, key: true, name: true },
+            where: inArray(projects.id, [...project_ids])
+          })
+        )
       : Promise.resolve([]),
     path_ids.size
-      ? db.query.project_paths.findMany({
-          columns: { id: true, path: true },
-          where: inArray(project_paths.id, [...path_ids])
-        })
+      ? runDb('batch_ai_image.bare.2', (db) =>
+          db.query.project_paths.findMany({
+            columns: { id: true, path: true },
+            where: inArray(project_paths.id, [...path_ids])
+          })
+        )
       : Promise.resolve([]),
     image_ids.size
-      ? db.query.image_assets.findMany({
-          columns: {
-            id: true,
-            s3_key: true,
-            width: true,
-            height: true,
-            description: true
-          },
-          where: inArray(image_assets.id, [...image_ids])
-        })
+      ? runDb('batch_ai_image.bare.3', (db) =>
+          db.query.image_assets.findMany({
+            columns: {
+              id: true,
+              s3_key: true,
+              width: true,
+              height: true,
+              description: true
+            },
+            where: inArray(image_assets.id, [...image_ids])
+          })
+        )
       : Promise.resolve([]),
     path_ids.size
-      ? db
-          .select({
-            project_path_id: texts.project_path_id,
-            index: texts.index,
-            shloka_num: texts.shloka_num
-          })
-          .from(texts)
-          .where(inArray(texts.project_path_id, [...path_ids]))
+      ? runDb('batch_ai_image.ternary.1', (db) =>
+          db
+            .select({
+              project_path_id: texts.project_path_id,
+              index: texts.index,
+              shloka_num: texts.shloka_num
+            })
+            .from(texts)
+            .where(inArray(texts.project_path_id, [...path_ids]))
+        )
       : Promise.resolve([])
   ]);
 
@@ -873,7 +926,7 @@ async function enrichBatchRows(
         ? {
             id: asset.id,
             s3_key: asset.s3_key,
-            url: getCDNUrl(asset.s3_key),
+            url: getCDNUrlSync(asset.s3_key),
             width: asset.width,
             height: asset.height,
             description: asset.description
@@ -894,27 +947,31 @@ const get_shloka_image_batch_status_route = protectedAdminProcedure
     })
   )
   .query(async ({ input }) => {
-    const { levels } = await get_project_info_by_id(input.project_id, cache_db_options_app);
+    const { levels } = await runTrpcEffect(get_project_info_by_id(input.project_id));
     const path_params = get_path_params(input.selected_text_levels, levels);
     if (levels > 1 && path_params.length === 0) return null;
-    const projectPath = await requireProjectPath(db, input.project_id, path_params.join(':'));
+    const projectPath = await runDb('batch_ai_image.path.2', (db) =>
+      requireProjectPath(db, input.project_id, path_params.join(':'))
+    );
 
-    const rows = await db
-      .select({
-        batch_id: ai_batch_responses.batch_id,
-        custom_id: ai_batch_responses.custom_id,
-        output_resolved: ai_batches.output_resolved,
-        auto_approved: ai_batch_responses.auto_approved,
-        metadata: ai_batch_responses.metadata
-      })
-      .from(ai_batch_responses)
-      .innerJoin(ai_batches, eq(ai_batch_responses.batch_id, ai_batches.batch_id))
-      .where(
-        and(
-          eq(ai_batches.type, 'image'),
-          sql`(${ai_batch_responses.metadata}->>'project_path_id')::int = ${projectPath.id}`
+    const rows = await runDb('batch_ai_image.ml.3', (db) =>
+      db
+        .select({
+          batch_id: ai_batch_responses.batch_id,
+          custom_id: ai_batch_responses.custom_id,
+          output_resolved: ai_batches.output_resolved,
+          auto_approved: ai_batch_responses.auto_approved,
+          metadata: ai_batch_responses.metadata
+        })
+        .from(ai_batch_responses)
+        .innerJoin(ai_batches, eq(ai_batch_responses.batch_id, ai_batches.batch_id))
+        .where(
+          and(
+            eq(ai_batches.type, 'image'),
+            sql`(${ai_batch_responses.metadata}->>'project_path_id')::int = ${projectPath.id}`
+          )
         )
-      );
+    );
 
     const filtered = rows
       .map((row) => ({
@@ -959,11 +1016,13 @@ const get_batch_manager_groups_route = protectedAdminProcedure
       .optional()
   )
   .query(async ({ input }) => {
-    const batches = await db.query.ai_batches.findMany({
-      where: eq(ai_batches.type, 'image'),
-      orderBy: [desc(ai_batches.batch_id)],
-      with: { responses: true }
-    });
+    const batches = await runDb('batch_ai_image.db.6', (db) =>
+      db.query.ai_batches.findMany({
+        where: eq(ai_batches.type, 'image'),
+        orderBy: [desc(ai_batches.batch_id)],
+        with: { responses: true }
+      })
+    );
 
     let rows = batches.flatMap((batch) =>
       batch.responses.map((response) => ({

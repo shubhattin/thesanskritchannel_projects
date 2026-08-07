@@ -9,7 +9,8 @@ import {
   SANSKRIT_SYSTEM_PROMPT,
   USER_PROMPT
 } from './translation_prompt';
-import { OPENROUTER_TEXT_MODELS, text_model_custom_options } from './providers';
+import { resolveOpenRouterTextModel, text_model_custom_options } from './providers';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
 
 type translation_prompt_yaml_type = Record<
   'English' | 'Sanskrit' | 'Other',
@@ -55,10 +56,11 @@ export const translate_func = async (args: TranslationInput): Promise<Translatio
   });
 
   try {
+    const modelInstance = await runTrpcEffect(resolveOpenRouterTextModel(model));
     const response = await generateText({
-      model: OPENROUTER_TEXT_MODELS[model],
-      system: translation_prompt.system_prompt,
-      ...(text_model_custom_options[model as keyof typeof text_model_custom_options] ?? {}),
+      model: modelInstance,
+      instructions: translation_prompt.system_prompt,
+      ...(text_model_custom_options[model] ?? {}),
       prompt,
       output: Output.array({
         element: translation_out_schema,

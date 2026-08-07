@@ -1,6 +1,7 @@
+import { getAppPublicConfig } from '~/effect/app_runtime.server';
+
 const get_main_site_origin = () => {
-  const url = import.meta.env.VITE_MAIN_SITE_URL;
-  if (typeof url !== 'string') return '';
+  const url = getAppPublicConfig().mainSiteUrl;
   return url.trim().replace(/\/$/, '');
 };
 

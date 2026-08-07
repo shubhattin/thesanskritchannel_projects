@@ -1,12 +1,7 @@
 import { error } from '@sveltejs/kit';
-import { Readable } from 'node:stream';
 import ms from 'ms';
 import { protected_admin_route_check } from '~/api/api_init';
-import {
-  createS3Client,
-  getAssetFile,
-  isValidImageAssetS3Key
-} from '~/utils/s3/upload_file.server';
+import { getAssetFile, isValidImageAssetS3Key } from '~/utils/s3/upload_file.server';
 
 type StreamImageAssetOptions = {
   request: Request;
@@ -45,12 +40,10 @@ export const streamImageAssetResponse = async ({
       : 'inline';
 
   try {
-    const s3Client = createS3Client();
-    const webp_buffer = await getAssetFile(s3_key, { s3Client });
+    const webp_buffer = await getAssetFile(s3_key);
     const body = transform ? await transform(webp_buffer) : webp_buffer;
-    const web_stream = Readable.toWeb(Readable.from(body)) as ReadableStream;
 
-    return new Response(web_stream, {
+    return new Response(new Uint8Array(body), {
       status: 200,
       headers: {
         'Content-Type': content_type,

@@ -1,21 +1,18 @@
-import { OpenAI } from 'openai';
 import { and, eq, sql } from 'drizzle-orm';
+import { Effect } from 'effect';
 import ms from 'ms';
-import { waitUntil } from '@vercel/functions';
-import { db, type transactionType } from '~/db/db';
 import { ai_batches, ai_batch_responses } from '~/db/schema';
+import { OpenAiBatchClient } from '~/effect/ai';
+import { enqueueBackground } from '~/effect/background';
+import { Database, dbRun, dbTransaction, type TxOrDb } from '~/effect/database';
+import { BatchError } from '~/effect/errors';
+import { QStashPublisher } from '~/effect/qstash';
 import { createAiBatch, type AiBatchInput } from '~/utils/ai_batch';
 import {
   BATCH_POLLING_INTERVAL_S,
   batch_metadata_schema,
   type BatchMetadata
 } from '~/utils/types/ai_batch_metadata';
-import { publishAiBatchResultsQueue } from '~/utils/qstash';
-import { env } from '$env/dynamic/private';
-
-/** Lazy: avoid SDK constructors during SvelteKit postbuild analyse (private env empty). */
-let openai: OpenAI | undefined;
-export const getOpenAI = () => (openai ??= new OpenAI({ apiKey: env.OPENAI_API_KEY }));
 
 const POLL_CLAIM_STALE_MS = ms('12mins');
 
@@ -42,51 +39,109 @@ export async function mapWithConcurrency<T, R>(
   return results;
 }
 
+const openaiStatus = (err: unknown): number | undefined => {
+  if (typeof err !== 'object' || err === null || !('status' in err)) return undefined;
+  const status = err.status;
+  return typeof status === 'number' ? status : undefined;
+};
+
 /** Delete OpenAI Files API objects (batch input/output). Ignores already-deleted files. */
-export async function deleteOpenAiFiles(file_ids: (string | null | undefined)[]) {
+export const deleteOpenAiFiles = Effect.fn('deleteOpenAiFiles')(function* (
+  file_ids: (string | null | undefined)[]
+) {
+  const { client } = yield* OpenAiBatchClient;
   const unique_ids = [...new Set(file_ids.filter((id): id is string => !!id))];
-  await Promise.all(
-    unique_ids.map(async (file_id) => {
-      try {
-        await getOpenAI().files.delete(file_id);
-      } catch (err) {
-        // OpenAI often expires/removes batch files before we clean up — 404 is expected.
-        const status = (err as { status?: number } | null)?.status;
-        if (status === 404) return;
-        throw err;
-      }
-    })
-  );
-}
+  yield* Effect.tryPromise({
+    try: async () => {
+      await Promise.all(
+        unique_ids.map(async (file_id) => {
+          try {
+            await client.files.delete(file_id);
+          } catch (err) {
+            // OpenAI often expires/removes batch files before we clean up — 404 is expected.
+            if (openaiStatus(err) === 404) return;
+            throw err;
+          }
+        })
+      );
+    },
+    catch: (cause) => BatchError.make({ operation: 'deleteOpenAiFiles', cause })
+  });
+});
 
 /** Delete OpenAI input/output files and the ai_batches row (cascade-deletes responses). */
-export async function discardAiBatchEntirely(batch_id: string) {
-  const batch = await db.query.ai_batches.findFirst({
-    columns: { input_file_id: true, output_file_id: true },
-    where: eq(ai_batches.batch_id, batch_id)
-  });
+export const discardAiBatchEntirely = Effect.fn('discardAiBatchEntirely')(function* (
+  batch_id: string
+) {
+  const batch = yield* dbRun('batch.discard.lookup', (db) =>
+    db.query.ai_batches.findFirst({
+      columns: { input_file_id: true, output_file_id: true },
+      where: eq(ai_batches.batch_id, batch_id)
+    })
+  );
   if (!batch) return false;
 
   // Remote files first so a failure keeps the DB row for retry.
-  await deleteOpenAiFiles([batch.input_file_id, batch.output_file_id]);
-  await db.delete(ai_batches).where(eq(ai_batches.batch_id, batch_id));
-  return true;
-}
-
-export function scheduleOpenAiBatchCleanup(batch_id: string) {
-  const cleanup = (async () => {
-    const remaining = await db.query.ai_batch_responses.findFirst({
-      columns: { batch_id: true },
-      where: eq(ai_batch_responses.batch_id, batch_id)
-    });
-    if (remaining) return;
-    await discardAiBatchEntirely(batch_id);
-  })().catch((err) => {
-    console.error(`Failed OpenAI batch file cleanup for batch ${batch_id}:`, err);
+  yield* deleteOpenAiFiles([batch.input_file_id, batch.output_file_id]);
+  yield* dbRun('batch.discard.delete', async (db) => {
+    await db.delete(ai_batches).where(eq(ai_batches.batch_id, batch_id));
   });
+  return true;
+});
 
-  waitUntil(cleanup);
-}
+export const scheduleOpenAiBatchCleanup = Effect.fn('scheduleOpenAiBatchCleanup')(function* (
+  batch_id: string
+) {
+  const database = yield* Database;
+  const openai = yield* OpenAiBatchClient;
+
+  yield* enqueueBackground(() =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const remaining = yield* database.run('batch.cleanup.check', (db) =>
+          db.query.ai_batch_responses.findFirst({
+            columns: { batch_id: true },
+            where: eq(ai_batch_responses.batch_id, batch_id)
+          })
+        );
+        if (remaining) return;
+
+        const batch = yield* database.run('batch.cleanup.lookup', (db) =>
+          db.query.ai_batches.findFirst({
+            columns: { input_file_id: true, output_file_id: true },
+            where: eq(ai_batches.batch_id, batch_id)
+          })
+        );
+        if (!batch) return;
+
+        const unique_ids = [
+          ...new Set([batch.input_file_id, batch.output_file_id].filter((id): id is string => !!id))
+        ];
+        yield* Effect.tryPromise({
+          try: async () => {
+            await Promise.all(
+              unique_ids.map(async (file_id) => {
+                try {
+                  await openai.client.files.delete(file_id);
+                } catch (err) {
+                  if (openaiStatus(err) === 404) return;
+                  throw err;
+                }
+              })
+            );
+          },
+          catch: (cause) => BatchError.make({ operation: 'deleteOpenAiFiles', cause })
+        });
+
+        yield* database.run('batch.cleanup.delete', async (db) => {
+          await db.delete(ai_batches).where(eq(ai_batches.batch_id, batch_id));
+        });
+      })
+    ).catch((err) => {
+      console.error(`Failed OpenAI batch file cleanup for batch ${batch_id}:`, err);
+    })
+  );
+});
 
 /** Compact debug payload for metadata.error (not full OpenAI bodies). */
 export function batchFailureError(
@@ -104,19 +159,15 @@ export function errMessage(err: unknown): string {
  * Lock and mark a source batch as retrying. The source stays intact until the
  * replacement batch is persisted, so enqueue failures remain recoverable.
  */
-export async function claimBatchForRetry<T>(args: {
+export const claimBatchForRetry = <T>(args: {
   batch_id: string;
   batch_type: 'image' | 'object';
   validateAndMap: (
     batch: typeof ai_batches.$inferSelect,
     responses: (typeof ai_batch_responses.$inferSelect)[]
   ) => T | Promise<T>;
-}): Promise<{
-  mapped: T;
-  input_file_id: string;
-  output_file_id: string | null;
-}> {
-  return db.transaction(async (tx) => {
+}) =>
+  dbTransaction('batch.claim_for_retry', async (tx) => {
     const batches = await tx
       .select()
       .from(ai_batches)
@@ -156,22 +207,25 @@ export async function claimBatchForRetry<T>(args: {
       output_file_id: batch.output_file_id
     };
   });
-}
 
-export async function releaseBatchRetryClaim(batch_id: string) {
-  await db.execute(sql`
-    UPDATE ${ai_batch_responses}
-    SET metadata = metadata - 'retry_claimed_at'
-    WHERE batch_id = ${batch_id}
-  `);
-}
+export const releaseBatchRetryClaim = Effect.fn('releaseBatchRetryClaim')(function* (
+  batch_id: string
+) {
+  yield* dbRun('batch.release_retry_claim', async (db) => {
+    await db.execute(sql`
+      UPDATE ${ai_batch_responses}
+      SET metadata = metadata - 'retry_claimed_at'
+      WHERE batch_id = ${batch_id}
+    `);
+  });
+});
 
 export function isResponseItemProcessed(metadata: BatchMetadata): boolean {
   return metadata.success !== undefined;
 }
 
 /** Create OpenAI batch, persist rows, schedule poll — rollback OpenAI+DB on insert failure. */
-export async function enqueueAiBatch(args: {
+export const enqueueAiBatch = Effect.fn('enqueueAiBatch')(function* (args: {
   batch_type: 'image' | 'object';
   batch_requests: AiBatchInput[];
   response_rows: {
@@ -179,18 +233,36 @@ export async function enqueueAiBatch(args: {
     auto_approved: boolean;
     metadata: BatchMetadata;
   }[];
-}): Promise<{ batch_id: string; item_count: number }> {
+}) {
   const { batch_type, batch_requests, response_rows } = args;
   if (batch_requests.length === 0 || response_rows.length === 0) {
-    throw new Error('enqueueAiBatch requires at least one request/response row');
+    return yield* Effect.fail(
+      BatchError.make({
+        operation: 'enqueueAiBatch',
+        cause: new Error('enqueueAiBatch requires at least one request/response row')
+      })
+    );
   }
   if (batch_requests.length !== response_rows.length) {
-    throw new Error('enqueueAiBatch request/response row counts must match');
+    return yield* Effect.fail(
+      BatchError.make({
+        operation: 'enqueueAiBatch',
+        cause: new Error('enqueueAiBatch request/response row counts must match')
+      })
+    );
   }
 
-  const { batch_id, input_file_id } = await createAiBatch(getOpenAI(), batch_requests);
+  const { client } = yield* OpenAiBatchClient;
+  const qstash = yield* QStashPublisher;
+  const database = yield* Database;
+
+  const { batch_id, input_file_id } = yield* Effect.tryPromise({
+    try: () => createAiBatch(client, batch_requests),
+    catch: (cause) => BatchError.make({ operation: 'createAiBatch', cause })
+  });
+
   try {
-    await db.transaction(async (tx) => {
+    yield* database.transaction('batch.enqueue.insert', async (tx) => {
       await tx.insert(ai_batches).values({
         batch_id,
         type: batch_type,
@@ -205,33 +277,44 @@ export async function enqueueAiBatch(args: {
         }))
       );
     });
-    await publishAiBatchResultsQueue({ batch_id, poll_attempt: 0 }, BATCH_POLLING_INTERVAL_S);
+    yield* qstash.publishAiBatchResults({ batch_id, poll_attempt: 0 }, BATCH_POLLING_INTERVAL_S);
   } catch (err) {
-    await db
-      .delete(ai_batch_responses)
-      .where(eq(ai_batch_responses.batch_id, batch_id))
-      .catch((cleanup_err) => {
+    yield* Effect.promise(() =>
+      Effect.runPromise(
+        database.run('batch.enqueue.cleanup_responses', async (db) => {
+          await db.delete(ai_batch_responses).where(eq(ai_batch_responses.batch_id, batch_id));
+        })
+      ).catch((cleanup_err) => {
         console.error(`Failed to delete orphaned batch responses ${batch_id}:`, cleanup_err);
-      });
-    await db
-      .delete(ai_batches)
-      .where(eq(ai_batches.batch_id, batch_id))
-      .catch((cleanup_err) => {
+      })
+    );
+    yield* Effect.promise(() =>
+      Effect.runPromise(
+        database.run('batch.enqueue.cleanup_batch', async (db) => {
+          await db.delete(ai_batches).where(eq(ai_batches.batch_id, batch_id));
+        })
+      ).catch((cleanup_err) => {
         console.error(`Failed to delete orphaned ai_batches row ${batch_id}:`, cleanup_err);
-      });
-    await getOpenAI()
-      .batches.cancel(batch_id)
-      .catch((cancel_err) => {
+      })
+    );
+    yield* Effect.promise(() =>
+      client.batches.cancel(batch_id).catch((cancel_err) => {
         console.error(`Failed to cancel orphaned OpenAI batch ${batch_id}:`, cancel_err);
-      });
-    throw err;
+      })
+    );
+    return yield* Effect.fail(
+      BatchError.make({ operation: 'enqueueAiBatch', batchId: batch_id, cause: err })
+    );
   }
 
   return { batch_id, item_count: response_rows.length };
-}
+});
 
-export async function tryClaimBatchRow(batch_id: string, custom_id: string) {
-  return db.transaction(async (tx) => {
+export const tryClaimBatchRow = Effect.fn('tryClaimBatchRow')(function* (
+  batch_id: string,
+  custom_id: string
+) {
+  return yield* dbTransaction('batch.try_claim_row', async (tx) => {
     const rows = await tx
       .select()
       .from(ai_batch_responses)
@@ -272,10 +355,10 @@ export async function tryClaimBatchRow(batch_id: string, custom_id: string) {
     if (updated.length === 0) return null;
     return { ...row, metadata: claimed_metadata };
   });
-}
+});
 
 export async function updateBatchResponse(
-  tx: transactionType,
+  tx: TxOrDb,
   batch_id: string,
   custom_id: string,
   metadata: BatchMetadata,
@@ -303,7 +386,7 @@ export async function updateBatchResponse(
 
 /** Bulk-mark unprocessed responses as failed in one statement (avoids N updates / same-tx Promise.all). */
 export async function bulkFailUnprocessedBatchResponses(
-  tx: transactionType,
+  tx: TxOrDb,
   batch_id: string,
   rows: { custom_id: string; metadata: BatchMetadata }[],
   output_file_id?: string | null
@@ -330,7 +413,7 @@ export async function bulkFailUnprocessedBatchResponses(
 }
 
 export async function markBatchOutputResolvedIfComplete(
-  tx: transactionType,
+  tx: TxOrDb,
   batch_id: string,
   output_file_id?: string | null
 ) {

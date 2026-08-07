@@ -1,4 +1,4 @@
-import { TRPCError } from '@trpc/server';
+import { Effect } from 'effect';
 import { asc, eq, like } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAdminProcedure, protectedProcedure, t } from '~/api/trpc_init';
@@ -10,8 +10,10 @@ import {
   to_db_key,
   type ImageToolPresetListItem
 } from '~/components/pages/main_app/image_tool/image_tool_preset_schema';
-import { db } from '~/db/db';
 import { other } from '~/db/schema';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
+import { dbRun } from '~/effect/database';
+import { ConflictError, NotFoundError } from '~/effect/errors';
 
 const preset_name_schema = z
   .string()
@@ -22,25 +24,31 @@ const preset_name_schema = z
     message: 'Preset name is reserved'
   });
 
-const list_presets_route = protectedProcedure.query(async () => {
-  const rows = await db
-    .select()
-    .from(other)
-    .where(like(other.key, `${to_db_key('')}%`))
-    .orderBy(asc(other.key));
+const list_presets_route = protectedProcedure.query(() =>
+  runTrpcEffect(
+    Effect.gen(function* () {
+      const rows = yield* dbRun('image_tool_preset.list', (db) =>
+        db
+          .select()
+          .from(other)
+          .where(like(other.key, `${to_db_key('')}%`))
+          .orderBy(asc(other.key))
+      );
 
-  const presets: ImageToolPresetListItem[] = [];
-  for (const row of rows) {
-    if (!is_image_tool_preset_db_key(row.key)) continue;
-    const parsed = image_tool_preset_config_schema.safeParse(row.value);
-    if (!parsed.success) continue;
-    presets.push({
-      name: from_db_key(row.key),
-      config: parsed.data
-    });
-  }
-  return presets;
-});
+      const presets: ImageToolPresetListItem[] = [];
+      for (const row of rows) {
+        if (!is_image_tool_preset_db_key(row.key)) continue;
+        const parsed = image_tool_preset_config_schema.safeParse(row.value);
+        if (!parsed.success) continue;
+        presets.push({
+          name: from_db_key(row.key),
+          config: parsed.data
+        });
+      }
+      return presets;
+    })
+  )
+);
 
 const upsert_preset_route = protectedAdminProcedure
   .input(
@@ -50,54 +58,69 @@ const upsert_preset_route = protectedAdminProcedure
       update: z.boolean()
     })
   )
-  .mutation(async ({ input: { name, config, update } }) => {
-    const parsed_config = image_tool_preset_config_schema.parse(config);
-    const key = to_db_key(name);
+  .mutation(({ input: { name, config, update } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const parsed_config = image_tool_preset_config_schema.parse(config);
+        const key = to_db_key(name);
 
-    const existing = await db.query.other.findFirst({
-      where: (tbl, { eq: eqOp }) => eqOp(tbl.key, key)
-    });
+        const existing = yield* dbRun('image_tool_preset.upsert.lookup', (db) =>
+          db.query.other.findFirst({
+            where: (tbl, { eq: eqOp }) => eqOp(tbl.key, key)
+          })
+        );
 
-    if (!update) {
-      if (existing) {
-        throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'A preset with this name already exists'
+        if (!update) {
+          if (existing) {
+            return yield* Effect.fail(
+              ConflictError.make({ message: 'A preset with this name already exists' })
+            );
+          }
+          yield* dbRun('image_tool_preset.insert', async (db) => {
+            await db.insert(other).values({ key, value: parsed_config });
+          });
+          return { name, config: parsed_config };
+        }
+
+        if (!existing) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'preset', message: 'Preset not found' })
+          );
+        }
+
+        yield* dbRun('image_tool_preset.update', async (db) => {
+          await db.update(other).set({ value: parsed_config }).where(eq(other.key, key));
         });
-      }
-      await db.insert(other).values({ key, value: parsed_config });
-      return { name, config: parsed_config };
-    }
-
-    if (!existing) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Preset not found'
-      });
-    }
-
-    await db.update(other).set({ value: parsed_config }).where(eq(other.key, key));
-    return { name, config: parsed_config };
-  });
+        return { name, config: parsed_config };
+      })
+    )
+  );
 
 const delete_preset_route = protectedAdminProcedure
   .input(z.object({ name: preset_name_schema }))
-  .mutation(async ({ input: { name } }) => {
-    const key = to_db_key(name);
-    const existing = await db.query.other.findFirst({
-      where: (tbl, { eq: eqOp }) => eqOp(tbl.key, key)
-    });
+  .mutation(({ input: { name } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const key = to_db_key(name);
+        const existing = yield* dbRun('image_tool_preset.delete.lookup', (db) =>
+          db.query.other.findFirst({
+            where: (tbl, { eq: eqOp }) => eqOp(tbl.key, key)
+          })
+        );
 
-    if (!existing) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Preset not found'
-      });
-    }
+        if (!existing) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'preset', message: 'Preset not found' })
+          );
+        }
 
-    await db.delete(other).where(eq(other.key, key));
-    return { success: true };
-  });
+        yield* dbRun('image_tool_preset.delete', async (db) => {
+          await db.delete(other).where(eq(other.key, key));
+        });
+        return { success: true };
+      })
+    )
+  );
 
 export const image_tool_preset_router = t.router({
   list_presets: list_presets_route,

@@ -1,10 +1,10 @@
 ---
 import RootLayout from '$components/RootLayout.astro';
 import TextsBrowser from '$components/texts/TextsBrowser.svelte';
-import { get_project_list } from '$app/utils/project/list.server';
-import { cache_db_options_site } from '~/db/cache_db_options';
+import { getProjectList } from '$app/effect/project_registry';
+import { runServerEffect } from '~/effect/site_runtime';
 
-const projects = await get_project_list(cache_db_options_site, { listed_only: true });
+const projects = await runServerEffect(getProjectList({ listed_only: true }));
 
 const title = 'Texts — The Sanskrit Channel';
 const description =

@@ -1,9 +1,11 @@
 import type { authClient } from '$app/lib/auth-client';
 import { z } from 'zod';
+import { getSiteBetterAuthUrl } from '~/effect/site_runtime';
 
-export const get_session_from_cookie = async (cookie: string) => {
+export const get_session_from_cookie = async (cookie: string, betterAuthUrl?: string) => {
   try {
-    const res = await fetch(`${import.meta.env.VITE_BETTER_AUTH_URL}/api/auth/get-session`, {
+    const url = betterAuthUrl ?? getSiteBetterAuthUrl();
+    const res = await fetch(`${url}/api/auth/get-session`, {
       method: 'GET',
       headers: {
         Cookie: cookie
@@ -14,7 +16,7 @@ export const get_session_from_cookie = async (cookie: string) => {
     }
     const session = (await res.json()) as typeof authClient.$Infer.Session;
     return session;
-  } catch (e) {
+  } catch {
     return null;
   }
 };
@@ -27,8 +29,10 @@ const jwt_response_schema = z.object({
     role: z.string()
   })
 });
-export const verify_jwt_token = async (token: string) => {
-  const res = await fetch(`${import.meta.env.VITE_BETTER_AUTH_URL}/api/jwt/verify?token=${token}`, {
+
+export const verify_jwt_token = async (token: string, betterAuthUrl?: string) => {
+  const url = betterAuthUrl ?? getSiteBetterAuthUrl();
+  const res = await fetch(`${url}/api/jwt/verify?token=${token}`, {
     method: 'GET'
   });
   if (!res.ok) {

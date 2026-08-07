@@ -1,9 +1,18 @@
-import { PUBLIC_AWS_CLOUDFRONT_URL } from '$env/static/public';
+import { Effect } from 'effect';
+import { AppPublicConfig } from '~/effect/config';
+import { getAppPublicConfig } from '~/effect/app_runtime.server';
 
-/** CDN URL for the project */
-const CLOUDFRONT_URL = PUBLIC_AWS_CLOUDFRONT_URL;
+/** Pure CDN URL builder — pass resolved cloudfront base. */
+export const cdnUrl = (cloudfrontUrl: string, s3_key: string) => `${cloudfrontUrl}/${s3_key}`;
 
-/** Get the CDN URL for a given S3 key */
-export const getCDNUrl = (s3_key: string) => {
-  return `${CLOUDFRONT_URL ?? ''}/${s3_key}`;
+/** Effect CDN URL via AppPublicConfig (server Effects). */
+export const getCDNUrl = Effect.fn('getCDNUrl')(function* (s3_key: string) {
+  const pub = yield* AppPublicConfig;
+  return cdnUrl(pub.cloudfrontUrl, s3_key);
+});
+
+/** Sync helper for app server promise bridges (lazy AppPublicConfig). */
+export const getCDNUrlSync = (s3_key: string) => {
+  const pub = getAppPublicConfig();
+  return cdnUrl(pub.cloudfrontUrl, s3_key);
 };

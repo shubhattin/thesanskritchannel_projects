@@ -1,6 +1,8 @@
-import { protectedAdminProcedure, t } from '../trpc_init';
-import { redis, getKeysWithPattern } from '~/db/redis';
+import { Effect } from 'effect';
 import { z } from 'zod';
+import { protectedAdminProcedure, t } from '../trpc_init';
+import { RedisClient } from '~/effect/redis';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
 
 const invalidate_cache_route = protectedAdminProcedure
   .input(
@@ -8,10 +10,15 @@ const invalidate_cache_route = protectedAdminProcedure
       cache_keys: z.array(z.string())
     })
   )
-  .mutation(async ({ input: { cache_keys } }) => {
-    const code = await redis.del(...cache_keys);
-    return { success: true, code };
-  });
+  .mutation(({ input: { cache_keys } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const redis = yield* RedisClient;
+        const code = yield* redis.del(...cache_keys);
+        return { success: true as const, code };
+      })
+    )
+  );
 
 const list_cache_keys_route = protectedAdminProcedure
   .input(
@@ -19,10 +26,14 @@ const list_cache_keys_route = protectedAdminProcedure
       pattern: z.string()
     })
   )
-  .query(async ({ input: { pattern } }) => {
-    const keys = await getKeysWithPattern(pattern);
-    return keys;
-  });
+  .query(({ input: { pattern } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const redis = yield* RedisClient;
+        return yield* redis.getKeysWithPattern(pattern);
+      })
+    )
+  );
 
 export const cache_router = t.router({
   invalidate_cache: invalidate_cache_route,

@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { and, count, eq, inArray, or, sql, type SQL } from 'drizzle-orm';
-import type { TxOrDb } from '../../db/db_types';
+import type { TxOrDb } from '~/effect/database';
 import { media_attachment, project_paths, texts, translations } from '../../db/schema';
 
 export type ProjectPathRow = {
@@ -38,10 +38,10 @@ export const resolveSelectedTextProjectPath = async (
   selected_text_levels: (number | null)[]
 ) => {
   const { get_project_info_by_id } = await import('~/utils/project/list.server');
-  const { cache_db_options_app } = await import('~/utils/cache.server/cache_db_options.server');
+  const { runServerEffect } = await import('~/effect/app_runtime.server');
   const { get_path_params } = await import('~/state/project_list');
 
-  const { levels } = await get_project_info_by_id(project_id, cache_db_options_app);
+  const { levels } = await runServerEffect(get_project_info_by_id(project_id));
   const path_params = get_path_params(selected_text_levels, levels);
   if (levels > 1 && path_params.length === 0) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });

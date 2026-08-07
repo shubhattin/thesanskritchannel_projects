@@ -1,12 +1,11 @@
+import { Effect } from 'effect';
 import { t, protectedAdminProcedure } from '~/api/trpc_init';
 import grammar_PROMPT from './grammar_prompt.md?raw';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { z } from 'zod';
 import { generateText, streamText, type ModelMessage } from 'ai';
 import { format_string_text } from '~/tools/kry';
-import { env } from '$env/dynamic/private';
-
-const openrouter_text_model = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
+import { AiProvider } from '~/effect/ai';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
 
 const MODELS_LIST = [
   'gpt-4.1',
@@ -19,16 +18,16 @@ const MODELS_LIST = [
   'gemini-2.5-flash'
 ] as const;
 
-const MODELS = {
-  'gpt-4.1': openrouter_text_model('openai/gpt-4.1'),
-  'gpt-4.1-mini': openrouter_text_model('openai/gpt-4.1-mini'),
-  'gpt-4.1-nano': openrouter_text_model('openai/gpt-4.1-nano'),
-  'gpt-5': openrouter_text_model('openai/gpt-5'),
-  'gpt-5-mini': openrouter_text_model('openai/gpt-5-mini'),
-  'gpt-5-nano': openrouter_text_model('openai/gpt-5-nano'),
-  'gemini-2.0-flash': openrouter_text_model('google/gemini-2.0-flash-001'),
-  'gemini-2.5-flash': openrouter_text_model('google/gemini-2.5-flash')
-} as const;
+const MODEL_IDS = {
+  'gpt-4.1': 'openai/gpt-4.1',
+  'gpt-4.1-mini': 'openai/gpt-4.1-mini',
+  'gpt-4.1-nano': 'openai/gpt-4.1-nano',
+  'gpt-5': 'openai/gpt-5',
+  'gpt-5-mini': 'openai/gpt-5-mini',
+  'gpt-5-nano': 'openai/gpt-5-nano',
+  'gemini-2.0-flash': 'google/gemini-2.0-flash-001',
+  'gemini-2.5-flash': 'google/gemini-2.5-flash'
+} as const satisfies Record<(typeof MODELS_LIST)[number], string>;
 
 export const get_grammar_analysis_input_schema = z.object({
   shloka: z.string(),
@@ -43,13 +42,20 @@ const get_messages = (shloka: string, lang: string) => {
   ] satisfies ModelMessage[];
 };
 
+const resolveGrammarModel = (model: keyof typeof MODEL_IDS) =>
+  Effect.gen(function* () {
+    const ai = yield* AiProvider;
+    return ai.openrouterModel(MODEL_IDS[model]);
+  });
+
 const get_grammar_analysis_text = async (
   shloka: string,
   lang: string,
-  model: keyof typeof MODELS
+  model: keyof typeof MODEL_IDS
 ) => {
+  const languageModel = await runTrpcEffect(resolveGrammarModel(model));
   const response = await generateText({
-    model: MODELS[model],
+    model: languageModel,
     messages: get_messages(shloka, lang),
     ...(model.startsWith('gpt-5')
       ? {
@@ -67,10 +73,11 @@ const get_grammar_analysis_text = async (
 export const get_grammar_analysis_text_stream = async (
   shloka: string,
   lang: string,
-  model: keyof typeof MODELS
+  model: keyof typeof MODEL_IDS
 ) => {
+  const languageModel = await runTrpcEffect(resolveGrammarModel(model));
   const response = await streamText({
-    model: MODELS[model],
+    model: languageModel,
     messages: get_messages(shloka, lang),
     ...(model.startsWith('gpt-5')
       ? {

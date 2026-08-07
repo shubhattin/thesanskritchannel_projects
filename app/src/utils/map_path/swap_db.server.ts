@@ -1,13 +1,13 @@
 import { TRPCError } from '@trpc/server';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import type { transactionType } from '~/db/db';
 import { media_attachment, project_paths, texts, translations } from '~/db/schema';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
+import type { TxOrDb } from '~/effect/database';
 import { buildPathSwapSteps, dbPathToPathParams, toTempDbPath, type PathSwapEdit } from './swap';
 import { listProjectPathsAtOrUnderPrefixes } from '../project/paths_db.server';
 
 const assertNoRowsAtPrefix = async (
-  tx: transactionType,
+  tx: TxOrDb,
   project_id: number,
   prefix: string,
   message: string
@@ -23,7 +23,7 @@ const assertNoRowsAtPrefix = async (
 };
 
 const remapPathPrefixOnProjectPaths = async (
-  tx: transactionType,
+  tx: TxOrDb,
   project_id: number,
   fromPrefix: string,
   toPrefix: string
@@ -44,7 +44,7 @@ const remapPathPrefixOnProjectPaths = async (
 };
 
 export const applyOrderedDbPathSwaps = async (
-  tx: transactionType,
+  tx: TxOrDb,
   project_id: number,
   edits: PathSwapEdit[]
 ) => {
@@ -93,7 +93,7 @@ export const mergePathSwapInvalidation = (
 };
 
 export const collectPathSwapInvalidation = async (
-  tx: transactionType,
+  tx: TxOrDb,
   project_id: number,
   edits: PathSwapEdit[]
 ): Promise<PathSwapInvalidation> => {

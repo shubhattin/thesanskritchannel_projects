@@ -1,6 +1,6 @@
 import { eq, inArray } from 'drizzle-orm';
-import type { transactionType } from '~/db/db';
 import { media_attachment, project_paths, texts, translations } from '~/db/schema';
+import type { TxOrDb } from '~/effect/database';
 import type { DeletePathCompaction } from './delete.server';
 import { buildRedisKeysForPathSwapInvalidation, type PathSwapInvalidation } from './swap_db.server';
 import {
@@ -10,7 +10,7 @@ import {
 import { remapDbPathPrefix } from './swap';
 
 export const collectDeleteInvalidation = async (
-  tx: transactionType,
+  tx: TxOrDb,
   project_id: number,
   prefixes: string[]
 ): Promise<PathSwapInvalidation> => {
@@ -54,7 +54,7 @@ export const collectDeleteInvalidation = async (
 };
 
 export const deleteResourcesAtPathPrefixes = async (
-  tx: transactionType,
+  tx: TxOrDb,
   project_id: number,
   prefixes: string[]
 ) => {
@@ -70,7 +70,7 @@ export const deleteResourcesAtPathPrefixes = async (
 };
 
 export const applyDeletePathCompactions = async (
-  tx: transactionType,
+  tx: TxOrDb,
   project_id: number,
   compactions: DeletePathCompaction[]
 ) => {

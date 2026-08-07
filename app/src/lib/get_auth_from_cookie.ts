@@ -1,10 +1,11 @@
-import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
 import type { authClient } from '$lib/auth-client';
 import { z } from 'zod';
+import { getAppPublicConfig } from '~/effect/app_runtime.server';
 
-const get_session_from_cookie = async (cookie: string) => {
+const get_session_from_cookie = async (cookie: string, betterAuthUrl?: string) => {
   try {
-    const res = await fetch(`${PUBLIC_BETTER_AUTH_URL}/api/auth/get-session`, {
+    const url = betterAuthUrl ?? getAppPublicConfig().betterAuthUrl;
+    const res = await fetch(`${url}/api/auth/get-session`, {
       method: 'GET',
       headers: {
         Cookie: cookie
@@ -15,7 +16,7 @@ const get_session_from_cookie = async (cookie: string) => {
     }
     const session = (await res.json()) as typeof authClient.$Infer.Session;
     return session;
-  } catch (e) {
+  } catch {
     return null;
   }
 };
@@ -28,8 +29,10 @@ const jwt_response_schema = z.object({
     role: z.string()
   })
 });
-export const verify_jwt_token = async (token: string) => {
-  const res = await fetch(`${PUBLIC_BETTER_AUTH_URL}/api/jwt/verify/?token=${token}`, {
+
+export const verify_jwt_token = async (token: string, betterAuthUrl?: string) => {
+  const url = betterAuthUrl ?? getAppPublicConfig().betterAuthUrl;
+  const res = await fetch(`${url}/api/jwt/verify/?token=${token}`, {
     method: 'GET'
   });
   if (!res.ok) {

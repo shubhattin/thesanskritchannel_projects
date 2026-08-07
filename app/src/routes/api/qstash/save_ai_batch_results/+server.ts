@@ -18,8 +18,8 @@ import {
 
 export const config: Config = {
   split: true,
-  /** Large translation batches need headroom for claim + auto-save. */
-  maxDuration: 700
+  /** Hobby plan max is 300s (was 700 for large batch claim + auto-save headroom). */
+  maxDuration: 300
 };
 
 export const POST: RequestHandler = async ({ request }) => {

@@ -50,6 +50,7 @@
     "dompurify": "^3.4.10",
     "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",
+    "effect": "^4.0.0-beta.102",
     "exceljs": "^4.4.0",
     "immer": "^11.1.8",
     "js-yaml": "^4.2.0",

@@ -10,8 +10,8 @@ export const get_user_app_scope_status = (
 ) =>
   Effect.gen(function* () {
     const { betterAuthUrl } = yield* AppPublicConfig;
-    const res = yield* Effect.promise(() =>
-      fetch_get(`${betterAuthUrl}/api/app_scope/get_user_app_scope_status`, {
+    return yield* Effect.tryPromise(async () => {
+      const res = await fetch_get(`${betterAuthUrl}/api/app_scope/get_user_app_scope_status`, {
         params: {
           user_id,
           scope_name
@@ -19,8 +19,8 @@ export const get_user_app_scope_status = (
         ...(cookie
           ? { headers: { Cookie: cookie } }
           : { credentials: 'include' satisfies RequestCredentials })
-      })
-    );
-    if (!res.ok) return false;
-    return ((yield* Effect.promise(() => res.json())) as boolean | null) ?? false;
+      });
+      if (!res.ok) return false;
+      return ((await res.json()) as boolean | null) ?? false;
+    }).pipe(Effect.orElseSucceed(() => false));
   });

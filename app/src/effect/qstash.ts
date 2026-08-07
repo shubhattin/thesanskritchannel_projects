@@ -88,8 +88,11 @@ export const verifyQstashSignature = (
       currentSigningKey: Redacted.value(config.qstashCurrentSigningKey),
       nextSigningKey: Redacted.value(config.qstashNextSigningKey)
     });
-    yield* Effect.tryPromise({
+    const ok = yield* Effect.tryPromise({
       try: () => receiver.verify({ signature, body }),
       catch: () => UnauthorizedError.make({ message: 'Invalid QStash signature' })
     });
+    if (!ok) {
+      return yield* Effect.fail(UnauthorizedError.make({ message: 'Invalid QStash signature' }));
+    }
   });

@@ -8,6 +8,7 @@ import { BATCH_POLLING_INTERVAL_S, MAX_BATCH_POLL_ATTEMPTS } from '~/utils/types
 import { ai_batches } from '~/db/schema';
 import { runQstashEffect } from '~/effect/app_runtime.server';
 import { dbRun } from '~/effect/database';
+import { BatchError, ValidationError } from '~/effect/errors';
 import {
   QStashPublisher,
   aiBatchResultsPayloadSchema,
@@ -30,7 +31,11 @@ export const POST: RequestHandler = async ({ request }) => {
       yield* verifyQstashSignature(signature, body_text);
 
       console.log('QStash AI batch poll request received', new Date());
-      const body = yield* decodeQstashPayload(aiBatchResultsPayloadSchema, JSON.parse(body_text));
+      const raw = yield* Effect.try({
+        try: () => JSON.parse(body_text) as unknown,
+        catch: (cause) => ValidationError.make({ message: 'Invalid QStash JSON body', cause })
+      });
+      const body = yield* decodeQstashPayload(aiBatchResultsPayloadSchema, raw);
       const { batch_id, poll_attempt } = body;
 
       if (poll_attempt >= MAX_BATCH_POLL_ATTEMPTS) {
@@ -53,10 +58,14 @@ export const POST: RequestHandler = async ({ request }) => {
         return `Batch ${batch_id} already resolved or cleaned up`;
       }
 
-      const result =
-        batch_row.type === 'object'
-          ? yield* Effect.promise(() => poll_batch_text_translation_func(batch_id))
-          : yield* Effect.promise(() => poll_batch_shloka_image_gen_func(batch_id));
+      const result = yield* Effect.tryPromise({
+        try: () =>
+          batch_row.type === 'object'
+            ? poll_batch_text_translation_func(batch_id)
+            : poll_batch_shloka_image_gen_func(batch_id),
+        catch: (cause) =>
+          BatchError.make({ operation: 'qstash.poll_batch', batchId: batch_id, cause })
+      });
 
       if (result.status === 'already_resolved') {
         return `Batch ${batch_id} already resolved`;

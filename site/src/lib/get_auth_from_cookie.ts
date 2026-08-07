@@ -12,20 +12,14 @@ export const get_session_from_cookie = (
 ): Effect.Effect<Session | null, never, SharedConfig> =>
   Effect.gen(function* () {
     const url = betterAuthUrl ?? (yield* SharedConfig).betterAuthUrl;
-    return yield* Effect.promise(async () => {
-      try {
-        const res = await fetch(`${url}/api/auth/get-session`, {
-          method: 'GET',
-          headers: { Cookie: cookie }
-        });
-        if (!res.ok) {
-          throw new Error(`Failed to fetch session: ${res.statusText}`);
-        }
-        return (await res.json()) as Session;
-      } catch {
-        return null;
-      }
-    });
+    return yield* Effect.tryPromise(async () => {
+      const res = await fetch(`${url}/api/auth/get-session`, {
+        method: 'GET',
+        headers: { Cookie: cookie }
+      });
+      if (!res.ok) return null;
+      return (await res.json()) as Session;
+    }).pipe(Effect.orElseSucceed(() => null));
   });
 
 const jwt_response_schema = z.object({
@@ -40,14 +34,12 @@ const jwt_response_schema = z.object({
 export const verify_jwt_token = (token: string, betterAuthUrl?: string) =>
   Effect.gen(function* () {
     const url = betterAuthUrl ?? (yield* SharedConfig).betterAuthUrl;
-    return yield* Effect.promise(async () => {
-      const res = await fetch(`${url}/api/jwt/verify?token=${token}`, {
+    return yield* Effect.tryPromise(async () => {
+      const res = await fetch(`${url}/api/jwt/verify?token=${encodeURIComponent(token)}`, {
         method: 'GET'
       });
       if (!res.ok) return null;
-      const data = await res.json();
-      const data_parse = jwt_response_schema.safeParse(data);
-      if (!data_parse.success) return null;
-      return data_parse.data;
-    });
+      const data_parse = jwt_response_schema.safeParse(await res.json());
+      return data_parse.success ? data_parse.data : null;
+    }).pipe(Effect.orElseSucceed(() => null));
   });

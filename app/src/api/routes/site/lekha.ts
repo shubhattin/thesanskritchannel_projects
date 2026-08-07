@@ -18,7 +18,7 @@ import {
 import { runTrpcEffect } from '~/effect/app_runtime.server';
 import { enqueueBackground } from '~/effect/background';
 import { dbRun } from '~/effect/database';
-import { NotFoundError } from '~/effect/errors';
+import { BadRequestError, NotFoundError } from '~/effect/errors';
 
 const lekha_post_input = SiteLekhaSchemaZod.omit({
   id: true,
@@ -43,6 +43,15 @@ async function normalizeLekhaPostForStorage(post_data: z.infer<typeof lekha_post
   };
 }
 
+const normalizeLekhaPost = (post_data: z.infer<typeof lekha_post_input>) =>
+  Effect.tryPromise({
+    try: () => normalizeLekhaPostForStorage(post_data),
+    catch: (cause) =>
+      BadRequestError.make({
+        message: cause instanceof Error ? cause.message : 'Invalid lekha post content'
+      })
+  });
+
 const invalidate_lekha_caches = (url_slug: string) =>
   Effect.gen(function* () {
     yield* enqueueBackground(async () => {
@@ -62,14 +71,18 @@ const add_lekha_route = protectedAdminProcedure
   .mutation(({ input: { post_data } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
-        const normalized = yield* Effect.promise(() =>
-          normalizeLekhaPostForStorage({ ...post_data, draft: true })
-        );
+        const normalized = yield* normalizeLekhaPost({ ...post_data, draft: true });
         const lekha = yield* dbRun('lekha.add', (db) =>
           db.insert(site_lekhas).values(normalized).returning()
         );
-        yield* invalidate_lekha_caches(lekha[0]!.url_slug);
-        return { id: lekha[0]!.id };
+        const created = lekha[0];
+        if (!created) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'lekha', message: 'Lekha not created' })
+          );
+        }
+        yield* invalidate_lekha_caches(created.url_slug);
+        return { id: created.id };
       })
     )
   );
@@ -97,7 +110,7 @@ const edit_lekha_route = protectedAdminProcedure
             NotFoundError.make({ resource: 'lekha', message: 'Lekha not found' })
           );
         }
-        const normalized = yield* Effect.promise(() => normalizeLekhaPostForStorage(post_data));
+        const normalized = yield* normalizeLekhaPost(post_data);
         const setPublishedNow = existing.draft === true && post_data.draft === false;
         const lekha = yield* dbRun('lekha.edit.update', (db) =>
           db
@@ -106,11 +119,17 @@ const edit_lekha_route = protectedAdminProcedure
             .where(eq(site_lekhas.id, id))
             .returning()
         );
-        yield* invalidate_lekha_caches(lekha[0]!.url_slug);
+        const updated = lekha[0];
+        if (!updated) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'lekha', message: 'Lekha not found' })
+          );
+        }
+        yield* invalidate_lekha_caches(updated.url_slug);
         return {
-          id: lekha[0]?.id ?? id,
-          published_at: lekha[0]?.published_at,
-          draft: lekha[0]?.draft
+          id: updated.id,
+          published_at: updated.published_at,
+          draft: updated.draft
         };
       })
     )

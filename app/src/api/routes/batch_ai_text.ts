@@ -282,7 +282,10 @@ export const approve_text_translation_func = async (
     };
   });
 
-  if (!options?.skip_cleanup) void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id));
+  if (!options?.skip_cleanup)
+    void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id)).catch((err) => {
+      console.error('[batch_ai_text] cleanup schedule failed', batch_id, err);
+    });
   return result;
 };
 
@@ -338,7 +341,10 @@ async function autoApproveEligibleRows(batch_id: string, items: PollItem[]): Pro
     ).values()
   ];
   // Cleanup must run even if cache invalidation fails — staging rows are already deleted.
-  if (cache_targets.length > 0) void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id));
+  if (cache_targets.length > 0)
+    void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id)).catch((err) => {
+      console.error('[batch_ai_text] cleanup schedule failed', batch_id, err);
+    });
   try {
     await Promise.all(
       unique_targets.map((target) =>
@@ -886,7 +892,9 @@ const discard_text_translation_batch_response_route = protectedAdminProcedure
         lang_id: metadata.lang_id
       };
     });
-    void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id));
+    void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id)).catch((err) => {
+      console.error('[batch_ai_text] cleanup schedule failed', batch_id, err);
+    });
     return result;
   });
 

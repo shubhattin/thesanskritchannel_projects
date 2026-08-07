@@ -177,7 +177,9 @@ export const approve_connect_shloka_image_func = async (batch_id: string, custom
     };
   });
 
-  void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id));
+  void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id)).catch((err) => {
+    console.error('[batch_ai_image] cleanup schedule failed', batch_id, err);
+  });
   return result;
 };
 
@@ -752,7 +754,9 @@ const discard_shloka_image_batch_response_route = protectedAdminProcedure
           )
         );
     });
-    void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id));
+    void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id)).catch((err) => {
+      console.error('[batch_ai_image] cleanup schedule failed', batch_id, err);
+    });
     return {
       success: true as const,
       deleted_image_id,

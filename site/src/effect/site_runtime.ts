@@ -20,7 +20,7 @@ type SiteRunners = EffectRunners<SiteRuntimeServices, SiteRuntimeError>;
 
 export const loadSiteConfigInput = (): SharedConfigInput => {
   // Public / Vite bag first, then process.env (server secrets on Astro/Vercel).
-  const v = pickEnv(envBagFromUnknown(import.meta.env));
+  const v = pickEnv(envBagFromUnknown(import.meta.env), process.env);
   return {
     dbUrl:
       resolveDbUrl({

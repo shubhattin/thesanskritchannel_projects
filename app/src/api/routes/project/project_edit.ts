@@ -46,7 +46,11 @@ const project_id_input = z.object({
 const invalidate_project_list_caches = async (cookie: string) => {
   clear_project_registry_cache();
   await runTrpcEffect(invalidate_and_refresh_cached(CACHE.project_list, NO_CACHE_PARAMS));
-  void runTrpcEffect(enqueueBackground(() => notify_site_invalidate_project_list_caches(cookie)));
+  void runTrpcEffect(
+    enqueueBackground(() => notify_site_invalidate_project_list_caches(cookie))
+  ).catch((err) => {
+    console.error('[project_edit] site invalidate notify failed', err);
+  });
 };
 
 /** Ensures `project_id` exists; throws NOT_FOUND otherwise. */

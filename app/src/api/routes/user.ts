@@ -39,7 +39,7 @@ const get_user_info_route = protectedProcedure
             .where(eq(user_project_join.user_id, user_id))
         );
 
-        const projects = yield* Effect.promise(() =>
+        const projects = yield* Effect.tryPromise(async () =>
           Promise.all(
             projects_info.map(async (project_info) => {
               const languages = await runTrpcEffect(
@@ -51,7 +51,7 @@ const get_user_info_route = protectedProcedure
               };
             })
           )
-        );
+        ).pipe(Effect.orElseSucceed(() => []));
 
         return { projects };
       })
@@ -69,7 +69,7 @@ const remove_user_from_app_scope_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const config = yield* AppConfig;
-        const res = yield* Effect.promise(() =>
+        const res = yield* Effect.tryPromise(() =>
           fetch_post(`${config.betterAuthUrl}/api/app_scope/remove_user_app_scope`, {
             json: {
               user_id: user_id,
@@ -79,8 +79,8 @@ const remove_user_from_app_scope_route = protectedAdminProcedure
               Cookie: cookie!
             }
           })
-        );
-        if (!res.ok) return { success: false };
+        ).pipe(Effect.orElseSucceed(() => null));
+        if (!res?.ok) return { success: false };
 
         if (scope === APP_SCOPE_ID_PROJECT_PORTAL) {
           yield* dbTransaction('user.remove_app_scope.cleanup', async (tx) => {
@@ -104,13 +104,13 @@ const add_user_to_app_scope_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const config = yield* AppConfig;
-        const res = yield* Effect.promise(() =>
+        const res = yield* Effect.tryPromise(() =>
           fetch_post(`${config.betterAuthUrl}/api/app_scope/add_user_app_scope`, {
             json: { user_id: user_id, scope },
             headers: { Cookie: cookie! }
           })
-        );
-        if (!res.ok) return { success: false };
+        ).pipe(Effect.orElseSucceed(() => null));
+        if (!res?.ok) return { success: false };
         return { success: true };
       })
     )
@@ -134,15 +134,19 @@ const list_user_app_scopes_route = protectedProcedure
         }
 
         const config = yield* AppConfig;
-        const res = yield* Effect.promise(() =>
+        const res = yield* Effect.tryPromise(() =>
           fetch_get(`${config.betterAuthUrl}/api/app_scope/get_user_app_scope_list`, {
             params: { user_id: user_id },
             headers: { Cookie: cookie! }
           })
-        );
-        if (!res.ok) return { scopes: [] as AppScopeEnum[] };
+        ).pipe(Effect.orElseSucceed(() => null));
+        if (!res?.ok) return { scopes: [] as AppScopeEnum[] };
 
-        const resp = yield* Effect.promise(() => res.json());
+        const resp = yield* Effect.tryPromise(() => res.json()).pipe(
+          Effect.orElseSucceed(() => null)
+        );
+        if (resp == null) return { scopes: [] as AppScopeEnum[] };
+
         return z
           .object({
             scopes: APP_SCOPES_ENUM.array()

@@ -52,7 +52,7 @@ const gpt5Options = (model: keyof typeof MODEL_IDS) =>
   model.startsWith('gpt-5')
     ? {
         providerOptions: {
-          openai: {
+          openrouter: {
             reasoningEffort: 'low' as const
           }
         }

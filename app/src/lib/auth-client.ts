@@ -8,8 +8,8 @@ export const authClient = createAuthClient({
   plugins: [
     // usernameClient(),
     adminClient(),
-    userInfoPluginClient(),
-    jwtClient()
+    userInfoPluginClient()
+    // jwtClient()
   ]
 });
 

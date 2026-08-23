@@ -273,7 +273,12 @@ export const mediaLinksCache = createCache<MediaLinksParams, MediaLinkRow[]>({
   schema: mediaLinkRowSchema.array(),
   fetch: Effect.fn('media_links.fetch')(function* ({ project_id, path_params }) {
     return yield* dbRun('media_links.fetch', async (db) => {
-      const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
+      const projectPath = await db.query.project_paths.findFirst({
+        where: (tbl, { and: andOp, eq: eqOp }) =>
+          andOp(eqOp(tbl.project_id, project_id), eqOp(tbl.path, path_params.join(':'))),
+        columns: { id: true }
+      });
+      if (!projectPath) return [];
       return db
         .select({
           id: media_attachment.id,

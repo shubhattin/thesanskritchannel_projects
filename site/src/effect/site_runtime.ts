@@ -6,7 +6,7 @@
  * Site `tsconfig` remaps app `~/` prefixes used inside `$app/*` sources while keeping
  * site-owned `~/effect/site_runtime`, `~/lib/*`, `~/components/*`, and `~/utils/text-routes`.
  */
-import { Effect, type ManagedRuntime } from 'effect';
+import { Cause, Effect, Exit, type ManagedRuntime } from 'effect';
 import { resolveDbUrl, SharedConfig, type SharedConfigInput } from '$app/effect/config';
 import { envBagFromUnknown, pickEnv } from '$app/effect/env';
 import { createRunners, type EffectRunners } from '$app/effect/run';
@@ -21,17 +21,28 @@ type SiteRunners = EffectRunners<SiteRuntimeServices, SiteRuntimeError>;
 export const loadSiteConfigInput = (): SharedConfigInput => {
   // Public / Vite bag first, then process.env (server secrets on Astro/Vercel).
   const v = pickEnv(envBagFromUnknown(import.meta.env), process.env);
+  const dbUrl =
+    resolveDbUrl({
+      DB_MODE: v('DB_MODE'),
+      PG_DATABASE_URL: v('PG_DATABASE_URL'),
+      PG_DATABASE_URL1: v('PG_DATABASE_URL1'),
+      PG_DATABASE_URL2: v('PG_DATABASE_URL2')
+    }) ?? '';
+  const upstashRedisUrl = v('UPSTASH_REDIS_REST_URL') ?? '';
+  const upstashRedisToken = v('UPSTASH_REDIS_REST_TOKEN') ?? '';
+  // Site pages don't strictly need Better Auth; provide a dummy so SharedConfig
+  // validation doesn't 500 public pages when VITE_BETTER_AUTH_URL is absent in prod.
+  const betterAuthUrl = v('VITE_BETTER_AUTH_URL') ?? 'https://example.com';
+
+  if (!dbUrl) console.error('[site] missing PG_DATABASE_URL (or DB_MODE variant)');
+  if (!upstashRedisUrl || !upstashRedisToken)
+    console.error('[site] missing UPSTASH_REDIS_REST_URL / TOKEN — cache will miss to DB');
+
   return {
-    dbUrl:
-      resolveDbUrl({
-        DB_MODE: v('DB_MODE'),
-        PG_DATABASE_URL: v('PG_DATABASE_URL'),
-        PG_DATABASE_URL1: v('PG_DATABASE_URL1'),
-        PG_DATABASE_URL2: v('PG_DATABASE_URL2')
-      }) ?? '',
-    upstashRedisUrl: v('UPSTASH_REDIS_REST_URL') ?? '',
-    upstashRedisToken: v('UPSTASH_REDIS_REST_TOKEN') ?? '',
-    betterAuthUrl: v('VITE_BETTER_AUTH_URL') ?? '',
+    dbUrl: dbUrl ?? '',
+    upstashRedisUrl: upstashRedisUrl ?? '',
+    upstashRedisToken: upstashRedisToken ?? '',
+    betterAuthUrl,
     isDev: Boolean(import.meta.env.DEV),
     isProd: Boolean(import.meta.env.PROD)
   };
@@ -58,9 +69,54 @@ export const getSiteBetterAuthUrl = (): string =>
     })
   );
 
-export const runServerEffect = <A, E, R extends SiteRuntimeServices>(
+export const runServerEffect = async <A, E, R extends SiteRuntimeServices>(
   effect: Effect.Effect<A, E, R>
-): Promise<A> => getCached().runners.runServerEffect(effect);
+): Promise<A> => {
+  // Delegates to shared runner which now logs known/unexpected via Cause.pretty
+  return getCached().runners.runServerEffect(effect);
+};
+
+/**
+ * Like runServerEffect but returns `fallback` on any failure instead of throwing.
+ * Use for non-critical data (e.g. homepage lists) so a transient CacheError/DB
+ * hiccup doesn't 500 the whole page in prod.
+ * Warning is structured so Vercel log drains can alert on fallback usage.
+ */
+export const runServerEffectOr = async <A, E, R extends SiteRuntimeServices>(
+  effect: Effect.Effect<A, E, R>,
+  fallback: A
+): Promise<A> => {
+  const { runtime } = getCached();
+  const exit = await runtime.runPromiseExit(
+    effect.pipe(Effect.annotateLogs({ boundary: 'server', mode: 'fallback' }))
+  );
+  if (Exit.isSuccess(exit)) return exit.value;
+  const pretty = Cause.pretty(exit.cause);
+  console.warn('[site] runServerEffectOr: serving fallback', {
+    cause: pretty,
+    fallbackPreview: String(JSON.stringify(fallback)).slice(0, 500)
+  });
+  return fallback;
+};
+
+/**
+ * Returns null on failure — useful for `resolve_text_route` where null means 404.
+ */
+export const runServerEffectNullable = async <A, E, R extends SiteRuntimeServices>(
+  effect: Effect.Effect<A | null, E, R>
+): Promise<A | null> => {
+  const { runtime } = getCached();
+  const exit = await runtime.runPromiseExit(
+    effect.pipe(Effect.annotateLogs({ boundary: 'server', mode: 'nullable' }))
+  );
+  if (Exit.isSuccess(exit)) return exit.value;
+  const pretty = Cause.pretty(exit.cause);
+  console.warn('[site] runServerEffectNullable: returning null (404)', {
+    cause: pretty,
+    stack: (exit.cause as unknown as { stack?: string })?.stack
+  });
+  return null;
+};
 
 export const runRouteEffect = <A, E, R extends SiteRuntimeServices>(
   effect: Effect.Effect<A, E, R>,

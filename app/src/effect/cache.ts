@@ -301,6 +301,19 @@ export function createCache<TParams, TCached, TData = TCached>(
       if (parsed !== null) {
         return mapResult(parsed);
       }
+      // Auto-refresh on schema mismatch: raw exists but zod parse failed.
+      if (cached !== null && cached !== undefined) {
+        yield* Effect.logWarning('cache parse failed - evicting stale key', {
+          category: 'cache',
+          operation: 'parseFail',
+          key: cacheKey,
+          rawPreview: String(JSON.stringify(cached)).slice(0, 500)
+        }).pipe(Effect.catch(() => Effect.void));
+        yield* redis.del(cacheKey).pipe(
+          Effect.catch(() => Effect.void),
+          Effect.annotateLogs({ category: 'cache', operation: 'evictParseFail', key: cacheKey })
+        );
+      }
     } else {
       yield* Effect.sleep(DEV_DELAY);
     }

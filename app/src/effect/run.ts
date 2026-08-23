@@ -75,6 +75,20 @@ export const createRunners = <R, E>(runtime: ManagedRuntime.ManagedRuntime<R, E>
 
     const failure = Cause.findErrorOption(exit.cause);
     if (Option.isSome(failure) && isKnownError(failure.value)) {
+      const err = failure.value;
+      // Known domain errors: log as warn so prod log drains catch 5xx vs 4xx split
+      // 5xx-like (CacheError/DatabaseError/RedisError/StorageError/ConfigError/BatchError) -> error
+      const is5xx = ![
+        'NotFoundError',
+        'BadRequestError',
+        'ValidationError',
+        'UnauthorizedError',
+        'ForbiddenError',
+        'ConflictError'
+      ].includes(err._tag);
+      const msg = `[trpc] known error ${err._tag}: ${toTrpcMessage(err as KnownError)}`;
+      if (is5xx) console.error(msg, { tag: err._tag, cause: Cause.pretty(exit.cause) });
+      else console.warn(msg, { tag: err._tag, cause: Cause.pretty(exit.cause) });
       throw toTrpcError(failure.value);
     }
 
@@ -86,8 +100,25 @@ export const createRunners = <R, E>(runtime: ManagedRuntime.ManagedRuntime<R, E>
     });
   };
 
-  const runServerEffect = <A, EX, RQ extends R>(effect: Effect.Effect<A, EX, RQ>): Promise<A> =>
-    runtime.runPromise(effect.pipe(Effect.annotateLogs({ boundary: 'server' })));
+  const runServerEffect = async <A, EX, RQ extends R>(
+    effect: Effect.Effect<A, EX, RQ>
+  ): Promise<A> => {
+    const exit = await runtime.runPromiseExit(
+      effect.pipe(Effect.annotateLogs({ boundary: 'server' }))
+    );
+    if (Exit.isSuccess(exit)) return exit.value;
+    const failure = Cause.findErrorOption(exit.cause);
+    if (Option.isSome(failure) && isKnownError(failure.value)) {
+      console.error('[server] known error', {
+        tag: failure.value._tag,
+        cause: Cause.pretty(exit.cause)
+      });
+    } else {
+      console.error('[server] unexpected defect', Cause.pretty(exit.cause));
+    }
+    // Re-throw as original cause so SvelteKit/Astro error handler sees it
+    throw Cause.squash(exit.cause);
+  };
 
   const runRouteEffect = async <A, EX, RQ extends R>(
     effect: Effect.Effect<A, EX, RQ>,
@@ -105,11 +136,16 @@ export const createRunners = <R, E>(runtime: ManagedRuntime.ManagedRuntime<R, E>
 
     const failure = Cause.findErrorOption(exit.cause);
     if (Option.isSome(failure) && isKnownError(failure.value)) {
-      const status = httpStatusForError(failure.value);
-      return Response.json(
-        { error: toTrpcMessage(failure.value), tag: failure.value._tag },
-        { status }
-      );
+      const err = failure.value;
+      const status = httpStatusForError(err);
+      const level = status >= 500 ? 'error' : 'warn';
+      const log = level === 'error' ? console.error : console.warn;
+      log(`[route] known error ${err._tag} -> ${status}`, {
+        tag: err._tag,
+        status,
+        cause: Cause.pretty(exit.cause)
+      });
+      return Response.json({ error: toTrpcMessage(err), tag: err._tag }, { status });
     }
 
     console.error('[route] unexpected effect defect', Cause.pretty(exit.cause));
@@ -132,11 +168,16 @@ export const createRunners = <R, E>(runtime: ManagedRuntime.ManagedRuntime<R, E>
 
     const failure = Cause.findErrorOption(exit.cause);
     if (Option.isSome(failure) && isKnownError(failure.value)) {
-      const status = httpStatusForError(failure.value);
-      return Response.json(
-        { error: toTrpcMessage(failure.value), tag: failure.value._tag },
-        { status }
-      );
+      const err = failure.value;
+      const status = httpStatusForError(err);
+      const level = status >= 500 ? 'error' : 'warn';
+      const log = level === 'error' ? console.error : console.warn;
+      log(`[qstash] known error ${err._tag} -> ${status}`, {
+        tag: err._tag,
+        status,
+        cause: Cause.pretty(exit.cause)
+      });
+      return Response.json({ error: toTrpcMessage(err), tag: err._tag }, { status });
     }
 
     console.error('[qstash] unexpected effect defect', Cause.pretty(exit.cause));

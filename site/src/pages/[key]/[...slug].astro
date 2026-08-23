@@ -7,7 +7,7 @@ import {
   get_selected_text_levels_from_path_params,
   resolve_text_route
 } from '~/utils/text-routes';
-import { runServerEffect } from '~/effect/site_runtime';
+import { runServerEffectOr, runServerEffectNullable } from '~/effect/site_runtime';
 import {
   LANG_ID_COOKIE_NAME,
   SCRIPT_ID_COOKIE_NAME,
@@ -19,7 +19,7 @@ import {
 export const prerender = false;
 
 const slug = Astro.params.slug?.split('/') ?? [];
-const resolved = await runServerEffect(resolve_text_route(Astro.params.key ?? '', slug));
+const resolved = await runServerEffectNullable(resolve_text_route(Astro.params.key ?? '', slug));
 if (!resolved) {
   Astro.response.status = 404;
 }
@@ -32,11 +32,12 @@ const selected_lang_id = parse_lang_id_cookie(Astro.cookies.get(LANG_ID_COOKIE_N
 const selected_script_id = parse_script_id_cookie(Astro.cookies.get(SCRIPT_ID_COOKIE_NAME)?.value);
 const available_lang_ids =
   resolved && resolved.node.info.type === 'shloka'
-    ? await runServerEffect(
+    ? await runServerEffectOr(
         CACHE.available_translation_langs.get({
           project_id: resolved.project_id,
           path_params: resolved.path_params
-        })
+        }),
+        []
       )
     : [];
 const effective_lang_id = available_lang_ids.includes(selected_lang_id)
@@ -44,16 +45,17 @@ const effective_lang_id = available_lang_ids.includes(selected_lang_id)
   : DEFAULT_LANG_ID;
 const text =
   resolved && resolved.node.info.type === 'shloka'
-    ? await runServerEffect(
+    ? await runServerEffectOr(
         CACHE.text_data.get({
           key: resolved.project_key,
           path_params: resolved.path_params
-        })
+        }),
+        null
       )
     : null;
 const translation =
   resolved && resolved.node.info.type === 'shloka' && effective_lang_id !== -1
-    ? await runServerEffect(
+    ? await runServerEffectOr(
         CACHE.translation.get({
           project_id: resolved.project_id,
           lang_id: effective_lang_id,
@@ -61,7 +63,8 @@ const translation =
             resolved.path_params,
             resolved.levels
           )
-        })
+        }),
+        null
       )
     : null;
 const child_items = resolved
@@ -70,16 +73,13 @@ const child_items = resolved
 
 let media_links: MediaLinkRow[] = [];
 if (resolved) {
-  try {
-    media_links = await runServerEffect(
-      CACHE.media_links.get({
-        project_id: resolved.project_id,
-        path_params: resolved.path_params
-      })
-    );
-  } catch {
-    // Path may not exist or have no media links.
-  }
+  media_links = await runServerEffectOr(
+    CACHE.media_links.get({
+      project_id: resolved.project_id,
+      path_params: resolved.path_params
+    }),
+    []
+  );
 }
 ---
 

@@ -15,6 +15,7 @@
     ".astro",
     ".svelte-kit",
     ".vercel",
-    "src/components/Posthog.astro"
+    "src/components/Posthog.astro",
+    "src/lib/components/ui"
   ]
 }

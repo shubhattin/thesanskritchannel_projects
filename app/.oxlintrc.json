@@ -18,6 +18,7 @@
     "src/db/scripts/out",
     "src/db/scripts/backup",
     "kAraH",
-    "src/tools/converter/resources"
+    "src/tools/converter/resources",
+    "src/lib/components/ui"
   ]
 }

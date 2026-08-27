@@ -113,7 +113,7 @@
         });
       };
       const { height, width } = await get_image_dimensiona(url);
-      await Promise.all([script_data_load_promise]);
+      await script_data_load_promise;
       return { url, height, width };
     }
   }));

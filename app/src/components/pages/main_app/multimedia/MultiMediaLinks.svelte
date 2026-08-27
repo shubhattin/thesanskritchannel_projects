@@ -259,8 +259,8 @@
   });
 
   $effect(() => {
-    active_tab;
-    type_filtered_view_items;
+    void active_tab;
+    void type_filtered_view_items;
     if (
       active_lang_tab !== 'all' &&
       !type_filtered_view_items.some((item) => item.lang_id === active_lang_tab)

@@ -47,8 +47,8 @@
   });
 
   $effect(() => {
-    tab;
-    selected_index;
+    void tab;
+    void selected_index;
     page = 1;
   });
 

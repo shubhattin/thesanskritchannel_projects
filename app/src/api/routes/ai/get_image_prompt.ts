@@ -111,7 +111,7 @@ export const get_image_prompt_func = (input: GetImagePromptInput) =>
         const result = await generateText({
           model: modelInstance,
           instructions: IMAGE_SYSTEM_PROMPT,
-          ...(text_model_custom_options[model] ?? {}),
+          ...text_model_custom_options[model],
           prompt,
           output: Output.object({
             schema: z.object({

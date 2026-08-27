@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { IconType } from 'svelte-icons-pack';
   import { cl_join } from './cl_join';
+  // oxlint-disable-next-line no-unassigned-vars -- required Svelte prop, assigned by the consumer
   export let src: IconType;
   export let title: string | undefined = undefined;
   export let outerClass: string | undefined = undefined;

@@ -142,11 +142,13 @@
   };
 
   $effect(() => {
-    !trans_en_data_q.isFetching &&
+    if (
+      !trans_en_data_q.isFetching &&
       trans_en_data_q.isSuccess &&
       !text_data_q.isFetching &&
-      text_data_q.isSuccess &&
-      (async () => {
+      text_data_q.isSuccess
+    )
+      void (async () => {
         const shloka_text = text_data_q.data![$index].text;
         let prompt = shloka_text;
         const trans_en_all = trans_en_data_q.data!;
@@ -156,8 +158,8 @@
   });
 
   $effect(() => {
-    $selected_text_levels;
-    $index;
+    void $selected_text_levels;
+    void $index;
     $image_prompt = '';
     generated_images = [];
   });
@@ -367,7 +369,7 @@
 
   let copied_text_status = $state(false);
   $effect(() => {
-    copied_text_status && setTimeout(() => (copied_text_status = false), 1400);
+    if (copied_text_status) setTimeout(() => (copied_text_status = false), 1400);
   });
   const copy_text_with_indicator = (text: string) => {
     copy_text_to_clipboard(text);

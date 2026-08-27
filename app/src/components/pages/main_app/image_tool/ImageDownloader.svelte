@@ -191,7 +191,7 @@
         const blob = dataURLToBlob(url);
         zip.file(name, blob);
         $zip_download_state[0]++;
-        $zip_download_state = $zip_download_state;
+        zip_download_state.set($zip_download_state);
       }
 
       const zip_blob = await zip.generateAsync({ type: 'blob' });

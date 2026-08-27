@@ -116,13 +116,13 @@
   /** Bumped after every push/undo/clear so Svelte re-derives `can_undo`. */
   let undo_version = $state(0);
   const can_undo = $derived.by(() => {
-    undo_version; // reactive dependency
+    void undo_version; // reactive dependency
     if (editor_mode === 'order') return order_undo.canUndo;
     if (editor_mode === 'delete') return delete_undo.canUndo;
     return metadata_undo.canUndo;
   });
   const undo_stack_size = $derived.by(() => {
-    undo_version;
+    void undo_version;
     if (editor_mode === 'order') return order_undo.size;
     if (editor_mode === 'delete') return delete_undo.size;
     return metadata_undo.size;
@@ -245,7 +245,7 @@
   });
 
   $effect(() => {
-    selectedNode;
+    void selectedNode;
     if (!selectedNode || selectedNode.info.type !== 'list') {
       list_count_draft = '';
       count_input_invalid = false;

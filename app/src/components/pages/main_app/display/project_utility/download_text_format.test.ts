@@ -41,8 +41,7 @@ describe('download_text_format', () => {
   });
 
   it('formats multiline shlokas with a blank line before translation', () => {
-    const scriptText =
-      'स तत्र न्यवसद् भ्रात्रा सह सत्कारसत्कृतः ।\nमातुलेनाश्वपतिना पुत्रस्नेहेन लालितः ॥२-१-२॥';
+    const scriptText = 'स तत्र न्यवसद् भ्रात्रा सह सत्कारसत्कृतः ।\nमातुलेनाश्वपतिना पुत्रस्नेहेन लालितः ॥२-१-२॥';
     const normalText =
       'sa tatra nyavasad bhrAtrA saha satkArasatkRtaH \nmAtulEnAshvapatinA putrasnEhEna lAlitaH 2-1-2';
     const translationText =

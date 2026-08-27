@@ -129,8 +129,8 @@
       }
       trans_data.set(index, text);
     });
-    $added_translations_indexes = $added_translations_indexes;
-    $edited_translations_indexes = $edited_translations_indexes;
+    added_translations_indexes.set($added_translations_indexes);
+    edited_translations_indexes.set($edited_translations_indexes);
     // updating query data
     if (!$english_edit_status) {
       await query_client.setQueryData(trans_lang_data_query_key, trans_data);
@@ -240,5 +240,4 @@
     )}
   onblur={() => ctx.clearContext()}
   onkeydown={(e) => clearTypingContextOnKeyDown(e, ctx)}
-  onkeyup={detect_shortcut_pressed}
-></textarea>
+  onkeyup={detect_shortcut_pressed}></textarea>

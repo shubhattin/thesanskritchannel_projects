@@ -111,7 +111,7 @@
 
   $effect(() => {
     // loading project map
-    project_map_q.data;
+    void project_map_q.data;
   });
 
   const session = useSession();

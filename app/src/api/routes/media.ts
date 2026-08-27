@@ -1,4 +1,4 @@
-import { dbRun, dbTransaction } from '~/effect/database';
+import { dbTransaction } from '~/effect/database';
 import { TRPCError } from '@trpc/server';
 import { inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -11,8 +11,6 @@ import { get_path_params } from '~/state/project_list';
 import { requireProjectPath } from '~/utils/project/paths_db.server';
 import { runTrpcEffect } from '~/effect/app_runtime.server';
 
-const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
-  runTrpcEffect(dbRun(operation, run));
 const runTx = <A>(operation: string, run: Parameters<typeof dbTransaction<A>>[1]) =>
   runTrpcEffect(dbTransaction(operation, run));
 

@@ -65,10 +65,13 @@ describe('createCache', () => {
     const cache = createCache<undefined, { value: number }>({
       getKey: () => 'test:cache:item',
       schema: z.object({ value: z.number() }),
-      fetch: Effect.fn('test.fetch')(function* () {
-        fetches += 1;
-        return { value: fetches };
-      }),
+      fetch: Effect.fn('test.fetch')(
+        // oxlint-disable-next-line require-yield -- Effect.fn generator that only returns, per Effect idiom
+        function* () {
+          fetches += 1;
+          return { value: fetches };
+        }
+      ),
       cacheOutsideProd: true
     });
 

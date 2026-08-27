@@ -18,7 +18,7 @@ export async function loadLocalConfig() {
       const request = await fetch(url);
       const data = await request.text();
       config = config_schema.parse(yaml.load(data));
-    } catch (e) {}
+    } catch {}
   }
 
   return config;

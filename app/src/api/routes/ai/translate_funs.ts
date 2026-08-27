@@ -67,7 +67,7 @@ export const translate_func = (
         const response = await generateText({
           model: modelInstance,
           instructions: translation_prompt.system_prompt,
-          ...(text_model_custom_options[model] ?? {}),
+          ...text_model_custom_options[model],
           prompt,
           output: Output.array({
             element: translation_out_schema,

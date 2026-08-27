@@ -25,7 +25,7 @@ export async function mapWithConcurrency<T, R>(
   mapper: (item: T, index: number) => Promise<R>
 ): Promise<R[]> {
   if (items.length === 0) return [];
-  const results = new Array<R>(items.length);
+  const results: R[] = [];
   let next = 0;
   await Promise.all(
     Array.from({ length: Math.min(concurrency, items.length) }, async () => {

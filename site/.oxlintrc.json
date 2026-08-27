@@ -9,5 +9,12 @@
     "node": true,
     "es2024": true
   },
-  "ignorePatterns": ["dist", "build", ".astro", ".svelte-kit", ".vercel"]
+  "ignorePatterns": [
+    "dist",
+    "build",
+    ".astro",
+    ".svelte-kit",
+    ".vercel",
+    "src/components/Posthog.astro"
+  ]
 }

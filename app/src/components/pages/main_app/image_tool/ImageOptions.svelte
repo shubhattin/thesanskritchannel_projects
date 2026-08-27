@@ -281,8 +281,8 @@
   });
 
   $effect(() => {
-    $image_shloka;
-    $image_lang;
+    void $image_shloka;
+    void $image_lang;
     if (image_trans_data_q.isSuccess && image_trans_data_q.data) {
       const translation = image_trans_data_q.data.get($image_shloka) ?? '';
       trans_text_data = translation;

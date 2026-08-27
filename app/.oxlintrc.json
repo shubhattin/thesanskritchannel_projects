@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "vitest"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "ignorePatterns": [
+    "build",
+    ".svelte-kit",
+    ".vercel",
+    ".netlify",
+    "src/db/migrations",
+    "src/db/scripts/out",
+    "src/db/scripts/backup",
+    "kAraH",
+    "src/tools/converter/resources"
+  ]
+}

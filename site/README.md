@@ -46,3 +46,15 @@ bun run dev
 ```
 
 Runs on `localhost:4321` by default. Requires the same `.env` credentials as the admin app.
+
+## Formatting & Linting
+
+`bun run format` runs two formatters in sequence:
+
+1. **oxfmt** — formats Svelte, TS/JS, JSON, and CSS (everything except Astro)
+2. **prettier** — formats **only `.astro` files** (enforced by `.prettierignore`, which ignores everything else)
+
+> ⚠️ **Legacy:** the prettier step exists solely because oxfmt does not support Astro yet.
+> Once oxfmt gains native Astro support, remove prettier (plus `prettier-plugin-astro` and the
+> astro-only `.prettierignore` split), drop the `**/*.astro` exclusion from `.oxfmtrc.json`, and
+> let oxfmt handle the whole project.

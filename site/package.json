@@ -10,7 +10,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "format": "prettier --write .",
+    "format": "oxfmt --ignore-path .gitignore && prettier --write --log-level warn .",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "check": "astro check"
@@ -67,6 +67,7 @@
     "bits-ui": "^2.18.1",
     "clsx": "^2.1.1",
     "embla-carousel-svelte": "^8.6.0",
+    "oxfmt": "^0.65.0",
     "oxlint": "^1.80.0",
     "prettier": "^3.8.3",
     "prettier-plugin-astro": "0.14.1",

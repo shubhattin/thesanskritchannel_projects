@@ -102,7 +102,7 @@ type AppPublicConfigDecoded = typeof AppPublicConfigSchema.Type;
 
 type SharedRedactedKeys = 'dbUrl' | 'upstashRedisToken';
 
-export type SharedConfigShape = Omit<SharedConfigDecoded, SharedRedactedKeys> & {
+export type SharedConfigValue = Omit<SharedConfigDecoded, SharedRedactedKeys> & {
   readonly dbUrl: Redacted.Redacted<string>;
   readonly upstashRedisToken: Redacted.Redacted<string>;
 };
@@ -117,7 +117,7 @@ type AppRedactedKeys =
   | 'qstashNextSigningKey'
   | 'turnstileSecretKey';
 
-export type AppConfigShape = Omit<AppConfigDecoded, AppRedactedKeys> & {
+export type AppConfigValue = Omit<AppConfigDecoded, AppRedactedKeys> & {
   readonly dbUrl: Redacted.Redacted<string>;
   readonly upstashRedisToken: Redacted.Redacted<string>;
   readonly awsSecretAccessKey: Redacted.Redacted<string>;
@@ -129,7 +129,7 @@ export type AppConfigShape = Omit<AppConfigDecoded, AppRedactedKeys> & {
   readonly turnstileSecretKey: Redacted.Redacted<string> | undefined;
 };
 
-export type AppPublicConfigShape = AppPublicConfigDecoded;
+export type AppPublicConfigValue = AppPublicConfigDecoded;
 
 const failConfig = (message: string, cause: unknown) =>
   Effect.fail(ConfigError.make({ message, cause }));
@@ -147,7 +147,7 @@ const decodeShared = (input: SharedConfigInput) => {
     betterAuthUrl: data.betterAuthUrl,
     isDev: data.isDev,
     isProd: data.isProd
-  } satisfies SharedConfigShape);
+  } satisfies SharedConfigValue);
 };
 
 const decodeApp = (input: AppConfigInput) => {
@@ -178,7 +178,7 @@ const decodeApp = (input: AppConfigInput) => {
     cloudfrontUrl: data.cloudfrontUrl,
     isQstashEnabled: data.isQstashEnabled,
     turnstileSecretKey: data.turnstileSecretKey ? Redacted.make(data.turnstileSecretKey) : undefined
-  } satisfies AppConfigShape);
+  } satisfies AppConfigValue);
 };
 
 const decodePublic = (input: AppPublicConfigInput) => {
@@ -186,10 +186,10 @@ const decodePublic = (input: AppPublicConfigInput) => {
   if (parsed._tag === 'Failure') {
     return failConfig('Invalid public configuration', parsed.cause);
   }
-  return Effect.succeed(parsed.value satisfies AppPublicConfigShape);
+  return Effect.succeed(parsed.value satisfies AppPublicConfigValue);
 };
 
-export class SharedConfig extends Context.Service<SharedConfig, SharedConfigShape>()(
+export class SharedConfig extends Context.Service<SharedConfig, SharedConfigValue>()(
   'SharedConfig'
 ) {
   static layer(input: SharedConfigInput) {
@@ -197,13 +197,13 @@ export class SharedConfig extends Context.Service<SharedConfig, SharedConfigShap
   }
 }
 
-export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()('AppConfig') {
+export class AppConfig extends Context.Service<AppConfig, AppConfigValue>()('AppConfig') {
   static layer(input: AppConfigInput) {
     return Layer.effect(AppConfig)(decodeApp(input));
   }
 }
 
-export class AppPublicConfig extends Context.Service<AppPublicConfig, AppPublicConfigShape>()(
+export class AppPublicConfig extends Context.Service<AppPublicConfig, AppPublicConfigValue>()(
   'AppPublicConfig'
 ) {
   static layer(input: AppPublicConfigInput) {
@@ -222,6 +222,6 @@ export const makeSharedConfigFromAppConfig = Layer.effect(SharedConfig)(
       betterAuthUrl: app.betterAuthUrl,
       isDev: app.isDev,
       isProd: app.isProd
-    } satisfies SharedConfigShape;
+    } satisfies SharedConfigValue;
   })
 );

@@ -18,6 +18,8 @@ export const get_session_from_cookie = (
         headers: { Cookie: cookie }
       });
       if (!res.ok) return null;
+      // SAFETY: better-auth's get-session endpoint returns the session shape that
+      // authClient.$Infer.Session infers.
       return (await res.json()) as Session;
     }).pipe(Effect.orElseSucceed(() => null));
   });

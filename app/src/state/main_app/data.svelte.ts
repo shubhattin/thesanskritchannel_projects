@@ -286,13 +286,13 @@ export const trans_slot_data_q_options = (
       : editing_mode_ === '2nd_lang' ||
         editing_mode_ === 'text' ||
         editing_mode_ === 'text_2nd_lang';
-  return {
+  const options = {
     ...trans_lang_data_q_options(lang_id ?? -1, selected_text_levels, project),
     enabled:
       translation_query_enabled(text_data_present_, project, selected_text_levels) &&
-      lang_id !== null,
-    ...(pin_while_editing ? { staleTime: Infinity } : {})
+      lang_id !== null
   };
+  return pin_while_editing ? { ...options, staleTime: Infinity } : options;
 };
 
 export const get_trans_lang_data_query_key = (

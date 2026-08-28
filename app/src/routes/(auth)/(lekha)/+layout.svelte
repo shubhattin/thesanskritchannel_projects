@@ -6,11 +6,7 @@
 
   const is_lekha_scope_allowed = $derived(data.is_lekha_scope_allowed);
 
-  const main_site_origin = (
-    typeof import.meta.env.VITE_MAIN_SITE_URL === 'string'
-      ? import.meta.env.VITE_MAIN_SITE_URL.trim()
-      : ''
-  ).replace(/\/+$/, '');
+  const main_site_origin = (import.meta.env.VITE_MAIN_SITE_URL ?? '').trim().replace(/\/+$/, '');
   const lekha_on_main_site_href = `${main_site_origin}/lekha`;
 </script>
 

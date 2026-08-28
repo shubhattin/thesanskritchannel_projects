@@ -34,7 +34,7 @@
   let open_redirect_menu_id = $state<number | null>(null);
 
   $effect(() => {
-    project.key;
+    void project.key;
     if (!slug_edit_unlocked) {
       slug_draft = project.key;
       redirect_old_url = true;

@@ -16,7 +16,7 @@
 
   function idToScript(id: number): script_list_type {
     const s = get_script_from_id(id);
-    return (s ?? get_script_from_id(1)) as script_list_type;
+    return s ?? get_script_from_id(1);
   }
 
   // svelte-ignore state_referenced_locally -- normalize once from initial prop
@@ -39,7 +39,7 @@
   }
 
   async function handle_script_change(next: ScriptListType) {
-    const idx = SCRIPT_LIST.indexOf(next as script_list_type);
+    const idx = SCRIPT_LIST.indexOf(next);
     if (idx === -1) return;
     const nextId = SCRIPT_LIST_IDS[idx]!;
     if (nextId === last_persisted_id) return;

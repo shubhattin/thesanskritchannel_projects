@@ -4,6 +4,8 @@ import { renderLekhaMarkdownToHtml } from '../markdown';
 import type { script_list_type } from '~/state/lang_list';
 import { expandShlokaSpansInMarkdown } from './shlokaMarkdown';
 
+// SAFETY: test stub bypasses real transliteration — for string input transliterate's output is
+// Promise<string>, so this (text) => Promise<string> stub matches the call shape used under test.
 const identityTransliterate = (async (text: string) => text) as typeof transliterate;
 const script: script_list_type = 'Devanagari';
 

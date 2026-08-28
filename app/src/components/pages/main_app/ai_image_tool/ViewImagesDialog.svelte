@@ -47,8 +47,8 @@
   });
 
   $effect(() => {
-    tab;
-    selected_index;
+    void tab;
+    void selected_index;
     page = 1;
   });
 
@@ -69,11 +69,13 @@
     ),
     queryFn: async () => {
       if (!$project_state) return [];
-      return client.ai.image_assets.list.query({
+      const params = {
         project_id: $project_state.project_id,
-        selected_text_levels: $selected_text_levels,
-        ...(tab === 'shloka_specific' ? { index: selected_index } : {})
-      });
+        selected_text_levels: $selected_text_levels
+      };
+      return tab === 'shloka_specific'
+        ? client.ai.image_assets.list.query({ ...params, index: selected_index })
+        : client.ai.image_assets.list.query(params);
     },
     enabled: open && !!$project_state
   }));

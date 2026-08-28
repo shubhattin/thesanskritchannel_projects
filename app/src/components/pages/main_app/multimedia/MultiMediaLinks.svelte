@@ -211,7 +211,8 @@
     if (!transfer) return;
     transfer.effectAllowed = 'move';
     transfer.setData('text/plain', String(index));
-    const card = (event.currentTarget as HTMLElement).closest('[data-media-edit-card]');
+    const target = event.currentTarget;
+    const card = target instanceof HTMLElement ? target.closest('[data-media-edit-card]') : null;
     if (card instanceof HTMLElement) {
       transfer.setDragImage(card, 24, 24);
     }
@@ -259,8 +260,8 @@
   });
 
   $effect(() => {
-    active_tab;
-    type_filtered_view_items;
+    void active_tab;
+    void type_filtered_view_items;
     if (
       active_lang_tab !== 'all' &&
       !type_filtered_view_items.some((item) => item.lang_id === active_lang_tab)

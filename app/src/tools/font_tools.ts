@@ -27,6 +27,7 @@ export function get_script_for_lang(lang_id: number): script_list_type {
     return LANG_SCRIPT_MAP[lang];
   }
 
+  // SAFETY: `LANG_LIST_IDS` mirrors the `LANG_LIST` ordering, so the entry at the same index is the script name for `lang_id`; unresolvable ids fall through `indexOf` to earlier branches.
   return LANG_LIST[LANG_LIST_IDS.indexOf(lang_id)] as script_list_type;
 }
 
@@ -46,9 +47,10 @@ export const FONT_FAMILY_NAME = {
 
 export type fonts_type = keyof typeof FONT_FAMILY_NAME;
 
-export const BUNDLED_FONT_OPTIONS = (
-  Object.entries(FONT_FAMILY_NAME) as [fonts_type, string][]
-).map(([key, family]) => ({ key, family }));
+// SAFETY: `Object.entries` of `FONT_FAMILY_NAME` yields its own `[key, family]` pairs, and every key is one of the `fonts_type` literals.
+const font_family_entries = Object.entries(FONT_FAMILY_NAME) as [fonts_type, string][];
+
+export const BUNDLED_FONT_OPTIONS = font_family_entries.map(([key, family]) => ({ key, family }));
 
 export function is_bundled_font_key(key: string): key is fonts_type {
   return Object.hasOwn(FONT_FAMILY_NAME, key);
@@ -66,7 +68,7 @@ export type FontFileInfo = {
   kind: FontAssetKind;
 };
 
-export const FONT_FILE_INFO: Record<fonts_type, FontFileInfo> = {
+export const FONT_FILE_INFO = {
   NIRMALA_UI: {
     file_name: 'Nirmala',
     kind: 'static'
@@ -111,7 +113,7 @@ export const FONT_FILE_INFO: Record<fonts_type, FontFileInfo> = {
     file_name: 'IskoolaPota',
     kind: 'static'
   }
-};
+} satisfies Record<fonts_type, FontFileInfo>;
 
 export function is_variable_bundled_font(font: fonts_type): boolean {
   return FONT_FILE_INFO[font].kind === 'variable';
@@ -187,20 +189,22 @@ const MAIN_FONT_CONFIG = {
     font: 'NOTO_SERIF_SINHALA',
     size: 1
   }
-} as font_config_type;
+} satisfies Partial<font_config_type>;
 
 const DEFAULT_FONT_CONFIG = {
   font: 'NIRMALA_UI',
   size: 1
-};
+} satisfies { font: fonts_type; size: number };
 /**
  * `size` is in rem
  */
 export const get_font_family_and_size = (script: script_and_lang_list_type) => {
-  let key: fonts_type = DEFAULT_FONT_CONFIG.font as fonts_type;
+  let key: fonts_type = DEFAULT_FONT_CONFIG.font;
   let { size } = DEFAULT_FONT_CONFIG;
 
-  const main_app_conf = MAIN_FONT_CONFIG[script];
+  // SAFETY: `MAIN_FONT_CONFIG` intentionally lists only the scripts with bundled font overrides; any other `script` value must fall back to `DEFAULT_FONT_CONFIG`, exactly as the previous cast-typed lookup did.
+  const main_app_conf: { font?: fonts_type; size?: number } | undefined =
+    MAIN_FONT_CONFIG[script as keyof typeof MAIN_FONT_CONFIG];
   if (main_app_conf) {
     if (main_app_conf.font) key = main_app_conf.font;
     if (main_app_conf.size) size = main_app_conf.size;

@@ -22,7 +22,8 @@ describe('validateFullyFailedBatchForRetry', () => {
       }
     });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.code).toBe('BAD_REQUEST');
+    if (result.ok) throw new Error('expected a failure result');
+    expect(result.code).toBe('BAD_REQUEST');
   });
 
   test('rejects empty responses', () => {
@@ -30,7 +31,8 @@ describe('validateFullyFailedBatchForRetry', () => {
       batch: { output_resolved: true, responses: [] }
     });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.code).toBe('BAD_REQUEST');
+    if (result.ok) throw new Error('expected a failure result');
+    expect(result.code).toBe('BAD_REQUEST');
   });
 
   test('rejects mix of failed and ready/pending rows', () => {
@@ -44,10 +46,9 @@ describe('validateFullyFailedBatchForRetry', () => {
       }
     });
     expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.code).toBe('BAD_REQUEST');
-      expect(result.message).toMatch(/every remaining item failed/i);
-    }
+    if (result.ok) throw new Error('expected a failure result');
+    expect(result.code).toBe('BAD_REQUEST');
+    expect(result.message).toMatch(/every remaining item failed/i);
   });
 
   test('rejects rows still missing success flag', () => {

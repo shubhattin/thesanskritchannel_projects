@@ -33,7 +33,7 @@ export function text_to_trans_map(text: string, shloka_count: number) {
     const shloka = texts[i].trim();
     const shloka_text = /(?<=^-?\d+(\.|:) ).+/gms.exec(shloka)?.[0].trim();
     if (shloka_text) {
-      const shloka_num = parseInt(/^-?\d+(?=\.|: )/gm.exec(shloka)?.[0]!); // shloka number extractions
+      const shloka_num = parseInt(/^-?\d+(?=\.|: )/gm.exec(shloka)?.[0] ?? ''); // shloka number extractions
       if (shloka_num >= 0 && shloka_num <= shloka_count && !/^---+$/g.test(shloka_text))
         // ignore if line starts with --- or more dashes
         trans_map.set(shloka_num, shloka_text);

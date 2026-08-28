@@ -224,11 +224,10 @@
     [...selected_indexes]
       .sort((a, b) => a - b)
       .map((index) => {
+        const item: TriggerItem = { index };
         const custom = resolve_bulk_custom_instruction(index);
-        return {
-          index,
-          ...(custom ? { custom_instruction: custom } : {})
-        };
+        if (custom) item.custom_instruction = custom;
+        return item;
       });
 </script>
 

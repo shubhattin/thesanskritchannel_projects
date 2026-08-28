@@ -12,34 +12,38 @@ const makeTestRunners = () => {
 describe('createRunners TRPC_CODE mapping', () => {
   it('maps NotFoundError to NOT_FOUND', async () => {
     const { runtime, runners } = makeTestRunners();
+    let err: unknown;
     try {
       await runners.runTrpcEffect(
         Effect.fail(NotFoundError.make({ resource: 'batch', message: 'missing batch' }))
       );
       expect.unreachable('should have thrown');
-    } catch (err) {
-      expect(err).toBeInstanceOf(TRPCError);
-      if (!(err instanceof TRPCError)) return;
-      expect(err.code).toBe('NOT_FOUND');
-      expect(err.message).toBe('missing batch');
+    } catch (caught) {
+      err = caught;
     } finally {
       await runtime.dispose();
     }
+    expect(err).toBeInstanceOf(TRPCError);
+    if (!(err instanceof TRPCError)) throw new Error('expected a TRPCError');
+    expect(err.code).toBe('NOT_FOUND');
+    expect(err.message).toBe('missing batch');
   });
 
   it('maps UnauthorizedError to UNAUTHORIZED', async () => {
     const { runtime, runners } = makeTestRunners();
+    let err: unknown;
     try {
       await runners.runTrpcEffect(Effect.fail(UnauthorizedError.make({ message: 'UNAUTHORIZED' })));
       expect.unreachable('should have thrown');
-    } catch (err) {
-      expect(err).toBeInstanceOf(TRPCError);
-      if (!(err instanceof TRPCError)) return;
-      expect(err.code).toBe('UNAUTHORIZED');
-      expect(err.message).toBe('UNAUTHORIZED');
+    } catch (caught) {
+      err = caught;
     } finally {
       await runtime.dispose();
     }
+    expect(err).toBeInstanceOf(TRPCError);
+    if (!(err instanceof TRPCError)) throw new Error('expected a TRPCError');
+    expect(err.code).toBe('UNAUTHORIZED');
+    expect(err.message).toBe('UNAUTHORIZED');
   });
 
   it('returns 401 JSON from runRouteEffect for UnauthorizedError', async () => {

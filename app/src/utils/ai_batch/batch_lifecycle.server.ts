@@ -1,6 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { Effect } from 'effect';
 import ms from 'ms';
+import { z } from 'zod';
 import { ai_batches, ai_batch_responses } from '~/db/schema';
 import { OpenAiBatchClient } from '~/effect/ai';
 import { enqueueBackground } from '~/effect/background';
@@ -25,7 +26,7 @@ export async function mapWithConcurrency<T, R>(
   mapper: (item: T, index: number) => Promise<R>
 ): Promise<R[]> {
   if (items.length === 0) return [];
-  const results = new Array<R>(items.length);
+  const results: R[] = [];
   let next = 0;
   await Promise.all(
     Array.from({ length: Math.min(concurrency, items.length) }, async () => {
@@ -39,10 +40,10 @@ export async function mapWithConcurrency<T, R>(
   return results;
 }
 
-const openaiStatus = (err: unknown): number | undefined => {
-  if (typeof err !== 'object' || err === null || !('status' in err)) return undefined;
-  const status = err.status;
-  return typeof status === 'number' ? status : undefined;
+/** `status` of OpenAI SDK errors (APIError sets it as an own enumerable property); `undefined` when absent. */
+const openaiStatus = (cause: unknown): number | undefined => {
+  const parsed = z.object({ status: z.number() }).loose().safeParse(cause);
+  return parsed.success ? parsed.data.status : undefined;
 };
 
 /** Delete OpenAI Files API objects (batch input/output). Ignores already-deleted files. */
@@ -146,13 +147,13 @@ export const scheduleOpenAiBatchCleanup = Effect.fn('scheduleOpenAiBatchCleanup'
 /** Compact debug payload for metadata.error (not full OpenAI bodies). */
 export function batchFailureError(
   reason: string,
-  extra?: Record<string, unknown>
-): Record<string, unknown> {
+  extra?: Record<string, string | number | undefined>
+) {
   return { reason, ...extra };
 }
 
-export function errMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
+export function errMessage(cause: unknown): string {
+  return cause instanceof Error ? cause.message : String(cause);
 }
 
 /**
@@ -428,9 +429,8 @@ export async function markBatchOutputResolvedIfComplete(
 
   await tx
     .update(ai_batches)
-    .set({
-      output_resolved: true,
-      ...(output_file_id != null ? { output_file_id } : {})
-    })
+    .set(
+      output_file_id != null ? { output_resolved: true, output_file_id } : { output_resolved: true }
+    )
     .where(and(eq(ai_batches.batch_id, batch_id), eq(ai_batches.output_resolved, false)));
 }

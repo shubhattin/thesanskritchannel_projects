@@ -13,7 +13,8 @@ import {
   QStashPublisher,
   aiBatchResultsPayloadSchema,
   decodeQstashPayload,
-  verifyQstashSignature
+  verifyQstashSignature,
+  type JsonValue
 } from '~/effect/qstash';
 
 export const config: Config = {
@@ -31,8 +32,9 @@ export const POST: RequestHandler = async ({ request }) => {
       yield* verifyQstashSignature(signature, body_text);
 
       console.log('QStash AI batch poll request received', new Date());
+      // SAFETY: JSON.parse of the signature-verified request body always yields a JSON value.
       const raw = yield* Effect.try({
-        try: () => JSON.parse(body_text) as unknown,
+        try: () => JSON.parse(body_text) as JsonValue,
         catch: (cause) => ValidationError.make({ message: 'Invalid QStash JSON body', cause })
       });
       const body = yield* decodeQstashPayload(aiBatchResultsPayloadSchema, raw);

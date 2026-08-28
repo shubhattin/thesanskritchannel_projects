@@ -92,12 +92,15 @@ const PREVIEW_HTML_PURIFY: Config = {
 let server_purify: ReturnType<typeof createDOMPurify> | undefined;
 
 function get_dom_purify(): ReturnType<typeof createDOMPurify> {
-  if (typeof window !== 'undefined' && window.document) {
-    return createDOMPurify(window as unknown as WindowLike);
+  const browser_window = globalThis.window;
+  if (browser_window != null && 'document' in browser_window) {
+    return createDOMPurify(browser_window);
   }
   if (!server_purify) {
-    const linkedom_window = parseHTML('<!DOCTYPE html><html><body></body></html>');
-    server_purify = createDOMPurify(linkedom_window as unknown as WindowLike);
+    const linkedom_window: unknown = parseHTML('<!DOCTYPE html><html><body></body></html>');
+    // SAFETY: linkedom's parseHTML always returns a DOM-like window that satisfies dompurify's
+    // WindowLike contract; it only lacks a nominal WindowLike type annotation.
+    server_purify = createDOMPurify(linkedom_window as WindowLike);
   }
   return server_purify;
 }

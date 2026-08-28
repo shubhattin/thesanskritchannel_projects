@@ -12,6 +12,8 @@ import {
   restoreLipiShlokaBlocksAfterRemarkFormat
 } from './lipiShlokaMarkdown';
 
+// SAFETY: test stub bypasses real transliteration — for string input transliterate's output is
+// Promise<string>, so this (text) => Promise<string> stub matches the call shape used under test.
 const identityTransliterate = (async (text: string) => text) as typeof transliterate;
 const script: script_list_type = 'Devanagari';
 

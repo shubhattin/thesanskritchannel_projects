@@ -85,6 +85,7 @@ export const image_text_data_q_options = (
 ) => ({
   ...text_data_q_options(image_selected_levels, project),
   enabled: browser && text_data_present_,
+  // SAFETY: shloka_list_type is an array type, and the empty array is the query's placeholder data while it loads.
   placeholderData: [] as shloka_list_type
 });
 
@@ -101,25 +102,32 @@ export const image_trans_data_q_options = (
 // Language and Script Specific Settings
 
 type image_font_config_type<T extends string> = Record<T, ReturnType<typeof get_image_font_info>>;
-export const DEFAULT_MAIN_TEXT_FONT_CONFIGS = (() => {
-  const res: any = {};
-  SCRIPT_LIST.filter((src) => !['Normal'].includes(src)).forEach(
-    (script) =>
-      (res[script as script_list_type] = get_image_font_info(script as script_list_type, 'shloka'))
-  );
-  return res as image_font_config_type<script_list_type>;
-})();
+// SAFETY: SCRIPT_LIST is Object.keys(script_list), so its elements are script_list_type keys, each mapped to get_image_font_info(script, 'shloka'); 'Normal' is intentionally absent (pre-existing behavior — the preset schema for this store excludes it).
+export const DEFAULT_MAIN_TEXT_FONT_CONFIGS =
+  /* SAFETY: every script_list_type key except 'Normal' is assigned below, so the result has the full image_font_config_type shape. */ Object.fromEntries(
+    (
+      SCRIPT_LIST /* SAFETY: SCRIPT_LIST's elements are exactly the script_list_type keys. */ as script_list_type[]
+    )
+      .filter((src) => !['Normal'].includes(src))
+      .map((script): [script_list_type, ReturnType<typeof get_image_font_info>] => [
+        script,
+        get_image_font_info(script, 'shloka')
+      ])
+  ) as image_font_config_type<script_list_type>;
 export let main_text_font_configs = writable(copy_plain_object(DEFAULT_MAIN_TEXT_FONT_CONFIGS));
 export let normal_text_font_config = writable(
   copy_plain_object(get_image_font_info('Normal', 'shloka'))
 );
-export const DEFAULT_TRANS_TEXT_FONT_CONFIGS = (() => {
-  const res: any = {};
-  LANG_LIST.forEach(
-    (lang) => (res[lang as script_list_type] = get_image_font_info(lang as lang_list_type, 'trans'))
-  );
-  return res as image_font_config_type<lang_list_type>;
-})();
+// SAFETY: LANG_LIST is Object.keys(lang_list), so its elements are lang_list_type keys, each mapped to get_image_font_info(lang, 'trans') with matching key and value.
+export const DEFAULT_TRANS_TEXT_FONT_CONFIGS =
+  /* SAFETY: every lang_list_type key is assigned below, so the result has the full image_font_config_type shape. */ Object.fromEntries(
+    (
+      LANG_LIST /* SAFETY: LANG_LIST's elements are exactly the lang_list_type keys. */ as lang_list_type[]
+    ).map((lang): [lang_list_type, ReturnType<typeof get_image_font_info>] => [
+      lang,
+      get_image_font_info(lang, 'trans')
+    ])
+  ) as image_font_config_type<lang_list_type>;
 export let trans_text_font_configs = writable(copy_plain_object(DEFAULT_TRANS_TEXT_FONT_CONFIGS));
 
 /** Per-role system font family names; saved/restored via image tool presets. */

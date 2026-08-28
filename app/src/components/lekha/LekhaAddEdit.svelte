@@ -82,7 +82,7 @@
   let slug_auto = $derived(initial?.url_slug ? false : true);
   let url_slug_manual = $derived(initial?.url_slug ?? '');
 
-  let preview_script_id = $state(get_script_id('Devanagari' as script_list_type) ?? 1);
+  let preview_script_id = $state(get_script_id('Devanagari') ?? 1);
   let editor_section = $state<'write' | 'preview'>('write');
   let preview_html = $state('');
   let preview_loading = $state(false);
@@ -172,6 +172,20 @@
     })
   );
 
+  /** Pure: validation message from the current URL-slug availability check, if it blocks saving. */
+  const slug_check_error = (chk: typeof slug_check_q): string | null => {
+    if (chk.isError) {
+      return 'Could not verify the URL slug. Check your connection and try again.';
+    }
+    if (chk.isPending || chk.isFetching) {
+      return 'Please wait for the URL slug to be verified before saving.';
+    }
+    if (chk.data?.exists) {
+      return 'This URL slug is already in use. Choose a different one.';
+    }
+    return null;
+  };
+
   const carta = new Carta({
     sanitizer: cartaHtmlSanitizer,
     /** Align Shiki with `renderLekhaMarkdownToHtml` / site (`LEKHA_SHIKI_*`). */
@@ -188,7 +202,10 @@
 
   const script_options = SCRIPT_LIST.map((name) => ({
     name,
-    id: get_script_id(name as script_list_type)
+    id: get_script_id(
+      // SAFETY: SCRIPT_LIST is Object.keys(script_list), so every entry is a valid script_list_type key.
+      name as script_list_type
+    )
   })).filter((o): o is { name: string; id: number } => o.id != null);
 
   const query_client = useQueryClient();
@@ -322,16 +339,8 @@
       return 'Please wait for the URL slug to finish updating before saving.';
     }
     if (browser && slug_effective) {
-      const chk = slug_check_q;
-      if (chk.isError) {
-        return 'Could not verify the URL slug. Check your connection and try again.';
-      }
-      if (chk.isPending || chk.isFetching) {
-        return 'Please wait for the URL slug to be verified before saving.';
-      }
-      if (chk.data?.exists) {
-        return 'This URL slug is already in use. Choose a different one.';
-      }
+      const slug_error = slug_check_error(slug_check_q);
+      if (slug_error) return slug_error;
     }
     return null;
   }

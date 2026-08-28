@@ -49,11 +49,13 @@ const sort_normalization_keys = (keys: readonly NormalizationKey[]) =>
       normalizations[a].execution_order - normalizations[b].execution_order || a.localeCompare(b)
   );
 
-export const get_normalization_options = () =>
-  sort_normalization_keys(Object.keys(normalizations) as NormalizationKey[]).map((key) => ({
+export const get_normalization_options = () => {
+  // SAFETY: `Object.keys` returns `normalizations`' own enumerable string-keyed properties, which are exactly the `NormalizationKey` union.
+  return sort_normalization_keys(Object.keys(normalizations) as NormalizationKey[]).map((key) => ({
     key,
     description: normalizations[key].description
   }));
+};
 
 export const apply_normalizations_to_texts = (
   texts: readonly string[],

@@ -3,7 +3,8 @@ import { TRPCError } from '@trpc/server';
 import { isKnownError, type KnownError } from './errors';
 
 /** Domain / config errors with distinct tRPC codes; infra errors share the default. */
-const TRPC_CODE_BY_TAG: Partial<Record<KnownError['_tag'], TRPCError['code']>> = {
+type TrpcCodeByTag = { [T in KnownError['_tag']]?: TRPCError['code'] };
+const TRPC_CODE_BY_TAG: TrpcCodeByTag = {
   NotFoundError: 'NOT_FOUND',
   BadRequestError: 'BAD_REQUEST',
   ValidationError: 'BAD_REQUEST',
@@ -86,7 +87,7 @@ export const createRunners = <R, E>(runtime: ManagedRuntime.ManagedRuntime<R, E>
         'ForbiddenError',
         'ConflictError'
       ].includes(err._tag);
-      const msg = `[trpc] known error ${err._tag}: ${toTrpcMessage(err as KnownError)}`;
+      const msg = `[trpc] known error ${err._tag}: ${toTrpcMessage(err)}`;
       if (is5xx) console.error(msg, { tag: err._tag, cause: Cause.pretty(exit.cause) });
       else console.warn(msg, { tag: err._tag, cause: Cause.pretty(exit.cause) });
       throw toTrpcError(failure.value);

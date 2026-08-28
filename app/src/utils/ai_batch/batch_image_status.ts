@@ -2,22 +2,19 @@ import type { BatchMetadata } from '~/utils/types/ai_batch_metadata';
 
 export type ImageBatchUiStatus = 'processing' | 'ready_for_review' | 'auto_applying' | 'failed';
 
-export const IMAGE_BATCH_STATUS_LABELS: Record<ImageBatchUiStatus, string> = {
+export const IMAGE_BATCH_STATUS_LABELS = {
   processing: 'Processing',
   ready_for_review: 'Ready for review',
   auto_applying: 'Auto-applying',
   failed: 'Failed'
-};
+} satisfies Record<ImageBatchUiStatus, string>;
 
-export const IMAGE_BATCH_STATUS_VARIANTS: Record<
-  ImageBatchUiStatus,
-  'secondary' | 'default' | 'destructive'
-> = {
+export const IMAGE_BATCH_STATUS_VARIANTS = {
   processing: 'secondary',
   ready_for_review: 'default',
   auto_applying: 'default',
   failed: 'destructive'
-};
+} satisfies Record<ImageBatchUiStatus, 'secondary' | 'default' | 'destructive'>;
 
 export function deriveImageBatchUiStatus(
   output_resolved: boolean,

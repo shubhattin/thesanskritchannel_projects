@@ -57,7 +57,7 @@ export const get_image_prompt_input_schema = z.object({
   custom_instruction: z.string().optional()
 });
 
-type GetImagePromptInput = z.infer<typeof get_image_prompt_input_schema>;
+export type GetImagePromptInput = z.infer<typeof get_image_prompt_input_schema>;
 
 /** Domain Effect — run only at a HTTP/tRPC boundary. */
 export const get_image_prompt_func = (input: GetImagePromptInput) =>
@@ -65,7 +65,7 @@ export const get_image_prompt_func = (input: GetImagePromptInput) =>
     const { project_key, selected_text_levels, index, model, custom_instruction } = input;
 
     const project = yield* get_project_by_key(project_key);
-    if (!project) return { image_prompt: null as string | null, time_taken: 0 };
+    if (!project) return { image_prompt: null, time_taken: 0 };
 
     const project_info = yield* get_project_info_by_id(project.id);
     const path_params = get_path_params(selected_text_levels, project_info.levels);
@@ -81,7 +81,7 @@ export const get_image_prompt_func = (input: GetImagePromptInput) =>
       { concurrency: 'unbounded' }
     );
     const shloka = text_data[index];
-    if (!shloka) return { image_prompt: null as string | null, time_taken: 0 };
+    if (!shloka) return { image_prompt: null, time_taken: 0 };
 
     let shloka_text = shloka.text;
     const english_translation = translations.get(index);
@@ -111,7 +111,7 @@ export const get_image_prompt_func = (input: GetImagePromptInput) =>
         const result = await generateText({
           model: modelInstance,
           instructions: IMAGE_SYSTEM_PROMPT,
-          ...(text_model_custom_options[model] ?? {}),
+          ...text_model_custom_options[model],
           prompt,
           output: Output.object({
             schema: z.object({
@@ -124,7 +124,7 @@ export const get_image_prompt_func = (input: GetImagePromptInput) =>
         return { image_prompt: result.output.image_prompt, time_taken: Date.now() - time_start };
       } catch (e) {
         console.error(e);
-        return { image_prompt: null as string | null, time_taken: 0 };
+        return { image_prompt: null, time_taken: 0 };
       }
     });
   });

@@ -6,22 +6,19 @@ export type TranslationBatchUiStatus =
   | 'auto_applying'
   | 'failed';
 
-export const TRANSLATION_BATCH_STATUS_LABELS: Record<TranslationBatchUiStatus, string> = {
+export const TRANSLATION_BATCH_STATUS_LABELS = {
   processing: 'Processing',
   ready_for_review: 'Ready for review',
   auto_applying: 'Auto-applying',
   failed: 'Failed'
-};
+} satisfies Record<TranslationBatchUiStatus, string>;
 
-export const TRANSLATION_BATCH_STATUS_VARIANTS: Record<
-  TranslationBatchUiStatus,
-  'secondary' | 'default' | 'destructive'
-> = {
+export const TRANSLATION_BATCH_STATUS_VARIANTS = {
   processing: 'secondary',
   ready_for_review: 'default',
   auto_applying: 'default',
   failed: 'destructive'
-};
+} satisfies Record<TranslationBatchUiStatus, 'secondary' | 'default' | 'destructive'>;
 
 export function deriveTranslationBatchUiStatus(
   output_resolved: boolean,

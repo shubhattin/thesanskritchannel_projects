@@ -157,11 +157,9 @@ async function load_leaf_text_context(args: {
 
   const text_data = text_rows.map((row) => {
     const english_translation = english_map?.get(row.index);
-    return {
-      index: row.index,
-      text: row.text,
-      ...(english_translation !== undefined ? { english_translation } : {})
-    };
+    return english_translation !== undefined
+      ? { index: row.index, text: row.text, english_translation }
+      : { index: row.index, text: row.text };
   });
 
   const prompts = build_translation_prompts({
@@ -1150,7 +1148,7 @@ const list_batch_translation_targets_route = protectedAdminProcedure
     if (levels <= 1) {
       // Single-level project: only the root leaf
       const root = map;
-      if (root.info.type !== 'shloka') return { leaves: [], current_value: null as number | null };
+      if (root.info.type !== 'shloka') return { leaves: [], current_value: null };
       const has_existing = (
         await runDb('batch_ai_text.ml.3', (db) =>
           db
@@ -1170,6 +1168,8 @@ const list_batch_translation_targets_route = protectedAdminProcedure
       return {
         leaves: [
           {
+            // SAFETY: the single root leaf has no path segments, so the empty array is a
+            // valid number[] path_params value.
             path_params: [] as number[],
             value: 0,
             name_dev: root.name_dev,

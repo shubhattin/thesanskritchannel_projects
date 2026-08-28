@@ -121,6 +121,7 @@
       text_script,
       effective_include_normal
     );
+    // SAFETY: the translation query caches the Map<number, string> index returned by get_translations; data is present once isSuccess holds.
     const translationMap =
       include_translation && translation_q.isSuccess
         ? (translation_q.data as Map<number, string>)
@@ -169,6 +170,7 @@
           script,
           with_normal
         );
+        // SAFETY: the translation query caches the Map<number, string> index returned by get_translations; translation_data is that cached value, truthiness-checked in the condition.
         const translationMap =
           with_translation && translation_data ? (translation_data as Map<number, string>) : null;
         preview_text = format_download_text(scriptTexts, normalTexts, indices, translationMap, {

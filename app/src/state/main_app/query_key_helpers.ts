@@ -5,16 +5,17 @@ export const get_dynamic_path_params = (
   const params = selected_text_levels.slice(0, project_levels - 1).reverse();
   while (params.length && params[params.length - 1] == null) params.pop();
   if (params.some((v) => v == null)) return [];
+  // SAFETY: the some() check above returned early when any entry was null, so every remaining entry is a number.
   return params as number[];
 };
 
 export const get_normalized_selected_text_levels = (
   selected_text_levels: (number | null)[],
   project_levels: number
-) => {
-  if (project_levels <= 1) return [] as (number | null)[];
+): (number | null)[] => {
+  if (project_levels <= 1) return [];
   const path_params = get_dynamic_path_params(selected_text_levels, project_levels);
-  const normalized = Array.from({ length: project_levels - 1 }, () => null as number | null);
+  const normalized = Array.from({ length: project_levels - 1 }, (): number | null => null);
   const reversed = [...path_params].reverse();
   for (let i = 0; i < reversed.length; i++) normalized[i] = reversed[i]!;
   return normalized;

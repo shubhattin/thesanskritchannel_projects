@@ -21,6 +21,7 @@ export const get_user_app_scope_status = (
           : { credentials: 'include' satisfies RequestCredentials })
       });
       if (!res.ok) return false;
+      // SAFETY: `/api/app_scope/get_user_app_scope_status` responds with a JSON boolean (or `null` when no status exists), so only those shapes can appear here.
       return ((await res.json()) as boolean | null) ?? false;
     }).pipe(Effect.orElseSucceed(() => false));
   });

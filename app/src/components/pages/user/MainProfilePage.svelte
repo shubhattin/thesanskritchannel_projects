@@ -31,6 +31,8 @@
   let logout_modal_status = $state(false);
   let active_scope_tab = $state<AppScopeEnum>(APP_SCOPE_ID_PROJECT_PORTAL);
 
+  // SAFETY: APP_SCOPE_IDENTIFIERS is keyed by the AppScopeEnum literals, so Object.keys
+  // yields exactly those members in declaration order.
   const scope_ids = Object.keys(APP_SCOPE_IDENTIFIERS) as AppScopeEnum[];
 
   const log_out = async () => {

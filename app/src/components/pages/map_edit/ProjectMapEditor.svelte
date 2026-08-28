@@ -116,13 +116,13 @@
   /** Bumped after every push/undo/clear so Svelte re-derives `can_undo`. */
   let undo_version = $state(0);
   const can_undo = $derived.by(() => {
-    undo_version; // reactive dependency
+    void undo_version; // reactive dependency
     if (editor_mode === 'order') return order_undo.canUndo;
     if (editor_mode === 'delete') return delete_undo.canUndo;
     return metadata_undo.canUndo;
   });
   const undo_stack_size = $derived.by(() => {
-    undo_version;
+    void undo_version;
     if (editor_mode === 'order') return order_undo.size;
     if (editor_mode === 'delete') return delete_undo.size;
     return metadata_undo.size;
@@ -180,8 +180,8 @@
       kinds: ['rename', 'list_name_change', 'expected_count_change', 'add_child', 'type_change']
     }).dirty;
   });
-  const metadata_to_add_paths = $derived.by(() => {
-    if (!workingMap || editor_mode !== 'metadata') return [] as string[];
+  const metadata_to_add_paths = $derived.by((): string[] => {
+    if (!workingMap || editor_mode !== 'metadata') return [];
     return collect_unsaved_added_db_paths(workingMap, baselineSnapshots);
   });
 
@@ -245,7 +245,7 @@
   });
 
   $effect(() => {
-    selectedNode;
+    void selectedNode;
     if (!selectedNode || selectedNode.info.type !== 'list') {
       list_count_draft = '';
       count_input_invalid = false;
@@ -379,6 +379,7 @@
       metadata_undo.push({ inversePatches, selectedNodePath: [...selectedNodePath] });
     }
     undo_version++;
+    // SAFETY: produceWithPatches applies the recipe to a structural draft of the snapshot of workingMap, so the produced value is the same MapNodeWithClientId tree (immer erases its type for void recipes).
     return nextMap as MapNodeWithClientId;
   }
 
@@ -396,6 +397,7 @@
       selectedNodePath: [...selectedNodePath]
     });
     undo_version++;
+    // SAFETY: produceWithPatches applies the recipe to a structural draft of the snapshot of workingMap, so the produced value is the same MapNodeWithClientId tree (immer erases its type for void recipes).
     return nextMap as MapNodeWithClientId;
   }
 
@@ -415,6 +417,7 @@
     if (!changed) return null;
     delete_undo.push({ inversePatches, selectedNodePath: [...selectedNodePath] });
     undo_version++;
+    // SAFETY: produceWithPatches applies the recipe to a structural draft of the snapshot of workingMap, so the produced value is the same MapNodeWithClientId tree (immer erases its type for void recipes).
     return nextMap as MapNodeWithClientId;
   }
 
@@ -431,17 +434,20 @@
     if (editor_mode === 'order') {
       const entry = order_undo.undo();
       if (!entry) return;
+      // SAFETY: applyPatches replays recorded inverse patches on the snapshot of workingMap, preserving its MapNodeWithClientId tree.
       workingMap = applyPatches(plain, entry.inversePatches) as MapNodeWithClientId;
       pending_swaps = entry.pendingSwaps;
       selectedNodePath = entry.selectedNodePath;
     } else if (editor_mode === 'delete') {
       const entry = delete_undo.undo();
       if (!entry) return;
+      // SAFETY: applyPatches replays recorded inverse patches on the snapshot of workingMap, preserving its MapNodeWithClientId tree.
       workingMap = applyPatches(plain, entry.inversePatches) as MapNodeWithClientId;
       selectedNodePath = entry.selectedNodePath;
     } else {
       const entry = metadata_undo.undo();
       if (!entry) return;
+      // SAFETY: applyPatches replays recorded inverse patches on the snapshot of workingMap, preserving its MapNodeWithClientId tree.
       workingMap = applyPatches(plain, entry.inversePatches) as MapNodeWithClientId;
       selectedNodePath = entry.selectedNodePath;
     }
@@ -615,6 +621,17 @@
     delete_node_at_subtree_path(subtreePath);
   }
 
+  /** Selection fallback after a removal: nearest valid parent, else the base path. */
+  function fallback_selection_path(parentPath: MapPath): MapPath {
+    // Call sites have already returned early when workingMap is null; this guard only satisfies the type checker.
+    if (!workingMap) return [];
+    return is_path_valid(workingMap, parentPath) && parentPath.length > 0
+      ? parentPath
+      : basePath.length
+        ? [...basePath]
+        : [];
+  }
+
   function delete_node_at_subtree_path(subtreePath: string) {
     if (!workingMap || !delete_edit_mode || save_in_flight) return;
     const full = full_path_from_subtree_path(basePath, subtreePath);
@@ -625,12 +642,7 @@
     const parentPath = full.slice(0, -1);
     const removedIndex = full[full.length - 1]!;
     if (paths_equal(selectedNodePath, full) || is_ancestor_path(full, selectedNodePath)) {
-      selectedNodePath =
-        is_path_valid(workingMap, parentPath) && parentPath.length > 0
-          ? parentPath
-          : basePath.length
-            ? [...basePath]
-            : [];
+      selectedNodePath = fallback_selection_path(parentPath);
     } else if (
       paths_equal(selectedNodePath.slice(0, -1), parentPath) &&
       selectedNodePath[selectedNodePath.length - 1]! > removedIndex
@@ -639,11 +651,7 @@
       shiftedPath[shiftedPath.length - 1] = shiftedPath[shiftedPath.length - 1]! - 1;
       selectedNodePath = is_path_valid(workingMap, shiftedPath)
         ? shiftedPath
-        : is_path_valid(workingMap, parentPath) && parentPath.length > 0
-          ? parentPath
-          : basePath.length
-            ? [...basePath]
-            : [];
+        : fallback_selection_path(parentPath);
     }
   }
 
@@ -708,19 +716,22 @@
     }
   }
 
+  /** Remaining preconditions for starting an order-mode drag (workingMap, order_root_path and dropNode are checked inline for narrowing). */
+  function order_drop_preconditions_met(
+    dropNode: LTreeNode<MapTreeItem> | null,
+    position: DropPosition
+  ): boolean {
+    return !save_in_flight && order_root_selected && position !== 'child';
+  }
+
   async function before_drop(
     dropNode: LTreeNode<MapTreeItem> | null,
     draggedNode: LTreeNode<MapTreeItem>,
     position: DropPosition
   ) {
-    if (
-      !workingMap ||
-      save_in_flight ||
-      !order_root_selected ||
-      order_root_path === null ||
-      position === 'child' ||
-      !dropNode?.path
-    ) {
+    if (!workingMap || order_root_path === null) return false;
+    if (!dropNode?.path) return false;
+    if (!order_drop_preconditions_met(dropNode, position)) {
       return false;
     }
 
@@ -903,9 +914,9 @@
     }
   }
 
-  function get_allowed_drop_positions(node: LTreeNode<MapTreeItem>) {
-    if (!node.data?.draggable) return [] as DropPosition[];
-    return ['above', 'below'] as DropPosition[];
+  function get_allowed_drop_positions(node: LTreeNode<MapTreeItem>): DropPosition[] {
+    if (!node.data?.draggable) return [];
+    return ['above', 'below'];
   }
 
   function request_save() {

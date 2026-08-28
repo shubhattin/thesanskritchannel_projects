@@ -42,7 +42,7 @@
   let cache_arguments = writable<(string | null)[]>([]);
 
   $effect(() => {
-    selected_cache_name;
+    void selected_cache_name;
     $cache_arguments = Array.from(
       { length: REDIS_CACHES_ARGUMENTS_LIST[selected_cache_name].length },
       () => null
@@ -72,7 +72,7 @@
 
   const selected_cache_keys = writable<string[]>([]);
   $effect(() => {
-    selected_cache_name;
+    void selected_cache_name;
     if (!list_cache_q.isFetching && list_cache_q.isSuccess) {
       $selected_cache_keys = [];
     }

@@ -1,5 +1,4 @@
 {
-
   "name": "tsc_projects_app",
   "private": true,
   "type": "module",
@@ -7,6 +6,7 @@
   "scripts": {
     "format": "bun --cwd app format && bun --cwd site format",
     "check": "bun --cwd app check && bun --cwd site check",
+    "lint": "bun --cwd app lint && bun --cwd site lint",
     "test": "bun --cwd app vitest run && bun --cwd site vitest run",
     "build": "bun --cwd app build && bun --cwd site build"
   },
@@ -14,5 +14,8 @@
     "app",
     "site",
     "redirect"
-  ]
+  ],
+  "devDependencies": {
+    "@oxlint/plugins": "1.80.0"
+  }
 }

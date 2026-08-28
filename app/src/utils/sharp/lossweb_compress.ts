@@ -24,7 +24,7 @@ export const compress_to_webp = async (
   webp_options?: WebpOptions
 ): Promise<CompressedImageResult> => {
   const sharpModule = (await import('sharp')).default;
-  const input_buffer = typeof input === 'string' ? Buffer.from(input, 'base64') : input;
+  const input_buffer = Buffer.isBuffer(input) ? input : Buffer.from(input, 'base64');
 
   const image = sharpModule(input_buffer).rotate();
   const meta = await image.metadata();
@@ -46,7 +46,7 @@ export const compress_to_webp = async (
 /** Convert a WebP buffer/base64 string back to PNG. */
 export const webp_to_png = async (input: Buffer | string): Promise<CompressedImageResult> => {
   const sharpModule = (await import('sharp')).default;
-  const input_buffer = typeof input === 'string' ? Buffer.from(input, 'base64') : input;
+  const input_buffer = Buffer.isBuffer(input) ? input : Buffer.from(input, 'base64');
 
   const image = sharpModule(input_buffer).rotate();
   const meta = await image.metadata();

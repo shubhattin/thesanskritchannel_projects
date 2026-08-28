@@ -134,7 +134,8 @@
         mode: submitted_search_mode,
         limit: LIMIT,
         offset,
-        ...(path_prefixes_for_query ? { path_prefixes: path_prefixes_for_query } : {})
+        // The input schema marks path_prefixes optional, so undefined omits it (JSON drops it).
+        path_prefixes: path_prefixes_for_query ?? undefined
       });
 
       const ids = [...new Set(result.items.map((row) => row.project_id))];

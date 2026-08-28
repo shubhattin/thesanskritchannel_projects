@@ -13,6 +13,15 @@ export const aiBatchResultsPayloadSchema = Schema.Struct({
 
 export type AiBatchResultsPayload = typeof aiBatchResultsPayloadSchema.Type;
 
+/** Any value produced by JSON.parse — QStash delivers JSON request bodies. */
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 /** QStash rejects negative/fractional delays; clamp after computing start_time − now − skew. */
 export const qstashDelaySeconds = (seconds: number): number => Math.max(0, Math.floor(seconds));
 
@@ -66,7 +75,7 @@ export class QStashPublisher extends Context.Service<
 
 export const decodeQstashPayload = <S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
-  input: unknown
+  input: JsonValue
 ): Effect.Effect<S['Type'], ValidationError> =>
   Effect.try({
     try: () => Schema.decodeUnknownSync(schema)(input),

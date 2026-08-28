@@ -120,7 +120,8 @@ describe('config layers', () => {
       }).pipe(Effect.provide(SharedConfig.layer(sampleShared())))
     );
     expect(Exit.isSuccess(exit)).toBe(true);
-    if (Exit.isSuccess(exit)) expect(exit.value).toBe(false);
+    if (!Exit.isSuccess(exit)) throw new Error('expected a successful exit');
+    expect(exit.value).toBe(false);
   });
 
   it('builds AppConfig with redacted secrets', async () => {

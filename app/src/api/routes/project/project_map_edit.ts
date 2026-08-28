@@ -162,7 +162,7 @@ const save_project_map_order = protectedAdminProcedure
       map: recursive_list_schema
     })
   )
-  .mutation(async ({ input: { project_id, root_path, edits, map }, ctx: { cookie } }) => {
+  .mutation(async ({ input: { project_id, root_path, edits }, ctx: { cookie } }) => {
     const parsedEdits = edits;
     if (parsedEdits.length > 0) {
       const validationError = validateSwapEdits(parsedEdits);
@@ -327,7 +327,7 @@ const get_delete_node_resource_counts = protectedAdminProcedure
 
     return runTx('project_map_edit.tx.4', async (tx) => {
       const countsByPath: Record<string, Awaited<ReturnType<typeof countExactPathResources>>> = {};
-      for (const path of [...new Set(paths)]) {
+      for (const path of new Set(paths)) {
         countsByPath[path] = await countExactPathResources(tx, project_id, path);
       }
       return countsByPath;

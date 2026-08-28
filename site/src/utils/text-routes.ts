@@ -154,5 +154,5 @@ export const get_selected_text_levels_from_path_params = (
   path_params: number[],
   levels: number
 ) => {
-  return path_params.slice(0, levels - 1).reverse() as (number | null)[];
+  return path_params.slice(0, levels - 1).reverse();
 };

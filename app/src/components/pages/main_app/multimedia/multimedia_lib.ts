@@ -27,12 +27,12 @@ export type MediaLangTabItem =
 
 export type MediaTypeTabItem = { id: MediaTab; label: string; count: number };
 
-const MEDIA_TYPE_TAB_LABELS: Record<media_list_type, string> = {
+const MEDIA_TYPE_TAB_LABELS = {
   video: 'Videos',
   audio: 'Audio',
   pdf: 'PDFs',
   text: 'Text'
-};
+} satisfies Record<media_list_type, string>;
 
 export type MultimediaDiff = {
   creates: {
@@ -60,14 +60,19 @@ export function getYoutubeId(url: string): string | null {
   return match && match[2].length === 11 ? match[2] : null;
 }
 
-export function is_new_draft_item(item: DraftMediaItem): boolean {
+export function is_new_draft_item(item: DraftMediaItem): item is DraftMediaItem & { id: string } {
   return typeof item.id === 'string';
+}
+
+function is_existing_draft_item(item: DraftMediaItem): item is DraftMediaItem & { id: number } {
+  return typeof item.id === 'number';
 }
 
 export function baseline_to_draft(rows: MediaLinkRow[]): DraftMediaItem[] {
   return rows.map((row) => ({
     id: row.id,
     lang_id: row.lang_id,
+    // SAFETY: rows come from the media_attachment table whose media_type column is constrained to the media_list_type values.
     media_type: row.media_type as media_list_type,
     link: row.link,
     name: row.name
@@ -127,13 +132,15 @@ export function compute_multimedia_diff(
 ): MultimediaDiff {
   const baseline_by_id = new Map(baseline.map((row) => [row.id, row]));
   const draft_existing_ids = new Set(
-    draft.filter((item) => typeof item.id === 'number').map((item) => item.id as number)
+    draft
+      .filter((item): item is DraftMediaItem & { id: number } => typeof item.id === 'number')
+      .map((item) => item.id)
   );
 
   const deletes = baseline.filter((row) => !draft_existing_ids.has(row.id)).map((row) => row.id);
 
   const creates = draft.filter(is_new_draft_item).map((item) => ({
-    client_id: item.id as string,
+    client_id: item.id,
     media_type: item.media_type,
     link: item.link,
     name: item.name,
@@ -173,11 +180,11 @@ export function compute_multimedia_diff(
   const order_updates = needs_order_reconcile(baseline, draft)
     ? draft
         .map((item, order) => ({ item, order }))
-        .filter(({ item }) => typeof item.id === 'number')
         .flatMap(({ item, order }) => {
-          const base = baseline_by_id.get(item.id as number);
+          if (!is_existing_draft_item(item)) return [];
+          const base = baseline_by_id.get(item.id);
           if (!base || base.order === order) return [];
-          return [{ id: item.id as number, order }];
+          return [{ id: item.id, order }];
         })
     : [];
 

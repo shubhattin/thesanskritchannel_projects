@@ -80,8 +80,8 @@
   });
 
   $effect(() => {
-    activeTab;
-    typeFilteredLinks;
+    void activeTab;
+    void typeFilteredLinks;
     if (
       activeLangTab !== 'all' &&
       !typeFilteredLinks.some((item) => item.lang_id === activeLangTab)

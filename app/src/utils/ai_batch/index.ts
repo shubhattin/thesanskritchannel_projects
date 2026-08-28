@@ -19,6 +19,7 @@ import {
   type AiBatchObjectOutput,
   type AiBatchOutput,
   type AiBatchOutputExpectation,
+  type AiBatchRawOutputLine,
   type AiBatchResult
 } from './types';
 
@@ -102,13 +103,17 @@ export function toAiBatchLine(input: AiBatchInput): AiBatchLine {
       model: parsed.model,
       prompt: parsed.prompt,
       quality: parsed.quality,
-      size: parsed.size,
-      ...(parsed.background !== undefined ? { background: parsed.background } : {}),
-      ...(parsed.output_format !== undefined ? { output_format: parsed.output_format } : {}),
-      ...(parsed.output_compression !== undefined
-        ? { output_compression: parsed.output_compression }
-        : {})
+      size: parsed.size
     };
+    if (parsed.background !== undefined) {
+      Object.assign(body, { background: parsed.background });
+    }
+    if (parsed.output_format !== undefined) {
+      Object.assign(body, { output_format: parsed.output_format });
+    }
+    if (parsed.output_compression !== undefined) {
+      Object.assign(body, { output_compression: parsed.output_compression });
+    }
 
     return ai_batch_line_schema.parse({
       custom_id: parsed.custom_id,
@@ -226,8 +231,10 @@ const response_text_body_schema = z
   })
   .loose();
 
-function extractResponseText(body: unknown) {
-  const parsed = response_text_body_schema.parse(body);
+type BatchResponse = NonNullable<AiBatchRawOutputLine['response']>;
+
+function extractResponseText(response: BatchResponse) {
+  const parsed = response_text_body_schema.parse(response.body);
 
   if (parsed.output_text) {
     return parsed.output_text;
@@ -237,7 +244,7 @@ function extractResponseText(body: unknown) {
 
   for (const output of parsed.output ?? []) {
     for (const content of output.content ?? []) {
-      if (typeof content.text === 'string') {
+      if (content.text !== undefined) {
         text_chunks.push(content.text);
       }
     }
@@ -246,8 +253,8 @@ function extractResponseText(body: unknown) {
   return text_chunks.join('');
 }
 
-function inferSuccessfulOutputType(body: unknown): AiBatchOutputExpectation['type'] {
-  const image_body = ai_batch_image_body_schema.safeParse(body);
+function inferSuccessfulOutputType(response: BatchResponse): AiBatchOutputExpectation['type'] {
+  const image_body = ai_batch_image_body_schema.safeParse(response.body);
   return image_body.success &&
     Array.isArray(image_body.data.data) &&
     image_body.data.data.length > 0
@@ -264,7 +271,7 @@ function getExpectedType(
   }
 
   if (raw.response) {
-    return inferSuccessfulOutputType(raw.response.body);
+    return inferSuccessfulOutputType(raw.response);
   }
 
   throw new Error(
@@ -284,15 +291,14 @@ const response_error_body_schema = z.object({
   error: ai_batch_api_error_schema
 });
 
-function getResponseError(body: unknown) {
-  return response_error_body_schema.safeParse(body).data?.error;
+function getResponseError(response: BatchResponse) {
+  return response_error_body_schema.safeParse(response.body).data?.error;
 }
 
 function parseOutputLine(
-  value: unknown,
+  raw: AiBatchRawOutputLine,
   expectation: AiBatchOutputExpectation | undefined
 ): AiBatchOutput {
-  const raw = ai_batch_raw_output_line_schema.parse(value);
   const type = getExpectedType(raw, expectation);
   const base = {
     id: raw.id,
@@ -303,6 +309,7 @@ function parseOutputLine(
   };
 
   if (!raw.response) {
+    // SAFETY: `getExpectedType` resolves `type` to exactly one of 'image' | 'text' | 'object' at runtime, so the literal matches one `AiBatchOutput` member even though TS sees the union in the `type` field.
     return {
       ...base,
       type,
@@ -311,11 +318,12 @@ function parseOutputLine(
   }
 
   if (raw.response.status_code >= 400) {
+    // SAFETY: `getExpectedType` resolves `type` to exactly one of 'image' | 'text' | 'object' at runtime, so the literal matches one `AiBatchOutput` member even though TS sees the union in the `type` field.
     return {
       ...base,
       type,
       success: false,
-      error: getResponseError(raw.response.body) ?? base.error
+      error: getResponseError(raw.response) ?? base.error
     } as AiBatchOutput;
   }
 
@@ -331,7 +339,7 @@ function parseOutputLine(
     };
   }
 
-  const text = extractResponseText(raw.response.body);
+  const text = extractResponseText(raw.response);
 
   if (type === 'text') {
     return {
@@ -368,9 +376,8 @@ function parseOutputFile(text: string, expectations: Map<string, AiBatchOutputEx
     .split('\n')
     .filter((line) => line.trim())
     .map((line) => {
-      const raw_json = JSON.parse(line);
-      const custom_id = z.object({ custom_id: z.string() }).parse(raw_json).custom_id;
-      return parseOutputLine(raw_json, expectations.get(custom_id));
+      const raw = ai_batch_raw_output_line_schema.parse(JSON.parse(line));
+      return parseOutputLine(raw, expectations.get(raw.custom_id));
     });
 }
 

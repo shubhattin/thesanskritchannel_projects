@@ -22,6 +22,8 @@ const makeMemoryRedis = () => {
   const locks = new Map<string, string>();
 
   return Layer.succeed(RedisClient)({
+    // SAFETY: the memory store only ever holds T-typed cache payloads written through this
+    // test double's own `set`, so reading an entry back as `T | undefined` is sound.
     get: <T = unknown>(key: string) => Effect.succeed((store.get(key) as T | undefined) ?? null),
     set: (key, value, options) =>
       Effect.sync(() => {
@@ -65,10 +67,13 @@ describe('createCache', () => {
     const cache = createCache<undefined, { value: number }>({
       getKey: () => 'test:cache:item',
       schema: z.object({ value: z.number() }),
-      fetch: Effect.fn('test.fetch')(function* () {
-        fetches += 1;
-        return { value: fetches };
-      }),
+      fetch: Effect.fn('test.fetch')(
+        // oxlint-disable-next-line require-yield -- Effect.fn generator that only returns, per Effect idiom
+        function* () {
+          fetches += 1;
+          return { value: fetches };
+        }
+      ),
       cacheOutsideProd: true
     });
 

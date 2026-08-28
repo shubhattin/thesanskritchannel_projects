@@ -2,7 +2,7 @@ import { Effect, Duration } from 'effect';
 import ms from 'ms';
 import type { ZodType } from 'zod';
 import type { SetCommandOptions } from '@upstash/redis';
-import { RedisClient } from './redis';
+import { RedisClient, type RedisJsonValue } from './redis';
 import { CacheError } from './errors';
 import { BackgroundWork } from './background';
 import { SharedConfig } from './config';
@@ -39,7 +39,7 @@ type CacheParseConfig<TCached> = {
   /** Parsed on cache hit (e.g. coerce timestamp strings to Date). */
   schema?: ZodType<TCached>;
   /** Custom cache-hit decoder; wins over `schema` when both are set. */
-  fromCacheValue?: (raw: unknown) => TCached | null;
+  fromCacheValue?: (raw: RedisJsonValue) => TCached | null;
 };
 
 export type CreateCacheConfig<TParams, TCached, TData = TCached> = {
@@ -54,7 +54,7 @@ export type CreateCacheConfig<TParams, TCached, TData = TCached> = {
   /** Skip redis.set when false (e.g. null lookup results). */
   shouldCache?: (data: TCached) => boolean;
   /** Serialize value before writing to redis (e.g. undefined → sentinel string). */
-  toCacheValue?: (data: TCached) => unknown;
+  toCacheValue?: (data: TCached) => RedisJsonValue;
   /**
    * When true, bump a per-key generation on delete and only SET after fetch if
    * the generation is unchanged — drops stale writes from overlapping refreshes.
@@ -84,6 +84,12 @@ const UNAVAILABLE: GenerationSnapshot = { kind: 'unavailable' };
 
 const redisGenerationKey = (cacheKey: string) => `${cacheKey}:gen`;
 
+/** Guard for numeric redis TTL options (ex/px/exat/pxat) on the SET options union. */
+const isExpiryNumber = (value: number | undefined): value is number => typeof value === 'number';
+
+/** Guard for generation counters read back as `number | string`. */
+const isGenerationNumber = (value: number | string): value is number => typeof value === 'number';
+
 const resolveSetOptions = <TCached>(
   data: TCached,
   ttlSeconds: number,
@@ -95,22 +101,20 @@ const resolveSetOptions = <TCached>(
 };
 
 /** Match Upstash REST `set` JSON encoding so guarded Lua writes store the same wire shape. */
-const serializeCacheValue = (value: unknown): string => JSON.stringify(value);
+const serializeCacheValue = (value: RedisJsonValue): string => JSON.stringify(value);
 
-const encodeSetOptionsForScript = (
-  setOptions?: SetCommandOptions
-): { mode: string; arg: string } => {
+const encodeSetOptionsForScript = (setOptions?: SetCommandOptions) => {
   if (!setOptions) return { mode: '', arg: '' };
-  if ('ex' in setOptions && typeof setOptions.ex === 'number') {
+  if ('ex' in setOptions && isExpiryNumber(setOptions.ex)) {
     return { mode: 'EX', arg: String(setOptions.ex) };
   }
-  if ('px' in setOptions && typeof setOptions.px === 'number') {
+  if ('px' in setOptions && isExpiryNumber(setOptions.px)) {
     return { mode: 'PX', arg: String(setOptions.px) };
   }
-  if ('exat' in setOptions && typeof setOptions.exat === 'number') {
+  if ('exat' in setOptions && isExpiryNumber(setOptions.exat)) {
     return { mode: 'EXAT', arg: String(setOptions.exat) };
   }
-  if ('pxat' in setOptions && typeof setOptions.pxat === 'number') {
+  if ('pxat' in setOptions && isExpiryNumber(setOptions.pxat)) {
     return { mode: 'PXAT', arg: String(setOptions.pxat) };
   }
   if ('keepTtl' in setOptions && setOptions.keepTtl) {
@@ -164,7 +168,9 @@ export function createCache<TParams, TCached, TData = TCached>(
 ): CacheItem<TParams, TCached | TData> {
   const ttlSeconds = config.ttlSeconds ?? DEFAULT_TTL_S;
   const shouldCache = config.shouldCache ?? (() => true);
-  const toCacheValue = config.toCacheValue ?? ((data: TCached) => data);
+  // SAFETY: cache payloads are JSON values by contract — they are written through the
+  // Upstash REST JSON serializer and read back as parsed JSON (`RedisJsonValue`).
+  const toCacheValue = config.toCacheValue ?? ((data: TCached) => data as RedisJsonValue);
   const useGenerationGuard = config.useGenerationGuard ?? false;
   const useSingleFlight = config.useSingleFlight ?? false;
   const cacheOutsideProd = config.cacheOutsideProd ?? false;
@@ -174,9 +180,9 @@ export function createCache<TParams, TCached, TData = TCached>(
 
   const redisActive = (isProd: boolean) => isProd || cacheOutsideProd;
 
-  const parseCached = (raw: unknown): TCached | null => {
+  const parseCached = (raw: RedisJsonValue | null): TCached | null => {
     try {
-      if (raw === null || raw === undefined) return null;
+      if (raw === null) return null;
       if (config.fromCacheValue) {
         return config.fromCacheValue(raw);
       }
@@ -191,8 +197,8 @@ export function createCache<TParams, TCached, TData = TCached>(
     Effect.gen(function* () {
       const redis = yield* RedisClient;
       const raw = yield* redis.get<number | string | null>(redisGenerationKey(cacheKey));
-      if (raw === null || raw === undefined) return 0;
-      const n = typeof raw === 'number' ? raw : Number(raw);
+      if (raw === null) return 0;
+      const n = isGenerationNumber(raw) ? raw : Number(raw);
       return Number.isFinite(n) ? n : 0;
     });
 
@@ -207,7 +213,7 @@ export function createCache<TParams, TCached, TData = TCached>(
 
   const writeWithGenerationSnapshot = (
     cacheKey: string,
-    value: unknown,
+    value: RedisJsonValue,
     setOptions: SetCommandOptions | undefined,
     snapshot: GenerationSnapshot
   ) =>
@@ -293,8 +299,8 @@ export function createCache<TParams, TCached, TData = TCached>(
 
     if (useRedis) {
       const redis = yield* RedisClient;
-      const cached = yield* redis.get<unknown>(cacheKey).pipe(
-        Effect.catch(() => Effect.succeed<unknown>(null)),
+      const cached = yield* redis.get<RedisJsonValue>(cacheKey).pipe(
+        Effect.catch(() => Effect.succeed(null)),
         Effect.annotateLogs({ category: 'cache', operation: 'get', key: cacheKey })
       );
       const parsed = parseCached(cached);
@@ -302,7 +308,7 @@ export function createCache<TParams, TCached, TData = TCached>(
         return mapResult(parsed);
       }
       // Auto-refresh on schema mismatch: raw exists but zod parse failed.
-      if (cached !== null && cached !== undefined) {
+      if (cached !== null) {
         yield* Effect.logWarning('cache parse failed - evicting stale key', {
           category: 'cache',
           operation: 'parseFail',
@@ -357,8 +363,8 @@ export function createCache<TParams, TCached, TData = TCached>(
         for (let poll = 0; poll < SINGLE_FLIGHT_MAX_POLLS; poll++) {
           yield* Effect.sleep(SINGLE_FLIGHT_POLL);
           const cached = yield* redis
-            .get<unknown>(cacheKey)
-            .pipe(Effect.catch(() => Effect.succeed<unknown>(null)));
+            .get<RedisJsonValue>(cacheKey)
+            .pipe(Effect.catch(() => Effect.succeed(null)));
           const parsed = parseCached(cached);
           if (parsed !== null) return mapResult(parsed);
 

@@ -51,7 +51,7 @@ export const loadSiteConfigInput = (): SharedConfigInput => {
 let _runtime: SiteRuntime | undefined;
 let _runners: SiteRunners | undefined;
 
-const getCached = (): { runtime: SiteRuntime; runners: SiteRunners } => {
+const getCached = () => {
   if (!_runtime || !_runners) {
     _runtime = makeSiteRuntime(loadSiteConfigInput());
     _runners = createRunners(_runtime);
@@ -113,7 +113,10 @@ export const runServerEffectNullable = async <A, E, R extends SiteRuntimeService
   const pretty = Cause.pretty(exit.cause);
   console.warn('[site] runServerEffectNullable: returning null (404)', {
     cause: pretty,
-    stack: (exit.cause as unknown as { stack?: string })?.stack
+    // SAFETY: `exit.cause` is an Effect `Cause` with no typed `stack` field; some
+    // runtime representations expose one, and reading it here is best-effort log
+    // output only — absence safely yields `undefined`.
+    stack: (exit.cause as { stack?: string }).stack
   });
   return null;
 };

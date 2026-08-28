@@ -110,7 +110,7 @@
   });
 
   const level_names = $derived.by(() => {
-    if (!selected_project_key || !project_map_q.isSuccess) return [] as string[];
+    if (!selected_project_key || !project_map_q.isSuccess) return [];
     const lvls = clamp_levels_for_route(get_levels_from_map(project_map_q.data));
     return get_level_names_from_map(project_map_q.data).slice(0, lvls);
   });
@@ -134,6 +134,8 @@
     if (levels === 1)
       return project_map?.info?.type === 'shloka' ? (project_map.info.total ?? 0) : 0;
     for (let i = 0; i < levels - 1; i++) if (!selected[i]) return 0;
+    // SAFETY: the loop above returns 0 when any of the first `levels - 1` entries is
+    // falsy, so the sliced (and reversed) entries are all numbers.
     const path_params = selected.slice(0, levels - 1).reverse() as number[];
     const node = get_node_at_path(project_map, path_params);
     if (!node || node.info.type !== 'shloka') return 0;

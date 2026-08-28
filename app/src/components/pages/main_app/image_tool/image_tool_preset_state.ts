@@ -34,9 +34,9 @@ import {
   image_tool_preset_config_schema,
   type ImageToolPresetConfig
 } from './image_tool_preset_schema';
-import type { shloka_number_type, NumberFontConfig } from './settings';
+import type { shloka_number_type, shloka_type_config, NumberFontConfig } from './settings';
 
-const shloka_configs_for_preset = (configs: Record<shloka_number_type, unknown>) => ({
+const shloka_configs_for_preset = (configs: Record<shloka_number_type, shloka_type_config>) => ({
   '1': configs[1],
   '2': configs[2],
   '3': configs[3],
@@ -44,9 +44,7 @@ const shloka_configs_for_preset = (configs: Record<shloka_number_type, unknown>)
   '5': configs[5]
 });
 
-const shloka_configs_from_preset = (
-  configs: ImageToolPresetConfig['shloka_configs']
-): Record<shloka_number_type, ImageToolPresetConfig['shloka_configs']['1']> => ({
+const shloka_configs_from_preset = (configs: ImageToolPresetConfig['shloka_configs']) => ({
   1: configs['1'],
   2: configs['2'],
   3: configs['3'],
@@ -105,21 +103,25 @@ export async function apply_image_tool_preset(
   shloka_configs.set(copy_plain_object(shloka_configs_from_preset(parsed.shloka_configs)));
   translation_bounding_coords.set(copy_plain_object(parsed.translation_bounding_coords));
   image_render_colors.set(copy_plain_object(parsed.image_render_colors));
+  // SAFETY: the preset schema stores font configs for every script except 'Normal', matching the store's runtime shape (DEFAULT_MAIN_TEXT_FONT_CONFIGS also omits 'Normal').
   main_text_font_configs.set(
     copy_plain_object(parsed.main_text_font_configs) as Parameters<
       typeof main_text_font_configs.set
     >[0]
   );
+  // SAFETY: parsed.normal_text_font_config comes from the zod schema with the same fields (defaults applied) as the store's ImageFontConfig value.
   normal_text_font_config.set(
     copy_plain_object(parsed.normal_text_font_config) as Parameters<
       typeof normal_text_font_config.set
     >[0]
   );
+  // SAFETY: parsed.trans_text_font_configs comes from the zod schema (every lang key, defaults applied) with the same per-script config shape the store holds.
   trans_text_font_configs.set(
     copy_plain_object(parsed.trans_text_font_configs) as Parameters<
       typeof trans_text_font_configs.set
     >[0]
   );
+  // SAFETY: presets persist font-picker keys, whose options are bundled fonts_type entries; the zod schema only validates them as strings.
   number_font_config.set(copy_plain_object(parsed.number_font_config) as NumberFontConfig);
   system_font_overrides.set(copy_plain_object(system_fonts));
   reset_image_drag_positions();

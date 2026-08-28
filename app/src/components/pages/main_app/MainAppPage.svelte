@@ -10,6 +10,7 @@
   import {
     LANG_LIST,
     LANG_LIST_IDS,
+    get_lang_from_id,
     get_script_for_lang_id,
     get_translation_slot_label,
     lang_list_obj,
@@ -65,7 +66,7 @@
   import { BsKeyboard } from 'svelte-icons-pack/bs';
   import { loadLocalConfig } from './load_local_config';
   import AiImageGenerator from './ai_image_tool/AIImageGenerator.svelte';
-  import { preloadScriptData, type ScriptLangType } from 'lipilekhika';
+  import { preloadScriptData } from 'lipilekhika';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Select from '$lib/components/ui/select';
@@ -111,7 +112,7 @@
 
   $effect(() => {
     // loading project map
-    project_map_q.data;
+    void project_map_q.data;
   });
 
   const session = useSession();
@@ -189,7 +190,9 @@
   const get_path_params_from_selected = (selected: (number | null)[], project_levels: number) => {
     const params = selected.slice(0, project_levels - 1).reverse();
     while (params.length && params[params.length - 1] == null) params.pop();
-    if (params.some((v) => v == null)) return [] as number[];
+    if (params.some((v) => v == null)) return [];
+    // SAFETY: the `some` check above returns early when any entry is null and all trailing
+    // nulls were popped, so `params` holds numbers only.
     return params as number[];
   };
 
@@ -249,6 +252,9 @@
       // viewing script should not be directly changed as the resoucres for that
       // language/script might not be loaded yet
       const args = params_viewing_script_mut_schema.parse(params);
+      // SAFETY: viewing_script_selection is only ever assigned script_list_type values
+      // (BASE_SCRIPT, the viewing-script Select options, or this mutation's validated result),
+      // so the z.string() payload is a valid script key.
       const script = args.script as script_list_type;
       if (!mounted) return script;
       await delay_dev(350);
@@ -272,7 +278,7 @@
   );
 
   const set_translation_slot_lang = async (slot: 0 | 1, lang_id: number | null) => {
-    const next = [...$selected_translation_lang_ids] as [number | null, number | null];
+    const next: [number | null, number | null] = [...$selected_translation_lang_ids];
     next[slot] = lang_id;
     $selected_translation_lang_ids = next;
 
@@ -331,9 +337,7 @@
       active_translation_lang_id !== lang_list_obj.English &&
       is_editing_translation($editing_mode)
     ) {
-      preloadScriptData(
-        LANG_LIST[LANG_LIST_IDS.indexOf(active_translation_lang_id)] as ScriptLangType
-      );
+      preloadScriptData(get_lang_from_id(active_translation_lang_id));
     }
   });
 
@@ -349,7 +353,7 @@
       transliterate_custom(
         ['राम्', 'राम'],
         BASE_SCRIPT,
-        LANG_LIST[LANG_LIST_IDS.indexOf(active_translation_lang_id!)] as ScriptLangType
+        get_lang_from_id(active_translation_lang_id!)
       ),
     placeholderData: ['राम्', 'राम']
   }));

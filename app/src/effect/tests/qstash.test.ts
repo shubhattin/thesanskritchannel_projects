@@ -21,9 +21,8 @@ describe('decodeQstashPayload', () => {
       })
     );
     expect(Exit.isSuccess(exit)).toBe(true);
-    if (Exit.isSuccess(exit)) {
-      expect(exit.value).toEqual({ batch_id: 'batch_abc', poll_attempt: 0 });
-    }
+    if (!Exit.isSuccess(exit)) throw new Error('expected a successful exit');
+    expect(exit.value).toEqual({ batch_id: 'batch_abc', poll_attempt: 0 });
   });
 
   it('fails with ValidationError for missing fields', async () => {

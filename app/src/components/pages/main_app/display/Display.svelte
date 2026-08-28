@@ -53,7 +53,7 @@
     invalidate_project_map_queries,
     trans_slot_data_q_options
   } from '~/state/main_app/data.svelte';
-  import { LANG_LIST, LANG_LIST_IDS, lang_list_obj, type lang_list_type } from '~/state/lang_list';
+  import { LANG_LIST, LANG_LIST_IDS, get_lang_from_id, lang_list_obj } from '~/state/lang_list';
   import { transliterate_custom } from '~/tools/converter';
   import { get_font_family_and_size } from '~/tools/font_tools';
   import Icon from '~/tools/Icon.svelte';
@@ -178,25 +178,17 @@
     active_translation_slot === 0 ? trans_slot_1_data_q : trans_slot_2_data_q
   );
   const active_translation_name = $derived(
-    active_translation_lang_id === null
-      ? ''
-      : (LANG_LIST[LANG_LIST_IDS.indexOf(active_translation_lang_id)] as lang_list_type)
+    active_translation_lang_id === null ? '' : get_lang_from_id(active_translation_lang_id)
   );
   const main_text_font_info = $derived(get_font_family_and_size($viewing_script));
   const first_trans_font_info = $derived(
-    get_font_family_and_size(
-      (LANG_LIST[LANG_LIST_IDS.indexOf($selected_translation_lang_ids[0] ?? -1)] ??
-        'English') as lang_list_type
-    )
+    get_font_family_and_size(get_lang_from_id($selected_translation_lang_ids[0] ?? -1) ?? 'English')
   );
   const second_trans_font_info = $derived(
-    get_font_family_and_size(
-      (LANG_LIST[LANG_LIST_IDS.indexOf($selected_translation_lang_ids[1] ?? -1)] ??
-        'English') as lang_list_type
-    )
+    get_font_family_and_size(get_lang_from_id($selected_translation_lang_ids[1] ?? -1) ?? 'English')
   );
   const active_trans_font_info = $derived(
-    get_font_family_and_size((active_translation_name || 'English') as lang_list_type)
+    get_font_family_and_size(active_translation_name || 'English')
   );
   const derived_shloka_nums = $derived.by(() => {
     let shloka_num = 0;
@@ -234,7 +226,7 @@
   });
   const text_typing_enabled = $derived($viewing_script === BASE_SCRIPT);
   // text_typing_ctx has no reactive deps — create once as a plain const
-  const text_typing_ctx = createTypingContext('Devanagari' as lang_list_type, {
+  const text_typing_ctx = createTypingContext('Devanagari', {
     includeInherentVowel: true
   });
 
@@ -242,14 +234,14 @@
   // but NOT via $derived (which would leak context objects on every reactive tick).
   let translation_typing_ctx = $state(
     createTypingContext(
-      untrack(() => (active_translation_name || 'Devanagari') as lang_list_type),
+      untrack(() => active_translation_name || 'Devanagari'),
       {
         includeInherentVowel: untrack(() => $sanskrit_mode !== 1)
       }
     )
   );
   watch([() => active_translation_name, () => $sanskrit_mode], ([name, sanskrit_mode]) => {
-    translation_typing_ctx = createTypingContext((name || 'Devanagari') as lang_list_type, {
+    translation_typing_ctx = createTypingContext(name || 'Devanagari', {
       includeInherentVowel: sanskrit_mode !== 1
     });
   });
@@ -761,7 +753,7 @@
     await tick();
     const card = document.querySelector(`[data-text-row-index="${index}"]`);
     card?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    (card?.querySelector('textarea') as HTMLTextAreaElement | null)?.focus();
+    card?.querySelector('textarea')?.focus();
   };
 
   const move_text_row_and_focus = async (from: number, to: number) => {
@@ -775,6 +767,8 @@
     if (!transfer) return;
     transfer.effectAllowed = 'move';
     transfer.setData('text/plain', String(index));
+    // SAFETY: this dragstart handler is attached to an HTMLElement text-row card, so the
+    // event's currentTarget is that element.
     const card = (event.currentTarget as HTMLElement).closest('[data-text-row-card]');
     if (card instanceof HTMLElement) {
       transfer.setDragImage(card, 24, 24);
@@ -909,6 +903,14 @@
           : ''
   );
 
+  /** Pure: success toast message for a completed dual (text + translation) save. */
+  const dual_save_success_message = (was_text_dirty: boolean, was_translation_dirty: boolean) =>
+    was_text_dirty && was_translation_dirty
+      ? 'Text and translation saved'
+      : was_text_dirty
+        ? 'Text saved'
+        : 'Translation saved';
+
   const confirm_save = async () => {
     if (pending_save_kind === 'text') {
       save_text_mut.mutate();
@@ -938,13 +940,7 @@
           : Promise.resolve()
       ]);
       save_dialog_open = false;
-      if (was_text_dirty && was_translation_dirty) {
-        toast.success('Text and translation saved');
-      } else if (was_text_dirty) {
-        toast.success('Text saved');
-      } else {
-        toast.success('Translation saved');
-      }
+      toast.success(dual_save_success_message(was_text_dirty, was_translation_dirty));
       close_editor();
     } catch {
       // Error toasts handled in mutation onError

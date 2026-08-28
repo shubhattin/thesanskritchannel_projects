@@ -270,12 +270,26 @@
     discard_translation_mut.variables?.batch_id === item.batch_id &&
     discard_translation_mut.variables?.custom_id === item.custom_id;
 
-  const format_batch_error = (error: unknown): string | null => {
+  /**
+   * Debug dump stored in a batch item's metadata `error` field. Batch workers write it via the
+   * `batchFailureError` helper as `{ reason, ...details }`; legacy rows may hold a plain
+   * message string.
+   */
+  type BatchErrorPayload = {
+    reason?: string;
+    message?: string;
+    openai_status?: string | number;
+    code?: string | number;
+  };
+  type BatchErrorDump = string | number | boolean | BatchErrorPayload;
+
+  const is_batch_error_payload = (dump: BatchErrorDump): dump is BatchErrorPayload =>
+    dump instanceof Object;
+
+  const format_batch_error = (error: BatchErrorDump | null | undefined): string | null => {
     if (error == null) return null;
-    if (typeof error === 'string') return error;
-    if (typeof error !== 'object') return String(error);
-    const e = error as Record<string, unknown>;
-    const parts = [e.reason, e.message, e.openai_status, e.code]
+    if (!is_batch_error_payload(error)) return String(error);
+    const parts = [error.reason, error.message, error.openai_status, error.code]
       .filter((v) => v != null && v !== '')
       .map(String);
     return parts.length > 0 ? parts.join(' · ') : null;

@@ -40,23 +40,23 @@
   const order_edit_mode = $derived(editor_mode === 'order');
   const delete_edit_mode = $derived(editor_mode === 'delete');
 
-  const kind_labels: Record<MapChangeKind, string> = {
+  const kind_labels = {
     rename: 'Rename',
     list_name_change: 'Label',
     expected_count_change: 'Count',
     reorder: 'Reorder',
     add_child: 'Add child',
     type_change: 'Convert type'
-  };
+  } satisfies Record<MapChangeKind, string>;
 
-  const kind_styles: Record<MapChangeKind, string> = {
+  const kind_styles = {
     rename: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
     list_name_change: 'bg-violet-500/15 text-violet-700 dark:text-violet-300',
     expected_count_change: 'bg-amber-500/15 text-amber-800 dark:text-amber-200',
     reorder: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
     add_child: 'bg-teal-500/15 text-teal-800 dark:text-teal-200',
     type_change: 'bg-rose-500/15 text-rose-800 dark:text-rose-200'
-  };
+  } satisfies Record<MapChangeKind, string>;
 
   const rows = $derived(active_diff_state.rows);
   const is_empty = $derived(

@@ -37,7 +37,7 @@ const edit_translation_input = z
 export const path_params_to_selected_text_levels = (
   path_params: number[],
   levels: number
-): (number | null)[] => path_params.slice(0, levels - 1).reverse() as (number | null)[];
+): (number | null)[] => path_params.slice(0, levels - 1).reverse();
 
 /**
  * Persist translation rows for a project path.
@@ -71,8 +71,10 @@ export async function persist_translations_for_path(args: {
   if (new Set(indexes).size !== indexes.length) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'indexes must be unique' });
   }
-  if (indexes.length === 0)
+  if (indexes.length === 0) {
+    // SAFETY: no indexes to persist — the empty array is a valid (number | null)[] selection.
     return { success: true as const, selected_text_levels: [] as (number | null)[] };
+  }
 
   const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
   const selected_text_levels = path_params_to_selected_text_levels(path_params, levels);

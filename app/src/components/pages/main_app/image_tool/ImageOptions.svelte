@@ -104,6 +104,7 @@
   let trans_text_available = $state(false);
 
   const image_lang_id = $derived($image_lang ?? lang_list_obj.English);
+  // SAFETY: LANG_LIST is Object.keys(lang_list) and LANG_LIST_IDS the parallel Object.values, so the element at indexOf(image_lang_id) is the matching lang_list_type key.
   const current_lang = $derived(LANG_LIST[LANG_LIST_IDS.indexOf(image_lang_id)] as lang_list_type);
 
   const shloka_typing_ctx = createTypingContext('Devanagari', {
@@ -281,8 +282,8 @@
   });
 
   $effect(() => {
-    $image_shloka;
-    $image_lang;
+    void $image_shloka;
+    void $image_lang;
     if (image_trans_data_q.isSuccess && image_trans_data_q.data) {
       const translation = image_trans_data_q.data.get($image_shloka) ?? '';
       trans_text_data = translation;

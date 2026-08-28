@@ -12,7 +12,8 @@ import {
   validateOrderRootPath,
   validateSwapEdits,
   validateSwapEditsRootScope,
-  validateSwapPair
+  validateSwapPair,
+  type PathSwapEdit
 } from './swap';
 import type { recursive_list_type } from '~/state/data_types';
 
@@ -71,7 +72,10 @@ describe('map_path_swap', () => {
   });
 
   it('rejects malformed swap entries', () => {
-    expect(validateSwapEdits([{ swap_paths: ['2:1', '2:3', '2:4'] as any }] as any)).toBe(
+    const swap_paths: string[] = ['2:1', '2:3', '2:4'];
+    // SAFETY: this test intentionally passes a 3-element `swap_paths` array (violating the `[string, string]` tuple contract) to verify the tuple-length rejection path; `validateSwapEdits` must report the tuple error at runtime.
+    const malformed_edits = [{ swap_paths }] as PathSwapEdit[];
+    expect(validateSwapEdits(malformed_edits)).toBe(
       'Swap 1: swap_paths must be a tuple of two paths'
     );
   });

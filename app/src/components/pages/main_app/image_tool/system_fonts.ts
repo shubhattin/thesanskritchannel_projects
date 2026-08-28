@@ -3,7 +3,14 @@ import { writable } from 'svelte/store';
 
 export type ImageSystemFontRole = 'main' | 'normal' | 'trans' | 'num_main' | 'num_norm';
 
-export type ImageSystemFontOverrides = Record<ImageSystemFontRole, string | null>;
+/** Named owner contract (kept structurally identical to the previous `Record` alias). */
+export interface ImageSystemFontOverrides {
+  main: string | null;
+  normal: string | null;
+  trans: string | null;
+  num_main: string | null;
+  num_norm: string | null;
+}
 
 export const EMPTY_SYSTEM_FONT_OVERRIDES: ImageSystemFontOverrides = {
   main: null,
@@ -13,7 +20,16 @@ export const EMPTY_SYSTEM_FONT_OVERRIDES: ImageSystemFontOverrides = {
   num_norm: null
 };
 
-export const SYSTEM_FONT_ROLE_LABELS: Record<ImageSystemFontRole, string> = {
+/** Named owner contract for the per-role labels below. */
+interface ImageSystemFontRoleLabels {
+  main: string;
+  normal: string;
+  trans: string;
+  num_main: string;
+  num_norm: string;
+}
+
+export const SYSTEM_FONT_ROLE_LABELS: ImageSystemFontRoleLabels = {
   main: 'Main text',
   normal: 'Normal text',
   trans: 'Translation',
@@ -21,6 +37,7 @@ export const SYSTEM_FONT_ROLE_LABELS: Record<ImageSystemFontRole, string> = {
   num_norm: 'Romanized number'
 };
 
+// SAFETY: EMPTY_SYSTEM_FONT_OVERRIDES has exactly one key per ImageSystemFontRole, so Object.keys yields exactly the role names.
 const SYSTEM_FONT_ROLES = Object.keys(EMPTY_SYSTEM_FONT_OVERRIDES) as ImageSystemFontRole[];
 
 let cached_system_fonts: string[] | null = null;

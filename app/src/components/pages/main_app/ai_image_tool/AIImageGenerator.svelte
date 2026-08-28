@@ -131,22 +131,24 @@
   type image_models_type = Parameters<typeof client.ai.gen_image.mutate>[0]['image_model'];
   let image_model: image_models_type = $state('gpt-image-2');
 
-  const IMAGE_MODEL_GEN_TIME_S: Record<image_models_type, number> = {
+  const IMAGE_MODEL_GEN_TIME_S = {
     'gpt-image-1': 30,
     'gpt-image-2': 40
-  };
+  } satisfies Record<image_models_type, number>;
 
-  const IMAGE_MODELS: Record<image_models_type, [string, string]> = {
+  const IMAGE_MODELS = {
     'gpt-image-2': ['GPT 2', '$0.053 (₹4.5) / image (medium 1024²)'],
     'gpt-image-1': ['GPT 1', '$0.042 (₹3.5) / image (medium 1024²)']
-  };
+  } satisfies Record<image_models_type, [string, string]>;
 
   $effect(() => {
-    !trans_en_data_q.isFetching &&
+    if (
+      !trans_en_data_q.isFetching &&
       trans_en_data_q.isSuccess &&
       !text_data_q.isFetching &&
-      text_data_q.isSuccess &&
-      (async () => {
+      text_data_q.isSuccess
+    )
+      void (async () => {
         const shloka_text = text_data_q.data![$index].text;
         let prompt = shloka_text;
         const trans_en_all = trans_en_data_q.data!;
@@ -156,8 +158,8 @@
   });
 
   $effect(() => {
-    $selected_text_levels;
-    $index;
+    void $selected_text_levels;
+    void $index;
     $image_prompt = '';
     generated_images = [];
   });
@@ -309,9 +311,7 @@
         selected_text_levels: $selected_text_levels,
         index: $index,
         model: selected_text_model,
-        ...(effective_custom_instruction
-          ? { custom_instruction: effective_custom_instruction }
-          : {})
+        custom_instruction: effective_custom_instruction
       });
     },
     enabled: false,
@@ -367,7 +367,7 @@
 
   let copied_text_status = $state(false);
   $effect(() => {
-    copied_text_status && setTimeout(() => (copied_text_status = false), 1400);
+    if (copied_text_status) setTimeout(() => (copied_text_status = false), 1400);
   });
   const copy_text_with_indicator = (text: string) => {
     copy_text_to_clipboard(text);

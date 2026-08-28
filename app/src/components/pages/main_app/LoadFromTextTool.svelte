@@ -121,13 +121,13 @@
   });
 
   $effect(() => {
-    import_text;
-    include_normal;
-    include_translation;
-    selected_lang_id;
-    save_mode;
-    selected_normalization_keys;
-    auto_mark_shlokas;
+    void import_text;
+    void include_normal;
+    void include_translation;
+    void selected_lang_id;
+    void save_mode;
+    void selected_normalization_keys;
+    void auto_mark_shlokas;
     reviewed_output = 'no';
   });
 

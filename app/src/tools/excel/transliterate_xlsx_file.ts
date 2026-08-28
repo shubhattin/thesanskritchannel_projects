@@ -29,6 +29,7 @@ export const transliterate_xlxs_file = async (
     if (sheets_to_process !== 'all' && !sheets_to_process.includes(i_worksheet + 1)) continue;
     const worksheet = workbook.worksheets[i_worksheet];
 
+    // SAFETY: `base_lang_code` is documented as a lipilekhika script name (default `'Sanskrit'`) and callers pass valid script codes; `preloadScriptData` requires the `ScriptLangType` brand.
     await preloadScriptData(base_lang_code as ScriptLangType);
 
     const lang_row = worksheet.getRow(lang_row_index);
@@ -45,9 +46,12 @@ export const transliterate_xlxs_file = async (
         const lang_split = cell.value!.toLocaleString().trim().split(' ');
         const lang_split_index = lang_split.map((lang) => LANG_LIST_IDS[LANG_LIST.indexOf(lang)]);
         const script_name = cell.value!.toLocaleString().trim().replaceAll(' ', ''); // trimming white spaces and
+        // SAFETY: the cell text may not be a valid script name, but `getNormalizedScriptName` validates it at runtime and returns `null`, which the check below handles — the assertion only supplies the `ScriptLangType` brand.
         const script_code = getNormalizedScriptName(script_name as ScriptLangType);
         if (script_code && script_code !== base_lang_code) {
+          // SAFETY: `getNormalizedScriptName` only returns canonical lipilekhika script names, which `preloadScriptData` accepts.
           await preloadScriptData(script_code as ScriptLangType);
+          // SAFETY: `base_lang_code` is documented as a lipilekhika script name (default `'Sanskrit'`) and callers pass valid script codes; `transliterate_custom` requires the `ScriptLangType` brand.
           const outs = await transliterate_custom(
             texts.map(([, text]) => text),
             base_lang_code as ScriptLangType,

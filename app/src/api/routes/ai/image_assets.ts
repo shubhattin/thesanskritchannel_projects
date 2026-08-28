@@ -1,5 +1,5 @@
 import { runTrpcEffect } from '~/effect/app_runtime.server';
-import { dbRun, dbTransaction } from '~/effect/database';
+import { dbRun } from '~/effect/database';
 import { Effect } from 'effect';
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
@@ -14,8 +14,6 @@ import { getPresignedDownloadUrls } from '~/utils/s3/upload_file.server';
 
 const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
   runTrpcEffect(dbRun(operation, run));
-const runTx = <A>(operation: string, run: Parameters<typeof dbTransaction<A>>[1]) =>
-  runTrpcEffect(dbTransaction(operation, run));
 
 const path_input_schema = z.object({
   project_id: z.int(),

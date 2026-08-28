@@ -16,6 +16,8 @@
   import { PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
   import { Skeleton } from '$lib/components/ui/skeleton';
 
+  // SAFETY: APP_SCOPE_IDENTIFIERS is keyed by the AppScopeEnum literals, so Object.keys
+  // yields exactly those members in declaration order.
   const scope_ids = Object.keys(APP_SCOPE_IDENTIFIERS) as AppScopeEnum[];
 
   let active_scope_tab = $state<AppScopeEnum>(APP_SCOPE_ID_PROJECT_PORTAL);
@@ -41,6 +43,8 @@
         credentials: 'include'
       });
       if (!res.ok) return [];
+      // SAFETY: /api/user/list_users is the better-auth admin list endpoint; its rows carry
+      // exactly the email/id/name/role/app_scopes fields declared in res_type above.
       const users = (await res.json()) as res_type;
       return users;
     },

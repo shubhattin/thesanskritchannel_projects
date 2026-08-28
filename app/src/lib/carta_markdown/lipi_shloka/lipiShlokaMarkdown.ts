@@ -17,10 +17,7 @@ export const LIPI_SHLOKA_BLOCK_RE = /<\s*lipi-shloka\b[^>]*>[\s\S]*?<\s*\/\s*lip
  * `<lipi-shloka>…</lipi-shloka>` corrupts formatting. Isolate each whole block behind an HTML comment
  * before `remark-stringify`, then restore verbatim afterward.
  */
-export function isolateLipiShlokaBlocksForRemarkFormat(markdown: string): {
-  text: string;
-  blocks: string[];
-} {
+export function isolateLipiShlokaBlocksForRemarkFormat(markdown: string) {
   LIPI_SHLOKA_BLOCK_RE.lastIndex = 0;
   const blocks: string[] = [];
   const text = markdown.replace(LIPI_SHLOKA_BLOCK_RE, (whole) => {

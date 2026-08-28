@@ -57,7 +57,8 @@ function getVimeoId(video_id_or_url: string) {
   const re =
     /(?:https?:)?\/\/(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\/[^/]*\/videos\/|album\/\d+\/video\/|video\/|)(\d+)/;
   const m = video_id_or_url.match(re);
-  return m && typeof m[1] === 'string' ? m[1] : video_id_or_url;
+  // `(\d+)` always captures at least one digit on a successful match, so m[1] is a non-empty id.
+  return m && m[1] ? m[1] : video_id_or_url;
 }
 
 function buildCartaStyleYoutubeBlock(video_id_or_url: string) {

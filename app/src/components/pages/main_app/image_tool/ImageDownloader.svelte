@@ -69,8 +69,8 @@
         img.src = BACKGROUND_IMAGE_URLS.normal;
         img.onload = () => {
           // Replace the background image node's image
-          const bg_image_node = bg_layer?.findOne('Image') as Konva.Image | undefined;
-          if (bg_image_node) bg_image_node.image(img);
+          const bg_image_node = bg_layer?.findOne('Image');
+          if (bg_image_node instanceof Konva.Image) bg_image_node.image(img);
           resolve();
         };
         img.onerror = () => resolve(); // fall through on error
@@ -96,8 +96,8 @@
       img.crossOrigin = 'anonymous';
       img.src = BACKGROUND_IMAGE_URLS.template;
       img.onload = () => {
-        const bg_image_node = bg_layer?.findOne('Image') as Konva.Image | undefined;
-        if (bg_image_node) bg_image_node.image(img);
+        const bg_image_node = bg_layer?.findOne('Image');
+        if (bg_image_node instanceof Konva.Image) bg_image_node.image(img);
         stage.batchDraw();
       };
     }

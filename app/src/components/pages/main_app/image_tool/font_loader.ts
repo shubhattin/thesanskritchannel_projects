@@ -57,10 +57,7 @@ export async function ensure_family_loaded(
  * Build font-load descriptors from the image tool's font config keys.
  * Variable fonts use numeric weights; static fonts map to normal/bold files.
  */
-export function get_font_load_descriptors(
-  font_key: keyof typeof FONT_FAMILY_NAME,
-  weight: number
-): { family: string; weight: FontWeight; font_key: fonts_type } {
+export function get_font_load_descriptors(font_key: keyof typeof FONT_FAMILY_NAME, weight: number) {
   return {
     family: FONT_FAMILY_NAME[font_key],
     weight: weight_to_font_api(font_key, weight),

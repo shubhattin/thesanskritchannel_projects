@@ -13,13 +13,12 @@ import {
 import { resolveOpenRouterTextModel, text_model_custom_options } from './providers';
 import type { AiProvider } from '~/effect/ai';
 
-type translation_prompt_yaml_type = Record<
-  'English' | 'Sanskrit' | 'Other',
-  {
+type translation_prompt_yaml_type = {
+  [K in 'English' | 'Sanskrit' | 'Other']: {
     system_prompt: string;
     user_msg: string;
-  }
->;
+  };
+};
 
 const translation_prompt_langs: translation_prompt_yaml_type = {
   English: {

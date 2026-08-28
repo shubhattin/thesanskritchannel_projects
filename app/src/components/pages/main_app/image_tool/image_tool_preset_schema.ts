@@ -12,6 +12,7 @@ export const IMAGE_TOOL_PRESET_DB_PREFIX = 'image_tool_preset:';
 export const BUILTIN_IMAGE_TOOL_PRESET_ID = '__builtin_default__';
 export const BUILTIN_IMAGE_TOOL_PRESET_NAME = 'Default';
 
+// SAFETY: SCRIPT_LIST is a non-empty constant script list containing several entries besides 'Normal', so the filtered result is a non-empty tuple as required by z.enum.
 const MAIN_SCRIPT_KEYS = SCRIPT_LIST.filter((s) => s !== 'Normal') as [string, ...string[]];
 
 export const to_db_key = (name: string) => `${IMAGE_TOOL_PRESET_DB_PREFIX}${name}`;
@@ -123,6 +124,7 @@ const system_font_overrides_schema = z.object({
 });
 
 const main_script_enum = z.enum(MAIN_SCRIPT_KEYS);
+// SAFETY: LANG_LIST is Object.keys(langs.json's lang_list), a non-empty constant list, so it satisfies z.enum's non-empty tuple requirement.
 const lang_enum = z.enum(LANG_LIST as [string, ...string[]]);
 
 export const image_tool_preset_config_schema = z.object({

@@ -8,7 +8,7 @@ export const CUSTOM_TRANS_OPTIONS = {
   'all_to_normal:replace_avagraha_with_a': true,
   'all_to_normal:replace_pancham_varga_varna_with_n': true,
   'all_to_sinhala:use_conjunct_enabling_halant': true
-} as TransliterationOptions;
+} satisfies TransliterationOptions;
 
 /**
  * Scripts in which option `brahmic_to_brahmic:replace_pancham_varga_varna_with_anusvAra`

@@ -32,6 +32,10 @@ if (entry?.data.draft === true) {
   entry = void 0;
 }
 
+// SAFETY: `entry` is a live `lekha` entry returned by `getLiveEntry` above, so its
+// `data`/`rendered` already match the collection shape; adding `collection: 'lekha'`
+// adapts it to `render`'s entry parameter, which the generated `DataEntryMap` types
+// do not express for live collections.
 const rendered = entry
   ? await render({ ...entry, collection: 'lekha' } as Parameters<typeof render>[0])
   : null;

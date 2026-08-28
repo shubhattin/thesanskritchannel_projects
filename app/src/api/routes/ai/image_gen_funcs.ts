@@ -12,7 +12,9 @@ const IMAGE_SIZE = '1024x1024' as const;
 
 type image_model_type = z.infer<typeof image_gen_route_schema.input>['image_model'];
 
-const IMAGE_QUALITY: Record<image_model_type, 'low' | 'medium' | 'high'> = {
+type ImageQualityByModel = { [M in image_model_type]: 'low' | 'medium' | 'high' };
+
+const IMAGE_QUALITY: ImageQualityByModel = {
   'gpt-image-1': 'medium',
   'gpt-image-2': 'medium'
 };

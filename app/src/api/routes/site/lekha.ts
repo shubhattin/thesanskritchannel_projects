@@ -115,7 +115,7 @@ const edit_lekha_route = protectedAdminProcedure
         const lekha = yield* dbRun('lekha.edit.update', (db) =>
           db
             .update(site_lekhas)
-            .set({ ...normalized, ...(setPublishedNow ? { published_at: new Date() } : {}) })
+            .set(setPublishedNow ? { ...normalized, published_at: new Date() } : normalized)
             .where(eq(site_lekhas.id, id))
             .returning()
         );

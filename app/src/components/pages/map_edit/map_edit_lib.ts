@@ -171,6 +171,7 @@ export const format_path_resolved_label = (map: MapNodeWithClientId, path: MapPa
 export const map_path_to_db_path = (path: MapPath): string => path.join(':');
 
 export const clone_recursive_list = (node: recursive_list_type): recursive_list_type =>
+  // SAFETY: node is a plain JSON-serializable value and the JSON round-trip preserves its shape (same convention as copy_plain_object).
   JSON.parse(JSON.stringify(node)) as recursive_list_type;
 
 export const clone_baseline_snapshots = (snapshots: Map<string, BaselineNodeSnapshot>) =>
@@ -179,6 +180,7 @@ export const clone_baseline_snapshots = (snapshots: Map<string, BaselineNodeSnap
       id,
       {
         ...snap,
+        // SAFETY: snap.info is a plain JSON-serializable value and the JSON round-trip preserves its shape (same convention as copy_plain_object).
         info: JSON.parse(JSON.stringify(snap.info)) as BaselineNodeSnapshot['info']
       }
     ])
@@ -194,6 +196,7 @@ export const clone_map_with_client_ids = (
   snapshots: Map<string, BaselineNodeSnapshot>
 ): MapNodeWithClientId => {
   const clientId = new_client_id();
+  // SAFETY: node.info is a plain JSON-serializable value and the JSON round-trip preserves its shape (same convention as copy_plain_object).
   snapshots.set(clientId, {
     name_dev: node.name_dev,
     info: JSON.parse(JSON.stringify(node.info)) as recursive_list_type['info'],
@@ -201,6 +204,7 @@ export const clone_map_with_client_ids = (
     parentClientId
   });
   const list = node.list ?? [];
+  // SAFETY: node.info is a plain JSON-serializable value and the JSON round-trip preserves its shape (same convention as copy_plain_object).
   return {
     name_dev: node.name_dev,
     info: JSON.parse(JSON.stringify(node.info)) as recursive_list_type['info'],
@@ -211,6 +215,7 @@ export const clone_map_with_client_ids = (
 
 export const strip_client_ids = (node: MapNodeWithClientId): recursive_list_type => {
   const { [MAP_EDIT_CLIENT_ID]: _id, list, ...rest } = node;
+  // SAFETY: children of a working-map node are built by clone_map_with_client_ids, so each `list` entry also carries the optional client-id key despite its recursive_list_type static type.
   return {
     ...rest,
     list: (list ?? []).map((child) => strip_client_ids(child as MapNodeWithClientId))
@@ -221,6 +226,7 @@ export const strip_client_ids = (node: MapNodeWithClientId): recursive_list_type
 export const clone_working_map = (node: MapNodeWithClientId): MapNodeWithClientId => {
   const clientId = node[MAP_EDIT_CLIENT_ID];
   const children = node.list ?? [];
+  // SAFETY: node.info is a plain JSON-serializable value whose JSON round-trip preserves its shape, and `list` children of a working-map node carry the client-id key (both assigned by clone_map_with_client_ids).
   const cloned: MapNodeWithClientId = {
     name_dev: node.name_dev,
     info: JSON.parse(JSON.stringify(node.info)) as recursive_list_type['info'],
@@ -243,6 +249,7 @@ export const get_node_at_map_path = (
     if (node.info.type !== 'list') return null;
     const list = node.list ?? [];
     if (!(sel >= 1 && sel <= list.length)) return null;
+    // SAFETY: children of a working-map node carry the optional client-id key (assigned by clone_map_with_client_ids), so the list entry is a MapNodeWithClientId.
     node = list[sel - 1]! as MapNodeWithClientId;
   }
   return node;
@@ -403,6 +410,7 @@ export const build_tree_rows = (
     if (node.info.type === 'list') {
       list.forEach((child, i) => {
         const childRel = relPath === '' ? String(i + 1) : `${relPath}.${i + 1}`;
+        // SAFETY: children of a working-map node carry the optional client-id key (assigned by clone_map_with_client_ids).
         walk(child as MapNodeWithClientId, childRel, false);
       });
     }
@@ -441,6 +449,7 @@ export const compute_map_edit_diff = (
       });
       if (node.info.type === 'list') {
         (node.list ?? []).forEach((child, i) => {
+          // SAFETY: working-map children carry the optional client-id key (assigned by clone_map_with_client_ids).
           walk(child as MapNodeWithClientId, [...path, i + 1]);
         });
       }
@@ -533,6 +542,7 @@ export const compute_map_edit_diff = (
 
     if (node.info.type === 'list') {
       (node.list ?? []).forEach((child, i) => {
+        // SAFETY: working-map children carry the optional client-id key (assigned by clone_map_with_client_ids).
         walk(child as MapNodeWithClientId, [...path, i + 1]);
       });
     }
@@ -625,6 +635,7 @@ export const collect_unsaved_added_db_paths = (
     }
     if (node.info.type === 'list') {
       (node.list ?? []).forEach((child, index) => {
+        // SAFETY: working-map children carry the optional client-id key (assigned by clone_map_with_client_ids).
         walk(child as MapNodeWithClientId, [...path, index + 1]);
       });
     }
@@ -640,6 +651,7 @@ export const find_node_by_client_id = (
   if (root[MAP_EDIT_CLIENT_ID] === clientId) return root;
   if (root.info.type !== 'list') return null;
   for (const child of root.list ?? []) {
+    // SAFETY: working-map children carry the optional client-id key (assigned by clone_map_with_client_ids).
     const found = find_node_by_client_id(child as MapNodeWithClientId, clientId);
     if (found) return found;
   }
@@ -655,6 +667,7 @@ export const find_path_by_client_id = (
   if (root.info.type !== 'list') return null;
   const list = root.list ?? [];
   for (let i = 0; i < list.length; i++) {
+    // SAFETY: working-map children carry the optional client-id key (assigned by clone_map_with_client_ids).
     const found = find_path_by_client_id(list[i]! as MapNodeWithClientId, clientId, [
       ...path,
       i + 1
@@ -730,6 +743,7 @@ const collect_client_ids = (root: MapNodeWithClientId): Set<string> => {
     const clientId = node[MAP_EDIT_CLIENT_ID];
     if (clientId) ids.add(clientId);
     if (node.info.type === 'list') {
+      // SAFETY: working-map children carry the optional client-id key (assigned by clone_map_with_client_ids).
       (node.list ?? []).forEach((child) => walk(child as MapNodeWithClientId));
     }
   };
@@ -753,6 +767,7 @@ export const collect_deleted_paths_from_entry = (
     }
     if (entryNode.info.type === 'list') {
       (entryNode.list ?? []).forEach((child, i) => {
+        // SAFETY: working-map children carry the optional client-id key (assigned by clone_map_with_client_ids).
         walk(child as MapNodeWithClientId, [...p, i + 1]);
       });
     }
@@ -799,6 +814,7 @@ export const expand_terminal_deleted_paths = (
       return;
     }
     children.forEach((child, i) => {
+      // SAFETY: entry-map children carry the optional client-id key (assigned by clone_map_with_client_ids).
       walk(child as MapNodeWithClientId, [...path, i + 1]);
     });
   };

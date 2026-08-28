@@ -3,6 +3,15 @@ import { Redis, type SetCommandOptions } from '@upstash/redis';
 import { SharedConfig } from './config';
 import { RedisError } from './errors';
 
+/** JSON value as stored / read over the Upstash REST wire format. */
+export type RedisJsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | RedisJsonValue[]
+  | { [key: string]: RedisJsonValue };
+
 const tryRedis = <A>(operation: string, run: () => Promise<A>) =>
   Effect.tryPromise({
     try: run,
@@ -43,7 +52,7 @@ export class RedisClient extends Context.Service<
     readonly get: <T = unknown>(key: string) => Effect.Effect<T | null, RedisError>;
     readonly set: (
       key: string,
-      value: unknown,
+      value: RedisJsonValue,
       options?: SetCommandOptions
     ) => Effect.Effect<unknown, RedisError>;
     readonly del: (...keys: string[]) => Effect.Effect<number, RedisError>;
@@ -68,7 +77,7 @@ export class RedisClient extends Context.Service<
 
       return {
         get: <T = unknown>(key: string) => tryRedis('get', () => redis.get<T>(key)),
-        set: (key: string, value: unknown, options?: SetCommandOptions) =>
+        set: (key: string, value: RedisJsonValue, options?: SetCommandOptions) =>
           tryRedis('set', () => (options ? redis.set(key, value, options) : redis.set(key, value))),
         del: (...keys: string[]) => tryRedis('del', () => redis.del(...keys)),
         incr: (key: string) => tryRedis('incr', () => redis.incr(key)),
@@ -77,7 +86,8 @@ export class RedisClient extends Context.Service<
         deleteKeysWithPattern: (pattern: string) =>
           tryRedis('deleteKeysWithPattern', async () => {
             const deleted = await redis.eval(DELETE_KEYS_WITH_PATTERN, [], [pattern]);
-            return typeof deleted === 'number' ? deleted : Number(deleted);
+            // Number() is the identity on numbers and the same fallback the typeof branch applied.
+            return Number(deleted);
           }),
         getKeysWithPattern: (pattern: string) =>
           tryRedis('getKeysWithPattern', async () => {

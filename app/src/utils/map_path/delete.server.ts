@@ -54,8 +54,10 @@ export function validateDeletedPathsInMap(
   return null;
 }
 
-export const clone_recursive_map = (node: recursive_list_type): recursive_list_type =>
-  JSON.parse(JSON.stringify(node)) as recursive_list_type;
+export const clone_recursive_map = (node: recursive_list_type): recursive_list_type => {
+  // SAFETY: the saved map is JSON-serializable, and a JSON round-trip preserves its `recursive_list_type` structure.
+  return JSON.parse(JSON.stringify(node)) as recursive_list_type;
+};
 
 /** Removes one node; returns null for project root or invalid paths. */
 export function remove_node_at_saved_map_path(

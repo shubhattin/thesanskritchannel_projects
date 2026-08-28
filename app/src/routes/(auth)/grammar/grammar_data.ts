@@ -22,7 +22,7 @@ export const MODELS_LIST = [
   'gemini-2.5-flash'
 ] as const;
 export type models_list_type = (typeof MODELS_LIST)[number];
-export const MODEL_NAMES: Record<models_list_type, string> = {
+export const MODEL_NAMES = {
   'gpt-4.1': 'GPT-4.1',
   'gpt-4.1-mini': 'GPT-4.1 Mini',
   'gpt-4.1-nano': 'GPT-4.1 Nano',
@@ -31,4 +31,4 @@ export const MODEL_NAMES: Record<models_list_type, string> = {
   'gpt-5-nano': 'GPT-5 Nano',
   'gemini-2.0-flash': 'Gemini 2.0 Flash',
   'gemini-2.5-flash': 'Gemini 2.5 Flash'
-} as const;
+} as const satisfies Record<models_list_type, string>;

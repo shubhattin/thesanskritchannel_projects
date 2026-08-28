@@ -127,6 +127,9 @@ type ProjectInfoEffect = Effect.Effect<
   ProjectCacheEnv
 >;
 
+/** Mutable holder so error cleanup can compare against the currently cached effect. */
+type ProjectInfoEffectHolder = { current: ProjectInfoEffect | null };
+
 type ProjectInfoCacheEntry = {
   value: ProjectInfoEffect | null;
   fetchedAt: number;
@@ -379,7 +382,7 @@ export const getProjectInfoByKey = Effect.fn('getProjectInfoByKey')(function* (k
   }
   if (cached) project_info_cache.delete(key);
 
-  const held: { current: ProjectInfoEffect | null } = { current: null };
+  const held: ProjectInfoEffectHolder = { current: null };
 
   const fetchEffect = yield* Effect.cached(
     Effect.gen(function* () {

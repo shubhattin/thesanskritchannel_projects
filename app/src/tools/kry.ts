@@ -71,6 +71,7 @@ export function dataURLToBlob(dataURL: string) {
 }
 
 export function copy_plain_object<T>(obj: T) {
+  // SAFETY: `obj` is a plain, JSON-serializable value, and a JSON round-trip preserves its shape, so the clone has the same type T.
   return JSON.parse(JSON.stringify(obj)) as T;
 }
 
@@ -95,7 +96,7 @@ export function get_permutations(range: [number, number], count: number = 1): nu
 /**
  * This replaces `{key}` with the corresponding value in `options`
  */
-export function format_string_text(text: string, options: Record<string, any>) {
+export function format_string_text(text: string, options: Record<string, string>) {
   return text.replace(/{(\w+)}/g, (match, key) => options[key] ?? `{${key}}`);
 }
 
@@ -136,6 +137,32 @@ export function mask_email(
 }
 
 /**
+ * Domain of values `deepCopy` can clone or pass through: primitives, JSON-like structures,
+ * the specially-handled built-ins, and functions. Exotic objects (class instances) are
+ * returned by reference, so callers must not rely on them being structurally described here.
+ */
+type CloneableValue =
+  | string
+  | number
+  | bigint
+  | boolean
+  | undefined
+  | null
+  | CloneableValue[]
+  | { [key: string]: CloneableValue }
+  | Date
+  | Map<CloneableValue, CloneableValue>
+  | Set<CloneableValue>
+  | ((...args: never[]) => void);
+
+/** Object whose prototype is `Object.prototype` (excludes null-prototype objects and class instances). */
+function is_plain_object<T extends object>(
+  value: T
+): value is T & { [key: string]: CloneableValue } {
+  return Object.getPrototypeOf(value) === Object.prototype;
+}
+
+/**
  * Deeply clones a value of type T.
  * - Primitives are returned as-is.
  * - Arrays and plain objects are recursively cloned.
@@ -143,47 +170,48 @@ export function mask_email(
  * - Other objects (e.g. functions, class instances) are returned by reference.
  */
 export function deepCopy<T>(value: T): T {
-  // Primitives (and functions) are returned directly
-  if (value === null || typeof value !== 'object') {
-    return value;
-  }
   // Date
   if (value instanceof Date) {
-    return new Date(value.getTime()) as any;
+    // SAFETY: `value` is a `Date` and `T` is the value's runtime type by deepCopy's contract, so a fresh `Date` with the same timestamp is still a `T`.
+    return new Date(value.getTime()) as T;
   }
   // Array
   if (Array.isArray(value)) {
-    const arrCopy = [] as unknown[];
+    const arrCopy: unknown[] = [];
     for (const item of value) {
       arrCopy.push(deepCopy(item));
     }
-    return arrCopy as any;
+    // SAFETY: `value` is an `Array` and `T` is its runtime type; the copy holds deep-cloned elements so it has the same element type as `T`.
+    return arrCopy as T;
   }
   // Map
   if (value instanceof Map) {
-    const mapCopy = new Map();
+    const mapCopy = new Map<unknown, unknown>();
     for (const [k, v] of value.entries()) {
       mapCopy.set(deepCopy(k), deepCopy(v));
     }
-    return mapCopy as any;
+    // SAFETY: `value` is a `Map` and `T` is its runtime type; the copy holds deep-cloned keys/values so it matches `T`.
+    return mapCopy as T;
   }
   // Set
   if (value instanceof Set) {
-    const setCopy = new Set();
+    const setCopy = new Set<unknown>();
     for (const v of value.values()) {
       setCopy.add(deepCopy(v));
     }
-    return setCopy as any;
+    // SAFETY: `value` is a `Set` and `T` is its runtime type; the copy holds deep-cloned values so it matches `T`.
+    return setCopy as T;
   }
-  // Plain Object
-  if (Object.getPrototypeOf(value) === Object.prototype) {
-    const objCopy: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      objCopy[k] = deepCopy(v);
+  // Plain Object — primitives and `null` fail `instanceof Object` and fall through to the return below, as before
+  if (value instanceof Object && is_plain_object(value)) {
+    const copied_entries = new Map<string, CloneableValue>();
+    for (const [k, v] of Object.entries(value)) {
+      copied_entries.set(k, deepCopy(v));
     }
-    return objCopy as T;
+    // SAFETY: `value` is a plain object and `T` is its runtime shape; `Object.fromEntries` rebuilds a plain object with each key mapped to its deep clone, preserving that shape and key order.
+    return Object.fromEntries(copied_entries) as T;
   }
-  // Fallback: other object types (class instances, functions, etc.)
+  // Fallback: primitives, functions, and other object types (class instances, etc.) are returned as-is
   return value;
 }
 

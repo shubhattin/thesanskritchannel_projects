@@ -6,7 +6,12 @@ export type page_title_info_type = {
   classes: string;
 };
 
-export const STATIC_PAGE_TITLES: Record<string, page_title_info_type> = {
+/** Named owner contract (kept structurally identical to the previous `Record` annotation). */
+export interface static_page_titles_map {
+  [pathname: string]: page_title_info_type;
+}
+
+export const STATIC_PAGE_TITLES: static_page_titles_map = {
   '/login': {
     title: 'Login',
     classes: 'text-xl font-bold'

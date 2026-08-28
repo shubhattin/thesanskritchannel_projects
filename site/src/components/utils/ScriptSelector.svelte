@@ -21,7 +21,7 @@
   /**
    * This script is used both for categorization and custom ordering of scripts.
    */
-  const scripts: Record<script_list_type, keyof typeof CATEGORIES> = {
+  const scripts = {
     Devanagari: 'modern',
     Telugu: 'modern',
     Tamil: 'modern',
@@ -44,7 +44,7 @@
     Modi: 'ancient',
     Siddham: 'ancient'
     // 'Purna-Devanagari' clipped/removed as instructed
-  };
+  } satisfies Record<script_list_type, keyof typeof CATEGORIES>;
 </script>
 
 <Select.Root

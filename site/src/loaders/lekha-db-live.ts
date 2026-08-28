@@ -11,7 +11,7 @@ function script_from_id(script_id: number | undefined): script_list_type {
   const id = script_id ?? DEFAULT_SCRIPT_ID;
   const s = get_script_from_id(id);
   const fallback = get_script_from_id(DEFAULT_SCRIPT_ID);
-  return (s ?? fallback ?? 'Devanagari') as script_list_type;
+  return s ?? fallback ?? 'Devanagari';
 }
 
 /** Indicators which tell if Script change component is needed */
@@ -19,11 +19,14 @@ const SCRIPT_INDICATORS = ['<lipi>', '<lipi-shloka>'] as const;
 
 export type LekhaLiveEntryFilter = { id: string; scriptId?: number };
 
-export function lekhaDbLiveLoader(): LiveLoader<
-  Record<string, unknown>,
-  LekhaLiveEntryFilter,
-  never
-> {
+/**
+ * Entry data contract derived from the shared cache loader's list rows
+ * (full entry rows remain assignable since they only add `content`).
+ */
+const fetch_lekha_list_rows = () => runServerEffect(CACHE.site_lekha_list.get(NO_CACHE_PARAMS));
+export type LekhaLiveEntryData = Awaited<ReturnType<typeof fetch_lekha_list_rows>>[number];
+
+export function lekhaDbLiveLoader(): LiveLoader<LekhaLiveEntryData, LekhaLiveEntryFilter, never> {
   return {
     name: 'lekha-db-live',
     loadCollection: async () => {

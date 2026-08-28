@@ -29,7 +29,10 @@ export const REDIS_CACHE_KEYS_CLIENT = {
   }
 };
 
-export const REDIS_CACHES_ARGUMENTS_LIST: Record<keyof typeof REDIS_CACHE_KEYS_CLIENT, string[]> = {
+/** Argument names for every redis cache key builder, keyed by the builder name. */
+type RedisCacheArguments = { [K in keyof typeof REDIS_CACHE_KEYS_CLIENT]: string[] };
+
+export const REDIS_CACHES_ARGUMENTS_LIST: RedisCacheArguments = {
   user_project_info: ['user_id', 'project_id'],
   text_data: ['project_id', 'path_params'],
   translation: ['project_id', 'lang_id', 'path_params'],

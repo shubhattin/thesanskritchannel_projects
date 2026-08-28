@@ -29,11 +29,11 @@
   let sheet_number = $state('0');
 
   const get_lang_code_of_columnn = (worksheet: Worksheet, column_i: number) => {
-    const lang = getNormalizedScriptName(
-      (worksheet.getCell(1, column_i + 1).value?.toLocaleString() ?? '').split(
-        ' '
-      )[0] as ScriptLangType
-    ) as script_and_lang_list_type;
+    const header = (worksheet.getCell(1, column_i + 1).value?.toLocaleString() ?? '').split(' ')[0];
+    // SAFETY: the header cell text may be any string; getNormalizedScriptName validates it against
+    // the script registry (null for unknown names). The result feeds font lookup only, whose
+    // script_and_lang_list_type domain the existing call site already assumes.
+    const lang = getNormalizedScriptName(header as ScriptLangType) as script_and_lang_list_type;
     return lang || '';
   };
 

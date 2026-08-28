@@ -2,8 +2,7 @@
   import * as Tooltip from '$lib/components/ui/tooltip';
   import {
     format_path_resolved_label,
-    format_path_short_label,
-    type MapNodeWithClientId
+    format_path_short_label
   } from '~/components/pages/map_edit/map_edit_lib';
   import type { recursive_list_type } from '~/state/data_types';
   import { dbPathToPathParams } from '~/utils/map_path/swap';
@@ -18,9 +17,7 @@
 
   const path_params = $derived(!db_path ? [] : dbPathToPathParams(db_path));
   const short = $derived(format_path_short_label(path_params));
-  const resolved = $derived(
-    map ? format_path_resolved_label(map as MapNodeWithClientId, path_params) : short
-  );
+  const resolved = $derived(map ? format_path_resolved_label(map, path_params) : short);
 </script>
 
 <Tooltip.Root>

@@ -180,6 +180,7 @@ describe('map_edit_lib normal-mode structure edits', () => {
 
   it('detects childless shloka to list conversion', () => {
     const { working, snapshots } = setup_working();
+    // SAFETY: setup_working builds the map at path [2], so get_node_at_map_path never returns null here.
     const node = get_node_at_map_path(working, [2]) as MapNodeWithClientId;
     node.info = { type: 'list', list_name: 'Section', list_count_expected: null };
     node.list = [];
@@ -191,6 +192,7 @@ describe('map_edit_lib normal-mode structure edits', () => {
 
   it('detects childless list to shloka conversion', () => {
     const { working, snapshots } = setup_working();
+    // SAFETY: setup_working builds the map at path [1], so get_node_at_map_path never returns null here.
     const node = get_node_at_map_path(working, [1]) as MapNodeWithClientId;
     node.info = { type: 'shloka', shloka_count: 0, total: 0, shloka_count_expected: null };
     node.list = [];
@@ -229,6 +231,7 @@ describe('map_edit_lib normal-mode structure edits', () => {
     };
     const snapshots = new Map<string, BaselineNodeSnapshot>();
     const working = clone_map_with_client_ids(map, null, 0, snapshots);
+    // SAFETY: the map literal above has a node at path [3, 4, 3], so get_node_at_map_path never returns null here.
     const node = get_node_at_map_path(working, [3, 4, 3]) as MapNodeWithClientId;
     apply_map_edit_shloka_defaults(node);
 
@@ -255,6 +258,7 @@ describe('map_edit_lib normal-mode structure edits', () => {
       ]
     };
     const working = clone_map_with_client_ids(map, null, 0, snapshots);
+    // SAFETY: the map literal above has a node at path [1], so get_node_at_map_path never returns null here.
     apply_map_edit_list_defaults(get_node_at_map_path(working, [1]) as MapNodeWithClientId);
     expect(get_node_at_map_path(working, [1])?.name_dev).toBe('नवसूची');
 
@@ -276,6 +280,7 @@ describe('map_edit_lib normal-mode structure edits', () => {
       ]
     };
     const working = clone_map_with_client_ids(map, null, 0, snapshots);
+    // SAFETY: the map literal above has a node at path [1], so get_node_at_map_path never returns null here.
     apply_map_edit_shloka_defaults(get_node_at_map_path(working, [1]) as MapNodeWithClientId);
     expect(get_node_at_map_path(working, [1])?.name_dev).toBe('तैत्तिरीयक');
   });

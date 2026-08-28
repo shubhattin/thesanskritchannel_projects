@@ -131,15 +131,15 @@
   type image_models_type = Parameters<typeof client.ai.gen_image.mutate>[0]['image_model'];
   let image_model: image_models_type = $state('gpt-image-2');
 
-  const IMAGE_MODEL_GEN_TIME_S: Record<image_models_type, number> = {
+  const IMAGE_MODEL_GEN_TIME_S = {
     'gpt-image-1': 30,
     'gpt-image-2': 40
-  };
+  } satisfies Record<image_models_type, number>;
 
-  const IMAGE_MODELS: Record<image_models_type, [string, string]> = {
+  const IMAGE_MODELS = {
     'gpt-image-2': ['GPT 2', '$0.053 (₹4.5) / image (medium 1024²)'],
     'gpt-image-1': ['GPT 1', '$0.042 (₹3.5) / image (medium 1024²)']
-  };
+  } satisfies Record<image_models_type, [string, string]>;
 
   $effect(() => {
     if (
@@ -311,9 +311,7 @@
         selected_text_levels: $selected_text_levels,
         index: $index,
         model: selected_text_model,
-        ...(effective_custom_instruction
-          ? { custom_instruction: effective_custom_instruction }
-          : {})
+        custom_instruction: effective_custom_instruction
       });
     },
     enabled: false,

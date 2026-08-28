@@ -14,7 +14,7 @@ import {
   resolveDbUrl,
   type AppConfigInput,
   type AppPublicConfigInput,
-  type AppPublicConfigShape
+  type AppPublicConfigValue
 } from './config';
 import { envString, parseOptionalBoolean, pickEnv, type EnvBag } from './env';
 import { createRunners, type EffectRunners } from './run';
@@ -39,34 +39,38 @@ const publicBag = (): EnvBag => ({
 
 const get = () => pickEnv(publicBag(), env);
 
+/** Empty-string default keeps the config Schema optional-string fields satisfied. */
+const orEmpty = (value: string | undefined): string => value ?? '';
+
 export const loadAppConfigInput = (): AppConfigInput => {
   const v = get();
   return {
-    dbUrl:
+    dbUrl: orEmpty(
       resolveDbUrl({
         DB_MODE: v('DB_MODE'),
         PG_DATABASE_URL: v('PG_DATABASE_URL'),
         PG_DATABASE_URL1: v('PG_DATABASE_URL1'),
         PG_DATABASE_URL2: v('PG_DATABASE_URL2')
-      }) ?? '',
-    upstashRedisUrl: v('UPSTASH_REDIS_REST_URL') ?? '',
-    upstashRedisToken: v('UPSTASH_REDIS_REST_TOKEN') ?? '',
-    betterAuthUrl: v('PUBLIC_BETTER_AUTH_URL') ?? '',
+      })
+    ),
+    upstashRedisUrl: orEmpty(v('UPSTASH_REDIS_REST_URL')),
+    upstashRedisToken: orEmpty(v('UPSTASH_REDIS_REST_TOKEN')),
+    betterAuthUrl: orEmpty(v('PUBLIC_BETTER_AUTH_URL')),
     isDev: import.meta.env.DEV,
     isProd: import.meta.env.PROD,
-    awsRegion: v('AWS_REGION') ?? '',
-    awsAccessKeyId: v('AWS_ACCESS_KEY_ID') ?? '',
-    awsSecretAccessKey: v('AWS_SECRET_ACCESS_KEY') ?? '',
-    awsS3BucketName: v('AWS_S3_FILES_BUCKET_NAME') ?? '',
-    openaiApiKey: v('OPENAI_API_KEY') ?? '',
-    openrouterApiKey: v('OPENROUTER_API_KEY') ?? '',
-    qstashToken: v('QSTASH_TOKEN') ?? '',
-    qstashCurrentSigningKey: v('QSTASH_CURRENT_SIGNING_KEY') ?? '',
-    qstashNextSigningKey: v('QSTASH_NEXT_SIGNING_KEY') ?? '',
-    qstashBaseUrl: v('QSTASH_URL') ?? '',
-    siteUrl: v('VITE_SITE_URL') ?? '',
-    mainSiteUrl: v('VITE_MAIN_SITE_URL') ?? '',
-    cloudfrontUrl: v('PUBLIC_AWS_CLOUDFRONT_URL') ?? '',
+    awsRegion: orEmpty(v('AWS_REGION')),
+    awsAccessKeyId: orEmpty(v('AWS_ACCESS_KEY_ID')),
+    awsSecretAccessKey: orEmpty(v('AWS_SECRET_ACCESS_KEY')),
+    awsS3BucketName: orEmpty(v('AWS_S3_FILES_BUCKET_NAME')),
+    openaiApiKey: orEmpty(v('OPENAI_API_KEY')),
+    openrouterApiKey: orEmpty(v('OPENROUTER_API_KEY')),
+    qstashToken: orEmpty(v('QSTASH_TOKEN')),
+    qstashCurrentSigningKey: orEmpty(v('QSTASH_CURRENT_SIGNING_KEY')),
+    qstashNextSigningKey: orEmpty(v('QSTASH_NEXT_SIGNING_KEY')),
+    qstashBaseUrl: orEmpty(v('QSTASH_URL')),
+    siteUrl: orEmpty(v('VITE_SITE_URL')),
+    mainSiteUrl: orEmpty(v('VITE_MAIN_SITE_URL')),
+    cloudfrontUrl: orEmpty(v('PUBLIC_AWS_CLOUDFRONT_URL')),
     isQstashEnabled: import.meta.env.PROD,
     turnstileSecretKey: v('TURNSTILE_SECRET_KEY')
   };
@@ -87,7 +91,9 @@ export const loadPublicConfigInput = (): AppPublicConfigInput => {
 let _runtime: AppRuntime | undefined;
 let _runners: AppRunners | undefined;
 
-const getCached = (): { runtime: AppRuntime; runners: AppRunners } => {
+type CachedRuntime = { runtime: AppRuntime; runners: AppRunners };
+
+const getCached = (): CachedRuntime => {
   if (!_runtime || !_runners) {
     _runtime = makeAppRuntime(loadAppConfigInput(), loadPublicConfigInput());
     _runners = createRunners(_runtime);
@@ -97,7 +103,7 @@ const getCached = (): { runtime: AppRuntime; runners: AppRunners } => {
 
 export const getAppRuntime = (): AppRuntime => getCached().runtime;
 
-export const getAppPublicConfig = (): AppPublicConfigShape =>
+export const getAppPublicConfig = (): AppPublicConfigValue =>
   getCached().runtime.runSync(
     Effect.gen(function* () {
       return yield* AppPublicConfig;

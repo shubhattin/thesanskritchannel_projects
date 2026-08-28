@@ -59,20 +59,20 @@ describe('makeAppRuntime / makeSiteRuntime', () => {
   it('builds an app runtime and runners from fixtures', async () => {
     const runtime = makeAppRuntime(sampleApp(), samplePublic());
     const runners = createRunners(runtime);
-    expect(typeof runtime.runPromise).toBe('function');
-    expect(typeof runners.runTrpcEffect).toBe('function');
-    expect(typeof runners.runServerEffect).toBe('function');
-    expect(typeof runners.runRouteEffect).toBe('function');
-    expect(typeof runners.runQstashEffect).toBe('function');
+    expect(runtime.runPromise).toBeTypeOf('function');
+    expect(runners.runTrpcEffect).toBeTypeOf('function');
+    expect(runners.runServerEffect).toBeTypeOf('function');
+    expect(runners.runRouteEffect).toBeTypeOf('function');
+    expect(runners.runQstashEffect).toBeTypeOf('function');
     await runtime.dispose();
   });
 
   it('builds a site runtime and runners from fixtures', async () => {
     const runtime = makeSiteRuntime(sampleShared());
     const runners = createRunners(runtime);
-    expect(typeof runtime.runPromise).toBe('function');
-    expect(typeof runners.runServerEffect).toBe('function');
-    expect(typeof runners.runRouteEffect).toBe('function');
+    expect(runtime.runPromise).toBeTypeOf('function');
+    expect(runners.runServerEffect).toBeTypeOf('function');
+    expect(runners.runRouteEffect).toBeTypeOf('function');
     await runtime.dispose();
   });
 

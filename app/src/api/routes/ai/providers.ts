@@ -35,9 +35,14 @@ export const OPENROUTER_OPENAI_LOW_REASONING_CONFIG = {
     }
   }
 } as const;
-export const text_model_custom_options = {
+/** Per-model provider overrides; absent models run with defaults. */
+type TextModelCustomOptions = {
+  [M in ai_text_models_type]?: typeof OPENROUTER_OPENAI_LOW_REASONING_CONFIG;
+};
+
+export const text_model_custom_options: TextModelCustomOptions = {
   'gpt-5.6-luna': OPENROUTER_OPENAI_LOW_REASONING_CONFIG,
   'gpt-5.6-sol': OPENROUTER_OPENAI_LOW_REASONING_CONFIG,
   'gpt-5.6-terra': OPENROUTER_OPENAI_LOW_REASONING_CONFIG,
   'gpt-5.2': OPENROUTER_OPENAI_LOW_REASONING_CONFIG
-} as Partial<Record<ai_text_models_type, object>>;
+};

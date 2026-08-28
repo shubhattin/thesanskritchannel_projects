@@ -7,7 +7,7 @@ export const DEFAULT_LANG_ID = -1;
 export const DEFAULT_SCRIPT_ID = 1; // Devanagari
 
 export const parse_lang_id_cookie = (value: string | undefined | null) => {
-  if (value === null || typeof value === 'undefined' || value.trim() === '') {
+  if (value === null || value === undefined || value.trim() === '') {
     return DEFAULT_LANG_ID;
   }
   const parsed = Number(value);
@@ -15,7 +15,7 @@ export const parse_lang_id_cookie = (value: string | undefined | null) => {
 };
 
 export const parse_script_id_cookie = (value: string | undefined | null) => {
-  if (value === null || typeof value === 'undefined' || value.trim() === '') {
+  if (value === null || value === undefined || value.trim() === '') {
     return DEFAULT_SCRIPT_ID;
   }
   const parsed = Number(value);

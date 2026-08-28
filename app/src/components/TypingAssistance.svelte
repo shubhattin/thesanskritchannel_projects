@@ -33,21 +33,21 @@
   const HEIGHT = 682 * IMAGE_SCALING;
   const WIDTH = 658 * IMAGE_SCALING;
 
-  const scripts_list = SCRIPT_LIST as ScriptListType[];
+  const scripts_list = SCRIPT_LIST;
+  const is_script_list_type = (value: string): value is ScriptListType =>
+    SCRIPT_LIST.some((script) => script === value);
   const ensureScriptListType = (value: string): ScriptListType => {
-    if (scripts_list.includes(value as ScriptListType)) return value as ScriptListType;
+    if (is_script_list_type(value)) return value;
     return scripts_list[0];
   };
 
   const script_for_helpers = $derived(ensureScriptListType(typing_assistance_lang));
 
-  let script_to_compare_value = $state(
-    scripts_list.includes('Romanized' as ScriptListType) ? 'Romanized' : ''
-  );
+  let script_to_compare_value = $state(is_script_list_type('Romanized') ? 'Romanized' : '');
 
   const script_to_compare = $derived(
-    script_to_compare_value && scripts_list.includes(script_to_compare_value as ScriptListType)
-      ? (script_to_compare_value as ScriptListType)
+    script_to_compare_value && is_script_list_type(script_to_compare_value)
+      ? script_to_compare_value
       : undefined
   );
 
@@ -77,7 +77,7 @@
   $effect(() => {
     if (
       script_to_compare_value &&
-      !available_compare_scripts.includes(script_to_compare_value as ScriptListType)
+      !available_compare_scripts.some((script) => script === script_to_compare_value)
     ) {
       script_to_compare_value = '';
     }
@@ -88,15 +88,17 @@
     enabled: modal_opened,
     queryFn: async () => {
       await delay_dev(700);
+      // SAFETY: typing_assistance_lang is sync_lang_script, which its only caller (Display.svelte)
+      // computes as LANG_LIST[LANG_LIST_IDS.indexOf(active_translation_lang_id)] — always a valid
+      // lang_list key, and lang_list_type is part of ScriptLangType.
       const script_data_load_promise = preloadScriptData(typing_assistance_lang as ScriptLangType);
-      const IMAGE_URLS = import.meta.glob('/src/tools/converter/resources/images/*.png', {
-        eager: true,
-        query: '?url'
-      });
+      const IMAGE_URLS = import.meta.glob<{ default: string }>(
+        '/src/tools/converter/resources/images/*.png',
+        { eager: true, query: '?url' }
+      );
       const image_lang =
         typing_assistance_lang === 'Devanagari' ? 'Sanskrit' : typing_assistance_lang;
-      const url = (IMAGE_URLS[`/src/tools/converter/resources/images/${image_lang}.png`] as any)
-        .default as string;
+      const url = IMAGE_URLS[`/src/tools/converter/resources/images/${image_lang}.png`].default;
       const get_image_dimensiona = async (url: string) => {
         return new Promise<{ width: number; height: number }>((resolve, reject) => {
           const img = new Image();

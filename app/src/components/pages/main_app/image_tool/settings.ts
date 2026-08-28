@@ -59,7 +59,16 @@ export function is_supported_shloka_line_count(line_count: number): boolean {
   return line_count >= 1 && line_count <= MAX_SUPPORTED_SHLOKA_LINES;
 }
 
-export const DEFAULT_SHLOKA_CONFIG: Record<shloka_number_type, shloka_type_config> = {
+/** Named owner contract (kept structurally identical to `Record<shloka_number_type, shloka_type_config>`). */
+export interface shloka_configs_map_type {
+  1: shloka_type_config;
+  2: shloka_type_config;
+  3: shloka_type_config;
+  4: shloka_type_config;
+  5: shloka_type_config;
+}
+
+export const DEFAULT_SHLOKA_CONFIG: shloka_configs_map_type = {
   1: {
     bounding_coords: {
       left: 540,
@@ -175,64 +184,70 @@ type image_font_config_type = font_config_type &
  * Overrides the default font image config from `DEFAULT_FONT_MAIN_CONFIG`
  * this is for shloka, this will be inherited for translations as well you have override it
  */
-export const SHLOKA_FONT_CONFIG = {
-  Devanagari: {
-    size: 1.35,
-    text_for_min_line_height: 'तु'
-  },
-  Normal: {
-    font: 'ADOBE_DEVANAGARI',
-    text_for_min_line_height: 'qypgj'
-  },
-  Telugu: {
-    font: 'NOTO_SERIF_TELUGU',
-    size: 0.95,
-    space_between_main_and_normal: 6,
-    text_for_min_line_height: 'వై'
-  },
-  Kannada: {
-    font: 'NOTO_SERIF_KANNADA',
-    size: 0.9,
-    space_between_main_and_normal: 6,
-    text_for_min_line_height: 'ವೈ'
-  },
-  Sinhala: {
-    font: 'NOTO_SERIF_SINHALA',
-    size: 0.8,
-    space_between_main_and_normal: 6,
-    text_for_min_line_height: 'පූ'
-  }
-} as image_font_config_type;
+export const SHLOKA_FONT_CONFIG =
+  /* SAFETY: each entry is a partial per-script override merged over the default font config at read time (`get_image_font_info`), so entries carrying only `font`/`size` are valid even though the static contract is broader than this literal. */ {
+    Devanagari: {
+      size: 1.35,
+      text_for_min_line_height: 'तु'
+    },
+    Normal: {
+      font: 'ADOBE_DEVANAGARI',
+      text_for_min_line_height: 'qypgj'
+    },
+    Telugu: {
+      font: 'NOTO_SERIF_TELUGU',
+      size: 0.95,
+      space_between_main_and_normal: 6,
+      text_for_min_line_height: 'వై'
+    },
+    Kannada: {
+      font: 'NOTO_SERIF_KANNADA',
+      size: 0.9,
+      space_between_main_and_normal: 6,
+      text_for_min_line_height: 'ವೈ'
+    },
+    Sinhala: {
+      font: 'NOTO_SERIF_SINHALA',
+      size: 0.8,
+      space_between_main_and_normal: 6,
+      text_for_min_line_height: 'පූ'
+    }
+  } as image_font_config_type;
 
 /**
  * Default font config for image translation
  * You might need to override values from `DEFAULT_FONT_MAIN_CONFIG`
  */
-export const TRANS_FONT_CONFIG = {
-  Hindi: {
-    font: 'ADOBE_DEVANAGARI',
-    size: 1.4,
-    new_line_spacing: 0.35,
-    text_for_min_line_height: 'तु'
-  },
-  English: {
-    font: 'ADOBE_DEVANAGARI',
-    size: 1.2,
-    text_for_min_line_height: 'qypgj'
-  },
-  Telugu: {
-    size: 1.05,
-    new_line_spacing: 0.35
-  },
-  Kannada: {
-    size: 1.05,
-    new_line_spacing: 0.45
-  },
-  Sinhala: {
-    size: 0.9,
-    new_line_spacing: 0.45
-  }
-} as image_font_config_type;
+/**
+ * Default font config for image translation
+ * You might need to override values from `DEFAULT_FONT_MAIN_CONFIG`
+ */
+export const TRANS_FONT_CONFIG =
+  /* SAFETY: each entry is a partial per-script override merged over the default font config at read time (`get_image_font_info`), so entries carrying only `font`/`size` are valid even though the static contract is broader than this literal. */ {
+    Hindi: {
+      font: 'ADOBE_DEVANAGARI',
+      size: 1.4,
+      new_line_spacing: 0.35,
+      text_for_min_line_height: 'तु'
+    },
+    English: {
+      font: 'ADOBE_DEVANAGARI',
+      size: 1.2,
+      text_for_min_line_height: 'qypgj'
+    },
+    Telugu: {
+      size: 1.05,
+      new_line_spacing: 0.35
+    },
+    Kannada: {
+      size: 1.05,
+      new_line_spacing: 0.45
+    },
+    Sinhala: {
+      size: 0.9,
+      new_line_spacing: 0.45
+    }
+  } as image_font_config_type;
 
 const DEFAULT_IMAGE_CONFIG = {
   new_line_spacing: 0.5,

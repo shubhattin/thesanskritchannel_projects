@@ -50,6 +50,7 @@ export const split_text_for_vedic_svara_highlight = (
     const ch = text[i]!;
     if (!VEDIC_SVARA_SET.has(ch)) continue;
     const { start, end } = syllable_range_for_svara_at(text, i);
+    // SAFETY: `ch` passed the `VEDIC_SVARA_SET` check, and that set holds exactly the `VEDIC_SVARAS` members that key `VEDIC_SVARA_KIND`.
     ranges.push({
       start,
       end,

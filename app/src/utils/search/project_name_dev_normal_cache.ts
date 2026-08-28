@@ -37,8 +37,7 @@ export const create_project_name_dev_normal_cache = (): ProjectNameDevNormalCach
 
     const promise = (async () => {
       await ensure_transliteration_ready();
-      const normal = await transliterate_custom(name_dev, BASE_SCRIPT, NORMAL_SCRIPT);
-      const value = typeof normal === 'string' ? normal : '';
+      const value = await transliterate_custom(name_dev, BASE_SCRIPT, NORMAL_SCRIPT);
       cache.set(name_dev, value);
       pending.delete(name_dev);
       return value;

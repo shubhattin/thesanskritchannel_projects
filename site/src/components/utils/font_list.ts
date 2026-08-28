@@ -1,6 +1,6 @@
 import { type ScriptLangType, type ScriptListType, getNormalizedScriptName } from 'lipilekhika';
 
-const FONT_LIST: Record<ScriptListType, string> = {
+const FONT_LIST = {
   Devanagari: 'font-devanagari',
   'Purna-Devanagari': 'font-devanagari',
   Telugu: 'font-telugu',
@@ -23,8 +23,12 @@ const FONT_LIST: Record<ScriptListType, string> = {
   Modi: 'font-modi',
   Sharada: 'font-sharada',
   Siddham: 'font-siddham'
-};
+} satisfies Record<ScriptListType, string>;
 
 export const getFontClass = (script: ScriptLangType) => {
+  // SAFETY: `getNormalizedScriptName` returns null only for names outside its
+  // `script_input_name_type` domain; every member of that union resolves through
+  // the script list, the language map, or the alternates map, so `script` (a
+  // `ScriptLangType`) always yields a defined `ScriptListType`.
   return FONT_LIST[getNormalizedScriptName(script) as ScriptListType];
 };

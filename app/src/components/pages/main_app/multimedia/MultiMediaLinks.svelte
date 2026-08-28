@@ -211,7 +211,8 @@
     if (!transfer) return;
     transfer.effectAllowed = 'move';
     transfer.setData('text/plain', String(index));
-    const card = (event.currentTarget as HTMLElement).closest('[data-media-edit-card]');
+    const target = event.currentTarget;
+    const card = target instanceof HTMLElement ? target.closest('[data-media-edit-card]') : null;
     if (card instanceof HTMLElement) {
       transfer.setDragImage(card, 24, 24);
     }

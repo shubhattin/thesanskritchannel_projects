@@ -11,7 +11,11 @@ export const ai_batch_results_publish_schema = aiBatchResultsPayloadSchema;
 export { aiBatchResultsPayloadSchema };
 export type { AiBatchResultsPayload };
 
-export const decodeAiBatchResultsPayload = (input: unknown): AiBatchResultsPayload =>
+/**
+ * Runtime re-validation of an `AiBatchResultsPayload` (no-op when the payload already conforms).
+ * @deprecated Prefer `aiBatchResultsPayloadSchema` directly at the actual `unknown` I/O boundary.
+ */
+export const decodeAiBatchResultsPayload = (input: AiBatchResultsPayload): AiBatchResultsPayload =>
   Schema.decodeUnknownSync(aiBatchResultsPayloadSchema)(input);
 
 export const publishAiBatchResultsQueue = (data: AiBatchResultsPayload, delay_s: number) =>

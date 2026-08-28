@@ -469,10 +469,7 @@ function compute_lines(
   shloka_config: shloka_type_config,
   shloka_type: number,
   translation_coords: { left: number; top: number; right: number; bottom: number }
-): {
-  bounding_lines: KonvaLineConfig[];
-  reference_lines: KonvaLineConfig[];
-} {
+) {
   const shloka = shloka_config.bounding_coords;
   const trans = translation_coords;
 
@@ -545,6 +542,7 @@ export const compute_all_layouts = async (
   /** When true, always use raw query data (not editable stores). Used for bulk export. */
   use_raw_data = false
 ): Promise<CanvasLayoutResult | null> => {
+  // SAFETY: LANG_LIST is Object.keys(lang_list) and LANG_LIST_IDS the parallel Object.values, so the element at indexOf(image_lang_id) is the matching lang_list_type key (undefined if unknown, as before).
   const image_lang = LANG_LIST[LANG_LIST_IDS.indexOf(image_lang_id)] as lang_list_type;
   const $shloka_configs = get(shloka_configs);
   const $main_text_font_configs = get(main_text_font_configs);
@@ -646,6 +644,7 @@ export const compute_all_layouts = async (
     return null;
   }
 
+  // SAFETY: is_supported_shloka_line_count above guarantees shloka_lines.length is 1–5, i.e. a shloka_number_type.
   const shloka_type = shloka_lines.length as shloka_number_type;
   const shloka_config = $shloka_configs[shloka_type];
   if (!shloka_config) return null;
@@ -686,6 +685,7 @@ export const compute_all_layouts = async (
     default_trans_font_weight()
   );
 
+  // SAFETY: script_list_type values are valid script names from the same list lipilekhika's ScriptLangType accepts.
   const [main_texts, norm_texts] = await Promise.all([
     transliterate_custom(shloka_lines, BASE_SCRIPT, image_script as ScriptLangType),
     transliterate_custom(shloka_lines, BASE_SCRIPT, 'Normal' as ScriptLangType)
@@ -812,6 +812,7 @@ export const compute_all_layouts = async (
   }
 
   // --- Translation text ---
+  // SAFETY: the trans-lang query cache for this key is populated with Map<number, string> translation data (see get_translations).
   const trans_query = {
     data: queryClient.getQueryData(
       image_trans_data_q_options(

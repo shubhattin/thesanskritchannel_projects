@@ -22,6 +22,8 @@ const makeMemoryRedis = () => {
   const locks = new Map<string, string>();
 
   return Layer.succeed(RedisClient)({
+    // SAFETY: the memory store only ever holds T-typed cache payloads written through this
+    // test double's own `set`, so reading an entry back as `T | undefined` is sound.
     get: <T = unknown>(key: string) => Effect.succeed((store.get(key) as T | undefined) ?? null),
     set: (key, value, options) =>
       Effect.sync(() => {

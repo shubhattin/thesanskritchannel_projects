@@ -182,7 +182,7 @@ export function validateSwapEdits(edits: PathSwapEdit[]): string | null {
     const edit = edits[i];
     if (
       !edit ||
-      typeof edit !== 'object' ||
+      !(edit instanceof Object) ||
       !('swap_paths' in edit) ||
       !Array.isArray(edit.swap_paths) ||
       edit.swap_paths.length !== 2
@@ -540,6 +540,7 @@ export function applySwapEditsToMap(
   map: recursive_list_type,
   edits: PathSwapEdit[]
 ): recursive_list_type {
+  // SAFETY: the saved map is JSON-serializable, and a JSON round-trip preserves its `recursive_list_type` structure.
   const next = JSON.parse(JSON.stringify(map)) as recursive_list_type;
   for (const {
     swap_paths: [pathA, pathB]

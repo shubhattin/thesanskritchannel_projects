@@ -114,7 +114,9 @@
 
   onMount(() => {
     const root = document.querySelector<HTMLElement>(anchorSelector);
-    if (!root || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+    // `onMount` only runs client-side; the clipboard capability check below
+    // covers browsers without the async clipboard API.
+    if (!root || !navigator.clipboard?.writeText) {
       return;
     }
     enhance(root);

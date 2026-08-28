@@ -27,7 +27,7 @@
   import { project_state } from '~/state/main_app/state.svelte';
   import { trans_map_to_text, text_to_trans_map } from './trans_bulk_funcs';
   import { get_font_family_and_size } from '~/tools/font_tools';
-  import { LANG_LIST, LANG_LIST_IDS, lang_list_obj, type lang_list_type } from '~/state/lang_list';
+  import { get_lang_from_id, lang_list_obj } from '~/state/lang_list';
   import {
     clearTypingContextOnKeyDown,
     createTypingContext,
@@ -65,15 +65,12 @@
   );
 
   let ctx = $state(
-    createTypingContext(
-      (LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type) ?? 'Devanagari',
-      {
-        includeInherentVowel: $sanskrit_mode !== 1
-      }
-    )
+    createTypingContext(get_lang_from_id($trans_lang) ?? 'Devanagari', {
+      includeInherentVowel: $sanskrit_mode !== 1
+    })
   );
   $effect(() => {
-    const lang = (LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type) ?? 'Devanagari';
+    const lang = get_lang_from_id($trans_lang) ?? 'Devanagari';
     const inherent = $sanskrit_mode !== 1;
     untrack(() => {
       ctx = createTypingContext(lang, {
@@ -98,7 +95,7 @@
   let trans_text_font_info = $derived(
     $english_edit_status
       ? get_font_family_and_size('English')
-      : get_font_family_and_size(LANG_LIST[LANG_LIST_IDS.indexOf($trans_lang)] as lang_list_type)
+      : get_font_family_and_size(get_lang_from_id($trans_lang))
   );
   $effect(() => {
     if (!$bulk_text_edit_status) {

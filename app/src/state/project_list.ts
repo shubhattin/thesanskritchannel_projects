@@ -232,6 +232,7 @@ export const get_path_params = (
   const params = selected_text_levels.slice(0, project_levels - 1).reverse();
   while (params.length && params[params.length - 1] == null) params.pop();
   if (params.some((v) => v == null)) return [];
+  // SAFETY: the some() check above returned early when any entry was null, so every remaining entry is a number.
   return params as number[];
 };
 

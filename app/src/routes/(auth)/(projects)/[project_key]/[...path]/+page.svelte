@@ -74,7 +74,7 @@
   }
   function set_selected_text_levels() {
     const total_levels = Math.max(levels - 1, 2);
-    const next = Array.from({ length: total_levels }, () => null) as (number | null)[];
+    const next: (number | null)[] = Array.from({ length: total_levels }, () => null);
     const path_params = data.path_params ?? [];
     // `path_params` are higher -> lower (URL order). `selected_text_levels` are lower -> higher (index 0 is leaf).
     // So path_params[0] should populate the highest slot (levels-2), not the leaf slot (0).

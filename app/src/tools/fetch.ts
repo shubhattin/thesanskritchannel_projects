@@ -19,7 +19,7 @@ type options = Parameters<typeof fetch>[1] & {
 const AharaNam = (url: string, op: options = {}) => {
   if (!op.headers) op.headers = {};
   if ('params' in op) {
-    let params = [] as string[];
+    const params: string[] = [];
     for (let prm in op.params) params.push(`${prm}=${encodeURIComponent(op.params[prm])}`);
     url += `?${params.join('&')}`;
     delete op.params;

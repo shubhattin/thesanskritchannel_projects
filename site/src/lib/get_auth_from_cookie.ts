@@ -18,6 +18,10 @@ export const get_session_from_cookie = (
         headers: { Cookie: cookie }
       });
       if (!res.ok) return null;
+      // SAFETY: `${url}/api/auth/get-session` is Better Auth's session endpoint;
+      // for a valid cookie it responds 200 with a `Session` JSON body. Non-OK
+      // responses return null above, and transport failures are swallowed by the
+      // `orElseSucceed` below, so only a well-formed session body reaches here.
       return (await res.json()) as Session;
     }).pipe(Effect.orElseSucceed(() => null));
   });

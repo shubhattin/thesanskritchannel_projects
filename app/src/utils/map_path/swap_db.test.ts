@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { applyPathSwapEditsToPath, dbPathMatchesPrefix, remapDbPathPrefix } from './swap';
+import {
+  applyPathSwapEditsToPath,
+  dbPathMatchesPrefix,
+  remapDbPathPrefix,
+  type PathSwapEdit
+} from './swap';
 import { buildRedisKeysForPathSwapInvalidation, mergePathSwapInvalidation } from './swap_db.server';
 
 describe('map_path_swap_db', () => {
@@ -16,7 +21,7 @@ describe('map_path_swap_db', () => {
   });
 
   it('applies subtree swaps to deep descendants the same way as the DB flow', () => {
-    const edits = [{ swap_paths: ['1:1', '1:2'] as [string, string] }];
+    const edits: PathSwapEdit[] = [{ swap_paths: ['1:1', '1:2'] }];
 
     expect(applyPathSwapEditsToPath('1:1', edits)).toBe('1:2');
     expect(applyPathSwapEditsToPath('1:1:1:2', edits)).toBe('1:2:1:2');

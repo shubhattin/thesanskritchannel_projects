@@ -13,6 +13,11 @@ import {
   type AppScopeEnum
 } from '~/state/data_types';
 import { get_user_app_scope_status } from '~/utils/auth/app_scope_utils.server';
+
+type UserScopes = { scopes: AppScopeEnum[] };
+
+/** Empty scope list for callers without admin rights / failed lookups. */
+const noScopes = (): UserScopes => ({ scopes: [] });
 import { runTrpcEffect } from '~/effect/app_runtime.server';
 import { AppConfig } from '~/effect/config';
 import { dbRun, dbTransaction } from '~/effect/database';
@@ -130,7 +135,7 @@ const list_user_app_scopes_route = protectedProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         if (user.role !== 'admin' && user.id !== user_id) {
-          return { scopes: [] as AppScopeEnum[] };
+          return noScopes();
         }
 
         const config = yield* AppConfig;
@@ -140,12 +145,12 @@ const list_user_app_scopes_route = protectedProcedure
             headers: { Cookie: cookie! }
           })
         ).pipe(Effect.orElseSucceed(() => null));
-        if (!res?.ok) return { scopes: [] as AppScopeEnum[] };
+        if (!res?.ok) return noScopes();
 
         const resp = yield* Effect.tryPromise(() => res.json()).pipe(
           Effect.orElseSucceed(() => null)
         );
-        if (resp == null) return { scopes: [] as AppScopeEnum[] };
+        if (resp == null) return noScopes();
 
         return z
           .object({

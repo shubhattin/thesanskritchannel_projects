@@ -165,7 +165,7 @@ describe('map_path_delete.server', () => {
     expect(get_node_at_path(derived, [1, 1])).toBeNull();
     expect(get_node_at_path(derived, [1, 2])).toBeNull();
     expect(get_node_at_path(derived, [1])?.info.type).toBe('list');
-    expect((get_node_at_path(derived, [1]) as recursive_list_type).list).toEqual([]);
+    expect(get_node_at_path(derived, [1])!.list).toEqual([]);
   });
 
   it('rejects malformed numeric map path segments before splicing', () => {
@@ -178,7 +178,7 @@ describe('map_path_delete.server', () => {
   it('rejects piggybacked metadata edits in a client map proposal', () => {
     const saved = sample_map();
     const derived = applyDeletedSubtreesToMap(saved, ['2']);
-    const tampered = structuredClone(derived) as recursive_list_type;
+    const tampered = structuredClone(derived);
     const listA = get_node_at_path(tampered, [1])!;
     listA.name_dev = 'Renamed list';
 
@@ -192,7 +192,7 @@ describe('map_path_delete.server', () => {
   it('rejects extra branches removed without declaring deleted_paths', () => {
     const saved = sample_map();
     const derived = applyDeletedSubtreesToMap(saved, ['1:2']);
-    const extraDrop = structuredClone(derived) as recursive_list_type;
+    const extraDrop = structuredClone(derived);
     extraDrop.list = [extraDrop.list![0]!];
 
     expect(validateDeleteMapProposal(saved, extraDrop, ['1:2'])).toMatch(

@@ -10,7 +10,7 @@ import { Cause, Effect, Exit, type ManagedRuntime } from 'effect';
 import { resolveDbUrl, SharedConfig, type SharedConfigInput } from '$app/effect/config';
 import { envBagFromUnknown, pickEnv } from '$app/effect/env';
 import { createRunners, type EffectRunners } from '$app/effect/run';
-import { makeSiteRuntime, type SiteRuntime } from '$app/effect/runtime';
+import { siteRuntime, type SiteRuntime } from '$app/effect/runtime';
 
 type SiteRuntimeServices =
   SiteRuntime extends ManagedRuntime.ManagedRuntime<infer R, infer _E> ? R : never;
@@ -48,15 +48,11 @@ export const loadSiteConfigInput = (): SharedConfigInput => {
   };
 };
 
-let _runtime: SiteRuntime | undefined;
 let _runners: SiteRunners | undefined;
 
 const getCached = () => {
-  if (!_runtime || !_runners) {
-    _runtime = makeSiteRuntime(loadSiteConfigInput());
-    _runners = createRunners(_runtime);
-  }
-  return { runtime: _runtime, runners: _runners };
+  if (!_runners) _runners = createRunners(siteRuntime(loadSiteConfigInput));
+  return { runtime: siteRuntime(loadSiteConfigInput), runners: _runners };
 };
 
 export const getSiteRuntime = (): SiteRuntime => getCached().runtime;

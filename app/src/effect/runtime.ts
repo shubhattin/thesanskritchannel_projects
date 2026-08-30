@@ -2,7 +2,7 @@ import { Layer, ManagedRuntime } from 'effect';
 import {
   AppConfig,
   AppPublicConfig,
-  makeSharedConfigFromAppConfig,
+  SharedConfigFromAppConfigLayer,
   SharedConfig,
   type AppConfigInput,
   type AppPublicConfigInput,
@@ -45,7 +45,7 @@ export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigI
     OpenAiBatchClient.Live,
     QStashPublisher.Live,
     publicConfigLayer
-  ).pipe(Layer.provideMerge(makeSharedConfigFromAppConfig), Layer.provideMerge(appConfigLayer));
+  ).pipe(Layer.provideMerge(SharedConfigFromAppConfigLayer), Layer.provideMerge(appConfigLayer));
 };
 
 /** Site layer — DB + Redis + background only. */
@@ -56,6 +56,22 @@ export const makeAppRuntime = (app: AppConfigInput, publicConfig: AppPublicConfi
 
 export const makeSiteRuntime = (shared: SharedConfigInput) =>
   ManagedRuntime.make(makeSiteLayer(shared));
+
+let _appRuntime: AppRuntime | undefined;
+let _siteRuntime: SiteRuntime | undefined;
+
+/**
+ * Lazy app runtime singleton. SvelteKit postbuild analyse runs with empty
+ * `$env/dynamic/private`, so construction must wait for the first request;
+ * `loadInputs` is invoked at most once.
+ */
+export const appRuntime = (
+  loadInputs: () => readonly [AppConfigInput, AppPublicConfigInput]
+): AppRuntime => (_appRuntime ??= makeAppRuntime(...loadInputs()));
+
+/** Lazy site runtime singleton — same cold-start rationale as `appRuntime`. */
+export const siteRuntime = (loadShared: () => SharedConfigInput): SiteRuntime =>
+  (_siteRuntime ??= makeSiteRuntime(loadShared()));
 
 export type AppRuntime = ReturnType<typeof makeAppRuntime>;
 export type SiteRuntime = ReturnType<typeof makeSiteRuntime>;

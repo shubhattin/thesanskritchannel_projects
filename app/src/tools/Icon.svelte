@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { IconType } from 'svelte-icons-pack';
-  import { cl_join } from './cl_join';
+  import { cn } from '$lib/utils';
   // oxlint-disable-next-line no-unassigned-vars -- required Svelte prop, assigned by the consumer
   export let src: IconType;
   export let title: string | undefined = undefined;
@@ -20,7 +20,7 @@
     stroke="currentColor"
     fill="currentColor"
     stroke-width="0"
-    class={cl_join('inline-block', className)}
+    class={cn('inline-block', className)}
     {viewBox}
     height="1em"
     width="1em"

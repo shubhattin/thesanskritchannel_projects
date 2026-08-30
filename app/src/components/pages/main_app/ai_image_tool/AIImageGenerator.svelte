@@ -27,7 +27,7 @@
   import { BsCopy } from 'svelte-icons-pack/bs';
   import { BiImage } from 'svelte-icons-pack/bi';
   import { buildImageAssetDownloadBasename } from '~/tools/download_file_browser';
-  import { cl_join } from '~/tools/cl_join';
+  import { cn } from '$lib/utils';
   import { OiStopwatch16 } from 'svelte-icons-pack/oi';
   import { BsClipboard2Check } from 'svelte-icons-pack/bs';
   import { createMutation, createQuery } from '@tanstack/svelte-query';
@@ -582,7 +582,7 @@
       {/if}
     </div>
     <Textarea
-      class={cl_join('h-36 px-1 py-0 text-sm', image_prompt_request_error && 'border-destructive')}
+      class={cn('h-36 px-1 py-0 text-sm', image_prompt_request_error && 'border-destructive')}
       spellcheck="false"
       bind:value={$image_prompt}
     />

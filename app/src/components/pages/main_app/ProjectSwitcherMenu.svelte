@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Input } from '$lib/components/ui/input';
   import type { project_type } from '~/state/project_list';
-  import { cl_join } from '~/tools/cl_join';
+  import { cn } from '$lib/utils';
   import Icon from '~/tools/Icon.svelte';
   import { AiOutlineHome } from 'svelte-icons-pack/ai';
   import SearchIcon from '@lucide/svelte/icons/search';
@@ -41,7 +41,7 @@
 <div class="flex w-56 flex-col gap-2 sm:w-64">
   <button
     type="button"
-    class={cl_join(
+    class={cn(
       'block w-full gap-0 rounded-md px-1.5 py-1 text-center text-sm font-semibold',
       'border border-border bg-card text-foreground transition-colors duration-150 hover:border-accent hover:bg-accent hover:text-accent-foreground'
     )}
@@ -70,7 +70,7 @@
     {#each filtered_projects as project (project.id)}
       <button
         type="button"
-        class={cl_join(
+        class={cn(
           'block w-full gap-0 rounded-md px-1.5 py-1 text-center text-sm font-semibold',
           project.key === current_project_key
             ? 'border border-primary bg-primary text-primary-foreground shadow'

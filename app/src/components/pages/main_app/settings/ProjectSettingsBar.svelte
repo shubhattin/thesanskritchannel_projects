@@ -6,7 +6,7 @@
   import { EMPTY_PROJECT_REGISTRY, get_project_from_id } from '~/state/project_list';
   import { Button } from '$lib/components/ui/button';
   import Settings from '@lucide/svelte/icons/settings';
-  import { cl_join } from '~/tools/cl_join';
+  import { cn } from '$lib/utils';
   import ProjectSettingsDialog from './ProjectSettingsDialog.svelte';
   import MainSitePageLink from '../MainSitePageLink.svelte';
 
@@ -27,7 +27,7 @@
 
 <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground sm:text-sm">
   <span
-    class={cl_join([
+    class={cn([
       'rounded-full border px-2 py-0.5 font-medium',
       $project_state?.listed
         ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'

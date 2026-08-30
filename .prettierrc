@@ -20,5 +20,6 @@
       }
     }
   ],
-  "tailwindStylesheet": "./app/src/app.css"
+  "tailwindStylesheet": "./site/src/styles/global.css",
+  "tailwindFunctions": ["clsx", "cn", "cva", "tv"]
 }

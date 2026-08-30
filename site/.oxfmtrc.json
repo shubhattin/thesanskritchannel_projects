@@ -8,7 +8,8 @@
   "printWidth": 100,
   "sortPackageJson": false,
   "sortTailwindcss": {
-    "stylesheet": "./src/styles/global.css"
+    "stylesheet": "./src/styles/global.css",
+    "functions": ["clsx", "cn", "cva", "tv"]
   },
   "svelte": {},
   "ignorePatterns": [

@@ -18,7 +18,7 @@ import {
 } from './config';
 import { envString, parseOptionalBoolean, pickEnv, type EnvBag } from './env';
 import { createRunners, type EffectRunners } from './run';
-import { makeAppRuntime, type AppRuntime } from './runtime';
+import { appRuntime, type AppRuntime } from './runtime';
 
 type AppRuntimeServices =
   AppRuntime extends ManagedRuntime.ManagedRuntime<infer R, infer _E> ? R : never;
@@ -88,17 +88,15 @@ export const loadPublicConfigInput = (): AppPublicConfigInput => {
   };
 };
 
-let _runtime: AppRuntime | undefined;
 let _runners: AppRunners | undefined;
+
+const loadRuntimeInputs = () => [loadAppConfigInput(), loadPublicConfigInput()] as const;
 
 type CachedRuntime = { runtime: AppRuntime; runners: AppRunners };
 
 const getCached = (): CachedRuntime => {
-  if (!_runtime || !_runners) {
-    _runtime = makeAppRuntime(loadAppConfigInput(), loadPublicConfigInput());
-    _runners = createRunners(_runtime);
-  }
-  return { runtime: _runtime, runners: _runners };
+  if (!_runners) _runners = createRunners(appRuntime(loadRuntimeInputs));
+  return { runtime: appRuntime(loadRuntimeInputs), runners: _runners };
 };
 
 export const getAppRuntime = (): AppRuntime => getCached().runtime;

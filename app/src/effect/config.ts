@@ -212,7 +212,7 @@ export class AppPublicConfig extends Context.Service<AppPublicConfig, AppPublicC
 }
 
 /** Derive SharedConfig from AppConfig so Database/Redis can depend on SharedConfig only. */
-export const makeSharedConfigFromAppConfig = Layer.effect(SharedConfig)(
+export const SharedConfigFromAppConfigLayer = Layer.effect(SharedConfig)(
   Effect.gen(function* () {
     const app = yield* AppConfig;
     return {

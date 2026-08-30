@@ -5,14 +5,8 @@
   "useTabs": false,
   "trailingComma": "none",
   "printWidth": 100,
-  "plugins": ["prettier-plugin-svelte", "prettier-plugin-astro", "prettier-plugin-tailwindcss"],
+  "plugins": ["prettier-plugin-astro", "prettier-plugin-tailwindcss"],
   "overrides": [
-    {
-      "files": "*.svelte",
-      "options": {
-        "parser": "svelte"
-      }
-    },
     {
       "files": "*.astro",
       "options": {
@@ -20,6 +14,6 @@
       }
     }
   ],
-  "tailwindStylesheet": "./site/src/styles/global.css",
+  "tailwindStylesheet": "./src/styles/global.css",
   "tailwindFunctions": ["clsx", "cn", "cva", "tv"]
 }

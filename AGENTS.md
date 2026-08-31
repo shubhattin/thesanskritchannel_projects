@@ -21,3 +21,7 @@
 # AI
 
 - Before making any new chnages always read te current contens of file as soemtimes there might be manually done changes which might overwrite.
+
+# Cursor harness specifc instructions
+
+- While the harness is cursor to spwan **subagents** only use cursor's composer or grok models (like grok 4.5/4.6 high).

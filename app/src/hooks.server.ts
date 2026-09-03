@@ -6,6 +6,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 // buffer pollyfill for netlify
 import { Buffer } from 'buffer';
+// oxlint-disable-next-line anti-slop/no-runtime-typeof
 if (typeof globalThis.Buffer === 'undefined') {
   globalThis.Buffer = Buffer;
 }

@@ -31,7 +31,6 @@
   let last_persisted_id = $state(normalizedInitialId);
 
   // svelte-ignore state_referenced_locally -- compare to raw prop for cookie repair
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof
   if (typeof window !== 'undefined' && normalizedInitialId !== initial_script_id) {
     Cookies.set(SCRIPT_ID_COOKIE_NAME, String(normalizedInitialId), {
       sameSite: 'lax',

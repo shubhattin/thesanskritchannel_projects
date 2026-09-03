@@ -18,7 +18,7 @@ import {
 } from './config';
 import { envString, parseOptionalBoolean, pickEnv, type EnvBag } from './env';
 import { createRunners, type EffectRunners } from './run';
-import { appRuntime, type AppRuntime } from './runtime_app';
+import { appRuntime, type AppRuntime } from './runtime';
 
 type AppRuntimeServices =
   AppRuntime extends ManagedRuntime.ManagedRuntime<infer R, infer _E> ? R : never;

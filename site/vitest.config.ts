@@ -13,11 +13,6 @@ export default defineConfig({
         find: '~/effect/site_runtime',
         replacement: `${siteSrc}/effect/site_runtime.ts`
       },
-      { find: /^~\/effect\/live\//, replacement: `${siteSrc}/effect/live/` },
-      {
-        find: 'cloudflare:workers',
-        replacement: `${siteSrc}/effect/live/cloudflare_workers_stub.ts`
-      },
       {
         find: '~/utils/text-routes',
         replacement: `${siteSrc}/utils/text-routes.ts`

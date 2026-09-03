@@ -170,7 +170,6 @@ type FitTextResult = {
  *
  * This replaces the old HarfBuzz-based render_text function.
  */
-// oxlint-disable-next-line complexity
 function compute_fitted_text(opts: FitTextOpts): FitTextResult {
   const {
     text,
@@ -536,7 +535,6 @@ export function split_shloka_lines(
  * This is the pure computation function — no side effects, no canvas mutation.
  * Used by both the reactive UI (ImageTool.svelte) and the export pipeline (ImageDownloader).
  */
-// oxlint-disable-next-line complexity
 export const compute_all_layouts = async (
   shloka_index: number | null,
   image_script: script_list_type,

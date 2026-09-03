@@ -7,7 +7,6 @@ import { build_project_path } from '../utils/project_site_paths';
  * `getAppPublicConfig().mainSiteUrl` / `AppPublicConfig` instead.
  */
 export const get_main_site_origin = () =>
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof
   (typeof import.meta.env.VITE_MAIN_SITE_URL === 'string'
     ? import.meta.env.VITE_MAIN_SITE_URL.trim()
     : ''

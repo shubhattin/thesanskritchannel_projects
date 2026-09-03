@@ -30,43 +30,31 @@ if (resolved?.redirect_to && resolved.redirect_to !== Astro.url.pathname) {
 
 const selected_lang_id = parse_lang_id_cookie(Astro.cookies.get(LANG_ID_COOKIE_NAME)?.value);
 const selected_script_id = parse_script_id_cookie(Astro.cookies.get(SCRIPT_ID_COOKIE_NAME)?.value);
-const is_shloka = resolved?.node.info.type === 'shloka';
-const no_langs: number[] = [];
-const no_media: MediaLinkRow[] = [];
-const [available_lang_ids, text, media_links] = resolved
-  ? await Promise.all([
-      is_shloka
-        ? runServerEffectOr(
-            CACHE.available_translation_langs.get({
-              project_id: resolved.project_id,
-              path_params: resolved.path_params
-            }),
-            no_langs
-          )
-        : Promise.resolve(no_langs),
-      is_shloka
-        ? runServerEffectOr(
-            CACHE.text_data.get({
-              key: resolved.project_key,
-              path_params: resolved.path_params
-            }),
-            null
-          )
-        : Promise.resolve(null),
-      runServerEffectOr(
-        CACHE.media_links.get({
+const available_lang_ids =
+  resolved && resolved.node.info.type === 'shloka'
+    ? await runServerEffectOr(
+        CACHE.available_translation_langs.get({
           project_id: resolved.project_id,
           path_params: resolved.path_params
         }),
-        no_media
+        []
       )
-    ])
-  : [no_langs, null, no_media];
+    : [];
 const effective_lang_id = available_lang_ids.includes(selected_lang_id)
   ? selected_lang_id
   : DEFAULT_LANG_ID;
+const text =
+  resolved && resolved.node.info.type === 'shloka'
+    ? await runServerEffectOr(
+        CACHE.text_data.get({
+          key: resolved.project_key,
+          path_params: resolved.path_params
+        }),
+        null
+      )
+    : null;
 const translation =
-  resolved && is_shloka && effective_lang_id !== -1
+  resolved && resolved.node.info.type === 'shloka' && effective_lang_id !== -1
     ? await runServerEffectOr(
         CACHE.translation.get({
           project_id: resolved.project_id,
@@ -82,6 +70,17 @@ const translation =
 const child_items = resolved
   ? get_child_route_items(resolved.project_key, resolved.map, resolved.path_params, resolved.levels)
   : [];
+
+let media_links: MediaLinkRow[] = [];
+if (resolved) {
+  media_links = await runServerEffectOr(
+    CACHE.media_links.get({
+      project_id: resolved.project_id,
+      path_params: resolved.path_params
+    }),
+    []
+  );
+}
 ---
 
 {

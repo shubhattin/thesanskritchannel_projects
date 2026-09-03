@@ -35,7 +35,6 @@ const AharaNam = (url: string, op: options = {}) => {
     delete op.form;
     op.body = data;
   }
-  // oxlint-disable-next-line anti-slop/no-runtime-typeof
   if (typeof document !== 'undefined') {
     const htmlID = document.querySelector('html')?.lang;
     if (!op.locale && htmlID) op.locale = htmlID;

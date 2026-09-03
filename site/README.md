@@ -32,7 +32,7 @@ Presents the content managed through the [admin portal](../app/) in a clean, rea
 | Cache         | Upstash Redis                                      |
 | Fonts         | 16+ Noto Sans packages for Indian scripts          |
 | Analytics     | PostHog                                            |
-| Deploy        | Cloudflare Workers                                 |
+| Deploy        | Vercel (Mumbai region)                             |
 
 ## Code Sharing
 

@@ -7,7 +7,6 @@ import { CacheError } from './errors';
 import { BackgroundWork } from './background';
 import { SharedConfig } from './config';
 import { Database } from './database';
-import { canShareInFlightFibers, isCloudflareWorker } from './platform';
 
 const DEFAULT_TTL_S = ms('60days') / 1000;
 const DEV_DELAY = Duration.millis(350);
@@ -321,14 +320,11 @@ export function createCache<TParams, TCached, TData = TCached>(
           Effect.annotateLogs({ category: 'cache', operation: 'evictParseFail', key: cacheKey })
         );
       }
-    } else if (!isCloudflareWorker()) {
-      // Effect.sleep is a Latch on the isolate-global scheduler. In workerd the
-      // timer often fires in another request's IoContext and the continuation
-      // is dropped — the page hangs until Miniflare kills it.
+    } else {
       yield* Effect.sleep(DEV_DELAY);
     }
 
-    if (!useRedis || !useSingleFlight || !canShareInFlightFibers()) {
+    if (!useRedis || !useSingleFlight) {
       return yield* fetchAndCache(params, cacheKey, false);
     }
 
@@ -398,7 +394,7 @@ export function createCache<TParams, TCached, TData = TCached>(
   const deleteCache = Effect.fn('cache.delete')(function* (params: TParams) {
     const sharedConfig = yield* SharedConfig;
     if (!redisActive(sharedConfig.isProd)) {
-      if (!isCloudflareWorker()) yield* Effect.sleep(DEV_DELAY);
+      yield* Effect.sleep(DEV_DELAY);
       return;
     }
 
@@ -418,7 +414,7 @@ export function createCache<TParams, TCached, TData = TCached>(
   ) {
     const sharedConfig = yield* SharedConfig;
     if (!redisActive(sharedConfig.isProd)) {
-      if (!isCloudflareWorker()) yield* Effect.sleep(DEV_DELAY);
+      yield* Effect.sleep(DEV_DELAY);
       return;
     }
 

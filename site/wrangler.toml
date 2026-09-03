@@ -16,8 +16,8 @@ preview_urls = false
 keep_vars = true
 
 # Region placement (matches Neon + Upstash in Singapore / prior Vercel bom→sin path).
-[placement]
-region = "aws:ap-southeast-1"
+# [placement]
+# region = "aws:ap-southeast-1"
 
 [assets]
 binding = "ASSETS"

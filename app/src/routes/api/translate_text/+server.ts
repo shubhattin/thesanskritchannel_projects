@@ -10,8 +10,8 @@ import { runServerEffect } from '~/effect/app_runtime.server';
 /** Per-route Vercel function config (SvelteKit adapter-vercel). `split` so this route is its own function with its own maxDuration. */
 export const config: Config = {
   split: true,
-  /** Hobby plan max is 300s (was 600). */
-  maxDuration: 300
+  /** Hobby plan max is 300s */
+  maxDuration: 600
 };
 
 export const POST: RequestHandler = async ({ request }) => {

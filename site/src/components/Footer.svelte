@@ -1,15 +1,15 @@
 <script lang="ts">
-  import Youtube from '@lucide/svelte/icons/youtube';
-  import Instagram from '@lucide/svelte/icons/instagram';
-  import Github from '@lucide/svelte/icons/github';
   import Mail from '@lucide/svelte/icons/mail';
+  import { Icon } from 'svelte-icons-pack';
+  import { SiGithub, SiInstagram, SiX, SiYoutube } from 'svelte-icons-pack/si';
   import type { Component } from 'svelte';
+  import type { IconType } from 'svelte-icons-pack';
 
   type SocialLink = {
     name: string;
     href: string;
     icon?: Component;
-    use_x_icon?: boolean;
+    pack_icon?: IconType;
   };
 
   const currentYear = new Date().getFullYear();
@@ -25,22 +25,22 @@
     {
       name: 'YouTube',
       href: 'https://www.youtube.com/@TheSanskritChannel',
-      icon: Youtube
+      pack_icon: SiYoutube
     },
     {
       name: 'Instagram',
       href: 'https://www.instagram.com/thesanskritchannel/',
-      icon: Instagram
+      pack_icon: SiInstagram
     },
     {
       name: 'X (Twitter)',
       href: 'https://x.com/SanskritChannel',
-      use_x_icon: true
+      pack_icon: SiX
     },
     {
       name: 'GitHub',
       href: 'https://github.com/shubhattin/thesanskritchannel_projects',
-      icon: Github
+      pack_icon: SiGithub
     },
     {
       name: 'Email',
@@ -71,7 +71,7 @@
         <h3 class="text-sm font-semibold tracking-wider uppercase">Quick Links</h3>
         <nav aria-label="Footer Quick Links">
           <ul class="space-y-2.5">
-            {#each quickLinks as link}
+            {#each quickLinks as link (link.href)}
               <li>
                 <a
                   href={link.href}
@@ -90,7 +90,7 @@
         <h3 class="text-sm font-semibold tracking-wider uppercase">Connect</h3>
         <nav aria-label="Social Links">
           <ul class="flex flex-wrap gap-3">
-            {#each socialLinks as link}
+            {#each socialLinks as link (link.href)}
               <li>
                 <a
                   href={link.href}
@@ -99,20 +99,11 @@
                   aria-label={link.name}
                   class="flex size-9 items-center justify-center rounded-lg border border-border/50 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
-                  {#if link.use_x_icon}
-                    <svg
-                      viewBox="0 0 24 24"
-                      class="size-4 fill-current"
-                      aria-hidden="true"
-                      focusable="false"
-                    >
-                      <path
-                        d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.658l-5.214-6.817-5.963 6.817H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
-                      />
-                    </svg>
+                  {#if link.pack_icon}
+                    <Icon src={link.pack_icon} class="size-4" />
                   {:else if link.icon}
-                    {@const Icon = link.icon}
-                    <Icon class="size-4" />
+                    {@const LucideIcon = link.icon}
+                    <LucideIcon class="size-4" />
                   {/if}
                 </a>
               </li>

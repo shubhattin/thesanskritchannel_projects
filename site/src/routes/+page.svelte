@@ -1,10 +1,11 @@
 <script lang="ts">
   import type { PageData } from './$types';
-  import Youtube from '@lucide/svelte/icons/youtube';
   import ArrowRight from '@lucide/svelte/icons/arrow-right';
   import ExternalLink from '@lucide/svelte/icons/external-link';
   import Heart from '@lucide/svelte/icons/heart';
   import Calendar from '@lucide/svelte/icons/calendar';
+  import { Icon } from 'svelte-icons-pack';
+  import { SiYoutube } from 'svelte-icons-pack/si';
 
   let { data }: { data: PageData } = $props();
 
@@ -86,7 +87,8 @@
           rel="noopener noreferrer"
           class="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-background/50 px-8 text-sm font-semibold text-foreground transition-all duration-150 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          <Youtube
+          <Icon
+            src={SiYoutube}
             class="size-5 text-red-500 transition-transform duration-150 group-hover:scale-110"
           />
           Watch on YouTube

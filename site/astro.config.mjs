@@ -2,9 +2,12 @@
 import { defineConfig } from 'astro/config';
 import { fileURLToPath } from 'node:url';
 import vercel from '@astrojs/vercel';
+import cloudflare from '@astrojs/cloudflare';
 import svelte from '@astrojs/svelte';
 
 import tailwindcss from '@tailwindcss/vite';
+
+const isCloudflareBuild = process.env.BUILD_MODE === 'cloudflare';
 
 const appSrc = fileURLToPath(new URL('../app/src', import.meta.url));
 const siteSrc = fileURLToPath(new URL('./src', import.meta.url));
@@ -13,7 +16,12 @@ const dataDir = fileURLToPath(new URL('../data', import.meta.url));
 // https://astro.build/config
 export default defineConfig({
   output: 'server',
-  adapter: vercel(),
+  adapter: isCloudflareBuild
+    ? cloudflare({
+        // Site does not use astro:assets. Avoid Sharp / Images binding at build time.
+        imageService: 'passthrough'
+      })
+    : vercel(),
   integrations: [svelte()],
   security: {
     checkOrigin: process.env.NODE_ENV === 'production',
@@ -24,6 +32,9 @@ export default defineConfig({
   },
 
   vite: {
+    // Cloudflare builds must not bake local `.env` into the bundle — runtime vars
+    // come from Worker dashboard bindings (same pattern as tsc-users).
+    // envDir: isCloudflareBuild ? false : undefined,
     plugins: [tailwindcss()],
     resolve: {
       // Keep in sync with site/tsconfig.json paths. Explicit Vite aliases are required so

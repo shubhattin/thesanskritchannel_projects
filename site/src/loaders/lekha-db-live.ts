@@ -1,5 +1,5 @@
 import type { LiveLoader } from 'astro/loaders';
-import { transliterate_node } from 'lipilekhika/node';
+import { transliterate_wasm } from 'lipilekhika';
 import { get_script_from_id, type script_list_type } from '$app/state/lang_list';
 import { CACHE, NO_CACHE_PARAMS } from '$app/effect/cache_loaders';
 import { renderLekhaMarkdownToHtml } from '$app/lib/carta_markdown/markdown';
@@ -53,7 +53,7 @@ export function lekhaDbLiveLoader(): LiveLoader<LekhaLiveEntryData, LekhaLiveEnt
 
         const html = await renderLekhaMarkdownToHtml(row.content, {
           script,
-          lipiTransliterator: transliterate_node
+          lipiTransliterator: transliterate_wasm
         });
 
         return {

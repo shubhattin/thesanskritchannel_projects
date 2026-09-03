@@ -3,6 +3,7 @@ dist/
 # generated types
 .astro/
 .svelte-kit/
+.wrangler/
 
 # dependencies
 node_modules/

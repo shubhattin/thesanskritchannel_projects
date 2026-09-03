@@ -7,7 +7,8 @@ import {
   type SharedConfigInput
 } from '../config';
 import { createRunners } from '../run';
-import { makeAppRuntime, makeSiteRuntime } from '../runtime';
+import { makeSiteRuntime } from '../runtime';
+import { makeAppRuntime } from '../runtime_app';
 
 const sampleShared = (): SharedConfigInput => ({
   dbUrl: 'postgresql://local/db',

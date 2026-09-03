@@ -117,7 +117,7 @@ export function cartaHtmlSanitizer(dirty: string) {
 /**
  * Render markdown to HTML (for admin preview or site).
  * When `script` is set, transliterates `<lipi>` inner text to that script before render.
- * Pass `lipiTransliterator` (e.g. `transliterate_wasm` from `lipilekhika`) on the server for faster batch transliteration.
+ * Pass `lipiTransliterator` (e.g. `transliterate` from `lipilekhika`) on the server for faster batch transliteration.
  * This intentionally avoids Astro-specific server helpers so it can run in browser too.
  *
  * Runs `removeDangerousTagsFromMarkdownSource` on the source unless `skipSourceSanitization: true`

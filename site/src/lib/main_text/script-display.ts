@@ -1,7 +1,7 @@
 import { get_script_from_id } from '$app/state/lang_list';
 import { transliterate_custom } from '$app/tools/converter';
 import { DEFAULT_SCRIPT_ID } from '../cookies';
-import { transliterate_wasm } from 'lipilekhika';
+import { transliterate } from 'lipilekhika';
 
 const BASE_SCRIPT = 'Devanagari';
 
@@ -20,7 +20,7 @@ export const transliterate_for_display = async (
     BASE_SCRIPT,
     get_display_script_from_id(script_id),
     undefined,
-    transliterate_wasm
+    transliterate
   );
 };
 
@@ -35,6 +35,6 @@ export const transliterate_list_for_display = async (
     BASE_SCRIPT,
     get_display_script_from_id(script_id),
     undefined,
-    transliterate_wasm
+    transliterate
   );
 };

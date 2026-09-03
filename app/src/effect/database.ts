@@ -109,6 +109,53 @@ export class Database extends Context.Service<
       };
     })
   );
+
+  /**
+   * Workers-safe driver for the Astro site.
+   *
+   * Cloudflare isolates I/O objects (TCP/WebSocket) to the request that created
+   * them, so a singleton `postgres` / Neon `Pool` dies on the second request.
+   * Both local and prod open a fresh client per query and close it after.
+   *
+   * - Local (`isDev`): postgres.js against local Postgres
+   * - Prod: Neon WebSocket `Pool` (same adapter as admin `Database.Live`)
+   *
+   * Admin stays on `Database.Live` (long-lived pool / session).
+   */
+  static readonly WorkersLive = Layer.effect(Database)(
+    Effect.gen(function* () {
+      const config = yield* SharedConfig;
+      const url = Redacted.value(config.dbUrl);
+
+      const withClient = async <A>(run: (db: DbClient) => A | PromiseLike<A>): Promise<A> => {
+        if (config.isDev) {
+          const sql = postgres(url, { max: 1, connect_timeout: 8, idle_timeout: 5 });
+          try {
+            return await run(drizzlePostgres(sql, { schema }));
+          } finally {
+            await sql.end({ timeout: 2 });
+          }
+        }
+
+        // Workers has a native WebSocket; Node `ws` is for admin/Vercel.
+        neonConfig.webSocketConstructor =
+          // oxlint-disable-next-line anti-slop/no-runtime-typeof
+          typeof globalThis.WebSocket === 'function' ? globalThis.WebSocket : ws;
+        const pool = new Pool({ connectionString: url, max: 1 });
+        try {
+          return await run(drizzleNeon(pool, { schema }));
+        } finally {
+          await pool.end();
+        }
+      };
+
+      return {
+        run: (operation, run) => tryDb(operation, () => withClient(run)),
+        transaction: (operation, run) =>
+          tryDb(operation, () => withClient((db) => db.transaction(async (tx) => await run(tx))))
+      };
+    })
+  );
 }
 
 export const dbRun = <A>(operation: string, run: (client: DbClient) => A | PromiseLike<A>) =>

@@ -1,11 +1,13 @@
 /**
  * Astro composition root for Effect (site).
  * Merges `process.env` + `import.meta.env` here only — services get resolved strings.
- * Lazy init avoids build-analysis / cold-start failures when secrets are absent.
  *
- * Site `tsconfig` remaps app `~/` prefixes used inside `$app/*` sources while keeping
- * site-owned `~/effect/site_runtime`, `~/lib/*`, `~/components/*`, and `~/utils/text-routes`.
+ * One ManagedRuntime per Worker request (AsyncLocalStorage via middleware).
+ * Do not keep a process-wide runtime: Effect fibers/latches are isolate-global
+ * and workerd drops continuations that settle in a different request.
+ * waitUntil cache writes capture Redis/Database services, not this runtime.
  */
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Cause, Effect, Exit, Layer, ManagedRuntime } from 'effect';
 import { resolveDbUrl, SharedConfig, type SharedConfigInput } from '$app/effect/config';
 import { envBagFromUnknown, pickEnv } from '$app/effect/env';
@@ -20,7 +22,7 @@ const makeSiteLayer = (
   backgroundLayer: Layer.Layer<BackgroundWork>
 ) => {
   const sharedConfigLayer = SharedConfig.layer(shared);
-  return Layer.mergeAll(Database.Live, RedisClient.Live, backgroundLayer).pipe(
+  return Layer.mergeAll(Database.WorkersLive, RedisClient.Live, backgroundLayer).pipe(
     Layer.provideMerge(sharedConfigLayer)
   );
 };
@@ -37,6 +39,10 @@ type SiteRuntimeServices =
 type SiteRuntimeError =
   SiteRuntime extends ManagedRuntime.ManagedRuntime<infer _R, infer E> ? E : never;
 type SiteRunners = EffectRunners<SiteRuntimeServices, SiteRuntimeError>;
+
+type SiteScope = { runtime: SiteRuntime; runners: SiteRunners };
+
+const siteScope = new AsyncLocalStorage<SiteScope>();
 
 export const loadSiteConfigInput = (): SharedConfigInput => {
   // Public / Vite bag first, then process.env (Worker vars/secrets at runtime).
@@ -68,16 +74,16 @@ export const loadSiteConfigInput = (): SharedConfigInput => {
   };
 };
 
-let _siteRuntime: SiteRuntime | undefined;
-let _runners: SiteRunners | undefined;
-
-const getCached = () => {
-  if (!_siteRuntime) {
-    _siteRuntime = makeSiteRuntime(loadSiteConfigInput(), BackgroundWorkLive);
-    _runners = createRunners(_siteRuntime);
-  }
-  return { runtime: _siteRuntime, runners: _runners! };
+const createSiteScope = (): SiteScope => {
+  const runtime = makeSiteRuntime(loadSiteConfigInput(), BackgroundWorkLive);
+  return { runtime, runners: createRunners(runtime) };
 };
+
+/** Bind one Effect runtime to the current Worker/Astro request. */
+export const runWithSiteRuntime = <T>(fn: () => Promise<T>): Promise<T> =>
+  siteScope.run(createSiteScope(), fn);
+
+const getCached = (): SiteScope => siteScope.getStore() ?? createSiteScope();
 
 export const getSiteRuntime = (): SiteRuntime => getCached().runtime;
 

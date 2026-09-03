@@ -58,7 +58,7 @@
     "typescript": "^6.0.3",
     "unified": "^11.0.5",
     "vite": "^7.3.3",
-    "zod": "^4.4.3"
+    "zod": "^4.5.1"
   },
   "devDependencies": {
     "@internationalized/date": "^3.12.1",

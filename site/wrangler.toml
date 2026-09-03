@@ -1,4 +1,4 @@
-name = "tsc-site"
+name = 'thesanskritchannel-projects'
 main = "@astrojs/cloudflare/entrypoints/server"
 compatibility_date = "2026-09-02"
 # Effect's fiber scheduler resolves Promises from whichever request is current.

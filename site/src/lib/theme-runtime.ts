@@ -67,8 +67,4 @@ export function syncSystemThemeListener() {
 export function bootTheme() {
   applyThemeFromStorage();
   syncSystemThemeListener();
-  document.addEventListener('astro:after-swap', () => {
-    applyThemeFromStorage();
-    syncSystemThemeListener();
-  });
 }

@@ -9,15 +9,7 @@
     "node": true,
     "es2024": true
   },
-  "ignorePatterns": [
-    "dist",
-    "build",
-    ".astro",
-    ".svelte-kit",
-    ".vercel",
-    "src/components/Posthog.astro",
-    "src/lib/components/ui"
-  ],
+  "ignorePatterns": ["dist", "build", ".svelte-kit", ".vercel", "src/lib/components/ui"],
   "jsPlugins": [
     { "name": "anti-slop", "specifier": "../tools/oxlint/anti-slop/index.ts" },
     { "name": "anti-slop-effect", "specifier": "../tools/oxlint/anti-slop/effect/index.ts" }

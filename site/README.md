@@ -1,6 +1,6 @@
 # Public Site (`site/`)
 
-The public-facing website for The Sanskrit Channel, built with **Astro** and **Svelte 5** islands.
+The public-facing website for The Sanskrit Channel, built with **SvelteKit** and **Svelte 5**.
 
 Presents the content managed through the [admin portal](../app/) in a clean, reader-friendly format with multi-script support.
 
@@ -14,18 +14,18 @@ Presents the content managed through the [admin portal](../app/) in a clean, rea
 
 ## Highlights
 
-- **Multi-script reader** — switch between Devanagari, Telugu, Tamil, Bengali, Kannada, and more; preferences saved per user
+- **Multi-script reader** — client-side script switching (no reload); SSR pre-transliterates for the cookie preference
+- **Dynamic translations** — language change fetches `/api/get_trans` without a full page reload
 - **Pretty URLs** — `/ramayanam/kanda-1/sarga-5` with automatic redirects from numeric paths
 - **Server-rendered + cached** — SSR with Redis caching for fast loads
 - **Dark/light theme** with system preference detection
-- **View transitions** via Astro ClientRouter
 
 ## Tech Stack
 
 |               |                                                    |
 | ------------- | -------------------------------------------------- |
-| Framework     | Astro 5, SSR mode                                  |
-| UI Islands    | Svelte 5 (`@astrojs/svelte`)                       |
+| Framework     | SvelteKit 2 (SSR)                                  |
+| UI            | Svelte 5                                           |
 | Styling       | TailwindCSS v4, `@tailwindcss/typography`          |
 | UI Components | shadcn-svelte                                      |
 | Database      | Neon PostgreSQL + Drizzle ORM (shared with `app/`) |
@@ -36,25 +36,17 @@ Presents the content managed through the [admin portal](../app/) in a clean, rea
 
 ## Code Sharing
 
-The site imports shared code from the admin app via the `$app/*` alias (resolves to `../app/src/*`) — database schemas, server loaders, types, and utilities. Content is created in the admin portal, stored in the shared database, and rendered read-only by this site.
+The site imports shared code from the admin app via the `@app/*` alias (resolves to `../app/src/*`) — database schemas, server loaders, types, and utilities. (`$app/*` is reserved by SvelteKit.)
 
-## Development
+Content is created in the admin portal, stored in the shared database, and rendered read-only by this site.
+
+## Scripts
 
 ```bash
-bun install
-bun run dev
+bun run dev      # vite dev
+bun run build    # production build
+bun run check    # svelte-check
+bun run format   # oxfmt (svelte/ts/js/css/json)
+bun run lint     # oxlint
+bun run test     # vitest
 ```
-
-Runs on `localhost:4321` by default. Requires the same `.env` credentials as the admin app.
-
-## Formatting & Linting
-
-`bun run format` runs two formatters in sequence:
-
-1. **oxfmt** — formats Svelte, TS/JS, JSON, and CSS (everything except Astro)
-2. **prettier** — formats **only `.astro` files** (enforced by `.prettierignore`, which ignores everything else)
-
-> ⚠️ **Legacy:** the prettier step exists solely because oxfmt does not support Astro yet.
-> Once oxfmt gains native Astro support, remove prettier (plus `prettier-plugin-astro` and the
-> astro-only `.prettierignore` split), drop the `**/*.astro` exclusion from `.oxfmtrc.json`, and
-> let oxfmt handle the whole project.

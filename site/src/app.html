@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en" class="dark" style="color-scheme: dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      (() => {
+        const storageKey = 'tsc-site-theme';
+        try {
+          const mql = window.matchMedia('(prefers-color-scheme: dark)');
+          let stored = null;
+          try {
+            stored = localStorage.getItem(storageKey);
+          } catch {}
+          const shouldUseDark = stored === 'dark' || (stored !== 'light' && mql.matches);
+          document.documentElement.classList.toggle('dark', shouldUseDark);
+          document.documentElement.style.colorScheme = shouldUseDark ? 'dark' : 'light';
+          const meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', shouldUseDark ? '#1a1625' : '#f7f2eb');
+        } catch {}
+      })();
+    </script>
+    %sveltekit.head%
+  </head>
+  <body class="bg-background" data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
+</html>

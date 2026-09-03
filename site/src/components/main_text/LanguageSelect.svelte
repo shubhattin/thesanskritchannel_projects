@@ -5,28 +5,32 @@
     LANG_LIST_IDS,
     get_script_for_lang_id,
     get_script_id
-  } from '$app/state/lang_list';
+  } from '@app/state/lang_list';
   import { DEFAULT_LANG_ID, LANG_ID_COOKIE_NAME, SCRIPT_ID_COOKIE_NAME } from '~/lib/cookies';
-  import { reload_current_page } from '~/lib/main_text/reload-page';
+  import { site_prefs } from '$lib/main_text/site-prefs.svelte';
   import * as Select from '$lib/components/ui/select';
   import LanguagesIcon from '@lucide/svelte/icons/languages';
 
   type Props = {
-    initial_lang_id: number;
-    initial_script_id: number;
     available_lang_ids: number[];
+    project_id: number;
+    path_params: number[];
+    on_translation_change?: (translation: Record<number, string> | null) => void;
   };
 
-  let { initial_lang_id, initial_script_id, available_lang_ids }: Props = $props();
+  let { available_lang_ids, project_id, path_params, on_translation_change }: Props = $props();
 
   const available_lang_id_set = $derived(new Set(available_lang_ids));
 
-  // svelte-ignore state_referenced_locally
-  let value = $state(
-    initial_lang_id === DEFAULT_LANG_ID || available_lang_id_set.has(initial_lang_id)
-      ? initial_lang_id
-      : DEFAULT_LANG_ID
-  );
+  let value = $state(DEFAULT_LANG_ID);
+  let loading = $state(false);
+
+  $effect(() => {
+    value =
+      site_prefs.lang_id === DEFAULT_LANG_ID || available_lang_id_set.has(site_prefs.lang_id)
+        ? site_prefs.lang_id
+        : DEFAULT_LANG_ID;
+  });
 
   const options = $derived([
     {
@@ -40,22 +44,48 @@
   ]);
 
   async function handleValueChange(nextValue: string) {
-    value = parseInt(nextValue);
+    const nextLang = parseInt(nextValue, 10);
+    value = nextLang;
     Cookies.set(LANG_ID_COOKIE_NAME, nextValue, {
       sameSite: 'lax',
       expires: 365
     });
+    site_prefs.set_lang_id(nextLang);
 
-    const mappedScript = get_script_for_lang_id(value);
+    const mappedScript = get_script_for_lang_id(nextLang);
     const mappedScriptId = mappedScript ? get_script_id(mappedScript) : null;
-    if (mappedScriptId !== null && mappedScriptId !== initial_script_id) {
+    if (mappedScriptId !== null && mappedScriptId !== site_prefs.script_id) {
       Cookies.set(SCRIPT_ID_COOKIE_NAME, String(mappedScriptId), {
         sameSite: 'lax',
         expires: 365
       });
+      site_prefs.set_script_id(mappedScriptId);
     }
 
-    await reload_current_page();
+    if (nextLang === DEFAULT_LANG_ID) {
+      on_translation_change?.(null);
+      return;
+    }
+
+    loading = true;
+    try {
+      const params = new URLSearchParams({
+        project_id: String(project_id),
+        lang_id: String(nextLang),
+        path_params: path_params.join(',')
+      });
+      const res = await fetch(`/api/get_trans?${params}`);
+      if (!res.ok) {
+        on_translation_change?.(null);
+        return;
+      }
+      const body = (await res.json()) as { translation: Record<number, string> | null };
+      on_translation_change?.(body.translation);
+    } catch {
+      on_translation_change?.(null);
+    } finally {
+      loading = false;
+    }
   }
 </script>
 
@@ -64,7 +94,12 @@
     <LanguagesIcon class="size-4 text-muted-foreground" aria-hidden="true" />
     <p class="text-sm text-muted-foreground">Translation</p>
   </div>
-  <Select.Root type="single" value={value.toString()} onValueChange={handleValueChange}>
+  <Select.Root
+    type="single"
+    value={value.toString()}
+    onValueChange={handleValueChange}
+    disabled={loading}
+  >
     <Select.Trigger class="w-40 px-3 py-2 text-sm">
       {options.find((option) => option.id === value)?.label ?? '-- Select --'}
     </Select.Trigger>

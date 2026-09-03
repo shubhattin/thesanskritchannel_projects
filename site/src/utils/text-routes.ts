@@ -5,18 +5,18 @@ import {
   get_node_at_path,
   is_child_nav_disabled,
   list_item_path_value
-} from '$app/state/project_list';
+} from '@app/state/project_list';
 import {
   build_project_path,
   is_numeric_route,
   normalize_level_name_for_url,
   parse_pretty_route_segment
-} from '$app/utils/project_site_paths';
+} from '@app/utils/project_site_paths';
 import {
   getProjectInfoByKey,
   getProjectMapByKey,
   resolveProjectByKey
-} from '$app/effect/project_registry';
+} from '@app/effect/project_registry';
 
 export {
   build_project_path,
@@ -25,7 +25,7 @@ export {
   is_numeric_route,
   normalize_level_name_for_url,
   parse_pretty_route_segment
-} from '$app/utils/project_site_paths';
+} from '@app/utils/project_site_paths';
 
 export const resolve_substitute_url = (_url: string) => null;
 

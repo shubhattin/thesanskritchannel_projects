@@ -3,7 +3,7 @@ import {
   get_display_script_from_id,
   transliterate_for_display,
   transliterate_list_for_display
-} from './script-display';
+} from './script-display.server';
 
 describe('script-display', () => {
   it('maps script ids to display script labels', () => {

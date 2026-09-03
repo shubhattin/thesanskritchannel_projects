@@ -9,7 +9,7 @@
   import Pencil from '@lucide/svelte/icons/pencil';
   import BookOpen from '@lucide/svelte/icons/book-open';
   import { cn } from '~/lib/utils';
-  import { ContributeIcon } from '$app/components/icons';
+  import { ContributeIcon } from '@app/components/icons';
   import { Icon } from 'svelte-icons-pack';
 
   let mobileMenuOpen = $state(false);

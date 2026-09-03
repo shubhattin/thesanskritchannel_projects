@@ -423,6 +423,7 @@ export const build_tree_rows = (
 const count_label = (n: number | null | undefined) =>
   n === null || n === undefined ? 'empty' : String(n);
 
+// oxlint-disable-next-line complexity
 export const compute_map_edit_diff = (
   workingMap: MapNodeWithClientId,
   snapshots: Map<string, BaselineNodeSnapshot>,
@@ -432,6 +433,7 @@ export const compute_map_edit_diff = (
   const flagsByClientId = new Map<string, MapNodeDiffFlags>();
   const childrenByParent = new Map<string | null, { clientId: string; index: number }[]>();
 
+  // oxlint-disable-next-line complexity
   const walk = (node: MapNodeWithClientId, path: MapPath) => {
     const clientId = node[MAP_EDIT_CLIENT_ID]!;
     const snap = snapshots.get(clientId);

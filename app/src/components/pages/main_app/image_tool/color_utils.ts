@@ -41,6 +41,7 @@ export function colorToHex(color: string): string {
     return `#${to_hex(r)}${to_hex(g)}${to_hex(b)}`;
   }
 
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof
   if (typeof document !== 'undefined') {
     const el = document.createElement('div');
     el.style.color = trimmed;

@@ -1,6 +1,6 @@
 {
   "extends": "astro/tsconfigs/strict",
-  "include": [".astro/types.d.ts", "**/*"],
+  "include": [".astro/types.d.ts", "worker-configuration.d.ts", "**/*"],
   "exclude": ["dist"],
   "compilerOptions": {
     "paths": {
@@ -12,6 +12,7 @@
 
       // Site-owned modules must win over app `~/` remaps below (longest prefix / exact).
       "~/effect/site_runtime": ["./src/effect/site_runtime.ts"],
+      "~/effect/live/*": ["./src/effect/live/*"],
       "~/utils/text-routes": ["./src/utils/text-routes.ts"],
       "~/lib/*": ["./src/lib/*"],
       "~/components/*": ["./src/components/*"],

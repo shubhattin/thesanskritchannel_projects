@@ -37,9 +37,13 @@ jobs:
         working-directory: site
         run: bun install --frozen-lockfile
 
+      - name: Generate Cloudflare types
+        working-directory: site
+        run: bun run cf-typegen
+
       - name: Run site tests
         working-directory: site
-        run: bun x vitest run
+        run: bun run test
 
       - name: Run site checks
         working-directory: site

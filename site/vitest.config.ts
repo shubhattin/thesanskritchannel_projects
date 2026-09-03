@@ -9,12 +9,15 @@ export default defineConfig({
     alias: [
       { find: '$app', replacement: appSrc },
       { find: '@data', replacement: fileURLToPath(new URL('../data', import.meta.url)) },
-        {
-          find: '~/effect/site_runtime',
-          replacement: `${siteSrc}/effect/site_runtime.ts`
-        },
-        { find: /^~\/effect\/live\//, replacement: `${siteSrc}/effect/live/` },
-        { find: 'cloudflare:workers', replacement: `${siteSrc}/effect/live/cloudflare_workers_stub.ts` },
+      {
+        find: '~/effect/site_runtime',
+        replacement: `${siteSrc}/effect/site_runtime.ts`
+      },
+      { find: /^~\/effect\/live\//, replacement: `${siteSrc}/effect/live/` },
+      {
+        find: 'cloudflare:workers',
+        replacement: `${siteSrc}/effect/live/cloudflare_workers_stub.ts`
+      },
       {
         find: '~/utils/text-routes',
         replacement: `${siteSrc}/utils/text-routes.ts`

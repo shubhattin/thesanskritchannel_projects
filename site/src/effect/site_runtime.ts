@@ -17,10 +17,7 @@ import { RedisClient } from '$app/effect/redis';
 import { createRunners, type EffectRunners } from '$app/effect/run';
 import { BackgroundWorkLive } from './live/background';
 
-const makeSiteLayer = (
-  shared: SharedConfigInput,
-  backgroundLayer: Layer.Layer<BackgroundWork>
-) => {
+const makeSiteLayer = (shared: SharedConfigInput, backgroundLayer: Layer.Layer<BackgroundWork>) => {
   const sharedConfigLayer = SharedConfig.layer(shared);
   return Layer.mergeAll(Database.WorkersLive, RedisClient.Live, backgroundLayer).pipe(
     Layer.provideMerge(sharedConfigLayer)

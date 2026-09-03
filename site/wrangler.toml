@@ -13,7 +13,6 @@ preview_urls = false
 # dashboard plaintext vars that are not listed under [vars].
 # Secrets are never deleted by deploy either way; keep_vars mainly protects plaintext vars.
 # Still: do NOT put real values in [vars] — those keys would overwrite dashboard values.
-# Runtime secrets are synced from GitHub Actions via `wrangler secret bulk`.
 keep_vars = true
 
 # Region placement (matches Neon + Upstash in Singapore / prior Vercel bom→sin path).
@@ -24,13 +23,22 @@ region = "aws:ap-southeast-1"
 binding = "ASSETS"
 directory = "./dist"
 
-# Runtime env vars: do NOT put secrets in [vars] here.
-# GitHub Actions syncs secrets with `wrangler secret bulk` after each deploy.
-# See site/.env.example for the expected variable names.
+# Runtime env vars live in the Cloudflare dashboard only (Settings → Variables and Secrets).
+# Do NOT put [vars] here — even with keep_vars, keys present in [vars] overwrite dashboard.
+# See .env.example for the expected variable names.
 #
-# Deploy (GH Actions — not Cloudflare Workers Builds UI):
-#   bun run build && bunx wrangler deploy --keep-vars
-#   then secret bulk from CI secrets
+# Build-time vs runtime (NOT like Vercel — two separate systems):
+#   - Runtime: Settings → Variables and Secrets
+#       Available to the running Worker only. keep_vars protects dashboard plaintext vars.
+#   - Build:   Settings → Build → Build variables and secrets
+#       Injected only into Workers Builds CI (during `bun run build`).
+#       NOT readable from this toml. There is no wrangler.toml field for CI build vars.
+#
+# Workers Builds (configure in the Cloudflare dashboard, not here):
+#   Root directory: site
+#   Build command:  bun install --frozen-lockfile --cwd .. && bun run --cwd ../app sync && bun run build
+#   Deploy command: bunx wrangler deploy --keep-vars
+#   Non-prod:       bunx wrangler versions upload --keep-vars
 
 [observability]
 enabled = false

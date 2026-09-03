@@ -9,6 +9,12 @@ import tailwindcss from '@tailwindcss/vite';
 const appSrc = fileURLToPath(new URL('../app/src', import.meta.url));
 const siteSrc = fileURLToPath(new URL('./src', import.meta.url));
 const dataDir = fileURLToPath(new URL('../data', import.meta.url));
+// Astro 7.3.0 injects `astro/_internal/logger` into asset runtime code, but that
+// subpath is stripped from the published package exports (monorepo-only). Without
+// this alias, Cloudflare/workerd builds fail: "'_internal/logger' is not exported".
+const astroInternalLogger = fileURLToPath(
+  new URL('./node_modules/astro/dist/core/logger/core.js', import.meta.url)
+);
 
 // https://astro.build/config
 export default defineConfig({
@@ -46,6 +52,7 @@ export default defineConfig({
       // Keep in sync with site/tsconfig.json paths. Explicit Vite aliases are required so
       // `$app/*` modules (under ../app/src) can resolve their `~/…` imports in Vite 8 SSR.
       alias: [
+        { find: 'astro/_internal/logger', replacement: astroInternalLogger },
         { find: '@data', replacement: dataDir },
         { find: '$app', replacement: appSrc },
         { find: '$components', replacement: `${siteSrc}/components` },

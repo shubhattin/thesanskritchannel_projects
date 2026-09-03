@@ -1,0 +1,45 @@
+name = "tsc-site"
+main = "@astrojs/cloudflare/entrypoints/server"
+compatibility_date = "2026-09-02"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+preview_urls = false
+
+# Preserve dashboard plaintext Variables & Secrets across deploys.
+# Without this, `wrangler deploy` treats this file as source of truth and can wipe
+# dashboard plaintext vars that are not listed under [vars].
+# Secrets are never deleted by deploy either way; keep_vars mainly protects plaintext vars.
+# Still: do NOT put real values in [vars] — those keys would overwrite dashboard values.
+# Runtime secrets are synced from GitHub Actions via `wrangler secret bulk`.
+keep_vars = true
+
+# Region placement (matches Neon + Upstash in Singapore / prior Vercel bom→sin path).
+[placement]
+region = "aws:ap-southeast-1"
+
+[assets]
+binding = "ASSETS"
+directory = "./dist"
+
+# Runtime env vars: do NOT put secrets in [vars] here.
+# GitHub Actions syncs secrets with `wrangler secret bulk` after each deploy.
+# See site/.env.example for the expected variable names.
+#
+# Deploy (GH Actions — not Cloudflare Workers Builds UI):
+#   bun run build && bunx wrangler deploy --keep-vars
+#   then secret bulk from CI secrets
+
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1

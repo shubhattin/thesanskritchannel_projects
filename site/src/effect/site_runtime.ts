@@ -6,11 +6,31 @@
  * Site `tsconfig` remaps app `~/` prefixes used inside `$app/*` sources while keeping
  * site-owned `~/effect/site_runtime`, `~/lib/*`, `~/components/*`, and `~/utils/text-routes`.
  */
-import { Cause, Effect, Exit, type ManagedRuntime } from 'effect';
+import { Cause, Effect, Exit, Layer, ManagedRuntime } from 'effect';
 import { resolveDbUrl, SharedConfig, type SharedConfigInput } from '$app/effect/config';
 import { envBagFromUnknown, pickEnv } from '$app/effect/env';
+import { BackgroundWork } from '$app/effect/background';
+import { Database } from '$app/effect/database';
+import { RedisClient } from '$app/effect/redis';
 import { createRunners, type EffectRunners } from '$app/effect/run';
-import { siteRuntime, type SiteRuntime } from '$app/effect/runtime';
+import { BackgroundWorkLive } from './live/background';
+
+const makeSiteLayer = (
+  shared: SharedConfigInput,
+  backgroundLayer: Layer.Layer<BackgroundWork>
+) => {
+  const sharedConfigLayer = SharedConfig.layer(shared);
+  return Layer.mergeAll(Database.Live, RedisClient.Live, backgroundLayer).pipe(
+    Layer.provideMerge(sharedConfigLayer)
+  );
+};
+
+export const makeSiteRuntime = (
+  shared: SharedConfigInput,
+  backgroundLayer: Layer.Layer<BackgroundWork>
+) => ManagedRuntime.make(makeSiteLayer(shared, backgroundLayer));
+
+export type SiteRuntime = ReturnType<typeof makeSiteRuntime>;
 
 type SiteRuntimeServices =
   SiteRuntime extends ManagedRuntime.ManagedRuntime<infer R, infer _E> ? R : never;
@@ -19,7 +39,7 @@ type SiteRuntimeError =
 type SiteRunners = EffectRunners<SiteRuntimeServices, SiteRuntimeError>;
 
 export const loadSiteConfigInput = (): SharedConfigInput => {
-  // Public / Vite bag first, then process.env (server secrets on Astro/Vercel).
+  // Public / Vite bag first, then process.env (Worker vars/secrets at runtime).
   const v = pickEnv(envBagFromUnknown(import.meta.env), process.env);
   const dbUrl =
     resolveDbUrl({
@@ -48,11 +68,15 @@ export const loadSiteConfigInput = (): SharedConfigInput => {
   };
 };
 
+let _siteRuntime: SiteRuntime | undefined;
 let _runners: SiteRunners | undefined;
 
 const getCached = () => {
-  if (!_runners) _runners = createRunners(siteRuntime(loadSiteConfigInput));
-  return { runtime: siteRuntime(loadSiteConfigInput), runners: _runners };
+  if (!_siteRuntime) {
+    _siteRuntime = makeSiteRuntime(loadSiteConfigInput(), BackgroundWorkLive);
+    _runners = createRunners(_siteRuntime);
+  }
+  return { runtime: _siteRuntime, runners: _runners! };
 };
 
 export const getSiteRuntime = (): SiteRuntime => getCached().runtime;
@@ -68,7 +92,6 @@ export const getSiteBetterAuthUrl = (): string =>
 export const runServerEffect = async <A, E, R extends SiteRuntimeServices>(
   effect: Effect.Effect<A, E, R>
 ): Promise<A> => {
-  // Delegates to shared runner which now logs known/unexpected via Cause.pretty
   return getCached().runners.runServerEffect(effect);
 };
 
@@ -76,7 +99,7 @@ export const runServerEffect = async <A, E, R extends SiteRuntimeServices>(
  * Like runServerEffect but returns `fallback` on any failure instead of throwing.
  * Use for non-critical data (e.g. homepage lists) so a transient CacheError/DB
  * hiccup doesn't 500 the whole page in prod.
- * Warning is structured so Vercel log drains can alert on fallback usage.
+ * Warning is structured so log drains can alert on fallback usage.
  */
 export const runServerEffectOr = async <A, E, R extends SiteRuntimeServices>(
   effect: Effect.Effect<A, E, R>,

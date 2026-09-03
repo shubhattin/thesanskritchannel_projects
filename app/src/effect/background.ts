@@ -1,9 +1,12 @@
 import { Context, Effect, Layer } from 'effect';
-import { waitUntil } from '@vercel/functions';
 
 /**
- * Background work that preserves Vercel `waitUntil` semantics.
+ * Platform-agnostic background work API.
  * Pass a lazy thunk so work is not started until enqueue runs.
+ *
+ * Live implementations live next to each app runtime:
+ * - SvelteKit (Vercel): `src/effect/live/background.ts`
+ * - Astro (Cloudflare): `site/src/effect/live/background.ts`
  */
 export class BackgroundWork extends Context.Service<
   BackgroundWork,
@@ -11,19 +14,6 @@ export class BackgroundWork extends Context.Service<
     readonly enqueue: <A>(work: () => Promise<A>) => Effect.Effect<void>;
   }
 >()('BackgroundWork') {
-  static readonly Live = Layer.succeed(BackgroundWork)({
-    enqueue: (work) =>
-      Effect.sync(() => {
-        waitUntil(
-          Promise.resolve()
-            .then(work)
-            .catch((error) => {
-              console.error('[background] work failed', error);
-            })
-        );
-      })
-  });
-
   /** Runs the work inline for tests. */
   static readonly Test = Layer.succeed(BackgroundWork)({
     enqueue: (work) =>

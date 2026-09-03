@@ -11,13 +11,15 @@ import { RedisClient } from './redis';
 import { ObjectStorage } from './storage';
 import { AiProvider, OpenAiBatchClient } from './ai';
 import { ImageProcessor } from './image';
-import { BackgroundWork } from './background';
+import { BackgroundWorkLive } from './live/background';
 import { QStashPublisher } from './qstash';
 
 /**
  * Full app layer: shared infra + S3, AI, images, QStash, public config.
  * Kept in this module so the site Worker graph never imports `sharp` / S3 / AI.
  * SharedConfig is derived from AppConfig so Database/Redis stay SharedConfig-only.
+ *
+ * Background `waitUntil` is the Vercel Live in `./live/background`.
  */
 export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigInput) => {
   const appConfigLayer = AppConfig.layer(app);
@@ -25,7 +27,7 @@ export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigI
 
   return Layer.mergeAll(
     ImageProcessor.Live,
-    BackgroundWork.Live,
+    BackgroundWorkLive,
     Database.Live,
     RedisClient.Live,
     ObjectStorage.Live,

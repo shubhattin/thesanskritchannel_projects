@@ -7,6 +7,6 @@
  * @see https://developers.cloudflare.com/workers/runtime-apis/web-standards/#navigatoruseragent
  */
 export const isCloudflareWorker = (): boolean =>
-  typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers';
+  globalThis.navigator?.userAgent === 'Cloudflare-Workers';
 
 export const canShareInFlightFibers = (): boolean => !isCloudflareWorker();

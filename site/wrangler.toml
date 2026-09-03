@@ -15,9 +15,9 @@ preview_urls = false
 # Still: do NOT put real values in [vars] — those keys would overwrite dashboard values.
 keep_vars = true
 
-# Region placement (matches Neon + Upstash in Singapore / prior Vercel bom→sin path).
-# [placement]
-# region = "aws:ap-southeast-1"
+# Smart Placement: run near backends (Neon / Upstash) based on measured latency.
+[placement]
+mode = "smart"
 
 [assets]
 binding = "ASSETS"

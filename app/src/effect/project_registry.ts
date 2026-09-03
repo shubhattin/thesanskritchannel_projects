@@ -138,6 +138,9 @@ type ProjectInfoCacheEntry = {
 
 const project_info_cache = new Map<string, ProjectInfoCacheEntry>();
 
+/** Plain values — safe to reuse across workerd requests (unlike Effect.cached fibers). */
+const project_info_value_cache = new Map<string, { value: project_info_type; fetchedAt: number }>();
+
 /** Clears in-memory project map cache for one project or all projects. */
 export const clearServerProjectMapCache = (project_id?: number) => {
   if (project_id === undefined) {
@@ -159,9 +162,11 @@ export const clearProjectRegistryCache = () => {
 export const clearServerProjectInfoCache = (project_key?: string) => {
   if (project_key === undefined) {
     project_info_cache.clear();
+    project_info_value_cache.clear();
     return;
   }
   project_info_cache.delete(project_key);
+  project_info_value_cache.delete(project_key);
 };
 
 /** @deprecated Prefer camelCase exports. */
@@ -397,7 +402,13 @@ export const getProjectInfoByKey = Effect.fn('getProjectInfoByKey')(function* (k
   });
 
   if (!canShareInFlightFibers()) {
-    return yield* load;
+    const cachedValue = project_info_value_cache.get(key);
+    if (cachedValue && is_cache_fresh(cachedValue.fetchedAt)) {
+      return cachedValue.value;
+    }
+    const value = yield* load;
+    project_info_value_cache.set(key, { value, fetchedAt: Date.now() });
+    return value;
   }
 
   const cached = project_info_cache.get(key);

@@ -7,11 +7,15 @@ import {
   type NeonQueryResultHKT
 } from 'drizzle-orm/neon-serverless';
 import {
+  drizzle as drizzleNeonHttp,
+  type NeonHttpDatabase
+} from 'drizzle-orm/neon-http';
+import {
   drizzle as drizzlePostgres,
   type PostgresJsDatabase,
   type PostgresJsQueryResultHKT
 } from 'drizzle-orm/postgres-js';
-import { neonConfig, Pool } from '@neondatabase/serverless';
+import { neon, neonConfig, Pool } from '@neondatabase/serverless';
 import postgres from 'postgres';
 import ws from 'ws';
 import * as schema from '~/db/schema';
@@ -20,7 +24,20 @@ import { DatabaseError } from './errors';
 
 neonConfig.webSocketConstructor = ws;
 
-export type DbClient = PostgresJsDatabase<typeof schema> | NeonDatabase<typeof schema>;
+export type DbClient =
+  | PostgresJsDatabase<typeof schema>
+  | NeonDatabase<typeof schema>
+  | NeonHttpDatabase<typeof schema>;
+
+/** HTTP `fetch` is not IoContext-sticky — reuse across Worker requests. */
+let workersHttpDb: { url: string; db: NeonHttpDatabase<typeof schema> } | undefined;
+
+const getWorkersHttpDb = (url: string) => {
+  if (workersHttpDb?.url === url) return workersHttpDb.db;
+  const db = drizzleNeonHttp({ client: neon(url), schema });
+  workersHttpDb = { url, db };
+  return db;
+};
 
 export type DbTransaction =
   | PgTransaction<NeonQueryResultHKT, typeof schema, ExtractTablesWithRelations<typeof schema>>
@@ -113,12 +130,16 @@ export class Database extends Context.Service<
   /**
    * Workers-safe driver for the Astro site.
    *
-   * Cloudflare isolates I/O objects (TCP/WebSocket) to the request that created
-   * them, so a singleton `postgres` / Neon `Pool` dies on the second request.
-   * Both local and prod open a fresh client per query and close it after.
+   * workerd pins TCP/WebSocket to the creating request, so a singleton Neon
+   * `Pool` dies on the second request. HTTP `fetch` is not sticky — Neon's HTTP
+   * driver is the right prod path (one POST per query, proxy-side pooling).
    *
-   * - Local (`isDev`): postgres.js against local Postgres
-   * - Prod: Neon WebSocket `Pool` (same adapter as admin `Database.Live`)
+   * Opening a WebSocket pool per `dbRun` was the previous prod path and added
+   * a TLS+WS handshake on every cache miss (hundreds of ms, sequential).
+   *
+   * - Local (`isDev`): postgres.js against local Postgres (still per-query)
+   * - Prod reads: Neon HTTP (`drizzle-orm/neon-http`)
+   * - Prod transactions: short-lived WebSocket `Pool` (site SSR does not use this)
    *
    * Admin stays on `Database.Live` (long-lived pool / session).
    */
@@ -127,7 +148,7 @@ export class Database extends Context.Service<
       const config = yield* SharedConfig;
       const url = Redacted.value(config.dbUrl);
 
-      const withClient = async <A>(run: (db: DbClient) => A | PromiseLike<A>): Promise<A> => {
+      const withReadClient = async <A>(run: (db: DbClient) => A | PromiseLike<A>): Promise<A> => {
         if (config.isDev) {
           const sql = postgres(url, { max: 1, connect_timeout: 8, idle_timeout: 5 });
           try {
@@ -136,8 +157,13 @@ export class Database extends Context.Service<
             await sql.end({ timeout: 2 });
           }
         }
+        return await run(getWorkersHttpDb(url));
+      };
 
-        // Workers has a native WebSocket; Node `ws` is for admin/Vercel.
+      const withWsClient = async <A>(
+        run: (db: NeonDatabase<typeof schema>) => A | PromiseLike<A>
+      ): Promise<A> => {
+        // Workers has a native WebSocket; Node `ws` is for admin/Vercel / Miniflare.
         neonConfig.webSocketConstructor =
           // oxlint-disable-next-line anti-slop/no-runtime-typeof
           typeof globalThis.WebSocket === 'function' ? globalThis.WebSocket : ws;
@@ -150,9 +176,20 @@ export class Database extends Context.Service<
       };
 
       return {
-        run: (operation, run) => tryDb(operation, () => withClient(run)),
+        run: (operation, run) => tryDb(operation, () => withReadClient(run)),
         transaction: (operation, run) =>
-          tryDb(operation, () => withClient((db) => db.transaction(async (tx) => await run(tx))))
+          tryDb(operation, async () => {
+            if (config.isDev) {
+              const sql = postgres(url, { max: 1, connect_timeout: 8, idle_timeout: 5 });
+              try {
+                const db = drizzlePostgres(sql, { schema });
+                return await db.transaction(async (tx) => await run(tx));
+              } finally {
+                await sql.end({ timeout: 2 });
+              }
+            }
+            return await withWsClient((db) => db.transaction(async (tx) => await run(tx)));
+          })
       };
     })
   );

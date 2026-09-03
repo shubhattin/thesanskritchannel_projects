@@ -1,19 +1,20 @@
 ---
 import RootLayout from '$components/RootLayout.astro';
-import { getProjectList } from '$app/effect/project_registry';
-import { CACHE, NO_CACHE_PARAMS } from '$app/effect/cache_loaders';
-import { runServerEffectOr } from '~/effect/site_runtime';
-
-const projects = await runServerEffectOr(getProjectList({ listed_only: true }), []);
-const featured_projects = projects.slice(0, 10);
 import Youtube from '@lucide/svelte/icons/youtube';
 import ArrowRight from '@lucide/svelte/icons/arrow-right';
 import ExternalLink from '@lucide/svelte/icons/external-link';
 import Heart from '@lucide/svelte/icons/heart';
 import Calendar from '@lucide/svelte/icons/calendar';
 import Icon from '~/components/utils/Icon.astro';
+import { getProjectList } from '$app/effect/project_registry';
+import { CACHE, NO_CACHE_PARAMS } from '$app/effect/cache_loaders';
+import { runServerEffectOr } from '~/effect/site_runtime';
 
-const latest_lekhas = await runServerEffectOr(CACHE.site_lekha_list.get(NO_CACHE_PARAMS), []);
+const [projects, latest_lekhas] = await Promise.all([
+  runServerEffectOr(getProjectList({ listed_only: true }), []),
+  runServerEffectOr(CACHE.site_lekha_list.get(NO_CACHE_PARAMS), [])
+]);
+const featured_projects = projects.slice(0, 10);
 ---
 
 <RootLayout

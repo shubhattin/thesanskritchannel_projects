@@ -15,9 +15,17 @@ preview_urls = false
 # Still: do NOT put real values in [vars] — those keys would overwrite dashboard values.
 keep_vars = true
 
-# Smart Placement: run near backends (Neon / Upstash) based on measured latency.
+# Pin execution next to Neon in ap-south-1. Smart Placement (`mode = "smart"`) was
+# inconsistent (`cf-placement: remote-` with an empty colo on some requests) and
+# can chase Upstash if Redis RTT dominates after the DB driver is fast.
+# Hyperdrive is the next step if cache-miss queries stay slow.
 [placement]
-mode = "smart"
+region = "aws:ap-south-1"
+
+# Cache HTML that sets Cache-Control (anonymous GET 200s). Hits skip the Worker.
+# Side effect: static asset requests are billed at the Workers request rate.
+[cache]
+enabled = true
 
 [assets]
 binding = "ASSETS"

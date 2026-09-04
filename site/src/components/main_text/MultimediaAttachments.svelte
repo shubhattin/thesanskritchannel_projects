@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { get_lang_from_id } from '$app/state/lang_list';
+  import { get_lang_from_id } from '@app/state/lang_list';
   import {
     filter_by_media_lang,
     filter_by_media_tab,
@@ -9,7 +9,7 @@
     media_type_tabs_list,
     type MediaLangTab,
     type MediaTab
-  } from '$app/components/pages/main_app/multimedia/multimedia_lib';
+  } from '@app/components/pages/main_app/multimedia/multimedia_lib';
   import VideoIcon from '@lucide/svelte/icons/video';
   import HeadphonesIcon from '@lucide/svelte/icons/headphones';
   import FileTextIcon from '@lucide/svelte/icons/file-text';
@@ -189,7 +189,7 @@
           </div>
         {/if}
 
-        <div class="max-h-[480px] scrollbar-thin space-y-4 overflow-y-auto pr-1.5">
+        <div class="max-h-120 scrollbar-thin space-y-4 overflow-y-auto pr-1.5">
           {#if youtubeVideos.length > 0}
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {#each youtubeVideos as video (video.id)}

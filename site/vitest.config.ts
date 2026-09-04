@@ -7,11 +7,13 @@ const siteSrc = fileURLToPath(new URL('./src', import.meta.url));
 export default defineConfig({
   resolve: {
     alias: [
-      { find: '$app', replacement: appSrc },
       { find: '@data', replacement: fileURLToPath(new URL('../data', import.meta.url)) },
+      { find: '@app', replacement: appSrc },
+      { find: '$components', replacement: `${siteSrc}/components` },
+      { find: '$lib', replacement: `${siteSrc}/lib` },
       {
         find: '~/effect/site_runtime',
-        replacement: `${siteSrc}/effect/site_runtime.ts`
+        replacement: `${siteSrc}/effect/site_runtime.server.ts`
       },
       {
         find: '~/utils/text-routes',

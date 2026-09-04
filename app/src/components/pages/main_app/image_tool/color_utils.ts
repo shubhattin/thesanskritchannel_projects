@@ -41,7 +41,7 @@ export function colorToHex(color: string): string {
     return `#${to_hex(r)}${to_hex(g)}${to_hex(b)}`;
   }
 
-  if (typeof document !== 'undefined') {
+  if ('document' in globalThis) {
     const el = document.createElement('div');
     el.style.color = trimmed;
     document.body.appendChild(el);

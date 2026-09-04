@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { project_type } from '$app/state/project_list';
+  import type { project_type } from '@app/state/project_list';
   import * as InputGroup from '~/lib/components/ui/input-group';
   import * as Pagination from '~/lib/components/ui/pagination';
   import * as Empty from '~/lib/components/ui/empty';
@@ -14,8 +14,8 @@
     createTypingContext,
     handleTypingBeforeInputEvent
   } from 'lipilekhika/typing';
-  import { filter_projects_by_search } from '$app/utils/search/project_list_search';
-  import { create_project_name_dev_normal_cache } from '$app/utils/search/project_name_dev_normal_cache';
+  import { filter_projects_by_search } from '@app/utils/search/project_list_search';
+  import { create_project_name_dev_normal_cache } from '@app/utils/search/project_name_dev_normal_cache';
 
   const PAGE_SIZE = 16;
 

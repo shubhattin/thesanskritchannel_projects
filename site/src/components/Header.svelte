@@ -9,7 +9,7 @@
   import Pencil from '@lucide/svelte/icons/pencil';
   import BookOpen from '@lucide/svelte/icons/book-open';
   import { cn } from '~/lib/utils';
-  import { ContributeIcon } from '$app/components/icons';
+  import { ContributeIcon } from '@app/components/icons';
   import { Icon } from 'svelte-icons-pack';
 
   let mobileMenuOpen = $state(false);
@@ -48,6 +48,7 @@
 
 <header
   class="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-lg"
+  style="view-transition-name: site-header"
 >
   <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
     <!-- Logo + Brand -->

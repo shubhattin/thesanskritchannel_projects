@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DEFAULT_LANG_ID,
+  NONE_LANG_ID,
   DEFAULT_SCRIPT_ID,
   parse_lang_id_cookie,
   parse_script_id_cookie
@@ -8,13 +8,13 @@ import {
 
 describe('cookies', () => {
   it('defaults missing language cookie to -1', () => {
-    expect(parse_lang_id_cookie(undefined)).toBe(DEFAULT_LANG_ID);
-    expect(parse_lang_id_cookie(null)).toBe(DEFAULT_LANG_ID);
+    expect(parse_lang_id_cookie(undefined)).toBe(NONE_LANG_ID);
+    expect(parse_lang_id_cookie(null)).toBe(NONE_LANG_ID);
   });
 
   it('falls back to -1 for invalid values', () => {
-    expect(parse_lang_id_cookie('abc')).toBe(DEFAULT_LANG_ID);
-    expect(parse_lang_id_cookie('1.5')).toBe(DEFAULT_LANG_ID);
+    expect(parse_lang_id_cookie('abc')).toBe(NONE_LANG_ID);
+    expect(parse_lang_id_cookie('1.5')).toBe(NONE_LANG_ID);
   });
 
   it('parses integer language IDs including the disabled default', () => {

@@ -31,3 +31,4 @@ data/*/zipped
 data/*/test_output.md
 
 .antigravitycli
+.env*

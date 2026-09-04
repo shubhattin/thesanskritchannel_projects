@@ -8,7 +8,7 @@
   "printWidth": 100,
   "sortPackageJson": false,
   "sortTailwindcss": {
-    "stylesheet": "./src/styles/global.css",
+    "stylesheet": "./src/app.css",
     "functions": ["clsx", "cn", "cva", "tv"]
   },
   "svelte": {},
@@ -16,13 +16,10 @@
     "node_modules",
     "build",
     "dist",
-    ".astro",
     ".svelte-kit",
     ".vercel",
     "pnpm-lock.yaml",
     "bun.lock",
-    "src/components/Posthog.astro",
-    "**/*.astro",
     "src/lib/components/ui"
   ]
 }

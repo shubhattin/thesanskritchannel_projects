@@ -1,4 +1,5 @@
 <script lang="ts">
+  import MetaTags from '$components/tags/MetaTags.svelte';
   import LanguageSelect from '$components/main_text/LanguageSelect.svelte';
   import MainTextScriptSelector from '$components/main_text/MainTextScriptSelector.svelte';
   import TextSiblingNavigation, {
@@ -273,14 +274,7 @@
   });
 </script>
 
-<svelte:head>
-  <title>{page_title}</title>
-  <meta name="description" content={page_description} />
-  <meta property="og:title" content={page_title} />
-  <meta property="og:description" content={page_description} />
-  <meta name="twitter:title" content={page_title} />
-  <meta name="twitter:description" content={page_description} />
-</svelte:head>
+<MetaTags title={page_title} description={page_description} />
 
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
   <div class="flex flex-col gap-3">

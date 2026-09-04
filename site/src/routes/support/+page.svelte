@@ -1,4 +1,6 @@
 <script lang="ts">
+  import MetaTags from '$components/tags/MetaTags.svelte';
+
   const UPI_ID = 'thesanskritchannel@okicici';
 
   const oneTimeOptions = [
@@ -43,13 +45,10 @@
   const isHttpUrl = (href: string) => href.startsWith('http://') || href.startsWith('https://');
 </script>
 
-<svelte:head>
-  <title>Support Us — The Sanskrit Channel</title>
-  <meta
-    name="description"
-    content="Support The Sanskrit Channel through one-time contributions or monthly memberships. Help us make ancient Sanskrit treasures accessible to all."
-  />
-</svelte:head>
+<MetaTags
+  title="Support Us — The Sanskrit Channel"
+  description="Support The Sanskrit Channel through one-time contributions or monthly memberships. Help us make ancient Sanskrit treasures accessible to all."
+/>
 
 <div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
   <!-- Hero -->

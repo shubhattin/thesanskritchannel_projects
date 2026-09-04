@@ -1,18 +1,16 @@
 <script lang="ts">
   import type { PageData } from './$types';
+  import MetaTags from '$components/tags/MetaTags.svelte';
   import TextsBrowser from '$components/texts/TextsBrowser.svelte';
   import BookOpen from '@lucide/svelte/icons/book-open';
 
   let { data }: { data: PageData } = $props();
 </script>
 
-<svelte:head>
-  <title>Texts — The Sanskrit Channel</title>
-  <meta
-    name="description"
-    content="Browse classical Sanskrit texts. Read in a clean interface and switch between multiple Indian scripts."
-  />
-</svelte:head>
+<MetaTags
+  title="Texts — The Sanskrit Channel"
+  description="Browse classical Sanskrit texts. Read in a clean interface and switch between multiple Indian scripts."
+/>
 
 <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
   <header class="mb-10 border-b border-border/50 pb-8">

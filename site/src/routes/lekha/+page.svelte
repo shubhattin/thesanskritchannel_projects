@@ -1,4 +1,5 @@
 <script lang="ts">
+  import MetaTags from '$components/tags/MetaTags.svelte';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
@@ -25,10 +26,11 @@
   }
 </script>
 
-<svelte:head>
-  <title>{title}</title>
-  <meta name="description" content={description} />
-</svelte:head>
+<MetaTags
+  {title}
+  {description}
+  keywords={['Lekha', 'Sanskrit articles', 'Sanskrit notes', 'The Sanskrit Channel']}
+/>
 
 <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
   <header class="mb-10 border-b border-border pb-8">

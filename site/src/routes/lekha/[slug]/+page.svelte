@@ -1,5 +1,6 @@
 <script lang="ts">
   import '@app/lib/carta_markdown/code/shiki-theme.css';
+  import MetaTags from '$components/tags/MetaTags.svelte';
   import LekhaCodeBlockCopy from '$components/lekha/LekhaCodeBlockCopy.svelte';
   import MainTextScriptSelector from '$components/main_text/MainTextScriptSelector.svelte';
   import { getFontClass } from '~/components/utils/font_list';
@@ -50,12 +51,7 @@
   }
 </script>
 
-<svelte:head>
-  <title>{data.entry.title} — Lekha</title>
-  {#if data.entry.description}
-    <meta name="description" content={data.entry.description} />
-  {/if}
-</svelte:head>
+<MetaTags title={`${data.entry.title} — Lekha`} description={data.entry.description} />
 
 <article class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
   <p class="mb-8 text-sm text-muted-foreground">

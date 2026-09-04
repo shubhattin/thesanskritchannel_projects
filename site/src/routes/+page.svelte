@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PageData } from './$types';
+  import MetaTags from '$components/tags/MetaTags.svelte';
   import ArrowRight from '@lucide/svelte/icons/arrow-right';
   import ExternalLink from '@lucide/svelte/icons/external-link';
   import Heart from '@lucide/svelte/icons/heart';
@@ -28,13 +29,20 @@
   }
 </script>
 
-<svelte:head>
-  <title>The Sanskrit Channel — Explore Authentic Sanskrit Literature</title>
-  <meta
-    name="description"
-    content="Discover ancient Sanskrit texts, learn Indian scripts, and explore tools for Sanskrit learning. Read Valmiki Ramayanam, Bhagavad Gita, and more in multiple scripts."
-  />
-</svelte:head>
+<MetaTags
+  title="The Sanskrit Channel — Explore Authentic Sanskrit Literature"
+  description="Discover ancient Sanskrit texts, learn Indian scripts, and explore tools for Sanskrit learning. Read Valmiki Ramayanam, Bhagavad Gita, and more in multiple scripts."
+  keywords={[
+    'Sanskrit',
+    'Sanskrit literature',
+    'Sanskrit texts',
+    'Indian scripts',
+    'Valmiki Ramayanam',
+    'Bhagavad Gita',
+    'Sanskrit learning',
+    'The Sanskrit Channel'
+  ]}
+/>
 
 <!-- Hero Section -->
 <section

@@ -1,8 +1,19 @@
 <script lang="ts">
   import { page } from '$app/state';
+  import MetaTags from '$components/tags/MetaTags.svelte';
 
   const is_not_found = $derived(page.status === 404);
+  const title = $derived(
+    is_not_found ? 'Page not found — The Sanskrit Channel' : 'Error — The Sanskrit Channel'
+  );
+  const description = $derived(
+    is_not_found
+      ? 'The route does not match a known text or section yet.'
+      : 'An unexpected error occurred while loading this page.'
+  );
 </script>
+
+<MetaTags {title} {description} />
 
 <div
   class="mx-auto flex w-full max-w-3xl flex-col items-start justify-center gap-6 px-4 py-10 sm:px-6"

@@ -100,7 +100,7 @@
                   class="flex size-9 items-center justify-center rounded-lg border border-border/50 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
                   {#if link.pack_icon}
-                    <Icon src={link.pack_icon} class="size-4" />
+                    <Icon src={link.pack_icon} className="size-4" />
                   {:else if link.icon}
                     {@const LucideIcon = link.icon}
                     <LucideIcon class="size-4" />

@@ -66,6 +66,7 @@
     "@sveltejs/kit": "^2.65.2",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@types/js-cookie": "^3.0.6",
+    "@types/node": "^26.4.1",
     "bits-ui": "^2.18.1",
     "clsx": "^2.1.1",
     "embla-carousel-svelte": "^8.6.0",

@@ -5,7 +5,7 @@ import { projects } from '@app/db/schema';
 import { CACHE } from '@app/effect/cache_loaders';
 import { dbRun } from '@app/effect/database';
 import { getProjectInfoByKey } from '@app/effect/project_registry';
-import { DEFAULT_LANG_ID } from '$lib/cookies';
+import { NONE_LANG_ID } from '$lib/cookies';
 import { get_selected_text_levels_from_path_params } from '~/utils/text-routes';
 import { runServerEffect } from '~/effect/site_runtime';
 
@@ -21,7 +21,7 @@ export const GET: RequestHandler = async ({ url }) => {
     error(400, 'Invalid lang_id');
   }
 
-  if (lang_id === DEFAULT_LANG_ID) {
+  if (lang_id === NONE_LANG_ID) {
     return json({ translation: null });
   }
 

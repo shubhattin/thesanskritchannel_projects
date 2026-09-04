@@ -12,9 +12,9 @@
 
   let { data, children }: { data: LayoutData; children: Snippet } = $props();
 
-  $effect(() => {
-    site_prefs.init(data.script_id, data.lang_id);
-  });
+  // this will run the first and initialize the state, avoid the -1 for lang_id
+  // svelte-ignore state_referenced_locally
+  site_prefs.init(data.script_id, data.lang_id);
 
   onMount(() => {
     bootTheme();

@@ -12,15 +12,8 @@
 
   let { data }: { data: PageData } = $props();
 
-  // svelte-ignore state_referenced_locally
-  let display_html = $state(data.entry.html);
-  // svelte-ignore state_referenced_locally
-  let ssr_script_id = $state(data.ssr_script_id);
-
-  $effect(() => {
-    display_html = data.entry.html;
-    ssr_script_id = data.ssr_script_id;
-  });
+  let display_html = $derived(data.entry.html);
+  let ssr_script_id = $derived(data.script_id);
 
   const scriptFontClass = $derived(
     getFontClass(get_display_script_from_id(site_prefs.script_id)) ?? 'font-normal'

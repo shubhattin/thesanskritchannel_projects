@@ -4,8 +4,10 @@ import { runServerEffectOr } from '~/effect/site_runtime';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
-  const projects = await runServerEffectOr(getProjectList({ listed_only: true }), []);
-  const latest_lekhas = await runServerEffectOr(CACHE.site_lekha_list.get(NO_CACHE_PARAMS), []);
+  const [projects, latest_lekhas] = await Promise.all([
+    runServerEffectOr(getProjectList({ listed_only: true }), []),
+    runServerEffectOr(CACHE.site_lekha_list.get(NO_CACHE_PARAMS), [])
+  ]);
 
   return {
     projects,

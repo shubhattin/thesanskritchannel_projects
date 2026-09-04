@@ -12,7 +12,7 @@
   import { get_display_script_from_id } from '$lib/main_text/display-script';
   import { transliterate_list_for_display_client } from '$lib/main_text/script-display-client';
   import { site_prefs } from '$lib/main_text/site-prefs.svelte';
-  import { DEFAULT_LANG_ID, DEFAULT_SCRIPT_ID } from '$lib/cookies';
+  import { NONE_LANG_ID, DEFAULT_SCRIPT_ID } from '$lib/cookies';
   import type { TextRouteLoadData } from '$lib/main_text/text-route-types';
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import BookOpenIcon from '@lucide/svelte/icons/book-open';
@@ -26,24 +26,12 @@
 
   let { data }: { data: PageBundle } = $props();
 
-  // svelte-ignore state_referenced_locally
-  let translation = $state<Record<number, string> | null>(data.translation);
-  // svelte-ignore state_referenced_locally
-  let ssr_script_id = $state(data.script_id);
-
-  let path_names_display = $state<string[] | null>(null);
-  let child_names_display = $state<string[] | null>(null);
-  let text_display = $state<string[] | null>(null);
-  let sibling_names_display = $state<Record<string, string>>({});
-
-  $effect(() => {
-    translation = data.translation;
-    ssr_script_id = data.script_id;
-    path_names_display = null;
-    child_names_display = null;
-    text_display = null;
-    sibling_names_display = {};
-  });
+  let translation = $derived<Record<number, string> | null>(data.translation);
+  let ssr_script_id = $derived(data.script_id);
+  let path_names_display = $derived<string[] | null>(null);
+  let child_names_display = $derived<string[] | null>(null);
+  let text_display = $derived<string[] | null>(null);
+  let sibling_names_display = $derived<Record<string, string>>({});
 
   const resolved = $derived(data.resolved);
   const script_id = $derived(site_prefs.script_id);
@@ -240,9 +228,7 @@
         need_live && text_base.length
           ? transliterate_list_for_display_client(text_base, sid)
           : Promise.resolve(null),
-        extra.length
-          ? transliterate_list_for_display_client(extra, sid)
-          : Promise.resolve([] as string[])
+        extra.length ? transliterate_list_for_display_client(extra, sid) : Promise.resolve([])
       ]);
       if (cancelled) return;
       if (need_live) {
@@ -464,7 +450,7 @@
 
       <MultimediaAttachments
         media_links={data.media_links}
-        selected_lang_id={site_prefs.lang_id === DEFAULT_LANG_ID ? null : site_prefs.lang_id}
+        selected_lang_id={site_prefs.lang_id === NONE_LANG_ID ? null : site_prefs.lang_id}
       />
 
       <div class="space-y-4">
@@ -477,7 +463,7 @@
                 >
                   {display_text[index]}
                 </div>
-                {#if site_prefs.lang_id !== DEFAULT_LANG_ID && translation?.[item.index]}
+                {#if site_prefs.lang_id !== NONE_LANG_ID && translation?.[item.index]}
                   <div
                     class={`border-t border-border/30 pt-2 text-sm leading-7 whitespace-pre-line text-yellow-700 dark:text-yellow-400 ${translationFontClass}`}
                   >

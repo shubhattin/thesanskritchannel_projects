@@ -189,7 +189,7 @@
           </div>
         {/if}
 
-        <div class="max-h-[480px] scrollbar-thin space-y-4 overflow-y-auto pr-1.5">
+        <div class="max-h-120 scrollbar-thin space-y-4 overflow-y-auto pr-1.5">
           {#if youtubeVideos.length > 0}
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {#each youtubeVideos as video (video.id)}

@@ -6,10 +6,16 @@
     get_script_for_lang_id,
     get_script_id
   } from '@app/state/lang_list';
-  import { DEFAULT_LANG_ID, LANG_ID_COOKIE_NAME, SCRIPT_ID_COOKIE_NAME } from '~/lib/cookies';
+  import { NONE_LANG_ID, LANG_ID_COOKIE_NAME, SCRIPT_ID_COOKIE_NAME } from '~/lib/cookies';
   import { site_prefs } from '$lib/main_text/site-prefs.svelte';
   import * as Select from '$lib/components/ui/select';
   import LanguagesIcon from '@lucide/svelte/icons/languages';
+  import { z } from 'zod/mini';
+
+  const schema = z.object({
+    translation: z.nullable(z.record(z.number(), z.string()))
+  });
+  const SchemaCompiled = z.compile(schema);
 
   type Props = {
     available_lang_ids: number[];
@@ -22,19 +28,17 @@
 
   const available_lang_id_set = $derived(new Set(available_lang_ids));
 
-  let value = $state(DEFAULT_LANG_ID);
-  let loading = $state(false);
-
+  let value = $derived(
+    available_lang_id_set.has(site_prefs.lang_id) ? site_prefs.lang_id : NONE_LANG_ID
+  );
   $effect(() => {
-    value =
-      site_prefs.lang_id === DEFAULT_LANG_ID || available_lang_id_set.has(site_prefs.lang_id)
-        ? site_prefs.lang_id
-        : DEFAULT_LANG_ID;
+    console.log('value changed', site_prefs.lang_id);
   });
+  let loading = $state(false);
 
   const options = $derived([
     {
-      id: DEFAULT_LANG_ID,
+      id: NONE_LANG_ID,
       label: '-- Select --'
     },
     ...LANG_LIST.map((lang, index) => ({
@@ -62,7 +66,7 @@
       site_prefs.set_script_id(mappedScriptId);
     }
 
-    if (nextLang === DEFAULT_LANG_ID) {
+    if (nextLang === NONE_LANG_ID) {
       on_translation_change?.(null);
       return;
     }
@@ -79,7 +83,7 @@
         on_translation_change?.(null);
         return;
       }
-      const body = (await res.json()) as { translation: Record<number, string> | null };
+      const body = SchemaCompiled.parse(await res.json());
       on_translation_change?.(body.translation);
     } catch {
       on_translation_change?.(null);

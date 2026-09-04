@@ -5,7 +5,7 @@ import {
   resolve_text_route
 } from '~/utils/text-routes';
 import { runServerEffectNullable, runServerEffectOr } from '~/effect/site_runtime';
-import { DEFAULT_LANG_ID } from '$lib/cookies';
+import { NONE_LANG_ID } from '$lib/cookies';
 import { maybe_transliterate_list } from './script-display.server';
 import { error, redirect } from '@sveltejs/kit';
 import type { TextRouteLoadData } from './text-route-types';
@@ -38,9 +38,7 @@ export async function load_text_route(opts: {
         )
       : [];
 
-  const effective_lang_id = available_lang_ids.includes(opts.lang_id)
-    ? opts.lang_id
-    : DEFAULT_LANG_ID;
+  const effective_lang_id = available_lang_ids.includes(opts.lang_id) ? opts.lang_id : NONE_LANG_ID;
 
   const text =
     resolved.node.info.type === 'shloka'
@@ -54,7 +52,7 @@ export async function load_text_route(opts: {
       : null;
 
   const translation_map =
-    resolved.node.info.type === 'shloka' && effective_lang_id !== DEFAULT_LANG_ID
+    resolved.node.info.type === 'shloka' && effective_lang_id !== NONE_LANG_ID
       ? await runServerEffectOr(
           CACHE.translation.get({
             project_id: resolved.project_id,

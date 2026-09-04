@@ -8,5 +8,5 @@ export const load: PageServerLoad = async ({ params, parent }) => {
   if (!entry) {
     error(404, 'Not found');
   }
-  return { entry, ssr_script_id: script_id };
+  return { entry };
 };

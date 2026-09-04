@@ -89,7 +89,7 @@
         >
           <Icon
             src={SiYoutube}
-            class="size-5 text-red-500 transition-transform duration-150 group-hover:scale-110"
+            className="size-5 text-red-500 transition-transform duration-150 group-hover:scale-110"
           />
           Watch on YouTube
         </a>

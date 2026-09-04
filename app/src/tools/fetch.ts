@@ -35,7 +35,7 @@ const AharaNam = (url: string, op: options = {}) => {
     delete op.form;
     op.body = data;
   }
-  if (typeof document !== 'undefined') {
+  if ('document' in globalThis) {
     const htmlID = document.querySelector('html')?.lang;
     if (!op.locale && htmlID) op.locale = htmlID;
   }

@@ -6,6 +6,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 // buffer pollyfill for netlify
 import { Buffer } from 'buffer';
-if (typeof globalThis.Buffer === 'undefined') {
+if (!('Buffer' in globalThis)) {
   globalThis.Buffer = Buffer;
 }

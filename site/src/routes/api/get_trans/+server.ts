@@ -57,7 +57,9 @@ export const GET: RequestHandler = async ({ url }) => {
         selected_text_levels
       });
       if (!map) return null;
-      return Object.fromEntries(map) as Record<number, string>;
+      const record: Record<number, string> = {};
+      for (const [k, v] of map) record[k] = v;
+      return record;
     })
   );
 

@@ -59,8 +59,8 @@ export const webp_blob_to_png_blob = async (blob: Blob): Promise<Blob> => {
   const bitmap = await createImageBitmap(blob);
   try {
     if (
-      typeof OffscreenCanvas !== 'undefined' &&
-      typeof OffscreenCanvas.prototype.convertToBlob === 'function'
+      'OffscreenCanvas' in globalThis &&
+      'convertToBlob' in globalThis.OffscreenCanvas.prototype
     ) {
       const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
       const ctx = canvas.getContext('2d');

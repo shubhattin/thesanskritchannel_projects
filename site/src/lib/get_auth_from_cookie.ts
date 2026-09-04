@@ -24,9 +24,18 @@ export const get_session_from_cookie = (
         headers: { Cookie: cookie }
       });
       if (!res.ok) return null;
-      return (await res.json()) as SiteAuthSession;
+      const data_parse = session_response_schema.safeParse(await res.json());
+      return data_parse.success ? data_parse.data : null;
     }).pipe(Effect.orElseSucceed(() => null));
   });
+
+const session_response_schema = z.object({
+  user: z.object({
+    id: z.string(),
+    email: z.string(),
+    role: z.string().nullable().optional()
+  })
+});
 
 const jwt_response_schema = z.object({
   valid: z.boolean(),

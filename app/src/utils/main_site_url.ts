@@ -7,7 +7,9 @@ import { build_project_path } from '../utils/project_site_paths';
  * `getAppPublicConfig().mainSiteUrl` / `AppPublicConfig` instead.
  */
 export const get_main_site_origin = () =>
-  String(import.meta.env.VITE_MAIN_SITE_URL ?? '').trim().replace(/\/+$/, '');
+  String(import.meta.env.VITE_MAIN_SITE_URL ?? '')
+    .trim()
+    .replace(/\/+$/, '');
 
 export const build_main_site_project_link = ({
   project_key,

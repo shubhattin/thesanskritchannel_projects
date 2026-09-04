@@ -16,10 +16,22 @@ export default defineConfig({
   },
   // Svelte UI packages ship `.svelte` source — exclude from esbuild dep scan.
   optimizeDeps: {
-    exclude: ['@lucide/svelte', 'bits-ui', 'svelte-icons-pack', 'embla-carousel-svelte']
+    exclude: [
+      '@lucide/svelte',
+      'lucide-svelte',
+      'bits-ui',
+      'svelte-icons-pack',
+      'embla-carousel-svelte'
+    ]
   },
   ssr: {
-    noExternal: ['@lucide/svelte', 'bits-ui', 'svelte-icons-pack', 'embla-carousel-svelte']
+    noExternal: [
+      '@lucide/svelte',
+      'lucide-svelte',
+      'bits-ui',
+      'svelte-icons-pack',
+      'embla-carousel-svelte'
+    ]
   },
   resolve: {
     // Keep in sync with svelte.config.js aliases.

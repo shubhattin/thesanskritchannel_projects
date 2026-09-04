@@ -37,6 +37,7 @@
     "@fontsource/noto-sans-tamil": "^5.2.7",
     "@fontsource/noto-sans-tamil-supplement": "^5.2.7",
     "@fontsource/noto-sans-telugu": "^5.2.8",
+    "@lucide/svelte": "^1.40.0",
     "@neondatabase/serverless": "^1.1.0",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.1",

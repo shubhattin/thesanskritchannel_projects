@@ -26,6 +26,11 @@ export type TextRouteLoadData = {
   transliterated_path_names: string[] | null;
   /** Child names pre-transliterated; null when script is Devanagari. */
   transliterated_child_names: string[] | null;
+  /**
+   * Prev/next sibling + root-map parent names for the current script.
+   * Keys are Devanagari `name_dev`. Null when script is Devanagari or none needed.
+   */
+  transliterated_nav_names: Record<string, string> | null;
   available_lang_ids: number[];
   /** Effective lang after availability check. */
   effective_lang_id: number;

@@ -26,14 +26,18 @@
 
   let { data }: { data: PageBundle } = $props();
 
-  let translation = $derived<Record<number, string> | null>(data.translation);
-  let path_names_display = $derived<string[] | null>(null);
-  let child_names_display = $derived<string[] | null>(null);
-  let text_display = $derived<string[] | null>(null);
-  let sibling_names_display = $derived<Record<string, string>>({});
+  /** Live client overrides; null means use SSR / base Devanagari. */
+  let path_names_display = $state<string[] | null>(null);
+  let child_names_display = $state<string[] | null>(null);
+  let text_display = $state<string[] | null>(null);
+  let sibling_names_display = $state<Record<string, string>>({});
+  let translation_override = $state<Record<number, string> | null>(null);
 
   const resolved = $derived(data.resolved);
+  /** Script id used when this page's load data was produced. */
+  const ssr_script_id = $derived(data.script_id);
   const script_id = $derived(site_prefs.script_id);
+  const translation = $derived(translation_override ?? data.translation);
   const scriptFontClass = $derived(
     getFontClass(get_display_script_from_id(script_id)) ?? 'font-normal'
   );
@@ -41,14 +45,6 @@
   const translationScript = $derived(get_script_for_lang_id(site_prefs.lang_id));
   const translationFontClass = $derived(
     translationScript ? (getFontClass(translationScript) ?? '') : ''
-  );
-
-  const current_title = $derived(resolved.path_names.at(-1) ?? resolved.project_name);
-  const page_title = $derived(`${current_title} | ${resolved.project_name}`);
-  const page_description = $derived(
-    resolved.path_names.length === 0
-      ? `Browse ${resolved.project_name}`
-      : `Browse ${resolved.project_name} — ${resolved.path_names.join(' / ')}`
   );
 
   function pick_display(
@@ -59,12 +55,28 @@
   ): string[] {
     if (script === DEFAULT_SCRIPT_ID) return base;
     if (live) return live;
-    if (script === site_prefs.script_id && ssr) return ssr;
+    if (script === ssr_script_id && ssr) return ssr;
     return base;
   }
 
+  // Reset lang override when navigating to a different text payload.
+  $effect(() => {
+    void data.translation;
+    void data.resolved.canonical_path;
+    translation_override = null;
+  });
+
   const display_path_names = $derived(
     pick_display(script_id, data.path_names_dev, data.transliterated_path_names, path_names_display)
+  );
+
+  // H1 + <title> stay Devanagari; body/breadcrumb use display_path_names.
+  const current_title = $derived(data.path_names_dev.at(-1) ?? resolved.project_name);
+  const page_title = $derived(`${current_title} | ${resolved.project_name}`);
+  const page_description = $derived(
+    data.path_names_dev.length === 0
+      ? `Browse ${resolved.project_name}`
+      : `Browse ${resolved.project_name} — ${data.path_names_dev.join(' / ')}`
   );
 
   const display_child_names = $derived(
@@ -132,7 +144,13 @@
   function sibling_display_name(name_dev: string | undefined): string {
     if (!name_dev) return '';
     if (script_id === DEFAULT_SCRIPT_ID) return name_dev;
-    return sibling_names_display[name_dev] ?? name_dev;
+    const live = sibling_names_display[name_dev];
+    if (live) return live;
+    // SSR: $effect does not run — use pre-transliterated nav names from load.
+    if (script_id === ssr_script_id) {
+      return data.transliterated_nav_names?.[name_dev] ?? name_dev;
+    }
+    return name_dev;
   }
 
   const previous_sibling_item: TextSiblingNavigationItem | null = $derived.by(() => {
@@ -181,7 +199,12 @@
       ? resolved.map.name_dev
       : (resolved.path_names.at(-2) ?? resolved.map.name_dev)
   );
-  const parent_name_display = $derived(sibling_display_name(parent_name_dev));
+  /** Prefer breadcrumb path display (already SSR-transliterated); map root uses nav map. */
+  const parent_name_display = $derived(
+    resolved.path_params.length >= 2
+      ? (display_path_names.at(-2) ?? sibling_display_name(parent_name_dev))
+      : sibling_display_name(parent_name_dev)
+  );
   const show_parent_back_link = $derived(resolved.path_params.length > 0 && !!parent_name_display);
   const show_project_root_back_link = $derived(resolved.path_params.length > 1);
   const is_empty_list_view = $derived(
@@ -190,13 +213,16 @@
 
   $effect(() => {
     const sid = script_id;
+    const loaded_script_id = ssr_script_id;
     const path_base = data.path_names_dev;
     const child_base = data.child_items.map((c) => c.name_dev);
     const text_base = (data.text ?? []).map((t) => t.text);
     const sibling_devs = [previous_sibling_source?.name_dev, next_sibling_source?.name_dev].filter(
       (n): n is string => !!n
     );
-    const parent_dev = resolved.path_params.length > 0 ? parent_name_dev : null;
+    // Map-root parent only (path depth 1); deeper parents come from display_path_names.
+    const parent_dev =
+      resolved.path_params.length === 1 && parent_name_dev ? parent_name_dev : null;
     const extra = [...sibling_devs, ...(parent_dev ? [parent_dev] : [])];
 
     if (sid === DEFAULT_SCRIPT_ID) {
@@ -207,34 +233,33 @@
       return;
     }
 
-    if (sid === site_prefs.script_id) {
+    // Same script as SSR — use pre-transliterated_* (incl. nav names); no client pass.
+    if (sid === loaded_script_id) {
       path_names_display = null;
       child_names_display = null;
       text_display = null;
-      // still need sibling/parent client trans if SSR didn't include them
+      sibling_names_display = data.transliterated_nav_names ?? {};
+      return;
     }
 
     let cancelled = false;
     (async () => {
-      const need_live = sid !== site_prefs.script_id;
       const [paths, children, texts, extras] = await Promise.all([
-        need_live && path_base.length
+        path_base.length
           ? transliterate_list_for_display_client(path_base, sid)
           : Promise.resolve(null),
-        need_live && child_base.length
+        child_base.length
           ? transliterate_list_for_display_client(child_base, sid)
           : Promise.resolve(null),
-        need_live && text_base.length
+        text_base.length
           ? transliterate_list_for_display_client(text_base, sid)
           : Promise.resolve(null),
         extra.length ? transliterate_list_for_display_client(extra, sid) : Promise.resolve([])
       ]);
       if (cancelled) return;
-      if (need_live) {
-        path_names_display = paths;
-        child_names_display = children;
-        text_display = texts;
-      }
+      path_names_display = paths;
+      child_names_display = children;
+      text_display = texts;
       const map: Record<string, string> = {};
       extra.forEach((dev, i) => {
         map[dev] = extras[i] ?? dev;
@@ -435,7 +460,7 @@
             project_id={resolved.project_id}
             path_params={resolved.path_params}
             on_translation_change={(t) => {
-              translation = t;
+              translation_override = t;
             }}
           />
         {/if}

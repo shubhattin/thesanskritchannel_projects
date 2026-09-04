@@ -3,6 +3,7 @@
   import '../styles/fonts.css';
   import type { Snippet } from 'svelte';
   import { onMount } from 'svelte';
+  import { onNavigate } from '$app/navigation';
   import type { LayoutData } from './$types';
   import Header from '$components/Header.svelte';
   import Footer from '$components/Footer.svelte';
@@ -18,6 +19,20 @@
 
   onMount(() => {
     bootTheme();
+  });
+
+  // Same-document page crossfade (Astro ClientRouter–style progressive enhancement).
+  // https://svelte.dev/blog/view-transitions
+  onNavigate((navigation) => {
+    const startViewTransition = document.startViewTransition?.bind(document);
+    if (!startViewTransition) return;
+
+    return new Promise((resolve) => {
+      startViewTransition(async () => {
+        resolve();
+        await navigation.complete;
+      });
+    });
   });
 </script>
 
@@ -47,3 +62,36 @@
 </div>
 
 <Posthog />
+
+<style>
+  /* Soft root crossfade — header/footer use separate transition names so chrome stays put. */
+  @keyframes vt-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes vt-fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    :root::view-transition-old(root) {
+      animation: 90ms cubic-bezier(0.4, 0, 1, 1) both vt-fade-out;
+    }
+
+    :root::view-transition-new(root) {
+      animation: 210ms cubic-bezier(0, 0, 0.2, 1) 90ms both vt-fade-in;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(::view-transition-group(*)),
+    :global(::view-transition-old(*)),
+    :global(::view-transition-new(*)) {
+      animation: none !important;
+    }
+  }
+</style>

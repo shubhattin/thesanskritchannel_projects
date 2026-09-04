@@ -31,9 +31,7 @@
   let value = $derived(
     available_lang_id_set.has(site_prefs.lang_id) ? site_prefs.lang_id : NONE_LANG_ID
   );
-  $effect(() => {
-    console.log('value changed', site_prefs.lang_id);
-  });
+
   let loading = $state(false);
 
   const options = $derived([
@@ -49,12 +47,11 @@
 
   async function handleValueChange(nextValue: string) {
     const nextLang = parseInt(nextValue, 10);
-    value = nextLang;
+    site_prefs.set_lang_id(nextLang);
     Cookies.set(LANG_ID_COOKIE_NAME, nextValue, {
       sameSite: 'lax',
       expires: 365
     });
-    site_prefs.set_lang_id(nextLang);
 
     const mappedScript = get_script_for_lang_id(nextLang);
     const mappedScriptId = mappedScript ? get_script_id(mappedScript) : null;

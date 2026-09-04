@@ -27,7 +27,6 @@
   let { data }: { data: PageBundle } = $props();
 
   let translation = $derived<Record<number, string> | null>(data.translation);
-  let ssr_script_id = $derived(data.script_id);
   let path_names_display = $derived<string[] | null>(null);
   let child_names_display = $derived<string[] | null>(null);
   let text_display = $derived<string[] | null>(null);
@@ -60,7 +59,7 @@
   ): string[] {
     if (script === DEFAULT_SCRIPT_ID) return base;
     if (live) return live;
-    if (script === ssr_script_id && ssr) return ssr;
+    if (script === site_prefs.script_id && ssr) return ssr;
     return base;
   }
 
@@ -208,7 +207,7 @@
       return;
     }
 
-    if (sid === ssr_script_id) {
+    if (sid === site_prefs.script_id) {
       path_names_display = null;
       child_names_display = null;
       text_display = null;
@@ -217,7 +216,7 @@
 
     let cancelled = false;
     (async () => {
-      const need_live = sid !== ssr_script_id;
+      const need_live = sid !== site_prefs.script_id;
       const [paths, children, texts, extras] = await Promise.all([
         need_live && path_base.length
           ? transliterate_list_for_display_client(path_base, sid)

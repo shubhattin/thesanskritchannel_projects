@@ -5,52 +5,30 @@
   import { getFontClass } from '~/components/utils/font_list';
   import { get_display_script_from_id } from '$lib/main_text/display-script';
   import { site_prefs } from '$lib/main_text/site-prefs.svelte';
-  import { DEFAULT_SCRIPT_ID } from '$lib/cookies';
-  import { renderLekhaMarkdownToHtml } from '@app/lib/carta_markdown/markdown';
-  import { get_script_from_id } from '@app/state/lang_list';
+  import { invalidate } from '$app/navigation';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
 
   let display_html = $derived(data.entry.html);
-  let ssr_script_id = $derived(data.script_id);
 
   const scriptFontClass = $derived(
     getFontClass(get_display_script_from_id(site_prefs.script_id)) ?? 'font-normal'
   );
 
+  // Re-fetch SSR HTML when script changes (server renders markdown). Skip
+  // until the first real change so we don't double-fetch after mount/nav.
+  let last_script_id: number | undefined = undefined;
   $effect(() => {
-    const sid = site_prefs.script_id;
-    const content = data.entry.content;
-    const has_indicator = data.entry.has_script_indicator;
-
-    if (!has_indicator) return;
-
-    if (sid === ssr_script_id) {
-      display_html = data.entry.html;
+    if (!data.entry.has_script_indicator) return;
+    const script_id = site_prefs.script_id;
+    if (last_script_id === undefined) {
+      last_script_id = script_id;
       return;
     }
-
-    if (sid === DEFAULT_SCRIPT_ID && data.entry.html_base) {
-      display_html = data.entry.html_base;
-      return;
-    }
-
-    if (sid === DEFAULT_SCRIPT_ID) {
-      display_html = data.entry.html;
-      return;
-    }
-
-    let cancelled = false;
-    const script = get_script_from_id(sid) ?? 'Devanagari';
-    (async () => {
-      const html = await renderLekhaMarkdownToHtml(content, { script });
-      if (!cancelled) display_html = html;
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    if (last_script_id === script_id) return;
+    last_script_id = script_id;
+    void invalidate('site:prefs');
   });
 
   function formatDate(value: Date | string | null | undefined) {

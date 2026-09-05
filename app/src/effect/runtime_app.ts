@@ -1,4 +1,4 @@
-import { Layer, ManagedRuntime } from 'effect';
+import { Effect, Layer, ManagedRuntime } from 'effect';
 import {
   AppConfig,
   AppPublicConfig,
@@ -10,16 +10,30 @@ import { Database } from './database';
 import { RedisClient } from './redis';
 import { ObjectStorage } from './storage';
 import { AiProvider, OpenAiBatchClient } from './ai';
-import { ImageProcessorLive } from './live/cf_images';
 import { BackgroundWorkLive } from './live/background';
 import { QStashPublisher } from './qstash';
+import { isCloudflareWorker } from './platform';
+
+/**
+ * Image live for the current runtime. workerd uses the Cloudflare Images
+ * binding (`./live/cf_images`); Miniflare does not emulate Images, so local
+ * `vite dev` / Vitest (Node) use the sharp live (`./live/sharp_images`).
+ * Both modules stay dynamically imported: `sharp` has native bindings that
+ * cannot enter the Worker bundle (see `external` in vite.config.ts).
+ */
+const imageProcessorLive = Layer.unwrap(
+  Effect.gen(function* () {
+    if (isCloudflareWorker()) {
+      return (yield* Effect.promise(() => import('./live/cf_images'))).ImageProcessorLive;
+    }
+    return (yield* Effect.promise(() => import('./live/sharp_images'))).ImageProcessorLive;
+  })
+);
 
 /**
  * Full app layer: shared infra + S3, AI, images, QStash, public config.
- * Image work goes through the Cloudflare Images live (`./live/cf_images`);
- * the sharp live (`./live/sharp_images`) is Node/Vitest-only and must never
- * enter the Worker graph. SharedConfig is derived from AppConfig so
- * Database/Redis stay SharedConfig-only.
+ * SharedConfig is derived from AppConfig so Database/Redis stay
+ * SharedConfig-only.
  *
  * Database uses the Workers-safe per-query driver: workerd isolates I/O to
  * the creating request, so no pooled client may outlive it.
@@ -29,7 +43,7 @@ export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigI
   const publicConfigLayer = AppPublicConfig.layer(publicConfig);
 
   return Layer.mergeAll(
-    ImageProcessorLive,
+    imageProcessorLive,
     BackgroundWorkLive,
     Database.WorkersLive,
     RedisClient.Live,

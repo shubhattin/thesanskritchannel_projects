@@ -51,10 +51,13 @@ export default defineConfig({
     }
   },
   build: {
-    // `cloudflare:workers` only exists on workerd — keep the (lazy) imports
+    // `cloudflare:workers` only exists on workerd, and `sharp` has native
+    // bindings that cannot be bundled — keep both (lazy/dynamic) imports
     // as-is in the server bundle instead of failing resolution at build time.
+    // Neither is ever loaded on workerd: cloudflare:workers resolves natively,
+    // and the sharp live is only selected outside workerd (see runtime_app).
     rolldownOptions: {
-      external: ['cloudflare:workers']
+      external: ['cloudflare:workers', 'sharp']
     }
   },
   worker: {

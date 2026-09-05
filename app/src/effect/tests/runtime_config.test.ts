@@ -8,6 +8,7 @@ import {
 } from '../config';
 import { createRunners } from '../run';
 import { makeAppRuntime } from '../runtime_app';
+import { ImageProcessor } from '../image';
 
 const sampleShared = (): SharedConfigInput => ({
   dbUrl: 'postgresql://local/db',
@@ -71,6 +72,24 @@ describe('makeAppRuntime', () => {
     const runtime = makeAppRuntime({ ...sampleApp(), openaiApiKey: '' }, samplePublic());
     const exit = await runtime.runPromiseExit(Effect.void);
     expect(Exit.isFailure(exit)).toBe(true);
+    await runtime.dispose();
+  });
+
+  it('selects the sharp image live outside workerd', async () => {
+    const runtime = makeAppRuntime(sampleApp(), samplePublic());
+    const result = await runtime.runPromise(
+      Effect.gen(function* () {
+        const images = yield* ImageProcessor;
+        return yield* images.compressToWebp(
+          Buffer.from(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            'base64'
+          )
+        );
+      })
+    );
+    expect(result.buffer.subarray(0, 4).toString()).toBe('RIFF');
+    expect(result.width).toBe(1);
     await runtime.dispose();
   });
 });

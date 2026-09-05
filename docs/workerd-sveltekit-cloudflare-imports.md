@@ -24,6 +24,48 @@ with exactly the error above (exit 1); the lazy form below builds clean.
 
 ---
 
+## Why the frameworks differ (dev runtimes, verified)
+
+`cloudflare:workers` resolves **only** where modules execute inside workerd:
+
+| Framework | `vite dev` executes server code in… | `cloudflare:workers` in dev? |
+| --- | --- | --- |
+| TanStack Start + `@cloudflare/vite-plugin` | **workerd** (Vite Environment API; the plugin's README: *"Your Worker code runs inside workerd"*) | Yes, native |
+| Astro + `@astrojs/cloudflare` | **Node** (docs' local story is `astro build && wrangler dev`, i.e. real workerd on a prod build) | Only on workerd |
+| SvelteKit + `adapter-cloudflare` (v7, Kit 2.x) | **Node**; the adapter emulates **only `event.platform`** via `getPlatformProxy` (verified in adapter source: `emulate()` returns `{ env, ctx, caches, cf }`, no module shimming) | No |
+
+Upstream knows the gap: SvelteKit PR #16754 (*"remove cloudflare `platform`, emulate the `cloudflare:workers` module instead"*, merged Aug 2026 into the **v3 prerelease** line) adds a `virtual-cloudflare-workers.js` module for dev — not available on the stable v2 line this repo runs. Until that lands stable, SvelteKit code must run in three contexts (Node dev, Node build-analysis, workerd prod) and pick implementations at runtime.
+
+Related, from the Cloudflare skill references: **Miniflare does not emulate Cloudflare Images** (nor Stream / Browser Rendering), and the wrangler skill lists Images as remote-only for local dev. So even a full-workerd dev loop cannot transform images locally — the local image path must be `sharp` on Node.
+
+---
+
+## Pattern: runtime live selection (images)
+
+`app/src/effect/runtime_app.ts` picks the image live by runtime, keeping both
+implementations dynamically imported so neither breaks the other's bundle —
+`sharp` has native bindings and is additionally listed in
+`build.rolldownOptions.external`:
+
+```ts
+const imageProcessorLive = Layer.unwrap(
+  Effect.gen(function* () {
+    if (isCloudflareWorker()) {
+      return (yield* Effect.promise(() => import('./live/cf_images'))).ImageProcessorLive;
+    }
+    return (yield* Effect.promise(() => import('./live/sharp_images'))).ImageProcessorLive;
+  })
+);
+```
+
+- workerd → Cloudflare Images binding (dimensions via a pure-JS
+  PNG/JPEG/WebP parser — Images converts but never reports metadata).
+- Node (`vite dev`, `vite preview`, Vitest) → sharp, full fidelity.
+- Neither module is ever *loaded* in the wrong runtime: build analysis only
+  loads the selector, and each branch's chunk loads on first use.
+
+---
+
 ## Rule
 
 Never statically import a workerd-only specifier from SvelteKit server code.

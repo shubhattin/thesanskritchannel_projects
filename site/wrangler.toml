@@ -39,6 +39,14 @@ directory = './.svelte-kit/cloudflare'
 #   Build command:  bun install --frozen-lockfile --cwd .. && bun run --cwd ../app sync && bun run build
 #   Deploy command: bunx wrangler deploy --keep-vars
 #   Non-prod:       bunx wrangler versions upload --keep-vars
+# Needed envs for build :-
+# BUILD_MODE=cloudflare
+# BUN_VERSION=1.3
+# SKIP_DEPENDENCY_INSTALL=true
+# // others
+# VITE_BETTER_AUTH_URL = <url>
+# PUBLIC_POSTHOG_KEY="example-public-posthog-key"
+# PUBLIC_POSTHOG_URL="https://us.i.posthog.com"
 
 [observability]
 enabled = false

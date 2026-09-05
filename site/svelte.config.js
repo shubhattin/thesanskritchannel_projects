@@ -1,4 +1,4 @@
-import adapter from '@sveltejs/adapter-vercel';
+import adapter from '@sveltejs/adapter-cloudflare';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { fileURLToPath } from 'node:url';
 
@@ -8,10 +8,7 @@ const appSrc = fileURLToPath(new URL('../app/src', import.meta.url));
 const config = {
   preprocess: vitePreprocess(),
   kit: {
-    adapter: adapter({
-      runtime: 'nodejs22.x',
-      regions: ['bom1']
-    }),
+    adapter: adapter(),
     alias: {
       $components: 'src/components',
       '@data': '../data',

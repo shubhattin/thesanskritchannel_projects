@@ -16,6 +16,7 @@ import { BackgroundWork } from './background';
 import { SharedConfig } from './config';
 import { Database, dbRun } from './database';
 import { CacheError, NotFoundError } from './errors';
+import { canShareInFlightFibers } from './platform';
 import { RedisClient } from './redis';
 
 /** Same env as createCache — site-safe (no AiProvider / ObjectStorage). */
@@ -177,52 +178,56 @@ const getInternalRegistry = Effect.fn('getInternalRegistry')(function* () {
   if (registry_cache.value && is_cache_fresh(registry_cache.fetchedAt)) {
     return registry_cache.value;
   }
-  if (registry_cache.inFlight) {
+  // Effect.cached deferreds are pinned to the creating request on workerd.
+  if (canShareInFlightFibers() && registry_cache.inFlight) {
     return yield* registry_cache.inFlight;
   }
 
   const fetch_generation = registry_cache.generation;
 
-  const fetchEffect = yield* Effect.cached(
-    Effect.gen(function* () {
-      const sorted_source = yield* projectListCache.get(NO_CACHE_PARAMS);
-      const registry = build_project_registry(
-        sorted_source.map(({ id, name, name_dev, description, key, listed }) => ({
-          id,
-          name,
-          name_dev,
-          description,
-          key,
-          listed
-        }))
-      );
-      const getMapById = new Map(
-        sorted_source.map((project) => [
-          project.id,
-          () => projectMapCache.get({ project_id: project.id })
-        ])
-      );
-      return { ...registry, getMapById };
-    }).pipe(
-      Effect.tap((value) =>
-        Effect.sync(() => {
-          if (fetch_generation === registry_cache.generation) {
-            registry_cache.value = value;
-            registry_cache.fetchedAt = Date.now();
-            registry_cache.inFlight = null;
-          }
-        })
-      ),
-      Effect.tapError(() =>
-        Effect.sync(() => {
-          if (fetch_generation === registry_cache.generation) {
-            registry_cache.inFlight = null;
-          }
-        })
-      )
+  const load = Effect.gen(function* () {
+    const sorted_source = yield* projectListCache.get(NO_CACHE_PARAMS);
+    const registry = build_project_registry(
+      sorted_source.map(({ id, name, name_dev, description, key, listed }) => ({
+        id,
+        name,
+        name_dev,
+        description,
+        key,
+        listed
+      }))
+    );
+    const getMapById = new Map(
+      sorted_source.map((project) => [
+        project.id,
+        () => projectMapCache.get({ project_id: project.id })
+      ])
+    );
+    return { ...registry, getMapById };
+  }).pipe(
+    Effect.tap((value) =>
+      Effect.sync(() => {
+        if (fetch_generation === registry_cache.generation) {
+          registry_cache.value = value;
+          registry_cache.fetchedAt = Date.now();
+          registry_cache.inFlight = null;
+        }
+      })
+    ),
+    Effect.tapError(() =>
+      Effect.sync(() => {
+        if (fetch_generation === registry_cache.generation) {
+          registry_cache.inFlight = null;
+        }
+      })
     )
   );
 
+  if (!canShareInFlightFibers()) {
+    return yield* load;
+  }
+
+  const fetchEffect = yield* Effect.cached(load);
   registry_cache.inFlight = fetchEffect;
   return yield* fetchEffect;
 });
@@ -338,28 +343,31 @@ export const getProjectMapByKey = Effect.fn('getProjectMapByKey')(function* (key
   if (entry.value && is_cache_fresh(entry.fetchedAt)) {
     return entry.value;
   }
-  if (entry.inFlight) {
+  if (canShareInFlightFibers() && entry.inFlight) {
     return yield* entry.inFlight;
   }
 
   const mapEntry = entry;
-  const fetchEffect = yield* Effect.cached(
-    get_map().pipe(
-      Effect.tap((value) =>
-        Effect.sync(() => {
-          mapEntry.value = value;
-          mapEntry.fetchedAt = Date.now();
-          mapEntry.inFlight = null;
-        })
-      ),
-      Effect.tapError(() =>
-        Effect.sync(() => {
-          mapEntry.inFlight = null;
-        })
-      )
+  const load = get_map().pipe(
+    Effect.tap((value) =>
+      Effect.sync(() => {
+        mapEntry.value = value;
+        mapEntry.fetchedAt = Date.now();
+        mapEntry.inFlight = null;
+      })
+    ),
+    Effect.tapError(() =>
+      Effect.sync(() => {
+        mapEntry.inFlight = null;
+      })
     )
   );
 
+  if (!canShareInFlightFibers()) {
+    return yield* load;
+  }
+
+  const fetchEffect = yield* Effect.cached(load);
   mapEntry.inFlight = fetchEffect;
   return yield* fetchEffect;
 });
@@ -376,6 +384,22 @@ export const getProjectMapById = Effect.fn('getProjectMapById')(function* (id: n
 });
 
 export const getProjectInfoByKey = Effect.fn('getProjectInfoByKey')(function* (key: string) {
+  const load = Effect.gen(function* () {
+    const registry = yield* getInternalRegistry();
+    const project = registry.byKey.get(key);
+    if (!project) {
+      return yield* Effect.fail(
+        NotFoundError.make({ resource: 'project', message: `Project not found: ${key}` })
+      );
+    }
+    const map = yield* getProjectMapByKey(key);
+    return build_project_info(project, map);
+  });
+
+  if (!canShareInFlightFibers()) {
+    return yield* load;
+  }
+
   const cached = project_info_cache.get(key);
   if (cached?.value && is_cache_fresh(cached.fetchedAt)) {
     return yield* cached.value;
@@ -385,17 +409,7 @@ export const getProjectInfoByKey = Effect.fn('getProjectInfoByKey')(function* (k
   const held: ProjectInfoEffectHolder = { current: null };
 
   const fetchEffect = yield* Effect.cached(
-    Effect.gen(function* () {
-      const registry = yield* getInternalRegistry();
-      const project = registry.byKey.get(key);
-      if (!project) {
-        return yield* Effect.fail(
-          NotFoundError.make({ resource: 'project', message: `Project not found: ${key}` })
-        );
-      }
-      const map = yield* getProjectMapByKey(key);
-      return build_project_info(project, map);
-    }).pipe(
+    load.pipe(
       Effect.tapError(() =>
         Effect.sync(() => {
           if (project_info_cache.get(key)?.value === held.current) {

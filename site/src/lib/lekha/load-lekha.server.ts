@@ -1,4 +1,4 @@
-import { transliterate_node } from 'lipilekhika/node';
+import { transliterate } from 'lipilekhika';
 import { get_script_from_id, type script_list_type } from '@app/state/lang_list';
 import { CACHE, NO_CACHE_PARAMS } from '@app/effect/cache_loaders';
 import { renderLekhaMarkdownToHtml } from '@app/lib/carta_markdown/markdown';
@@ -45,14 +45,14 @@ export async function load_lekha_entry(
   const script = script_from_id(script_id);
   const html = await renderLekhaMarkdownToHtml(row.content, {
     script,
-    lipiTransliterator: transliterate_node
+    lipiTransliterator: transliterate
   });
 
   let html_base: string | null = null;
   if (script_id !== DEFAULT_SCRIPT_ID) {
     html_base = await renderLekhaMarkdownToHtml(row.content, {
       script: 'Devanagari',
-      lipiTransliterator: transliterate_node
+      lipiTransliterator: transliterate
     });
   }
 

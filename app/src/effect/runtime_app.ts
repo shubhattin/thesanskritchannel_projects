@@ -3,33 +3,23 @@ import {
   AppConfig,
   AppPublicConfig,
   SharedConfigFromAppConfigLayer,
-  SharedConfig,
   type AppConfigInput,
-  type AppPublicConfigInput,
-  type SharedConfigInput
+  type AppPublicConfigInput
 } from './config';
 import { Database } from './database';
 import { RedisClient } from './redis';
 import { ObjectStorage } from './storage';
 import { AiProvider, OpenAiBatchClient } from './ai';
 import { ImageProcessor } from './image';
-import { BackgroundWork } from './background';
+import { BackgroundWorkLive } from './live/background';
 import { QStashPublisher } from './qstash';
 
 /**
- * Shared infrastructure for app + site: config, DB, Redis, background.
- * ImageProcessor stays out of the site layer so site Effects stay site-safe.
- */
-export const makeSharedInfrastructureLayer = (shared: SharedConfigInput) => {
-  const sharedConfigLayer = SharedConfig.layer(shared);
-  return Layer.mergeAll(Database.Live, RedisClient.Live, BackgroundWork.Live).pipe(
-    Layer.provideMerge(sharedConfigLayer)
-  );
-};
-
-/**
  * Full app layer: shared infra + S3, AI, images, QStash, public config.
+ * Kept in this module so the site Worker graph never imports `sharp` / S3 / AI.
  * SharedConfig is derived from AppConfig so Database/Redis stay SharedConfig-only.
+ *
+ * Background `waitUntil` is the Vercel Live in `./live/background`.
  */
 export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigInput) => {
   const appConfigLayer = AppConfig.layer(app);
@@ -37,7 +27,7 @@ export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigI
 
   return Layer.mergeAll(
     ImageProcessor.Live,
-    BackgroundWork.Live,
+    BackgroundWorkLive,
     Database.Live,
     RedisClient.Live,
     ObjectStorage.Live,
@@ -48,17 +38,10 @@ export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigI
   ).pipe(Layer.provideMerge(SharedConfigFromAppConfigLayer), Layer.provideMerge(appConfigLayer));
 };
 
-/** Site layer — DB + Redis + background only. */
-export const makeSiteLayer = (shared: SharedConfigInput) => makeSharedInfrastructureLayer(shared);
-
 export const makeAppRuntime = (app: AppConfigInput, publicConfig: AppPublicConfigInput) =>
   ManagedRuntime.make(makeAppLayer(app, publicConfig));
 
-export const makeSiteRuntime = (shared: SharedConfigInput) =>
-  ManagedRuntime.make(makeSiteLayer(shared));
-
 let _appRuntime: AppRuntime | undefined;
-let _siteRuntime: SiteRuntime | undefined;
 
 /**
  * Lazy app runtime singleton. SvelteKit postbuild analyse runs with empty
@@ -69,9 +52,4 @@ export const appRuntime = (
   loadInputs: () => readonly [AppConfigInput, AppPublicConfigInput]
 ): AppRuntime => (_appRuntime ??= makeAppRuntime(...loadInputs()));
 
-/** Lazy site runtime singleton — same cold-start rationale as `appRuntime`. */
-export const siteRuntime = (loadShared: () => SharedConfigInput): SiteRuntime =>
-  (_siteRuntime ??= makeSiteRuntime(loadShared()));
-
 export type AppRuntime = ReturnType<typeof makeAppRuntime>;
-export type SiteRuntime = ReturnType<typeof makeSiteRuntime>;

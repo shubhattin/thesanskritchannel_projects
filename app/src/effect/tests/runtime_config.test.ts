@@ -7,7 +7,7 @@ import {
   type SharedConfigInput
 } from '../config';
 import { createRunners } from '../run';
-import { makeAppRuntime, makeSiteRuntime } from '../runtime';
+import { makeAppRuntime } from '../runtime_app';
 
 const sampleShared = (): SharedConfigInput => ({
   dbUrl: 'postgresql://local/db',
@@ -55,7 +55,7 @@ describe('resolveDbUrl (runtime fixtures)', () => {
   });
 });
 
-describe('makeAppRuntime / makeSiteRuntime', () => {
+describe('makeAppRuntime', () => {
   it('builds an app runtime and runners from fixtures', async () => {
     const runtime = makeAppRuntime(sampleApp(), samplePublic());
     const runners = createRunners(runtime);
@@ -67,24 +67,8 @@ describe('makeAppRuntime / makeSiteRuntime', () => {
     await runtime.dispose();
   });
 
-  it('builds a site runtime and runners from fixtures', async () => {
-    const runtime = makeSiteRuntime(sampleShared());
-    const runners = createRunners(runtime);
-    expect(runtime.runPromise).toBeTypeOf('function');
-    expect(runners.runServerEffect).toBeTypeOf('function');
-    expect(runners.runRouteEffect).toBeTypeOf('function');
-    await runtime.dispose();
-  });
-
   it('fails at first use when app config is invalid', async () => {
     const runtime = makeAppRuntime({ ...sampleApp(), openaiApiKey: '' }, samplePublic());
-    const exit = await runtime.runPromiseExit(Effect.void);
-    expect(Exit.isFailure(exit)).toBe(true);
-    await runtime.dispose();
-  });
-
-  it('fails at first use when site config is invalid', async () => {
-    const runtime = makeSiteRuntime({ ...sampleShared(), dbUrl: '' });
     const exit = await runtime.runPromiseExit(Effect.void);
     expect(Exit.isFailure(exit)).toBe(true);
     await runtime.dispose();

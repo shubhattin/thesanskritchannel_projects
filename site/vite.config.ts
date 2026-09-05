@@ -14,6 +14,13 @@ export default defineConfig({
       allow: ['../data', '../app/src']
     }
   },
+  build: {
+    // `cloudflare:workers` only exists on workerd — keep the (lazy) import
+    // as-is in the server bundle instead of failing resolution at build time.
+    rolldownOptions: {
+      external: ['cloudflare:workers']
+    }
+  },
   // Svelte UI packages ship `.svelte` source — exclude from esbuild dep scan.
   optimizeDeps: {
     exclude: [

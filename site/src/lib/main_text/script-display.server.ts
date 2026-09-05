@@ -1,13 +1,13 @@
 import { transliterate_custom } from '@app/tools/converter';
 import { DEFAULT_SCRIPT_ID } from '../cookies';
-import { transliterate_node } from 'lipilekhika/node';
+import { transliterate } from 'lipilekhika';
 import { get_display_script_from_id } from './display-script';
 
 export { get_display_script_from_id } from './display-script';
 
 const BASE_SCRIPT = 'Devanagari';
 
-/** Node/Bun only — uses lipilekhika/node. */
+/** Workers-safe — uses lipilekhika raw (pure JS, no WASM / native binding). */
 export const transliterate_for_display = async (
   text: string,
   script_id: number
@@ -18,11 +18,11 @@ export const transliterate_for_display = async (
     BASE_SCRIPT,
     get_display_script_from_id(script_id),
     undefined,
-    transliterate_node
+    transliterate
   );
 };
 
-/** Node/Bun only — uses lipilekhika/node. */
+/** Workers-safe — uses lipilekhika raw (pure JS, no WASM / native binding). */
 export const transliterate_list_for_display = async (
   text: string[],
   script_id: number
@@ -33,7 +33,7 @@ export const transliterate_list_for_display = async (
     BASE_SCRIPT,
     get_display_script_from_id(script_id),
     undefined,
-    transliterate_node
+    transliterate
   );
 };
 

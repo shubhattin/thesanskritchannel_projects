@@ -1,17 +1,39 @@
 /**
- * SvelteKit composition root for Effect (site).
+ * SvelteKit composition root for Effect (site, Cloudflare workerd).
  * Reads `$env/dynamic/private` + `import.meta.env` here only — services get resolved strings.
- * Lazy init: SvelteKit postbuild analyse can run with empty `$env/dynamic/private`.
  *
- * Vite aliases remap app `~/` prefixes used inside `@app/*` sources while keeping
- * site-owned `~/effect/site_runtime`, `~/lib/*`, `~/components/*`, and `~/utils/text-routes`.
+ * One ManagedRuntime per Worker request (AsyncLocalStorage via `hooks.server.ts`).
+ * Do not keep a process-wide runtime: Effect fibers/latches are isolate-global
+ * and workerd drops continuations that settle in a different request.
+ * waitUntil cache writes capture Redis/Database services, not this runtime.
+ *
+ * Site-only layer (DB + Redis + background) — importing the app runtime would
+ * drag `sharp` / S3 / AI into the Worker graph.
  */
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { env } from '$env/dynamic/private';
-import { Cause, Effect, Exit, type ManagedRuntime } from 'effect';
+import { Cause, Effect, Exit, Layer, ManagedRuntime } from 'effect';
 import { resolveDbUrl, SharedConfig, type SharedConfigInput } from '@app/effect/config';
 import { envBagFromUnknown, pickEnv } from '@app/effect/env';
+import { BackgroundWork } from '@app/effect/background';
+import { Database } from '@app/effect/database';
+import { RedisClient } from '@app/effect/redis';
 import { createRunners, type EffectRunners } from '@app/effect/run';
-import { siteRuntime, type SiteRuntime } from '@app/effect/runtime';
+import { BackgroundWorkLive } from './live/background';
+
+const makeSiteLayer = (shared: SharedConfigInput, backgroundLayer: Layer.Layer<BackgroundWork>) => {
+  const sharedConfigLayer = SharedConfig.layer(shared);
+  return Layer.mergeAll(Database.WorkersLive, RedisClient.Live, backgroundLayer).pipe(
+    Layer.provideMerge(sharedConfigLayer)
+  );
+};
+
+export const makeSiteRuntime = (
+  shared: SharedConfigInput,
+  backgroundLayer: Layer.Layer<BackgroundWork>
+) => ManagedRuntime.make(makeSiteLayer(shared, backgroundLayer));
+
+export type SiteRuntime = ReturnType<typeof makeSiteRuntime>;
 
 type SiteRuntimeServices =
   SiteRuntime extends ManagedRuntime.ManagedRuntime<infer R, infer _E> ? R : never;
@@ -19,8 +41,12 @@ type SiteRuntimeError =
   SiteRuntime extends ManagedRuntime.ManagedRuntime<infer _R, infer E> ? E : never;
 type SiteRunners = EffectRunners<SiteRuntimeServices, SiteRuntimeError>;
 
+type SiteScope = { runtime: SiteRuntime; runners: SiteRunners };
+
+const siteScope = new AsyncLocalStorage<SiteScope>();
+
 export const loadSiteConfigInput = (): SharedConfigInput => {
-  // Public / Vite bag first, then SvelteKit private env (`.env` / Vercel secrets).
+  // Public / Vite bag first, then SvelteKit private env (`.env` / dashboard secrets).
   const v = pickEnv(envBagFromUnknown(import.meta.env), env);
   const dbUrl =
     resolveDbUrl({
@@ -49,12 +75,16 @@ export const loadSiteConfigInput = (): SharedConfigInput => {
   };
 };
 
-let _runners: SiteRunners | undefined;
-
-const getCached = () => {
-  if (!_runners) _runners = createRunners(siteRuntime(loadSiteConfigInput));
-  return { runtime: siteRuntime(loadSiteConfigInput), runners: _runners };
+const createSiteScope = (): SiteScope => {
+  const runtime = makeSiteRuntime(loadSiteConfigInput(), BackgroundWorkLive);
+  return { runtime, runners: createRunners(runtime) };
 };
+
+/** Bind one Effect runtime to the current Worker request (see `hooks.server.ts`). */
+export const runWithSiteRuntime = <T>(fn: () => Promise<T>): Promise<T> =>
+  siteScope.run(createSiteScope(), fn);
+
+const getCached = (): SiteScope => siteScope.getStore() ?? createSiteScope();
 
 export const getSiteRuntime = (): SiteRuntime => getCached().runtime;
 

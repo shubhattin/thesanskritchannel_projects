@@ -15,6 +15,9 @@ export default defineConfig({
         find: '~/effect/site_runtime',
         replacement: `${siteSrc}/effect/site_runtime.server.ts`
       },
+      { find: /^~\/effect\/live\//, replacement: `${siteSrc}/effect/live/` },
+      { find: '$env/dynamic/private', replacement: `${siteSrc}/effect/live/sveltekit_env_stub.ts` },
+      { find: '$env/dynamic/public', replacement: `${siteSrc}/effect/live/sveltekit_env_stub.ts` },
       {
         find: '~/utils/text-routes',
         replacement: `${siteSrc}/utils/text-routes.ts`

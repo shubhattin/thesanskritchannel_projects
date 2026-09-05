@@ -83,7 +83,6 @@
     "trpc-tanstack-svelte-query": "0.1.2",
     "unified": "^11.0.5",
     "vitest": "^4.1.11",
-    "ws": "^8.21.0",
     "zod": "^4.5.1"
   },
   "optionalDependencies": {

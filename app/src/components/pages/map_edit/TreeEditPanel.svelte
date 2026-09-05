@@ -1,8 +1,9 @@
 <script lang="ts">
   import './map_edit_tree.css';
   import { TreePine, Ban, GripVertical, FolderRoot, Trash2 } from '@lucide/svelte';
+  import { onMount } from 'svelte';
   import { Button } from '$lib/components/ui/button';
-  import { Tree } from '@keenmate/svelte-treeview';
+  import type * as TreeviewModule from '@keenmate/svelte-treeview';
   import type { Tree as TreeComponent, LTreeNode, DropPosition } from '@keenmate/svelte-treeview';
   import { Badge } from '$lib/components/ui/badge';
   import * as Card from '$lib/components/ui/card';
@@ -47,6 +48,13 @@
 
   const order_edit_mode = $derived(editor_mode === 'order');
   const delete_edit_mode = $derived(editor_mode === 'delete');
+
+  // Client-only: the treeview lib bundles a Node worker_threads fallback that
+  // cannot load on workerd, so it must never be imported during SSR.
+  let TreeView = $state<typeof TreeviewModule.Tree | null>(null);
+  onMount(async () => {
+    TreeView = (await import('@keenmate/svelte-treeview')).Tree;
+  });
 </script>
 
 <Card.Root class="flex min-h-[420px] flex-col overflow-hidden lg:min-h-[min(72vh,640px)]">
@@ -69,9 +77,9 @@
   </div>
   <Card.Content class="min-h-0 flex-1 px-3 pt-3 pb-4">
     <ScrollArea.Root class="h-[min(52vh,420px)] lg:h-[min(60vh,560px)]">
-      {#if workingMap && treeData.length > 0}
+      {#if workingMap && treeData.length > 0 && TreeView}
         <div class="map-edit-tree px-1">
-          <Tree
+          <TreeView
             bind:this={treeRef}
             data={treeData}
             idMember="id"
@@ -201,7 +209,7 @@
                 </div>
               </div>
             {/snippet}
-          </Tree>
+          </TreeView>
         </div>
       {:else}
         <p class="p-4 text-sm text-muted-foreground">Loading map…</p>

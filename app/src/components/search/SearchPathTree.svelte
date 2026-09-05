@@ -3,7 +3,8 @@
   import '@keenmate/svelte-treeview/styles.css';
   import { createQuery } from '@tanstack/svelte-query';
   import { TreePine } from '@lucide/svelte';
-  import { Tree } from '@keenmate/svelte-treeview';
+  import { onMount } from 'svelte';
+  import type * as TreeviewModule from '@keenmate/svelte-treeview';
   import type { LTreeNode } from '@keenmate/svelte-treeview';
   import { client } from '~/api/client';
   import { Checkbox } from '$lib/components/ui/checkbox';
@@ -31,6 +32,13 @@
   } = $props();
 
   let working_map = $state<MapNodeWithClientId | null>(null);
+
+  // Client-only: the treeview lib bundles a Node worker_threads fallback that
+  // cannot load on workerd, so it must never be imported during SSR.
+  let TreeView = $state<typeof TreeviewModule.Tree | null>(null);
+  onMount(async () => {
+    TreeView = (await import('@keenmate/svelte-treeview')).Tree;
+  });
 
   const project_map_q = createQuery(() => ({
     queryKey: ['project_map', project_id],
@@ -144,40 +152,42 @@
 {/if}
 
 {#snippet tree_content()}
-  <Tree
-    data={tree_data}
-    idMember="id"
-    pathMember="path"
-    parentPathMember="parentPath"
-    levelMember="level"
-    displayValueMember="name_dev"
-    orderMember="sortOrder"
-    isSelectedMember="isSelected"
-    isExpandedMember="isExpanded"
-    shouldToggleOnNodeClick={false}
-    dragDropMode="none"
-  >
-    {#snippet nodeTemplate(node: LTreeNode<MapTreeItem>)}
-      {@const row = node.data!}
-      {@const relPath = row.path}
-      {@const blocked = has_checked_ancestor(relPath)}
-      {@const is_checked = checked_paths.has(relPath)}
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div
-        class="map-edit-tree-row flex w-full items-center gap-2 py-1 pr-2"
-        data-node-kind={row.nodeType === 'shloka' ? 'leaf' : 'list'}
-        ondblclick={() => {
-          if (!row.isLeaf && row.childCount > 0) toggle_tree_path_expanded(relPath);
-        }}
-      >
-        <Checkbox
-          checked={is_checked}
-          disabled={blocked}
-          onCheckedChange={(v) => toggle_path_checked(relPath, v === true)}
-          onclick={(e) => e.stopPropagation()}
-        />
-        <span class="truncate text-sm">{row.name_dev}</span>
-      </div>
-    {/snippet}
-  </Tree>
+  {#if TreeView}
+    <TreeView
+      data={tree_data}
+      idMember="id"
+      pathMember="path"
+      parentPathMember="parentPath"
+      levelMember="level"
+      displayValueMember="name_dev"
+      orderMember="sortOrder"
+      isSelectedMember="isSelected"
+      isExpandedMember="isExpanded"
+      shouldToggleOnNodeClick={false}
+      dragDropMode="none"
+    >
+      {#snippet nodeTemplate(node: LTreeNode<MapTreeItem>)}
+        {@const row = node.data!}
+        {@const relPath = row.path}
+        {@const blocked = has_checked_ancestor(relPath)}
+        {@const is_checked = checked_paths.has(relPath)}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="map-edit-tree-row flex w-full items-center gap-2 py-1 pr-2"
+          data-node-kind={row.nodeType === 'shloka' ? 'leaf' : 'list'}
+          ondblclick={() => {
+            if (!row.isLeaf && row.childCount > 0) toggle_tree_path_expanded(relPath);
+          }}
+        >
+          <Checkbox
+            checked={is_checked}
+            disabled={blocked}
+            onCheckedChange={(v) => toggle_path_checked(relPath, v === true)}
+            onclick={(e) => e.stopPropagation()}
+          />
+          <span class="truncate text-sm">{row.name_dev}</span>
+        </div>
+      {/snippet}
+    </TreeView>
+  {/if}
 {/snippet}

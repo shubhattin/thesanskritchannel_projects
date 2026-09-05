@@ -1,5 +1,4 @@
-import adapter_auto from '@sveltejs/adapter-node';
-import adapter_vercel from '@sveltejs/adapter-vercel';
+import adapter from '@sveltejs/adapter-cloudflare';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -7,13 +6,7 @@ const config = {
   preprocess: vitePreprocess(),
 
   kit: {
-    adapter:
-      process.env.BUILD_MODE === 'vercel'
-        ? adapter_vercel({
-            runtime: 'nodejs22.x',
-            regions: ['sin1']
-          })
-        : adapter_auto(),
+    adapter: adapter(),
     alias: {
       '~': 'src',
       '@data': '../data',

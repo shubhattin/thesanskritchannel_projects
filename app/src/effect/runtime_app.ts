@@ -10,25 +10,28 @@ import { Database } from './database';
 import { RedisClient } from './redis';
 import { ObjectStorage } from './storage';
 import { AiProvider, OpenAiBatchClient } from './ai';
-import { ImageProcessor } from './image';
+import { ImageProcessorLive } from './live/cf_images';
 import { BackgroundWorkLive } from './live/background';
 import { QStashPublisher } from './qstash';
 
 /**
  * Full app layer: shared infra + S3, AI, images, QStash, public config.
- * Kept in this module so the site Worker graph never imports `sharp` / S3 / AI.
- * SharedConfig is derived from AppConfig so Database/Redis stay SharedConfig-only.
+ * Image work goes through the Cloudflare Images live (`./live/cf_images`);
+ * the sharp live (`./live/sharp_images`) is Node/Vitest-only and must never
+ * enter the Worker graph. SharedConfig is derived from AppConfig so
+ * Database/Redis stay SharedConfig-only.
  *
- * Background `waitUntil` is the Vercel Live in `./live/background`.
+ * Database uses the Workers-safe per-query driver: workerd isolates I/O to
+ * the creating request, so no pooled client may outlive it.
  */
 export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigInput) => {
   const appConfigLayer = AppConfig.layer(app);
   const publicConfigLayer = AppPublicConfig.layer(publicConfig);
 
   return Layer.mergeAll(
-    ImageProcessor.Live,
+    ImageProcessorLive,
     BackgroundWorkLive,
-    Database.Live,
+    Database.WorkersLive,
     RedisClient.Live,
     ObjectStorage.Live,
     AiProvider.Live,
@@ -40,16 +43,5 @@ export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigI
 
 export const makeAppRuntime = (app: AppConfigInput, publicConfig: AppPublicConfigInput) =>
   ManagedRuntime.make(makeAppLayer(app, publicConfig));
-
-let _appRuntime: AppRuntime | undefined;
-
-/**
- * Lazy app runtime singleton. SvelteKit postbuild analyse runs with empty
- * `$env/dynamic/private`, so construction must wait for the first request;
- * `loadInputs` is invoked at most once.
- */
-export const appRuntime = (
-  loadInputs: () => readonly [AppConfigInput, AppPublicConfigInput]
-): AppRuntime => (_appRuntime ??= makeAppRuntime(...loadInputs()));
 
 export type AppRuntime = ReturnType<typeof makeAppRuntime>;

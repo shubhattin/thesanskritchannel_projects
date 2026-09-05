@@ -1,6 +1,5 @@
 import { Effect } from 'effect';
 import type { RequestHandler } from './$types';
-import type { Config } from '@sveltejs/adapter-vercel';
 import { eq } from 'drizzle-orm';
 import { poll_batch_shloka_image_gen_func } from '~/api/routes/batch_ai_image';
 import { poll_batch_text_translation_func } from '~/api/routes/batch_ai_text';
@@ -16,12 +15,6 @@ import {
   verifyQstashSignature,
   type JsonValue
 } from '~/effect/qstash';
-
-export const config: Config = {
-  split: true,
-  /** Hobby plan max is 300s (was 700 for large batch claim + auto-save headroom). */
-  maxDuration: 300
-};
 
 export const POST: RequestHandler = async ({ request }) => {
   const signature = request.headers.get('upstash-signature') ?? '';

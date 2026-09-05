@@ -1,18 +1,10 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import type { Config } from '@sveltejs/adapter-vercel';
 import { Effect } from 'effect';
 import { protected_admin_route_check } from '~/api/api_init';
 import { translate_route_schema } from '~/api/routes/ai/ai_types';
 import { translate_func } from '~/api/routes/ai/translate_funs';
 import { runServerEffect } from '~/effect/app_runtime.server';
-
-/** Per-route Vercel function config (SvelteKit adapter-vercel). `split` so this route is its own function with its own maxDuration. */
-export const config: Config = {
-  split: true,
-  /** Hobby plan max is 300s */
-  maxDuration: 600
-};
 
 export const POST: RequestHandler = async ({ request }) => {
   const result = await runServerEffect(

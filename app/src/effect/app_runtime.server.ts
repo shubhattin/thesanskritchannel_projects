@@ -2,12 +2,15 @@
  * SvelteKit composition root for Effect.
  * Reads `$env/*` + `import.meta.env` here only — services receive resolved strings.
  *
- * Lazy init: SvelteKit postbuild analyse runs with empty `$env/dynamic/private`;
- * constructing the runtime at module load would fail Schema validation.
+ * One ManagedRuntime per Worker request (AsyncLocalStorage via `hooks.server.ts`).
+ * Do not keep a process-wide runtime: Effect fibers/latches are isolate-global
+ * and workerd drops continuations that settle in a different request.
+ * waitUntil cache writes capture Redis/Database services, not this runtime.
  */
 import { env } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 import { PUBLIC_AWS_CLOUDFRONT_URL, PUBLIC_BETTER_AUTH_URL } from '$env/static/public';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Effect, type ManagedRuntime } from 'effect';
 import {
   AppPublicConfig,
@@ -18,7 +21,8 @@ import {
 } from './config';
 import { envString, parseOptionalBoolean, pickEnv, type EnvBag } from './env';
 import { createRunners, type EffectRunners } from './run';
-import { appRuntime, type AppRuntime } from './runtime_app';
+// oxlint-disable-next-line anti-slop-effect/no-service-constructor-imports -- composition root: inputs are read from $env at the edge, so the runtime must be constructed here (not yielded from a Layer).
+import { makeAppRuntime, type AppRuntime } from './runtime_app';
 
 type AppRuntimeServices =
   AppRuntime extends ManagedRuntime.ManagedRuntime<infer R, infer _E> ? R : never;
@@ -88,16 +92,22 @@ export const loadPublicConfigInput = (): AppPublicConfigInput => {
   };
 };
 
-let _runners: AppRunners | undefined;
-
 const loadRuntimeInputs = () => [loadAppConfigInput(), loadPublicConfigInput()] as const;
 
-type CachedRuntime = { runtime: AppRuntime; runners: AppRunners };
+type AppScope = { runtime: AppRuntime; runners: AppRunners };
 
-const getCached = (): CachedRuntime => {
-  if (!_runners) _runners = createRunners(appRuntime(loadRuntimeInputs));
-  return { runtime: appRuntime(loadRuntimeInputs), runners: _runners };
+const appScope = new AsyncLocalStorage<AppScope>();
+
+const createAppScope = (): AppScope => {
+  const runtime = makeAppRuntime(...loadRuntimeInputs());
+  return { runtime, runners: createRunners(runtime) };
 };
+
+/** Bind one Effect runtime to the current Worker request (see `hooks.server.ts`). */
+export const runWithAppRuntime = <T>(fn: () => Promise<T>): Promise<T> =>
+  appScope.run(createAppScope(), fn);
+
+const getCached = (): AppScope => appScope.getStore() ?? createAppScope();
 
 export const getAppRuntime = (): AppRuntime => getCached().runtime;
 

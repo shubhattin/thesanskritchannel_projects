@@ -24,6 +24,64 @@ const tryStorage = <A>(operation: string, key: string | undefined, run: () => Pr
     catch: (cause) => StorageError.make({ operation, key, cause })
   }).pipe(Effect.annotateLogs({ category: 'storage', operation, key }));
 
+const concatBytes = (chunks: Uint8Array[]): Uint8Array => {
+  let length = 0;
+  for (const chunk of chunks) length += chunk.byteLength;
+  const out = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
+};
+
+type S3ResponseChunk = Uint8Array | ArrayBuffer | ArrayBufferView;
+
+type S3ResponseBody =
+  | Uint8Array
+  | Blob
+  | ReadableStream<Uint8Array>
+  | AsyncIterable<S3ResponseChunk>
+  | null
+  | undefined;
+
+const isReadableStream = (stream: S3ResponseBody): stream is ReadableStream<Uint8Array> =>
+  stream != null && 'getReader' in stream;
+
+const isAsyncIterable = (stream: S3ResponseBody): stream is AsyncIterable<S3ResponseChunk> =>
+  stream != null && Symbol.asyncIterator in stream;
+
+/**
+ * workerd + `nodejs_compat` can hand back a Node Readable as a `fetch`
+ * `Response.body`. The AWS browser runtime always calls `stream.getReader()`,
+ * which that body does not have — after PutObject already returned HTTP 200.
+ */
+const collectS3ResponseBody = async (stream: S3ResponseBody): Promise<Uint8Array> => {
+  if (stream == null) return new Uint8Array();
+  if (stream instanceof Uint8Array) return stream;
+  if (stream instanceof Blob) {
+    return new Uint8Array(await stream.arrayBuffer());
+  }
+  if (isReadableStream(stream)) {
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  if (isAsyncIterable(stream)) {
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of stream) {
+      if (chunk instanceof Uint8Array) {
+        chunks.push(chunk);
+      } else if (chunk instanceof ArrayBuffer) {
+        chunks.push(new Uint8Array(chunk));
+      } else if (ArrayBuffer.isView(chunk)) {
+        chunks.push(new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength));
+      }
+    }
+    return concatBytes(chunks);
+  }
+  return new Uint8Array();
+};
+
 export class ObjectStorage extends Context.Service<
   ObjectStorage,
   {
@@ -42,14 +100,23 @@ export class ObjectStorage extends Context.Service<
   static readonly Live = Layer.effect(ObjectStorage)(
     Effect.gen(function* () {
       const config = yield* AppConfig;
-      const s3 = new S3Client({
-        region: config.awsRegion,
-        credentials: {
-          accessKeyId: config.awsAccessKeyId,
-          secretAccessKey: Redacted.value(config.awsSecretAccessKey)
-        }
-      });
       const bucket = config.awsS3BucketName;
+      // Construct on first use. `new S3Client()` loads the Node AWS runtime
+      // (`runtimeConfig.js`), whose named imports break under workerd's module
+      // runner — see the `awsS3WorkersRuntime` remap in vite.config.ts.
+      let s3: S3Client | undefined;
+      const getS3 = () =>
+        (s3 ??= new S3Client({
+          region: config.awsRegion,
+          credentials: {
+            accessKeyId: config.awsAccessKeyId,
+            secretAccessKey: Redacted.value(config.awsSecretAccessKey)
+          },
+          // AWS SDK 3.729+ defaults checksums to WHEN_SUPPORTED (Node/wasm CRC32).
+          requestChecksumCalculation: 'WHEN_REQUIRED',
+          responseChecksumValidation: 'WHEN_REQUIRED',
+          streamCollector: collectS3ResponseBody
+        }));
 
       return {
         uploadAssetFile: (key, fileBuffer) =>
@@ -60,18 +127,18 @@ export class ObjectStorage extends Context.Service<
             const uploadParams: PutObjectCommandInput = {
               Bucket: bucket,
               Key: key,
-              Body: fileBuffer,
+              Body: Uint8Array.from(fileBuffer),
               ContentType: mime.lookup(key) || 'application/octet-stream',
               StorageClass: StorageClass.STANDARD
             };
-            return s3.send(new PutObjectCommand(uploadParams));
+            return getS3().send(new PutObjectCommand(uploadParams));
           }),
         deleteAssetFile: (key) =>
           tryStorage('deleteAssetFile', key, async () => {
             if (!isValidImageAssetS3Key(key)) {
               throw new Error(`Invalid asset key: ${key}`);
             }
-            return s3.send(
+            return getS3().send(
               new DeleteObjectCommand({
                 Bucket: bucket,
                 Key: key
@@ -83,7 +150,7 @@ export class ObjectStorage extends Context.Service<
             if (!isValidImageAssetS3Key(key)) {
               throw new Error(`Invalid asset key: ${key}`);
             }
-            const result = await s3.send(
+            const result = await getS3().send(
               new GetObjectCommand({
                 Bucket: bucket,
                 Key: key
@@ -103,7 +170,7 @@ export class ObjectStorage extends Context.Service<
                 throw new Error(`Invalid asset key: ${key}`);
               }
               urls[key] = await getSignedUrl(
-                s3,
+                getS3(),
                 new GetObjectCommand({ Bucket: bucket, Key: key }),
                 { expiresIn: PRESIGNED_DOWNLOAD_EXPIRES_IN_SECONDS }
               );

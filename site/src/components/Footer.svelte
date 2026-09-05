@@ -50,7 +50,7 @@
   ];
 </script>
 
-<footer class="border-t border-border/40 bg-card/50" style="view-transition-name: site-footer">
+<footer class="border-t border-border/40 bg-card/50">
   <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
     <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
       <!-- Brand Column -->

@@ -15,7 +15,7 @@ import {
   normalizeLekhaTextFields,
   sanitizeAndFormatLekhaMarkdownForStorage
 } from '~/lib/carta_markdown/markdown';
-import { runTrpcEffect } from '~/effect/app_runtime.server';
+import { runServerEffect, runTrpcEffect } from '~/effect/app_runtime.server';
 import { enqueueBackground } from '~/effect/background';
 import { dbRun } from '~/effect/database';
 import { BadRequestError, NotFoundError } from '~/effect/errors';
@@ -53,14 +53,17 @@ const normalizeLekhaPost = (post_data: z.infer<typeof lekha_post_input>) =>
   });
 
 const invalidate_lekha_caches = (url_slug: string) =>
-  Effect.gen(function* () {
-    yield* enqueueBackground(async () => {
-      await Promise.all([
-        runTrpcEffect(invalidate_and_refresh_cached(CACHE.site_lekha_data, { url_slug })),
-        runTrpcEffect(invalidate_and_refresh_cached(CACHE.site_lekha_list, NO_CACHE_PARAMS))
-      ]);
-    });
-  });
+  enqueueBackground(() =>
+    runServerEffect(
+      Effect.all(
+        [
+          invalidate_and_refresh_cached(CACHE.site_lekha_data, { url_slug }),
+          invalidate_and_refresh_cached(CACHE.site_lekha_list, NO_CACHE_PARAMS)
+        ],
+        { concurrency: 'unbounded' }
+      )
+    )
+  );
 
 const add_lekha_route = protectedAdminProcedure
   .input(

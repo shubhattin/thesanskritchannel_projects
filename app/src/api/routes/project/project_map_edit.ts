@@ -1,5 +1,5 @@
+import { Effect } from 'effect';
 import { dbRun, dbTransaction } from '~/effect/database';
-import { TRPCError } from '@trpc/server';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { enqueueBackground } from '~/effect/background';
@@ -59,36 +59,35 @@ import {
   validate_explicit_to_add_paths
 } from '~/utils/project/map_sync.server';
 import { TEXT_EDIT_LOCK_NAMESPACE } from '~/utils/text/row_edit.server';
-import { runTrpcEffect } from '~/effect/app_runtime.server';
-
-const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
-  runTrpcEffect(dbRun(operation, run));
-const runTx = <A>(operation: string, run: Parameters<typeof dbTransaction<A>>[1]) =>
-  runTrpcEffect(dbTransaction(operation, run));
+import { runServerEffect, runTrpcEffect } from '~/effect/app_runtime.server';
+import { BadRequestError, NotFoundError } from '~/effect/errors';
 
 const project_id_input = z.object({
   project_id: z.int()
 });
 
-const invalidate_project_caches = async (
+const invalidate_project_caches = Effect.fn('invalidate_project_caches')(function* (
   cookie: string,
   project_id: number,
   project_key: string,
   pathInvalidation?: PathSwapInvalidation
-) => {
+) {
   clear_project_registry_cache();
   clear_server_project_map_cache(project_id);
   clear_server_project_info_cache(project_key);
-  await Promise.all([
-    runTrpcEffect(invalidate_and_refresh_cached(CACHE.project_map, { project_id })),
-    runTrpcEffect(invalidate_and_refresh_cached(CACHE.project_list, NO_CACHE_PARAMS)),
-    pathInvalidation
-      ? runTrpcEffect(invalidate_path_caches(project_id, project_key, pathInvalidation))
-      : Promise.resolve(),
-    notify_site_invalidate_project_map_cache(cookie, project_id),
-    notify_site_invalidate_project_list_caches(cookie)
-  ]);
-};
+  yield* Effect.all(
+    [
+      invalidate_and_refresh_cached(CACHE.project_map, { project_id }),
+      invalidate_and_refresh_cached(CACHE.project_list, NO_CACHE_PARAMS),
+      ...(pathInvalidation
+        ? [invalidate_path_caches(project_id, project_key, pathInvalidation)]
+        : []),
+      Effect.promise(() => notify_site_invalidate_project_map_cache(cookie, project_id)),
+      Effect.promise(() => notify_site_invalidate_project_list_caches(cookie))
+    ],
+    { concurrency: 'unbounded' }
+  );
+});
 
 export const update_project_map_route = protectedAdminProcedure
   .input(
@@ -97,53 +96,70 @@ export const update_project_map_route = protectedAdminProcedure
       to_add_paths: z.array(z.string()).default([])
     })
   )
-  .mutation(async ({ input, ctx: { cookie } }) => {
-    await delay_dev(400);
-    const project = await runTx('project_map_edit.tx.1', async (tx) => {
-      await tx.execute(
-        sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${input.project_id})`
-      );
-      const existing = await tx.query.projects.findFirst({
-        where: (tbl, { eq: eqId }) => eqId(tbl.id, input.project_id),
-        columns: { id: true, key: true, map: true }
-      });
-      if (!existing) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
-      }
-      let map = existing.map;
-      try {
-        map = applyMetadataEditsToMap(existing.map, input.map);
-      } catch (error) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: error instanceof Error ? error.message : 'Invalid metadata-only map update'
+  .mutation(({ input, ctx: { cookie } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        yield* Effect.promise(async () => {
+          await delay_dev(400);
         });
-      }
 
-      const oldShlokaPaths = collect_shloka_db_paths_from_map(existing.map);
-      const newShlokaPaths = collect_shloka_db_paths_from_map(map);
-      validate_explicit_to_add_paths(oldShlokaPaths, newShlokaPaths, input.to_add_paths);
-      const { toInsert, toRemove } = diff_shloka_db_paths(existing.map, map);
+        const outcome = yield* dbTransaction('project_map_edit.tx.1', async (tx) => {
+          await tx.execute(
+            sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${input.project_id})`
+          );
+          const existing = await tx.query.projects.findFirst({
+            where: (tbl, { eq: eqId }) => eqId(tbl.id, input.project_id),
+            columns: { id: true, key: true, map: true }
+          });
+          if (!existing) {
+            return { ok: false as const, reason: 'not_found' as const };
+          }
+          let map = existing.map;
+          try {
+            map = applyMetadataEditsToMap(existing.map, input.map);
+          } catch (error) {
+            return {
+              ok: false as const,
+              reason: 'bad_request' as const,
+              message: error instanceof Error ? error.message : 'Invalid metadata-only map update'
+            };
+          }
 
-      await deleteProjectPathsAtExact(tx, input.project_id, toRemove);
-      await insertProjectPaths(tx, input.project_id, toInsert);
+          const oldShlokaPaths = collect_shloka_db_paths_from_map(existing.map);
+          const newShlokaPaths = collect_shloka_db_paths_from_map(map);
+          validate_explicit_to_add_paths(oldShlokaPaths, newShlokaPaths, input.to_add_paths);
+          const { toInsert, toRemove } = diff_shloka_db_paths(existing.map, map);
 
-      await tx
-        .update(projects)
-        .set({
-          map,
-          name_dev: map.name_dev
-        })
-        .where(eq(projects.id, input.project_id));
+          await deleteProjectPathsAtExact(tx, input.project_id, toRemove);
+          await insertProjectPaths(tx, input.project_id, toInsert);
 
-      return { key: existing.key, map };
-    });
+          await tx
+            .update(projects)
+            .set({
+              map,
+              name_dev: map.name_dev
+            })
+            .where(eq(projects.id, input.project_id));
 
-    void runTrpcEffect(
-      enqueueBackground(() => invalidate_project_caches(cookie, input.project_id, project.key))
-    );
-    return { success: true as const, map: project.map };
-  });
+          return { ok: true as const, key: existing.key, map };
+        });
+
+        if (!outcome.ok) {
+          if (outcome.reason === 'not_found') {
+            return yield* Effect.fail(
+              NotFoundError.make({ resource: 'project', message: 'Project not found' })
+            );
+          }
+          return yield* Effect.fail(BadRequestError.make({ message: outcome.message }));
+        }
+
+        yield* enqueueBackground(() =>
+          runServerEffect(invalidate_project_caches(cookie, input.project_id, outcome.key))
+        );
+        return { success: true as const, map: outcome.map };
+      })
+    )
+  );
 
 const db_path_schema = z.string().refine((path) => validateDbPath(path) === null, {
   message: 'Path must be a colon-separated list of positive integers'
@@ -162,78 +178,102 @@ const save_project_map_order = protectedAdminProcedure
       map: recursive_list_schema
     })
   )
-  .mutation(async ({ input: { project_id, root_path, edits }, ctx: { cookie } }) => {
-    const parsedEdits = edits;
-    if (parsedEdits.length > 0) {
-      const validationError = validateSwapEdits(parsedEdits);
-      if (validationError) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: validationError });
-      }
-      const rootScopeError = validateSwapEditsRootScope(parsedEdits, root_path);
-      if (rootScopeError) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: rootScopeError });
-      }
-    }
+  .mutation(({ input: { project_id, root_path, edits }, ctx: { cookie } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const parsedEdits = edits;
+        if (parsedEdits.length > 0) {
+          const validationError = validateSwapEdits(parsedEdits);
+          if (validationError) {
+            return yield* Effect.fail(BadRequestError.make({ message: validationError }));
+          }
+          const rootScopeError = validateSwapEditsRootScope(parsedEdits, root_path);
+          if (rootScopeError) {
+            return yield* Effect.fail(BadRequestError.make({ message: rootScopeError }));
+          }
+        }
 
-    await delay_dev(400);
-
-    const {
-      project,
-      map: derivedMap,
-      pathInvalidation
-    } = await runTx('project_map_edit.tx.2', async (tx) => {
-      await tx.execute(
-        sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
-      );
-      const project = await tx.query.projects.findFirst({
-        where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
-        columns: { id: true, key: true, map: true }
-      });
-      if (!project) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
-      }
-      const rootError = validateOrderRootPath(project.map, root_path);
-      if (rootError) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: rootError });
-      }
-      // Capture both states so moved descendants cannot leave stale cache entries behind.
-      const invalidationBefore = await collectPathSwapInvalidation(tx, project_id, parsedEdits);
-      if (parsedEdits.length > 0) {
-        await applyOrderedDbPathSwaps(tx, project_id, parsedEdits);
-      }
-      const invalidationAfter = await collectPathSwapInvalidation(tx, project_id, parsedEdits);
-      let derivedMap = project.map;
-      try {
-        derivedMap = applySwapEditsToMap(project.map, parsedEdits);
-      } catch (error) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: error instanceof Error ? error.message : 'Invalid order swap payload'
+        yield* Effect.promise(async () => {
+          await delay_dev(400);
         });
-      }
-      await tx
-        .update(projects)
-        .set({
-          map: derivedMap,
-          name_dev: derivedMap.name_dev
-        })
-        .where(eq(projects.id, project_id));
 
-      return {
-        project,
-        map: derivedMap,
-        pathInvalidation: mergePathSwapInvalidation(invalidationBefore, invalidationAfter)
-      };
-    });
+        const outcome = yield* dbTransaction('project_map_edit.tx.2', async (tx) => {
+          await tx.execute(
+            sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
+          );
+          const project = await tx.query.projects.findFirst({
+            where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
+            columns: { id: true, key: true, map: true }
+          });
+          if (!project) {
+            return { ok: false as const, reason: 'not_found' as const };
+          }
+          const rootError = validateOrderRootPath(project.map, root_path);
+          if (rootError) {
+            return { ok: false as const, reason: 'bad_request' as const, message: rootError };
+          }
+          // Validate map derivation before DB path swaps so a bad payload cannot leave
+          // projects.map and project_paths out of sync (returning from the tx commits).
+          let derivedMap = project.map;
+          try {
+            derivedMap = applySwapEditsToMap(project.map, parsedEdits);
+          } catch (error) {
+            return {
+              ok: false as const,
+              reason: 'bad_request' as const,
+              message: error instanceof Error ? error.message : 'Invalid order swap payload'
+            };
+          }
+          // Capture both states so moved descendants cannot leave stale cache entries behind.
+          const invalidationBefore = await collectPathSwapInvalidation(tx, project_id, parsedEdits);
+          if (parsedEdits.length > 0) {
+            await applyOrderedDbPathSwaps(tx, project_id, parsedEdits);
+          }
+          const invalidationAfter = await collectPathSwapInvalidation(tx, project_id, parsedEdits);
+          await tx
+            .update(projects)
+            .set({
+              map: derivedMap,
+              name_dev: derivedMap.name_dev
+            })
+            .where(eq(projects.id, project_id));
 
-    void runTrpcEffect(
-      enqueueBackground(() =>
-        invalidate_project_caches(cookie, project_id, project.key, pathInvalidation)
-      )
-    );
+          return {
+            ok: true as const,
+            project,
+            map: derivedMap,
+            pathInvalidation: mergePathSwapInvalidation(invalidationBefore, invalidationAfter)
+          };
+        });
 
-    return { success: true as const, swap_count: parsedEdits.length, map: derivedMap };
-  });
+        if (!outcome.ok) {
+          if (outcome.reason === 'not_found') {
+            return yield* Effect.fail(
+              NotFoundError.make({ resource: 'project', message: 'Project not found' })
+            );
+          }
+          return yield* Effect.fail(BadRequestError.make({ message: outcome.message }));
+        }
+
+        yield* enqueueBackground(() =>
+          runServerEffect(
+            invalidate_project_caches(
+              cookie,
+              project_id,
+              outcome.project.key,
+              outcome.pathInvalidation
+            )
+          )
+        );
+
+        return {
+          success: true as const,
+          swap_count: parsedEdits.length,
+          map: outcome.map
+        };
+      })
+    )
+  );
 
 const delete_project_map_nodes = protectedAdminProcedure
   .input(
@@ -241,72 +281,112 @@ const delete_project_map_nodes = protectedAdminProcedure
       deleted_paths: z.array(db_path_schema)
     })
   )
-  .mutation(async ({ input: { project_id, deleted_paths }, ctx: { cookie } }) => {
-    const minimized = minimizeDbPathPrefixes(deleted_paths);
-    if (minimized.length === 0) {
-      throw new TRPCError({ code: 'BAD_REQUEST', message: 'No nodes selected for deletion' });
-    }
+  .mutation(({ input: { project_id, deleted_paths }, ctx: { cookie } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const minimized = minimizeDbPathPrefixes(deleted_paths);
+        if (minimized.length === 0) {
+          return yield* Effect.fail(
+            BadRequestError.make({ message: 'No nodes selected for deletion' })
+          );
+        }
 
-    await delay_dev(400);
-
-    const { project, map, pathInvalidation } = await runTx('project_map_edit.tx.3', async (tx) => {
-      await tx.execute(
-        sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
-      );
-      const project = await tx.query.projects.findFirst({
-        where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
-        columns: { id: true, key: true, map: true }
-      });
-      if (!project) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
-      }
-
-      const validationError = validateDeletedPathsInMap(project.map, minimized);
-      if (validationError) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: validationError });
-      }
-
-      let derivedMap: typeof project.map;
-      let deleteCompactions: ReturnType<typeof buildDeletePathCompactions>;
-      try {
-        derivedMap = applyDeletedSubtreesToMap(project.map, minimized);
-        deleteCompactions = buildDeletePathCompactions(project.map, minimized);
-      } catch (error) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: error instanceof Error ? error.message : 'Invalid delete paths for map'
+        yield* Effect.promise(async () => {
+          await delay_dev(400);
         });
-      }
 
-      const touchedPrefixes = listDeleteCompactionPrefixes(deleteCompactions);
-      const invalidationBefore = await collectDeleteInvalidation(tx, project_id, touchedPrefixes);
-      await deleteResourcesAtPathPrefixes(tx, project_id, minimized);
-      await applyDeletePathCompactions(tx, project_id, deleteCompactions);
-      const invalidationAfter = await collectDeleteInvalidation(tx, project_id, touchedPrefixes);
+        const outcome = yield* dbTransaction('project_map_edit.tx.3', async (tx) => {
+          await tx.execute(
+            sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
+          );
+          const project = await tx.query.projects.findFirst({
+            where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
+            columns: { id: true, key: true, map: true }
+          });
+          if (!project) {
+            return { ok: false as const, reason: 'not_found' as const };
+          }
 
-      await tx
-        .update(projects)
-        .set({
-          map: derivedMap,
-          name_dev: derivedMap.name_dev
-        })
-        .where(eq(projects.id, project_id));
+          const validationError = validateDeletedPathsInMap(project.map, minimized);
+          if (validationError) {
+            return {
+              ok: false as const,
+              reason: 'bad_request' as const,
+              message: validationError
+            };
+          }
 
-      return {
-        project,
-        map: derivedMap,
-        pathInvalidation: mergePathSwapInvalidation(invalidationBefore, invalidationAfter)
-      };
-    });
+          let derivedMap: typeof project.map;
+          let deleteCompactions: ReturnType<typeof buildDeletePathCompactions>;
+          try {
+            derivedMap = applyDeletedSubtreesToMap(project.map, minimized);
+            deleteCompactions = buildDeletePathCompactions(project.map, minimized);
+          } catch (error) {
+            return {
+              ok: false as const,
+              reason: 'bad_request' as const,
+              message: error instanceof Error ? error.message : 'Invalid delete paths for map'
+            };
+          }
 
-    void runTrpcEffect(
-      enqueueBackground(() =>
-        invalidate_project_caches(cookie, project_id, project.key, pathInvalidation)
-      )
-    );
+          const touchedPrefixes = listDeleteCompactionPrefixes(deleteCompactions);
+          const invalidationBefore = await collectDeleteInvalidation(
+            tx,
+            project_id,
+            touchedPrefixes
+          );
+          await deleteResourcesAtPathPrefixes(tx, project_id, minimized);
+          await applyDeletePathCompactions(tx, project_id, deleteCompactions);
+          const invalidationAfter = await collectDeleteInvalidation(
+            tx,
+            project_id,
+            touchedPrefixes
+          );
 
-    return { success: true as const, deleted_count: minimized.length, map };
-  });
+          await tx
+            .update(projects)
+            .set({
+              map: derivedMap,
+              name_dev: derivedMap.name_dev
+            })
+            .where(eq(projects.id, project_id));
+
+          return {
+            ok: true as const,
+            project,
+            map: derivedMap,
+            pathInvalidation: mergePathSwapInvalidation(invalidationBefore, invalidationAfter)
+          };
+        });
+
+        if (!outcome.ok) {
+          if (outcome.reason === 'not_found') {
+            return yield* Effect.fail(
+              NotFoundError.make({ resource: 'project', message: 'Project not found' })
+            );
+          }
+          return yield* Effect.fail(BadRequestError.make({ message: outcome.message }));
+        }
+
+        yield* enqueueBackground(() =>
+          runServerEffect(
+            invalidate_project_caches(
+              cookie,
+              project_id,
+              outcome.project.key,
+              outcome.pathInvalidation
+            )
+          )
+        );
+
+        return {
+          success: true as const,
+          deleted_count: minimized.length,
+          map: outcome.map
+        };
+      })
+    )
+  );
 
 const get_delete_node_resource_counts = protectedAdminProcedure
   .input(
@@ -314,25 +394,34 @@ const get_delete_node_resource_counts = protectedAdminProcedure
       paths: z.array(db_path_schema)
     })
   )
-  .query(async ({ input: { project_id, paths } }) => {
-    const project = await runDb('project_map_edit.db.1', (db) =>
-      db.query.projects.findFirst({
-        where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
-        columns: { id: true }
-      })
-    );
-    if (!project) {
-      throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
-    }
+  .query(({ input: { project_id, paths } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const project = yield* dbRun('project_map_edit.db.1', (db) =>
+          db.query.projects.findFirst({
+            where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
+            columns: { id: true }
+          })
+        );
+        if (!project) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'project', message: 'Project not found' })
+          );
+        }
 
-    return runTx('project_map_edit.tx.4', async (tx) => {
-      const countsByPath: Record<string, Awaited<ReturnType<typeof countExactPathResources>>> = {};
-      for (const path of new Set(paths)) {
-        countsByPath[path] = await countExactPathResources(tx, project_id, path);
-      }
-      return countsByPath;
-    });
-  });
+        return yield* dbTransaction('project_map_edit.tx.4', async (tx) => {
+          const countsByPath: Record<
+            string,
+            Awaited<ReturnType<typeof countExactPathResources>>
+          > = {};
+          for (const path of new Set(paths)) {
+            countsByPath[path] = await countExactPathResources(tx, project_id, path);
+          }
+          return countsByPath;
+        });
+      })
+    )
+  );
 
 export const project_map_edit_router = t.router({
   update: update_project_map_route,

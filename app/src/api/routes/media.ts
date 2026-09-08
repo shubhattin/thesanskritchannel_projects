@@ -1,18 +1,14 @@
-import { dbTransaction } from '~/effect/database';
-import { TRPCError } from '@trpc/server';
+import { Effect } from 'effect';
 import { inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { t, protectedProcedure, protectedAdminProcedure } from '../trpc_init';
 import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
 import { get_project_info_by_id } from '~/utils/project/list.server';
-import type { TxOrDb } from '~/effect/database';
+import { dbTransaction, type TxOrDb } from '~/effect/database';
+import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { media_attachment } from '~/db/schema';
 import { get_path_params } from '~/state/project_list';
-import { requireProjectPath } from '~/utils/project/paths_db.server';
 import { runTrpcEffect } from '~/effect/app_runtime.server';
-
-const runTx = <A>(operation: string, run: Parameters<typeof dbTransaction<A>>[1]) =>
-  runTrpcEffect(dbTransaction(operation, run));
 
 const media_type_schema = z.enum(['pdf', 'text', 'video', 'audio']);
 
@@ -61,30 +57,48 @@ type MediaSavePayload = Pick<
   'creates' | 'updates' | 'deletes' | 'order_updates'
 >;
 
-const assert_unique_ids = (label: string, ids: number[]) => {
+type MultimediaSaveOutcome =
+  | { ok: true; id_map: Record<string, number> }
+  | { ok: false; reason: 'bad_request' | 'path_not_found'; message: string };
+
+const assert_unique_ids = (
+  label: string,
+  ids: number[]
+): { ok: true } | { ok: false; message: string } => {
   const seen = new Set<number>();
   for (const id of ids) {
     if (seen.has(id)) {
-      throw new TRPCError({ code: 'BAD_REQUEST', message: `Duplicate id in ${label}` });
+      return { ok: false, message: `Duplicate id in ${label}` };
     }
     seen.add(id);
   }
+  return { ok: true };
 };
 
+/**
+ * Apply multimedia creates/updates/deletes/order on a project path.
+ * Returns a domain failure instead of throwing so callers can map to Effect errors.
+ */
 const apply_multimedia_save = async (
   tx: TxOrDb,
   project_path_id: number,
   { creates, updates, deletes, order_updates }: MediaSavePayload
-) => {
-  assert_unique_ids('deletes', deletes);
-  assert_unique_ids(
-    'updates',
-    updates.map((row) => row.id)
-  );
-  assert_unique_ids(
-    'order_updates',
-    order_updates.map((row) => row.id)
-  );
+): Promise<MultimediaSaveOutcome> => {
+  for (const check of [
+    assert_unique_ids('deletes', deletes),
+    assert_unique_ids(
+      'updates',
+      updates.map((row) => row.id)
+    ),
+    assert_unique_ids(
+      'order_updates',
+      order_updates.map((row) => row.id)
+    )
+  ]) {
+    if (!check.ok) {
+      return { ok: false, reason: 'bad_request', message: check.message };
+    }
+  }
 
   const touched_ids = [
     ...deletes,
@@ -100,15 +114,20 @@ const apply_multimedia_save = async (
     const existing_ids = new Set(rows.map((row) => row.id));
     for (const id of unique_touched) {
       if (!existing_ids.has(id)) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: `Media link not found: ${id}` });
+        return {
+          ok: false,
+          reason: 'bad_request',
+          message: `Media link not found: ${id}`
+        };
       }
     }
     for (const row of rows) {
       if (row.project_path_id !== project_path_id) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
+        return {
+          ok: false,
+          reason: 'bad_request',
           message: `Media link ${row.id} does not belong to this path`
-        });
+        };
       }
     }
   }
@@ -173,7 +192,7 @@ const apply_multimedia_save = async (
     `);
   }
 
-  return { id_map };
+  return { ok: true, id_map };
 };
 
 const get_media_list_route = protectedProcedure
@@ -183,37 +202,63 @@ const get_media_list_route = protectedProcedure
       selected_text_levels: z.array(z.int().nullable())
     })
   )
-  .query(async ({ input: { project_id, selected_text_levels } }) => {
-    const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
-    const path_params = get_path_params(selected_text_levels, levels);
-    return runTrpcEffect(CACHE.media_links.get({ project_id, path_params }));
-  });
+  .query(({ input: { project_id, selected_text_levels } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const { levels } = yield* get_project_info_by_id(project_id);
+        const path_params = get_path_params(selected_text_levels, levels);
+        return yield* CACHE.media_links.get({ project_id, path_params });
+      })
+    )
+  );
 
 const save_project_multimedia_route = protectedAdminProcedure
   .input(save_project_multimedia_input_schema)
   .mutation(
-    async ({
-      input: { project_id, selected_text_levels, creates, updates, deletes, order_updates }
-    }) => {
-      const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
-      const path_params = get_path_params(selected_text_levels, levels);
+    ({ input: { project_id, selected_text_levels, creates, updates, deletes, order_updates } }) =>
+      runTrpcEffect(
+        Effect.gen(function* () {
+          const { levels } = yield* get_project_info_by_id(project_id);
+          const path_params = get_path_params(selected_text_levels, levels);
+          const path = path_params.join(':');
 
-      const result = await runTx('media.tx.1', async (tx) => {
-        const projectPath = await requireProjectPath(tx, project_id, path_params.join(':'));
-        return apply_multimedia_save(tx, projectPath.id, {
-          creates,
-          updates,
-          deletes,
-          order_updates
-        });
-      });
+          const outcome = yield* dbTransaction('media.tx.1', async (tx) => {
+            const projectPath = await tx.query.project_paths.findFirst({
+              where: (tbl, { and: andOp, eq: eqOp }) =>
+                andOp(eqOp(tbl.project_id, project_id), eqOp(tbl.path, path)),
+              columns: { id: true, project_id: true, path: true }
+            });
+            if (!projectPath) {
+              return {
+                ok: false as const,
+                reason: 'path_not_found' as const,
+                message: `Project path not found: ${path}`
+              };
+            }
+            return apply_multimedia_save(tx, projectPath.id, {
+              creates,
+              updates,
+              deletes,
+              order_updates
+            });
+          });
 
-      await runTrpcEffect(
-        invalidate_and_refresh_cached(CACHE.media_links, { project_id, path_params })
-      );
+          if (!outcome.ok) {
+            if (outcome.reason === 'path_not_found') {
+              return yield* Effect.fail(
+                NotFoundError.make({
+                  resource: 'project_path',
+                  message: outcome.message
+                })
+              );
+            }
+            return yield* Effect.fail(BadRequestError.make({ message: outcome.message }));
+          }
 
-      return result;
-    }
+          yield* invalidate_and_refresh_cached(CACHE.media_links, { project_id, path_params });
+          return { id_map: outcome.id_map };
+        })
+      )
   );
 
 export const media_router = t.router({

@@ -1,15 +1,14 @@
-import { dbRun, dbTransaction } from '~/effect/database';
+import { Effect } from 'effect';
 import { z } from 'zod';
-import { TRPCError } from '@trpc/server';
 import { protectedAdminProcedure, publicProcedure, t } from '~/api/trpc_init';
 import { enqueueBackground } from '~/effect/background';
 import {
-  project_paths,
   projects,
   texts,
   translations,
   ai_batch_responses,
-  text_image_assets_join
+  text_image_assets_join,
+  project_paths
 } from '~/db/schema';
 import { delay_dev } from '~/tools/delay';
 import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
@@ -23,7 +22,6 @@ import {
 import { notify_site_invalidate_project_map_cache } from '~/utils/cache.server/invalidate_site_project_cache.server';
 import { and, eq, inArray, like, or, sql } from 'drizzle-orm';
 import { get_path_params } from '~/state/project_list';
-import { requireProjectPath } from '~/utils/project/paths_db.server';
 import { SEARCH_MODE_ENUM } from '~/utils/search/search_mode';
 import { search_name_dev_in_maps } from '~/utils/search/search_name_dev.server';
 import {
@@ -37,12 +35,9 @@ import {
   TEXT_EDIT_LOCK_NAMESPACE
 } from '~/utils/text/row_edit.server';
 import { image_batch_metadata_schema } from '~/utils/types/ai_batch_metadata';
-import { runTrpcEffect } from '~/effect/app_runtime.server';
-
-const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
-  runTrpcEffect(dbRun(operation, run));
-const runTx = <A>(operation: string, run: Parameters<typeof dbTransaction<A>>[1]) =>
-  runTrpcEffect(dbTransaction(operation, run));
+import { dbRun, dbTransaction } from '~/effect/database';
+import { BadRequestError, NotFoundError } from '~/effect/errors';
+import { runServerEffect, runTrpcEffect } from '~/effect/app_runtime.server';
 
 const get_text_data_route = publicProcedure
   .input(
@@ -51,11 +46,16 @@ const get_text_data_route = publicProcedure
       path_params: z.int().array()
     })
   )
-  .query(async ({ input: { project_key, path_params } }) => {
-    await delay_dev(350);
-    const data = await runTrpcEffect(CACHE.text_data.get({ key: project_key, path_params }));
-    return data;
-  });
+  .query(({ input: { project_key, path_params } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        yield* Effect.promise(async () => {
+          await delay_dev(350);
+        });
+        return yield* CACHE.text_data.get({ key: project_key, path_params });
+      })
+    )
+  );
 
 const DEFAULT_PAGE_LIMIT = 20;
 export const search_text_in_texts_route = publicProcedure
@@ -76,80 +76,98 @@ export const search_text_in_texts_route = publicProcedure
       offset: z.int().min(0).default(0)
     })
   )
-  .query(async ({ input: { project_keys, search_text, path_prefixes, mode, limit, offset } }) => {
-    const project_ids: number[] = [];
-    for (const key of project_keys) {
-      const project = await runTrpcEffect(get_project_by_key(key));
-      if (!project) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: `Project not found: ${key}` });
-      }
-      project_ids.push(project.id);
+  .query(({ input: { project_keys, search_text, path_prefixes, mode, limit, offset } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const project_ids: number[] = [];
+        for (const key of project_keys) {
+          const project = yield* get_project_by_key(key);
+          if (!project) {
+            return yield* Effect.fail(
+              BadRequestError.make({ message: `Project not found: ${key}` })
+            );
+          }
+          project_ids.push(project.id);
+        }
+
+        if (mode === 'name') {
+          const projectMaps = yield* Effect.all(
+            project_ids.map((id) =>
+              Effect.gen(function* () {
+                const map = yield* get_project_map_by_id(id);
+                return { id, map };
+              })
+            ),
+            { concurrency: 'unbounded' }
+          );
+          return search_name_dev_in_maps({
+            projects: projectMaps,
+            search_text,
+            path_prefixes,
+            limit,
+            offset
+          });
+        }
+
+        const conditions = [like(texts.text_search, `%${search_text}%`)];
+        conditions.push(inArray(project_paths.project_id, project_ids));
+
+        if (path_prefixes && path_prefixes.length > 0) {
+          const pathConditions = path_prefixes
+            .filter((pp) => pp.length > 0)
+            .map((pp) => {
+              const prefix = pp.join(':');
+              return or(eq(project_paths.path, prefix), like(project_paths.path, `${prefix}:%`));
+            });
+          if (pathConditions.length > 0) {
+            conditions.push(or(...pathConditions)!);
+          }
+        }
+
+        const data = yield* dbRun('text.ml.1', (db) =>
+          db
+            .select({
+              project_id: project_paths.project_id,
+              path: project_paths.path,
+              index: texts.index,
+              shloka_num: texts.shloka_num,
+              text: texts.text,
+              totalCount: sql<number>`count(*) over()`
+            })
+            .from(texts)
+            .innerJoin(project_paths, eq(texts.project_path_id, project_paths.id))
+            .where(and(...conditions))
+            .orderBy(project_paths.project_id, project_paths.path, texts.index)
+            .limit(limit + 1)
+            .offset(offset)
+        );
+
+        const hasMore = data.length > limit;
+        const items = hasMore ? data.slice(0, limit) : data;
+        const totalCount = data.length ? Number(data[0].totalCount) : 0;
+
+        return {
+          items,
+          page: {
+            limit,
+            offset,
+            nextOffset: hasMore ? offset + limit : null,
+            hasMore,
+            totalCount
+          }
+        };
+      })
+    )
+  );
+
+type SaveTextRowsTxOutcome =
+  | {
+      ok: true;
+      affectedLangIds: number[];
+      mapChanged: boolean;
+      projectKey: string;
     }
-
-    if (mode === 'name') {
-      const projects = await Promise.all(
-        project_ids.map(async (id) => ({
-          id,
-          map: await runTrpcEffect(get_project_map_by_id(id))
-        }))
-      );
-      return search_name_dev_in_maps({
-        projects,
-        search_text,
-        path_prefixes,
-        limit,
-        offset
-      });
-    }
-
-    const conditions = [like(texts.text_search, `%${search_text}%`)];
-    conditions.push(inArray(project_paths.project_id, project_ids));
-
-    if (path_prefixes && path_prefixes.length > 0) {
-      const pathConditions = path_prefixes
-        .filter((pp) => pp.length > 0)
-        .map((pp) => {
-          const prefix = pp.join(':');
-          return or(eq(project_paths.path, prefix), like(project_paths.path, `${prefix}:%`));
-        });
-      if (pathConditions.length > 0) {
-        conditions.push(or(...pathConditions)!);
-      }
-    }
-
-    const data = await runDb('text.ml.1', (db) =>
-      db
-        .select({
-          project_id: project_paths.project_id,
-          path: project_paths.path,
-          index: texts.index,
-          shloka_num: texts.shloka_num,
-          text: texts.text,
-          totalCount: sql<number>`count(*) over()`
-        })
-        .from(texts)
-        .innerJoin(project_paths, eq(texts.project_path_id, project_paths.id))
-        .where(and(...conditions))
-        .orderBy(project_paths.project_id, project_paths.path, texts.index)
-        .limit(limit + 1)
-        .offset(offset)
-    );
-
-    const hasMore = data.length > limit;
-    const items = hasMore ? data.slice(0, limit) : data;
-    const totalCount = data.length ? Number(data[0].totalCount) : 0;
-
-    return {
-      items,
-      page: {
-        limit,
-        offset,
-        nextOffset: hasMore ? offset + limit : null,
-        hasMore,
-        totalCount
-      }
-    };
-  });
+  | { ok: false; reason: 'project_not_found' | 'path_not_found'; message: string };
 
 const save_text_rows_route = protectedAdminProcedure
   .input(
@@ -165,186 +183,232 @@ const save_text_rows_route = protectedAdminProcedure
         .array()
     })
   )
-  .mutation(async ({ input: { project_id, selected_text_levels, rows }, ctx: { cookie } }) => {
-    const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
-    const path_params = get_path_params(selected_text_levels, levels);
-    if (levels > 1 && path_params.length === 0) {
-      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });
-    }
-    const path = path_params.join(':');
-    const textRows = buildTextRowsForSave(rows);
-    const shloka_count = textRows.filter((row) => row.shloka_num !== null).length;
+  .mutation(({ input: { project_id, selected_text_levels, rows }, ctx: { cookie } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const { levels } = yield* get_project_info_by_id(project_id);
+        const path_params = get_path_params(selected_text_levels, levels);
+        if (levels > 1 && path_params.length === 0) {
+          return yield* Effect.fail(
+            BadRequestError.make({ message: 'Invalid text path selection' })
+          );
+        }
+        const path = path_params.join(':');
+        const textRows = buildTextRowsForSave(rows);
+        const shloka_count = textRows.filter((row) => row.shloka_num !== null).length;
 
-    const { affectedLangIds, mapChanged, projectKey } = await runTx('text.tx.1', async (tx) => {
-      await tx.execute(
-        sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
-      );
+        const outcome = yield* dbTransaction(
+          'text.tx.1',
+          async (tx): Promise<SaveTextRowsTxOutcome> => {
+            await tx.execute(
+              sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`
+            );
 
-      const [project, projectPath] = await Promise.all([
-        tx.query.projects.findFirst({
-          where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
-          columns: { id: true, key: true, map: true }
-        }),
-        requireProjectPath(tx, project_id, path)
-      ]);
-      if (!project) throw new Error(`Project not found: ${project_id}`);
+            const [project, projectPath] = await Promise.all([
+              tx.query.projects.findFirst({
+                where: (tbl, { eq: eqId }) => eqId(tbl.id, project_id),
+                columns: { id: true, key: true, map: true }
+              }),
+              tx.query.project_paths.findFirst({
+                where: (tbl, { and: andOp, eq: eqOp }) =>
+                  andOp(eqOp(tbl.project_id, project_id), eqOp(tbl.path, path)),
+                columns: { id: true, project_id: true, path: true }
+              })
+            ]);
+            if (!project) {
+              return {
+                ok: false,
+                reason: 'project_not_found',
+                message: `Project not found: ${project_id}`
+              };
+            }
+            if (!projectPath) {
+              return {
+                ok: false,
+                reason: 'path_not_found',
+                message: `Project path not found: ${path}`
+              };
+            }
 
-      const updatedMap = cloneMapWithUpdatedLeafCounts(project.map, path_params, {
-        total: rows.length,
-        shloka_count
-      });
-      const mapChanged = JSON.stringify(updatedMap) !== JSON.stringify(project.map);
+            const updatedMap = cloneMapWithUpdatedLeafCounts(project.map, path_params, {
+              total: rows.length,
+              shloka_count
+            });
+            const mapChanged = JSON.stringify(updatedMap) !== JSON.stringify(project.map);
 
-      const existingTranslations = await tx
-        .select({
-          lang_id: translations.lang_id,
-          index: translations.index,
-          text: translations.text
-        })
-        .from(translations)
-        .where(eq(translations.project_path_id, projectPath.id));
-      const remappedTranslations = remapTranslationsForTextRows(rows, existingTranslations);
-      const old_to_new = buildOldToNewTextIndexMap(rows);
+            const existingTranslations = await tx
+              .select({
+                lang_id: translations.lang_id,
+                index: translations.index,
+                text: translations.text
+              })
+              .from(translations)
+              .where(eq(translations.project_path_id, projectPath.id));
+            const remappedTranslations = remapTranslationsForTextRows(rows, existingTranslations);
+            const old_to_new = buildOldToNewTextIndexMap(rows);
 
-      const existingImageJoins = await tx
-        .select({
-          id: text_image_assets_join.id,
-          index: text_image_assets_join.index
-        })
-        .from(text_image_assets_join)
-        .where(eq(text_image_assets_join.project_path_id, projectPath.id));
-      const remappedImageJoins = remapTextImageJoinIndexes(existingImageJoins, old_to_new);
+            const existingImageJoins = await tx
+              .select({
+                id: text_image_assets_join.id,
+                index: text_image_assets_join.index
+              })
+              .from(text_image_assets_join)
+              .where(eq(text_image_assets_join.project_path_id, projectPath.id));
+            const remappedImageJoins = remapTextImageJoinIndexes(existingImageJoins, old_to_new);
 
-      // Unresolved batch rows for this path — remap metadata.index so late polls attach correctly
-      const pendingBatchRows = await tx
-        .select({
-          batch_id: ai_batch_responses.batch_id,
-          custom_id: ai_batch_responses.custom_id,
-          metadata: ai_batch_responses.metadata
-        })
-        .from(ai_batch_responses)
-        .where(sql`(${ai_batch_responses.metadata}->>'project_path_id')::int = ${projectPath.id}`);
+            // Unresolved batch rows for this path — remap metadata.index so late polls attach correctly
+            const pendingBatchRows = await tx
+              .select({
+                batch_id: ai_batch_responses.batch_id,
+                custom_id: ai_batch_responses.custom_id,
+                metadata: ai_batch_responses.metadata
+              })
+              .from(ai_batch_responses)
+              .where(
+                sql`(${ai_batch_responses.metadata}->>'project_path_id')::int = ${projectPath.id}`
+              );
 
-      const changedImageJoins = remappedImageJoins.filter(
-        (join) => join.index !== existingImageJoins.find((j) => j.id === join.id)?.index
-      );
-      if (changedImageJoins.length > 0) {
-        // Single statement — do not Promise.all on the same tx connection (neon/postgres-js).
-        const value_rows = changedImageJoins.map(
-          (join) => sql`(${join.id}::int, ${join.index}::int)`
-        );
-        await tx.execute(sql`
-          UPDATE ${text_image_assets_join} AS t
-          SET index = v.index
-          FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(id, index)
-          WHERE t.id = v.id
-        `);
-      }
+            const changedImageJoins = remappedImageJoins.filter(
+              (join) => join.index !== existingImageJoins.find((j) => j.id === join.id)?.index
+            );
+            if (changedImageJoins.length > 0) {
+              // Single statement — do not Promise.all on the same tx connection (neon/postgres-js).
+              const value_rows = changedImageJoins.map(
+                (join) => sql`(${join.id}::int, ${join.index}::int)`
+              );
+              await tx.execute(sql`
+              UPDATE ${text_image_assets_join} AS t
+              SET index = v.index
+              FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(id, index)
+              WHERE t.id = v.id
+            `);
+            }
 
-      const batch_metadata_updates: {
-        batch_id: string;
-        custom_id: string;
-        metadata: z.infer<typeof image_batch_metadata_schema>;
-      }[] = [];
-      for (const batch_row of pendingBatchRows) {
-        const parsed = image_batch_metadata_schema.safeParse(batch_row.metadata);
-        if (!parsed.success) continue;
-        if (parsed.data.success !== undefined) continue; // already finalized
-        const next_index = remapBatchMetadataIndex(parsed.data.index, old_to_new);
-        if (next_index === parsed.data.index) continue;
-        batch_metadata_updates.push({
-          batch_id: batch_row.batch_id,
-          custom_id: batch_row.custom_id,
-          metadata: {
-            ...parsed.data,
-            index: next_index
+            const batch_metadata_updates: {
+              batch_id: string;
+              custom_id: string;
+              metadata: z.infer<typeof image_batch_metadata_schema>;
+            }[] = [];
+            for (const batch_row of pendingBatchRows) {
+              const parsed = image_batch_metadata_schema.safeParse(batch_row.metadata);
+              if (!parsed.success) continue;
+              if (parsed.data.success !== undefined) continue; // already finalized
+              const next_index = remapBatchMetadataIndex(parsed.data.index, old_to_new);
+              if (next_index === parsed.data.index) continue;
+              batch_metadata_updates.push({
+                batch_id: batch_row.batch_id,
+                custom_id: batch_row.custom_id,
+                metadata: {
+                  ...parsed.data,
+                  index: next_index
+                }
+              });
+            }
+            if (batch_metadata_updates.length > 0) {
+              const value_rows = batch_metadata_updates.map(
+                (u) =>
+                  sql`(${u.batch_id}::text, ${u.custom_id}::text, ${JSON.stringify(u.metadata)}::jsonb)`
+              );
+              await tx.execute(sql`
+              UPDATE ${ai_batch_responses} AS t
+              SET metadata = v.metadata
+              FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(batch_id, custom_id, metadata)
+              WHERE t.batch_id = v.batch_id
+                AND t.custom_id = v.custom_id
+                AND t.metadata->>'success' IS NULL
+            `);
+            }
+
+            // delete all and then insert
+            await tx.delete(translations).where(eq(translations.project_path_id, projectPath.id));
+            await tx.delete(texts).where(eq(texts.project_path_id, projectPath.id));
+
+            if (textRows.length > 0) {
+              await tx.insert(texts).values(
+                textRows.map((row) => ({
+                  project_path_id: projectPath.id,
+                  ...row
+                }))
+              );
+            }
+            if (remappedTranslations.length > 0) {
+              await tx.insert(translations).values(
+                remappedTranslations.map((row) => ({
+                  project_path_id: projectPath.id,
+                  ...row
+                }))
+              );
+            }
+
+            await tx.update(projects).set({ map: updatedMap }).where(eq(projects.id, project_id));
+
+            return {
+              ok: true,
+              mapChanged,
+              projectKey: project.key,
+              affectedLangIds: getAffectedTranslationLangIds(existingTranslations)
+            };
           }
-        });
-      }
-      if (batch_metadata_updates.length > 0) {
-        const value_rows = batch_metadata_updates.map(
-          (u) =>
-            sql`(${u.batch_id}::text, ${u.custom_id}::text, ${JSON.stringify(u.metadata)}::jsonb)`
         );
-        await tx.execute(sql`
-          UPDATE ${ai_batch_responses} AS t
-          SET metadata = v.metadata
-          FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(batch_id, custom_id, metadata)
-          WHERE t.batch_id = v.batch_id
-            AND t.custom_id = v.custom_id
-            AND t.metadata->>'success' IS NULL
-        `);
-      }
 
-      // delete all and then insert
-      await tx.delete(translations).where(eq(translations.project_path_id, projectPath.id));
-      await tx.delete(texts).where(eq(texts.project_path_id, projectPath.id));
-
-      if (textRows.length > 0) {
-        await tx.insert(texts).values(
-          textRows.map((row) => ({
-            project_path_id: projectPath.id,
-            ...row
-          }))
-        );
-      }
-      if (remappedTranslations.length > 0) {
-        await tx.insert(translations).values(
-          remappedTranslations.map((row) => ({
-            project_path_id: projectPath.id,
-            ...row
-          }))
-        );
-      }
-
-      await tx.update(projects).set({ map: updatedMap }).where(eq(projects.id, project_id));
-
-      return {
-        mapChanged,
-        projectKey: project.key,
-        affectedLangIds: getAffectedTranslationLangIds(existingTranslations)
-      };
-    });
-
-    await Promise.all([
-      runTrpcEffect(
-        invalidate_and_refresh_cached(CACHE.text_data, {
-          key: projectKey,
-          path_params: [...path_params]
-        })
-      ),
-      // the delete might have affected the available translation langs
-      runTrpcEffect(
-        invalidate_and_refresh_cached(CACHE.available_translation_langs, {
-          project_id,
-          path_params
-        })
-      )
-    ]);
-    for (const lang_id of affectedLangIds) {
-      void runTrpcEffect(
-        enqueueBackground(() =>
-          runTrpcEffect(
-            invalidate_and_refresh_cached(CACHE.translation, {
-              project_id,
-              lang_id,
-              selected_text_levels
+        if (!outcome.ok) {
+          if (outcome.reason === 'path_not_found') {
+            return yield* Effect.fail(
+              NotFoundError.make({
+                resource: 'project_path',
+                message: outcome.message
+              })
+            );
+          }
+          return yield* Effect.fail(
+            NotFoundError.make({
+              resource: 'project',
+              message: outcome.message
             })
-          )
-        )
-      );
-    }
-    if (mapChanged) {
-      await runTrpcEffect(invalidate_and_refresh_cached(CACHE.project_map, { project_id }));
-      clear_server_project_map_cache(project_id);
-      clear_server_project_info_cache(projectKey);
-      void runTrpcEffect(
-        enqueueBackground(() => notify_site_invalidate_project_map_cache(cookie, project_id))
-      );
-    }
+          );
+        }
 
-    return { success: true as const };
-  });
+        const { affectedLangIds, mapChanged, projectKey } = outcome;
+
+        yield* Effect.all(
+          [
+            invalidate_and_refresh_cached(CACHE.text_data, {
+              key: projectKey,
+              path_params: [...path_params]
+            }),
+            invalidate_and_refresh_cached(CACHE.available_translation_langs, {
+              project_id,
+              path_params
+            })
+          ],
+          { concurrency: 'unbounded' }
+        );
+
+        for (const lang_id of affectedLangIds) {
+          yield* enqueueBackground(() =>
+            runServerEffect(
+              invalidate_and_refresh_cached(CACHE.translation, {
+                project_id,
+                lang_id,
+                selected_text_levels
+              })
+            )
+          );
+        }
+
+        if (mapChanged) {
+          yield* invalidate_and_refresh_cached(CACHE.project_map, { project_id });
+          clear_server_project_map_cache(project_id);
+          clear_server_project_info_cache(projectKey);
+          yield* enqueueBackground(() =>
+            notify_site_invalidate_project_map_cache(cookie, project_id)
+          );
+        }
+
+        return { success: true as const };
+      })
+    )
+  );
 
 export const text_router = t.router({
   get_text_data: get_text_data_route,

@@ -2,7 +2,6 @@ import { OpenAiBatchClient } from '~/effect/ai';
 import { dbRun, dbTransaction } from '~/effect/database';
 import { Effect } from 'effect';
 import { z } from 'zod';
-import { TRPCError } from '@trpc/server';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import {
@@ -31,7 +30,6 @@ import {
   claimBatchForRetry,
   discardAiBatchEntirely,
   enqueueAiBatch,
-  mapWithConcurrency,
   markBatchOutputResolvedIfComplete,
   releaseBatchRetryClaim,
   scheduleOpenAiBatchCleanup,
@@ -52,29 +50,24 @@ import {
   get_project_map_by_id
 } from '~/utils/project/list.server';
 import { get_node_at_path, get_path_params } from '~/state/project_list';
-import { requireProjectPath } from '~/utils/project/paths_db.server';
 import { build_translation_prompts } from '~/api/routes/ai/translation_prompt_builder';
 import {
   path_params_to_selected_text_levels,
-  persist_translations_for_path
+  persistTranslationsRows
 } from '~/api/routes/translation';
 import { lang_list_obj, get_lang_from_id } from '~/state/lang_list';
 import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
 import type { recursive_list_type } from '~/state/data_types';
 import { DEFAULT_TEXT_AI_MODEL, text_models_enum } from '~/api/routes/ai/ai_types';
-import { runTrpcEffect } from '~/effect/app_runtime.server';
-
-const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
-  runTrpcEffect(dbRun(operation, run));
-const runTx = <A>(operation: string, run: Parameters<typeof dbTransaction<A>>[1]) =>
-  runTrpcEffect(dbTransaction(operation, run));
-const getOpenAiClient = () =>
-  runTrpcEffect(
-    Effect.gen(function* () {
-      const { client } = yield* OpenAiBatchClient;
-      return client;
-    })
-  );
+import { runServerEffect, runTrpcEffect } from '~/effect/app_runtime.server';
+import { enqueueBackground } from '~/effect/background';
+import {
+  BadRequestError,
+  ConflictError,
+  DatabaseError,
+  isKnownError,
+  NotFoundError
+} from '~/effect/errors';
 
 /** Soft char budget for one leaf request (leave headroom under model context). */
 const MAX_TRANSLATION_PROMPT_CHARS = 280_000;
@@ -102,6 +95,70 @@ type PollCoreResult =
 
 export type PollBatchTextTranslationResult = PollCoreResult & { message: string };
 
+/** Remap KnownError / BATCH_NOT_FOUND thrown inside dbTransaction callbacks. */
+const catchDatabaseKnownCause = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  effect.pipe(
+    Effect.catchIf(
+      (err): err is E & DatabaseError => err instanceof DatabaseError,
+      (err) => {
+        if (isKnownError(err.cause)) return Effect.fail(err.cause);
+        if (err.cause instanceof Error && err.cause.message === 'BATCH_NOT_FOUND') {
+          return Effect.fail(
+            ConflictError.make({ message: 'Batch was already retried or discarded' })
+          );
+        }
+        return Effect.fail(err);
+      }
+    )
+  );
+
+const knownErrorMessage = (cause: unknown, fallback: string) => {
+  if (isKnownError(cause) && 'message' in cause && cause.message !== undefined)
+    return cause.message;
+  return fallback;
+};
+
+const throwGateError = (gate: {
+  code: 'NOT_FOUND' | 'BAD_REQUEST' | 'CONFLICT';
+  message: string;
+}) => {
+  if (gate.code === 'NOT_FOUND') {
+    throw NotFoundError.make({ resource: 'batch', message: gate.message });
+  }
+  if (gate.code === 'CONFLICT') {
+    throw ConflictError.make({ message: gate.message });
+  }
+  throw BadRequestError.make({ message: gate.message });
+};
+
+const getOpenAiClient = Effect.fn('batch_ai_text.getOpenAiClient')(function* () {
+  const { client } = yield* OpenAiBatchClient;
+  return client;
+});
+
+const require_project_path_row = Effect.fn('batch_ai_text.require_project_path')(function* (
+  project_id: number,
+  path: string,
+  operation: string
+) {
+  const row = yield* dbRun(operation, (db) =>
+    db.query.project_paths.findFirst({
+      where: (tbl, { and: andOp, eq: eqOp }) =>
+        andOp(eqOp(tbl.project_id, project_id), eqOp(tbl.path, path)),
+      columns: { id: true, project_id: true, path: true }
+    })
+  );
+  if (!row) {
+    return yield* Effect.fail(
+      NotFoundError.make({
+        resource: 'project_path',
+        message: `Project path not found: ${path}`
+      })
+    );
+  }
+  return row;
+});
+
 function toPollItem(custom_id: string, metadata: TextTranslationBatchMetadata): PollItem {
   return {
     custom_id,
@@ -119,40 +176,46 @@ function buildProcessedMessage(items: PollItem[]) {
   return parts.join('; ') + '.';
 }
 
-async function load_leaf_text_context(args: {
+const load_leaf_text_context = Effect.fn('batch_ai_text.load_leaf_text_context')(function* (args: {
   project_id: number;
   path_params: number[];
   lang_id: number;
   include_english_context: boolean;
 }) {
   const { project_id, path_params, lang_id, include_english_context } = args;
-  const project = await runTrpcEffect(get_project_by_id(project_id));
+  const project = yield* get_project_by_id(project_id);
   if (!project) {
-    throw new TRPCError({ code: 'NOT_FOUND', message: `Project not found: ${project_id}` });
+    return yield* Effect.fail(
+      NotFoundError.make({
+        resource: 'project',
+        message: `Project not found: ${project_id}`
+      })
+    );
   }
-  const projectPath = await runDb('batch_ai_text.path.1', (db) =>
-    requireProjectPath(db, project_id, path_params.join(':'))
+  const projectPath = yield* require_project_path_row(
+    project_id,
+    path_params.join(':'),
+    'batch_ai_text.path.1'
   );
-  const text_rows = await runTrpcEffect(CACHE.text_data.get({ key: project.key, path_params }));
+  const text_rows = yield* CACHE.text_data.get({ key: project.key, path_params });
   if (!text_rows.length) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: `No text rows found for path ${path_params.join(':') || '(root)'}`
-    });
+    return yield* Effect.fail(
+      BadRequestError.make({
+        message: `No text rows found for path ${path_params.join(':') || '(root)'}`
+      })
+    );
   }
 
-  const { levels, name: text_name } = await runTrpcEffect(get_project_info_by_id(project_id));
+  const { levels, name: text_name } = yield* get_project_info_by_id(project_id);
   const selected_text_levels = path_params_to_selected_text_levels(path_params, levels);
 
   let english_map: Map<number, string> | undefined;
   if (include_english_context && lang_id !== lang_list_obj.English) {
-    english_map = await runTrpcEffect(
-      CACHE.translation.get({
-        project_id,
-        lang_id: lang_list_obj.English,
-        selected_text_levels
-      })
-    );
+    english_map = yield* CACHE.translation.get({
+      project_id,
+      lang_id: lang_list_obj.English,
+      selected_text_levels
+    });
   }
 
   const text_data = text_rows.map((row) => {
@@ -170,10 +233,11 @@ async function load_leaf_text_context(args: {
 
   const prompt_chars = prompts.system_prompt.length + prompts.user_prompt.length;
   if (prompt_chars > MAX_TRANSLATION_PROMPT_CHARS) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: `Path ${path_params.join(':') || '(root)'} is too large for one batch request (${prompt_chars} chars). Split the leaf or translate manually.`
-    });
+    return yield* Effect.fail(
+      BadRequestError.make({
+        message: `Path ${path_params.join(':') || '(root)'} is too large for one batch request (${prompt_chars} chars). Split the leaf or translate manually.`
+      })
+    );
   }
 
   return {
@@ -183,14 +247,13 @@ async function load_leaf_text_context(args: {
     prompts,
     selected_text_levels
   };
-}
+});
 
-async function assertNoUnresolvedTranslationDuplicates(
-  project_path_ids: number[],
-  lang_id: number
-) {
+const assertNoUnresolvedTranslationDuplicates = Effect.fn(
+  'batch_ai_text.assertNoUnresolvedTranslationDuplicates'
+)(function* (project_path_ids: number[], lang_id: number) {
   if (project_path_ids.length === 0) return;
-  const rows = await runDb('batch_ai_text.ml.1', (db) =>
+  const rows = yield* dbRun('batch_ai_text.ml.1', (db) =>
     db
       .select({
         metadata: ai_batch_responses.metadata,
@@ -216,79 +279,119 @@ async function assertNoUnresolvedTranslationDuplicates(
     busy_paths.add(meta.data.project_path_id);
   }
   if (busy_paths.size > 0) {
-    throw new TRPCError({
-      code: 'CONFLICT',
-      message: `Unresolved translation batch already exists for ${busy_paths.size} path(s) in this language`
-    });
+    return yield* Effect.fail(
+      ConflictError.make({
+        message: `Unresolved translation batch already exists for ${busy_paths.size} path(s) in this language`
+      })
+    );
   }
-}
+});
 
 /** Connect staged translations into the translations table and remove the batch response row. */
-export const approve_text_translation_func = async (
+export const approve_text_translation_func = Effect.fn('approve_text_translation_func')(function* (
   batch_id: string,
   custom_id: string,
   options?: { skip_cache_invalidation?: boolean; skip_cleanup?: boolean }
-) => {
-  const result = await runTx('batch_ai_text.tx.1', async (tx) => {
-    const rows = await tx
-      .select()
-      .from(ai_batch_responses)
-      .where(
-        and(eq(ai_batch_responses.batch_id, batch_id), eq(ai_batch_responses.custom_id, custom_id))
-      )
-      .for('update')
-      .limit(1);
-    const ai_batch_data = rows[0];
-    if (!ai_batch_data) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `No metadata found for batch_id ${batch_id} and custom_id ${custom_id}`
+) {
+  const result = yield* catchDatabaseKnownCause(
+    dbTransaction('batch_ai_text.tx.1', async (tx) => {
+      const rows = await tx
+        .select()
+        .from(ai_batch_responses)
+        .where(
+          and(
+            eq(ai_batch_responses.batch_id, batch_id),
+            eq(ai_batch_responses.custom_id, custom_id)
+          )
+        )
+        .for('update')
+        .limit(1);
+      const ai_batch_data = rows[0];
+      if (!ai_batch_data) {
+        throw NotFoundError.make({
+          resource: 'ai_batch_response',
+          message: `No metadata found for batch_id ${batch_id} and custom_id ${custom_id}`
+        });
+      }
+      const metadata = text_translation_batch_metadata_schema.parse(ai_batch_data.metadata);
+      if (metadata.success !== true || metadata.translated_data === undefined) {
+        throw BadRequestError.make({
+          message: `Translation not ready for batch_id ${batch_id} and custom_id ${custom_id}`
+        });
+      }
+
+      const outcome = await persistTranslationsRows(tx, {
+        project_id: metadata.project_id,
+        lang_id: metadata.lang_id,
+        project_path_id: metadata.project_path_id,
+        indexes: metadata.translated_data.map((row) => row.index),
+        data: metadata.translated_data.map((row) => row.text)
       });
-    }
-    const metadata = text_translation_batch_metadata_schema.parse(ai_batch_data.metadata);
-    if (metadata.success !== true || metadata.translated_data === undefined) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Translation not ready for batch_id ${batch_id} and custom_id ${custom_id}`
-      });
-    }
+      if (!outcome.ok) {
+        throw BadRequestError.make({
+          message: `Translation index has no matching text row: ${outcome.index}`
+        });
+      }
 
-    const persist_result = await persist_translations_for_path({
-      project_id: metadata.project_id,
-      lang_id: metadata.lang_id,
-      project_path_id: metadata.project_path_id,
-      path_params: metadata.path_params,
-      indexes: metadata.translated_data.map((row) => row.index),
-      data: metadata.translated_data.map((row) => row.text),
-      skip_cache_invalidation: options?.skip_cache_invalidation
-    });
+      await tx
+        .delete(ai_batch_responses)
+        .where(
+          and(
+            eq(ai_batch_responses.batch_id, batch_id),
+            eq(ai_batch_responses.custom_id, custom_id)
+          )
+        );
 
-    await tx
-      .delete(ai_batch_responses)
-      .where(
-        and(eq(ai_batch_responses.batch_id, batch_id), eq(ai_batch_responses.custom_id, custom_id))
-      );
+      return {
+        success: true as const,
+        project_path_id: metadata.project_path_id,
+        lang_id: metadata.lang_id,
+        item_count: metadata.translated_data.length,
+        project_id: metadata.project_id,
+        path_params: metadata.path_params
+      };
+    })
+  );
 
-    return {
-      success: true as const,
-      project_path_id: metadata.project_path_id,
-      lang_id: metadata.lang_id,
-      item_count: metadata.translated_data.length,
-      project_id: metadata.project_id,
-      path_params: metadata.path_params,
-      selected_text_levels: persist_result.selected_text_levels
-    };
-  });
+  const { levels } = yield* get_project_info_by_id(result.project_id);
+  const selected_text_levels = path_params_to_selected_text_levels(result.path_params, levels);
 
-  if (!options?.skip_cleanup)
-    void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id)).catch((err) => {
-      console.error('[batch_ai_text] cleanup schedule failed', batch_id, err);
-    });
-  return result;
-};
+  if (!options?.skip_cache_invalidation) {
+    yield* Effect.all(
+      [
+        invalidate_and_refresh_cached(CACHE.translation, {
+          project_id: result.project_id,
+          lang_id: result.lang_id,
+          selected_text_levels
+        }),
+        invalidate_and_refresh_cached(CACHE.available_translation_langs, {
+          project_id: result.project_id,
+          path_params: result.path_params
+        })
+      ],
+      { concurrency: 'unbounded' }
+    );
+  }
 
-async function autoApproveEligibleRows(batch_id: string, items: PollItem[]): Promise<PollItem[]> {
-  const rows = await runDb('batch_ai_text.db.1', (db) =>
+  if (!options?.skip_cleanup) {
+    yield* enqueueBackground(() =>
+      runServerEffect(scheduleOpenAiBatchCleanup(batch_id)).catch((err) => {
+        console.error('[batch_ai_text] cleanup schedule failed', batch_id, err);
+      })
+    );
+  }
+
+  return {
+    ...result,
+    selected_text_levels
+  };
+});
+
+const autoApproveEligibleRows = Effect.fn('batch_ai_text.autoApproveEligibleRows')(function* (
+  batch_id: string,
+  items: PollItem[]
+) {
+  const rows = yield* dbRun('batch_ai_text.db.1', (db) =>
     db.query.ai_batch_responses.findMany({
       where: eq(ai_batch_responses.batch_id, batch_id),
       columns: { custom_id: true, auto_approved: true }
@@ -305,31 +408,38 @@ async function autoApproveEligibleRows(batch_id: string, items: PollItem[]): Pro
     selected_text_levels: (number | null)[];
   }[] = [];
 
-  const resolved = await mapWithConcurrency(items, BATCH_ITEM_CONCURRENCY, async (item) => {
-    if (!item.success || !auto_approved_custom_ids.has(item.custom_id)) return item;
-    try {
-      const result = await approve_text_translation_func(batch_id, item.custom_id, {
-        skip_cache_invalidation: true,
-        skip_cleanup: true
-      });
-      cache_targets.push({
-        project_id: result.project_id,
-        lang_id: result.lang_id,
-        path_params: result.path_params,
-        selected_text_levels: result.selected_text_levels
-      });
-      return {
-        ...item,
-        message: `Auto-saved ${result.item_count} translation(s) to path ${result.project_path_id} lang ${result.lang_id}`
-      };
-    } catch (err) {
-      const message =
-        err instanceof TRPCError ? err.message : 'Auto-approve failed to save translations';
-      return { ...item, message };
-    }
-  });
+  const resolved = yield* Effect.forEach(
+    items,
+    (item) =>
+      Effect.gen(function* () {
+        if (!item.success || !auto_approved_custom_ids.has(item.custom_id)) return item;
+        return yield* approve_text_translation_func(batch_id, item.custom_id, {
+          skip_cache_invalidation: true,
+          skip_cleanup: true
+        }).pipe(
+          Effect.map((result) => {
+            cache_targets.push({
+              project_id: result.project_id,
+              lang_id: result.lang_id,
+              path_params: result.path_params,
+              selected_text_levels: result.selected_text_levels
+            });
+            return {
+              ...item,
+              message: `Auto-saved ${result.item_count} translation(s) to path ${result.project_path_id} lang ${result.lang_id}`
+            };
+          }),
+          Effect.catch((err) =>
+            Effect.succeed({
+              ...item,
+              message: knownErrorMessage(err, 'Auto-approve failed to save translations')
+            })
+          )
+        );
+      }),
+    { concurrency: BATCH_ITEM_CONCURRENCY }
+  );
 
-  // One cache pass per unique path/lang instead of per-item roundtrips.
   const unique_targets = [
     ...new Map(
       cache_targets.map((target) => [
@@ -339,239 +449,245 @@ async function autoApproveEligibleRows(batch_id: string, items: PollItem[]): Pro
     ).values()
   ];
   // Cleanup must run even if cache invalidation fails — staging rows are already deleted.
-  if (cache_targets.length > 0)
-    void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id)).catch((err) => {
-      console.error('[batch_ai_text] cleanup schedule failed', batch_id, err);
-    });
-  try {
-    await Promise.all(
-      unique_targets.map((target) =>
-        Promise.all([
-          runTrpcEffect(
-            invalidate_and_refresh_cached(CACHE.translation, {
-              project_id: target.project_id,
-              lang_id: target.lang_id,
-              selected_text_levels: target.selected_text_levels
-            })
-          ),
-          runTrpcEffect(
-            invalidate_and_refresh_cached(CACHE.available_translation_langs, {
-              project_id: target.project_id,
-              path_params: target.path_params
-            })
-          )
-        ])
-      )
+  if (cache_targets.length > 0) {
+    yield* enqueueBackground(() =>
+      runServerEffect(scheduleOpenAiBatchCleanup(batch_id)).catch((err) => {
+        console.error('[batch_ai_text] cleanup schedule failed', batch_id, err);
+      })
     );
-  } catch (err) {
-    console.error(`Batch ${batch_id} auto-approve cache invalidation failed:`, err);
   }
-
-  return resolved;
-}
-
-export const poll_batch_text_translation_func = async (
-  batch_id: string
-): Promise<PollBatchTextTranslationResult> => {
-  const ai_batch = await runDb('batch_ai_text.db.2', (db) =>
-    db.query.ai_batches.findFirst({
-      where: eq(ai_batches.batch_id, batch_id),
-      with: { responses: true }
+  yield* Effect.all(
+    unique_targets.flatMap((target) => [
+      invalidate_and_refresh_cached(CACHE.translation, {
+        project_id: target.project_id,
+        lang_id: target.lang_id,
+        selected_text_levels: target.selected_text_levels
+      }),
+      invalidate_and_refresh_cached(CACHE.available_translation_langs, {
+        project_id: target.project_id,
+        path_params: target.path_params
+      })
+    ]),
+    { concurrency: 'unbounded' }
+  ).pipe(
+    Effect.catch((err) => {
+      console.error(`Batch ${batch_id} auto-approve cache invalidation failed:`, err);
+      return Effect.void;
     })
   );
-  if (!ai_batch || ai_batch.responses.length === 0) {
-    return {
-      status: 'already_resolved' as const,
-      batch_id,
-      items: [],
-      message: `Batch ${batch_id} already resolved or cleaned up`
-    };
-  }
 
-  const db_rows = ai_batch.responses;
+  return resolved;
+});
 
-  if (ai_batch.output_resolved) {
-    const items = await autoApproveEligibleRows(
-      batch_id,
-      db_rows.map((row) =>
-        toPollItem(row.custom_id, text_translation_batch_metadata_schema.parse(row.metadata))
-      )
+export const poll_batch_text_translation_func = Effect.fn('poll_batch_text_translation_func')(
+  function* (batch_id: string) {
+    const ai_batch = yield* dbRun('batch_ai_text.db.2', (db) =>
+      db.query.ai_batches.findFirst({
+        where: eq(ai_batches.batch_id, batch_id),
+        with: { responses: true }
+      })
     );
-    return {
-      status: 'already_resolved',
-      batch_id,
-      items,
-      message: buildProcessedMessage(items)
-    };
-  }
-
-  const batch = await getAiBatchResult(await getOpenAiClient(), batch_id, {
-    outputs: db_rows.map((row) => ({
-      type: 'object' as const,
-      custom_id: row.custom_id,
-      output_schema: batch_translation_object_schema
-    }))
-  });
-  const batch_output_file_id = batch.output_file_id ?? null;
-
-  if (batch.status !== 'completed') {
-    const openai_status = batch.status;
-    if (TERMINAL_FAILURE_STATUSES.has(openai_status)) {
-      await runTx('batch_ai_text.tx.2', async (tx) => {
-        const failing = db_rows
-          .filter(
-            (row) =>
-              !isResponseItemProcessed(text_translation_batch_metadata_schema.parse(row.metadata))
-          )
-          .map((row) => {
-            const metadata = text_translation_batch_metadata_schema.parse(row.metadata);
-            return {
-              custom_id: row.custom_id,
-              metadata: {
-                ...metadata,
-                error: batchFailureError('batch_terminal', { openai_status })
-              }
-            };
-          });
-        await bulkFailUnprocessedBatchResponses(tx, batch_id, failing, batch_output_file_id);
-        await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
-      });
+    if (!ai_batch || ai_batch.responses.length === 0) {
       return {
-        status: 'terminal_failure',
+        status: 'already_resolved' as const,
         batch_id,
-        openai_status,
-        message: `Batch ended with status ${openai_status}; outputs marked as failed.`
+        items: [],
+        message: `Batch ${batch_id} already resolved or cleaned up`
       };
     }
 
-    return {
-      status: 'pending',
-      batch_id,
-      openai_status,
-      message: `Batch is still ${openai_status}; try again later.`
-    };
-  }
+    const db_rows = ai_batch.responses;
 
-  const output_by_custom_id = new Map(
-    [...batch.responses, ...batch.errors].map((output) => [output.custom_id, output])
-  );
+    if (ai_batch.output_resolved) {
+      const items = yield* autoApproveEligibleRows(
+        batch_id,
+        db_rows.map((row) =>
+          toPollItem(row.custom_id, text_translation_batch_metadata_schema.parse(row.metadata))
+        )
+      );
+      return {
+        status: 'already_resolved',
+        batch_id,
+        items,
+        message: buildProcessedMessage(items)
+      };
+    }
 
-  const items = (
-    await mapWithConcurrency(
-      db_rows,
-      BATCH_ITEM_CONCURRENCY,
-      async (row): Promise<PollItem | null> => {
-        const row_metadata = text_translation_batch_metadata_schema.parse(row.metadata);
-        if (isResponseItemProcessed(row_metadata)) {
-          return toPollItem(row.custom_id, row_metadata);
-        }
+    const client = yield* getOpenAiClient();
+    const batch = yield* Effect.tryPromise({
+      try: () =>
+        getAiBatchResult(client, batch_id, {
+          outputs: db_rows.map((row) => ({
+            type: 'object' as const,
+            custom_id: row.custom_id,
+            output_schema: batch_translation_object_schema
+          }))
+        }),
+      catch: (cause) => DatabaseError.make({ operation: 'batch_ai_text.getAiBatchResult', cause })
+    });
+    const batch_output_file_id = batch.output_file_id ?? null;
 
-        const claimed_row = await runTrpcEffect(tryClaimBatchRow(batch_id, row.custom_id));
-        if (!claimed_row) {
-          const resolved_row = await runDb('batch_ai_text.db.3', (db) =>
-            db.query.ai_batch_responses.findFirst({
-              where: and(
-                eq(ai_batch_responses.batch_id, batch_id),
-                eq(ai_batch_responses.custom_id, row.custom_id)
-              )
-            })
-          );
-          if (resolved_row) {
-            const resolved_metadata = text_translation_batch_metadata_schema.parse(
-              resolved_row.metadata
-            );
-            if (isResponseItemProcessed(resolved_metadata)) {
-              return toPollItem(resolved_row.custom_id, resolved_metadata);
-            }
-          }
-          return null;
-        }
-
-        const metadata = text_translation_batch_metadata_schema.parse(claimed_row.metadata);
-        const output = output_by_custom_id.get(row.custom_id);
-
-        if (!output || !output.success || output.type !== 'object' || output.data == null) {
-          const wrote = await runTx('batch_ai_text.tx.3', async (tx) =>
-            updateBatchResponse(tx, batch_id, row.custom_id, {
-              ...metadata,
-              success: false,
-              error: !output
-                ? batchFailureError('missing_output')
-                : batchFailureError('openai_item_failed', {
-                    status_code: output.status_code,
-                    message: output.error?.message,
-                    code: output.error?.code ?? undefined,
-                    type: output.error?.type
-                  })
-            })
-          );
-          return wrote ? { custom_id: row.custom_id, success: false } : null;
-        }
-
-        const parsed = batch_translation_object_schema.safeParse(output.data);
-        const mapped = parsed.success
-          ? mapPositionalTranslationsToDbIndexes(parsed.data.translations, metadata.source_indexes)
-          : null;
-
-        if (!mapped) {
-          const wrote = await runTx('batch_ai_text.tx.4', async (tx) =>
-            updateBatchResponse(tx, batch_id, row.custom_id, {
-              ...metadata,
-              success: false,
-              error: batchFailureError('translation_rejected', {
-                message: parsed.success
-                  ? 'Length or index mismatch after mapping'
-                  : 'Output schema parse failed',
-                expected_count: metadata.source_indexes.length,
-                received_count: parsed.success ? parsed.data.translations.length : undefined
-              })
-            })
-          );
-          return wrote
-            ? {
+    if (batch.status !== 'completed') {
+      const openai_status = batch.status;
+      if (TERMINAL_FAILURE_STATUSES.has(openai_status)) {
+        yield* dbTransaction('batch_ai_text.tx.2', async (tx) => {
+          const failing = db_rows
+            .filter(
+              (row) =>
+                !isResponseItemProcessed(text_translation_batch_metadata_schema.parse(row.metadata))
+            )
+            .map((row) => {
+              const metadata = text_translation_batch_metadata_schema.parse(row.metadata);
+              return {
                 custom_id: row.custom_id,
-                success: false,
-                message: 'Translation rejected: length or index mismatch'
-              }
-            : null;
-        }
-
-        const persisted = await runTx('batch_ai_text.tx.5', async (tx) =>
-          updateBatchResponse(
-            tx,
-            batch_id,
-            row.custom_id,
-            {
-              ...metadata,
-              success: true,
-              translated_data: mapped
-            },
-            batch_output_file_id
-          )
-        );
-
-        if (!persisted) return null;
-
+                metadata: {
+                  ...metadata,
+                  error: batchFailureError('batch_terminal', { openai_status })
+                }
+              };
+            });
+          await bulkFailUnprocessedBatchResponses(tx, batch_id, failing, batch_output_file_id);
+          await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
+        });
         return {
-          custom_id: row.custom_id,
-          success: true
+          status: 'terminal_failure',
+          batch_id,
+          openai_status,
+          message: `Batch ended with status ${openai_status}; outputs marked as failed.`
         };
       }
-    )
-  ).filter((item): item is PollItem => item !== null);
 
-  await runTx('batch_ai_text.tx.6', async (tx) => {
-    await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
-  });
+      return {
+        status: 'pending',
+        batch_id,
+        openai_status,
+        message: `Batch is still ${openai_status}; try again later.`
+      };
+    }
 
-  const resolved_items = await autoApproveEligibleRows(batch_id, items);
-  return {
-    status: 'processed',
-    batch_id,
-    items: resolved_items,
-    message: buildProcessedMessage(resolved_items)
-  };
-};
+    const output_by_custom_id = new Map(
+      [...batch.responses, ...batch.errors].map((output) => [output.custom_id, output])
+    );
+
+    const items = (yield* Effect.forEach(
+      db_rows,
+      (row) =>
+        Effect.gen(function* () {
+          const row_metadata = text_translation_batch_metadata_schema.parse(row.metadata);
+          if (isResponseItemProcessed(row_metadata)) {
+            return toPollItem(row.custom_id, row_metadata);
+          }
+
+          const claimed_row = yield* tryClaimBatchRow(batch_id, row.custom_id);
+          if (!claimed_row) {
+            const resolved_row = yield* dbRun('batch_ai_text.db.3', (db) =>
+              db.query.ai_batch_responses.findFirst({
+                where: and(
+                  eq(ai_batch_responses.batch_id, batch_id),
+                  eq(ai_batch_responses.custom_id, row.custom_id)
+                )
+              })
+            );
+            if (resolved_row) {
+              const resolved_metadata = text_translation_batch_metadata_schema.parse(
+                resolved_row.metadata
+              );
+              if (isResponseItemProcessed(resolved_metadata)) {
+                return toPollItem(resolved_row.custom_id, resolved_metadata);
+              }
+            }
+            return null;
+          }
+
+          const metadata = text_translation_batch_metadata_schema.parse(claimed_row.metadata);
+          const output = output_by_custom_id.get(row.custom_id);
+
+          if (!output || !output.success || output.type !== 'object' || output.data == null) {
+            const wrote = yield* dbTransaction('batch_ai_text.tx.3', async (tx) =>
+              updateBatchResponse(tx, batch_id, row.custom_id, {
+                ...metadata,
+                success: false,
+                error: !output
+                  ? batchFailureError('missing_output')
+                  : batchFailureError('openai_item_failed', {
+                      status_code: output.status_code,
+                      message: output.error?.message,
+                      code: output.error?.code ?? undefined,
+                      type: output.error?.type
+                    })
+              })
+            );
+            return wrote ? { custom_id: row.custom_id, success: false } : null;
+          }
+
+          const parsed = batch_translation_object_schema.safeParse(output.data);
+          const mapped = parsed.success
+            ? mapPositionalTranslationsToDbIndexes(
+                parsed.data.translations,
+                metadata.source_indexes
+              )
+            : null;
+
+          if (!mapped) {
+            const wrote = yield* dbTransaction('batch_ai_text.tx.4', async (tx) =>
+              updateBatchResponse(tx, batch_id, row.custom_id, {
+                ...metadata,
+                success: false,
+                error: batchFailureError('translation_rejected', {
+                  message: parsed.success
+                    ? 'Length or index mismatch after mapping'
+                    : 'Output schema parse failed',
+                  expected_count: metadata.source_indexes.length,
+                  received_count: parsed.success ? parsed.data.translations.length : undefined
+                })
+              })
+            );
+            return wrote
+              ? {
+                  custom_id: row.custom_id,
+                  success: false,
+                  message: 'Translation rejected: length or index mismatch'
+                }
+              : null;
+          }
+
+          const persisted = yield* dbTransaction('batch_ai_text.tx.5', async (tx) =>
+            updateBatchResponse(
+              tx,
+              batch_id,
+              row.custom_id,
+              {
+                ...metadata,
+                success: true,
+                translated_data: mapped
+              },
+              batch_output_file_id
+            )
+          );
+
+          if (!persisted) return null;
+
+          return {
+            custom_id: row.custom_id,
+            success: true
+          };
+        }),
+      { concurrency: BATCH_ITEM_CONCURRENCY }
+    )).filter((item): item is PollItem => item !== null);
+
+    yield* dbTransaction('batch_ai_text.tx.6', async (tx) => {
+      await markBatchOutputResolvedIfComplete(tx, batch_id, batch_output_file_id);
+    });
+
+    const resolved_items = yield* autoApproveEligibleRows(batch_id, items);
+    return {
+      status: 'processed',
+      batch_id,
+      items: resolved_items,
+      message: buildProcessedMessage(resolved_items)
+    };
+  }
+);
 
 const trigger_path_schema = z.object({
   path_params: z.number().int().array()
@@ -586,57 +702,63 @@ const trigger_batch_text_translation_input = z.object({
   paths: z.array(trigger_path_schema).min(1)
 });
 
-const trigger_batch_text_translation_route = protectedAdminProcedure
-  .input(trigger_batch_text_translation_input)
-  .mutation(async ({ input }) => {
+const trigger_batch_text_translation_effect = Effect.fn('trigger_batch_text_translation')(
+  function* (input: z.infer<typeof trigger_batch_text_translation_input>) {
     const { auto_approved, include_english_context, project_id, lang_id, model, paths } = input;
 
     const path_keys = paths.map((p) => p.path_params.join(':'));
     if (new Set(path_keys).size !== path_keys.length) {
-      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Duplicate paths in batch request' });
+      return yield* Effect.fail(
+        BadRequestError.make({ message: 'Duplicate paths in batch request' })
+      );
     }
 
-    const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
-    const map = await runTrpcEffect(get_project_map_by_id(project_id));
+    const { levels } = yield* get_project_info_by_id(project_id);
+    const map = yield* get_project_map_by_id(project_id);
 
     for (const path of paths) {
       if (levels > 1 && path.path_params.length === 0) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });
+        return yield* Effect.fail(BadRequestError.make({ message: 'Invalid text path selection' }));
       }
       if (path.path_params.length !== levels - 1 && levels > 1) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: `Path ${path.path_params.join(':')} is not a leaf path`
-        });
+        return yield* Effect.fail(
+          BadRequestError.make({
+            message: `Path ${path.path_params.join(':')} is not a leaf path`
+          })
+        );
       }
       const node = get_node_at_path(map, path.path_params);
       if (!node || node.info.type !== 'shloka') {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: `Path ${path.path_params.join(':') || '(root)'} is not a leaf text node`
-        });
+        return yield* Effect.fail(
+          BadRequestError.make({
+            message: `Path ${path.path_params.join(':') || '(root)'} is not a leaf text node`
+          })
+        );
       }
     }
 
-    const resolved = await Promise.all(
-      paths.map(async (path) => {
-        const ctx = await load_leaf_text_context({
-          project_id,
-          path_params: path.path_params,
-          lang_id,
-          include_english_context
-        });
-        return {
-          path_params: path.path_params,
-          project_path_id: ctx.projectPath.id,
-          source_indexes: ctx.source_indexes,
-          prompts: ctx.prompts,
-          custom_id: getTextTranslationBatchCustomId(project_id, path.path_params)
-        };
-      })
+    const resolved = yield* Effect.forEach(
+      paths,
+      (path) =>
+        Effect.gen(function* () {
+          const ctx = yield* load_leaf_text_context({
+            project_id,
+            path_params: path.path_params,
+            lang_id,
+            include_english_context
+          });
+          return {
+            path_params: path.path_params,
+            project_path_id: ctx.projectPath.id,
+            source_indexes: ctx.source_indexes,
+            prompts: ctx.prompts,
+            custom_id: getTextTranslationBatchCustomId(project_id, path.path_params)
+          };
+        }),
+      { concurrency: 'unbounded' }
     );
 
-    await assertNoUnresolvedTranslationDuplicates(
+    yield* assertNoUnresolvedTranslationDuplicates(
       resolved.map((item) => item.project_path_id),
       lang_id
     );
@@ -652,272 +774,279 @@ const trigger_batch_text_translation_route = protectedAdminProcedure
       reasoning: { effort: 'low' as const }
     }));
 
-    return runTrpcEffect(
-      enqueueAiBatch({
-        batch_type: 'object',
-        batch_requests,
-        response_rows: resolved.map((item) => ({
-          custom_id: item.custom_id,
-          auto_approved,
-          metadata: {
-            type: 'text-translation' as const,
-            project_id,
-            project_path_id: item.project_path_id,
-            path_params: item.path_params,
-            lang_id,
-            include_english_context,
-            source_indexes: item.source_indexes
-          } satisfies TextTranslationBatchMetadata
-        }))
-      })
-    );
-  });
-
-export const retry_failed_text_translation_batch_func = async (source_batch_id: string) => {
-  type Claimed = {
-    project_id: number;
-    lang_id: number;
-    resolved: {
-      auto_approved: boolean;
-      path_params: number[];
-      project_path_id: number;
-      source_indexes: number[];
-      prompts: { system_prompt: string; user_prompt: string };
-      include_english_context: boolean;
-      custom_id: string;
-    }[];
-  };
-
-  let claimed: {
-    mapped: Claimed;
-    input_file_id: string;
-    output_file_id: string | null;
-  };
-  try {
-    claimed = await runTrpcEffect(
-      claimBatchForRetry({
-        batch_id: source_batch_id,
-        batch_type: 'object',
-        validateAndMap: async (batch, responses) => {
-          const parsed_rows: {
-            custom_id: string;
-            auto_approved: boolean;
-            metadata: TextTranslationBatchMetadata;
-          }[] = [];
-          for (const row of responses) {
-            const parsed = text_translation_batch_metadata_schema.safeParse(row.metadata);
-            if (!parsed.success) {
-              throw new TRPCError({
-                code: 'BAD_REQUEST',
-                message: `Cannot retry batch: response ${row.custom_id} has invalid metadata`
-              });
-            }
-            parsed_rows.push({
-              custom_id: row.custom_id,
-              auto_approved: row.auto_approved,
-              metadata: parsed.data
-            });
-          }
-
-          const gate = validateFullyFailedBatchForRetry({
-            batch: { output_resolved: batch.output_resolved, responses: parsed_rows }
-          });
-          if (!gate.ok) {
-            throw new TRPCError({ code: gate.code, message: gate.message });
-          }
-
-          const lang_ids = new Set(parsed_rows.map((row) => row.metadata.lang_id));
-          if (lang_ids.size !== 1) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: 'Cannot retry a batch that mixes multiple target languages'
-            });
-          }
-          const project_ids = new Set(parsed_rows.map((row) => row.metadata.project_id));
-          if (project_ids.size !== 1) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: 'Cannot retry a batch that mixes multiple projects'
-            });
-          }
-
-          const lang_id = parsed_rows[0]!.metadata.lang_id;
-          const project_id = parsed_rows[0]!.metadata.project_id;
-
-          const resolved = await Promise.all(
-            parsed_rows.map(async (row) => {
-              const ctx = await load_leaf_text_context({
-                project_id,
-                path_params: row.metadata.path_params,
-                lang_id,
-                include_english_context: row.metadata.include_english_context
-              });
-              return {
-                auto_approved: row.auto_approved,
-                path_params: row.metadata.path_params,
-                project_path_id: ctx.projectPath.id,
-                source_indexes: ctx.source_indexes,
-                prompts: ctx.prompts,
-                include_english_context: row.metadata.include_english_context,
-                custom_id: getTextTranslationBatchCustomId(project_id, row.metadata.path_params)
-              };
-            })
-          );
-
-          // Conflict-check live path ids from context, not stale metadata snapshots.
-          await assertNoUnresolvedTranslationDuplicates(
-            resolved.map((item) => item.project_path_id),
-            lang_id
-          );
-
-          return { project_id, lang_id, resolved };
-        }
-      })
-    );
-  } catch (err) {
-    if (err instanceof Error && err.message === 'BATCH_NOT_FOUND') {
-      throw new TRPCError({
-        code: 'CONFLICT',
-        message: 'Batch was already retried or discarded'
-      });
-    }
-    throw err;
+    return yield* enqueueAiBatch({
+      batch_type: 'object',
+      batch_requests,
+      response_rows: resolved.map((item) => ({
+        custom_id: item.custom_id,
+        auto_approved,
+        metadata: {
+          type: 'text-translation' as const,
+          project_id,
+          project_path_id: item.project_path_id,
+          path_params: item.path_params,
+          lang_id,
+          include_english_context,
+          source_indexes: item.source_indexes
+        } satisfies TextTranslationBatchMetadata
+      }))
+    });
   }
+);
 
-  const { project_id, lang_id, resolved } = claimed.mapped;
+const trigger_batch_text_translation_route = protectedAdminProcedure
+  .input(trigger_batch_text_translation_input)
+  .mutation(({ input }) => runTrpcEffect(trigger_batch_text_translation_effect(input)));
 
-  const batch_requests: AiBatchInput[] = resolved.map((item) => ({
-    type: 'object' as const,
-    custom_id: item.custom_id,
-    model: DEFAULT_TEXT_AI_MODEL,
-    instructions: item.prompts.system_prompt,
-    input: item.prompts.user_prompt,
-    output_schema: batch_translation_object_schema,
-    output_schema_name: 'translations_text_schema',
-    reasoning: { effort: 'low' as const }
-  }));
+export const retry_failed_text_translation_batch_func = Effect.fn(
+  'retry_failed_text_translation_batch_func'
+)(function* (source_batch_id: string) {
+  type ParsedRow = {
+    custom_id: string;
+    auto_approved: boolean;
+    metadata: TextTranslationBatchMetadata;
+  };
 
-  try {
-    const created = await runTrpcEffect(
-      enqueueAiBatch({
-        batch_type: 'object',
-        batch_requests,
-        response_rows: resolved.map((item) => ({
-          custom_id: item.custom_id,
-          auto_approved: item.auto_approved,
-          metadata: freshTextRetryMetadata({
+  const claimed = yield* catchDatabaseKnownCause(
+    claimBatchForRetry({
+      batch_id: source_batch_id,
+      batch_type: 'object',
+      validateAndMap: (batch, responses) => {
+        const parsed_rows: ParsedRow[] = [];
+        for (const row of responses) {
+          const parsed = text_translation_batch_metadata_schema.safeParse(row.metadata);
+          if (!parsed.success) {
+            throw BadRequestError.make({
+              message: `Cannot retry batch: response ${row.custom_id} has invalid metadata`
+            });
+          }
+          parsed_rows.push({
+            custom_id: row.custom_id,
+            auto_approved: row.auto_approved,
+            metadata: parsed.data
+          });
+        }
+
+        const gate = validateFullyFailedBatchForRetry({
+          batch: { output_resolved: batch.output_resolved, responses: parsed_rows }
+        });
+        if (!gate.ok) throwGateError(gate);
+
+        const lang_ids = new Set(parsed_rows.map((row) => row.metadata.lang_id));
+        if (lang_ids.size !== 1) {
+          throw BadRequestError.make({
+            message: 'Cannot retry a batch that mixes multiple target languages'
+          });
+        }
+        const project_ids = new Set(parsed_rows.map((row) => row.metadata.project_id));
+        if (project_ids.size !== 1) {
+          throw BadRequestError.make({
+            message: 'Cannot retry a batch that mixes multiple projects'
+          });
+        }
+
+        return {
+          project_id: parsed_rows[0]!.metadata.project_id,
+          lang_id: parsed_rows[0]!.metadata.lang_id,
+          parsed_rows
+        };
+      }
+    })
+  );
+
+  const { project_id, lang_id, parsed_rows } = claimed.mapped;
+
+  const finalize = Effect.gen(function* () {
+    const resolved = yield* Effect.forEach(
+      parsed_rows,
+      (row) =>
+        Effect.gen(function* () {
+          const ctx = yield* load_leaf_text_context({
             project_id,
-            project_path_id: item.project_path_id,
-            path_params: item.path_params,
+            path_params: row.metadata.path_params,
             lang_id,
-            include_english_context: item.include_english_context,
-            source_indexes: item.source_indexes
-          })
-        }))
-      })
+            include_english_context: row.metadata.include_english_context
+          });
+          return {
+            auto_approved: row.auto_approved,
+            path_params: row.metadata.path_params,
+            project_path_id: ctx.projectPath.id,
+            source_indexes: ctx.source_indexes,
+            prompts: ctx.prompts,
+            include_english_context: row.metadata.include_english_context,
+            custom_id: getTextTranslationBatchCustomId(project_id, row.metadata.path_params)
+          };
+        }),
+      { concurrency: 'unbounded' }
     );
 
-    let source_cleaned = true;
-    try {
-      await runTrpcEffect(discardAiBatchEntirely(source_batch_id));
-    } catch (err) {
-      source_cleaned = false;
-      console.error(
-        `Failed to clean up source translation batch ${source_batch_id} after retry:`,
-        err
-      );
-    }
+    // Conflict-check live path ids from context, not stale metadata snapshots.
+    yield* assertNoUnresolvedTranslationDuplicates(
+      resolved.map((item) => item.project_path_id),
+      lang_id
+    );
+
+    const batch_requests: AiBatchInput[] = resolved.map((item) => ({
+      type: 'object' as const,
+      custom_id: item.custom_id,
+      model: DEFAULT_TEXT_AI_MODEL,
+      instructions: item.prompts.system_prompt,
+      input: item.prompts.user_prompt,
+      output_schema: batch_translation_object_schema,
+      output_schema_name: 'translations_text_schema',
+      reasoning: { effort: 'low' as const }
+    }));
+
+    const created = yield* enqueueAiBatch({
+      batch_type: 'object',
+      batch_requests,
+      response_rows: resolved.map((item) => ({
+        custom_id: item.custom_id,
+        auto_approved: item.auto_approved,
+        metadata: freshTextRetryMetadata({
+          project_id,
+          project_path_id: item.project_path_id,
+          path_params: item.path_params,
+          lang_id,
+          include_english_context: item.include_english_context,
+          source_indexes: item.source_indexes
+        })
+      }))
+    });
+
+    const source_cleaned = yield* discardAiBatchEntirely(source_batch_id).pipe(
+      Effect.map(() => true),
+      Effect.catch((err) => {
+        console.error(
+          `Failed to clean up source translation batch ${source_batch_id} after retry:`,
+          err
+        );
+        return Effect.succeed(false);
+      })
+    );
 
     return {
       ...created,
       source_batch_id,
       source_cleaned
     };
-  } catch (err) {
-    await runTrpcEffect(releaseBatchRetryClaim(source_batch_id)).catch((release_err) => {
-      console.error(
-        `Failed to release retry claim for translation batch ${source_batch_id}:`,
-        release_err
-      );
-    });
-    throw err;
-  }
-};
+  });
+
+  return yield* finalize.pipe(
+    Effect.catch((err) =>
+      Effect.gen(function* () {
+        yield* releaseBatchRetryClaim(source_batch_id).pipe(
+          Effect.catch((release_err) => {
+            console.error(
+              `Failed to release retry claim for translation batch ${source_batch_id}:`,
+              release_err
+            );
+            return Effect.void;
+          })
+        );
+        return yield* Effect.fail(err);
+      })
+    )
+  );
+});
 
 const poll_batch_text_translation_route = protectedAdminProcedure
   .input(z.object({ batch_id: z.string() }))
-  .mutation(async ({ input: { batch_id } }) => poll_batch_text_translation_func(batch_id));
+  .mutation(({ input: { batch_id } }) => runTrpcEffect(poll_batch_text_translation_func(batch_id)));
 
 const retry_failed_text_translation_batch_route = protectedAdminProcedure
   .input(z.object({ batch_id: z.string() }))
-  .mutation(async ({ input: { batch_id } }) => retry_failed_text_translation_batch_func(batch_id));
+  .mutation(({ input: { batch_id } }) =>
+    runTrpcEffect(retry_failed_text_translation_batch_func(batch_id))
+  );
 
 const approve_text_translation_route = protectedAdminProcedure
   .input(z.object({ batch_id: z.string(), custom_id: z.string() }))
-  .mutation(async ({ input }) => approve_text_translation_func(input.batch_id, input.custom_id));
+  .mutation(({ input }) =>
+    runTrpcEffect(approve_text_translation_func(input.batch_id, input.custom_id))
+  );
 
 const discard_text_translation_batch_response_route = protectedAdminProcedure
   .input(z.object({ batch_id: z.string(), custom_id: z.string() }))
-  .mutation(async ({ input: { batch_id, custom_id } }) => {
-    const result = await runTx('batch_ai_text.tx.7', async (tx) => {
-      const rows = await tx
-        .select()
-        .from(ai_batch_responses)
-        .where(
-          and(
-            eq(ai_batch_responses.batch_id, batch_id),
-            eq(ai_batch_responses.custom_id, custom_id)
-          )
-        )
-        .for('update')
-        .limit(1);
-      const row = rows[0];
-      if (!row) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Batch response not found' });
-      }
-      const metadata = text_translation_batch_metadata_schema.parse(row.metadata);
-      await tx
-        .delete(ai_batch_responses)
-        .where(
-          and(
-            eq(ai_batch_responses.batch_id, batch_id),
-            eq(ai_batch_responses.custom_id, custom_id)
-          )
+  .mutation(({ input: { batch_id, custom_id } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const result = yield* catchDatabaseKnownCause(
+          dbTransaction('batch_ai_text.tx.7', async (tx) => {
+            const rows = await tx
+              .select()
+              .from(ai_batch_responses)
+              .where(
+                and(
+                  eq(ai_batch_responses.batch_id, batch_id),
+                  eq(ai_batch_responses.custom_id, custom_id)
+                )
+              )
+              .for('update')
+              .limit(1);
+            const row = rows[0];
+            if (!row) {
+              throw NotFoundError.make({
+                resource: 'ai_batch_response',
+                message: 'Batch response not found'
+              });
+            }
+            const metadata = text_translation_batch_metadata_schema.parse(row.metadata);
+            await tx
+              .delete(ai_batch_responses)
+              .where(
+                and(
+                  eq(ai_batch_responses.batch_id, batch_id),
+                  eq(ai_batch_responses.custom_id, custom_id)
+                )
+              );
+            return {
+              success: true as const,
+              project_path_id: metadata.project_path_id,
+              lang_id: metadata.lang_id
+            };
+          })
         );
-      return {
-        success: true as const,
-        project_path_id: metadata.project_path_id,
-        lang_id: metadata.lang_id
-      };
-    });
-    void runTrpcEffect(scheduleOpenAiBatchCleanup(batch_id)).catch((err) => {
-      console.error('[batch_ai_text] cleanup schedule failed', batch_id, err);
-    });
-    return result;
-  });
+        yield* enqueueBackground(() =>
+          runServerEffect(scheduleOpenAiBatchCleanup(batch_id)).catch((err) => {
+            console.error('[batch_ai_text] cleanup schedule failed', batch_id, err);
+          })
+        );
+        return result;
+      })
+    )
+  );
 
 const discard_text_translation_batch_route = protectedAdminProcedure
   .input(z.object({ batch_id: z.string() }))
-  .mutation(async ({ input: { batch_id } }) => {
-    const batch = await runDb('batch_ai_text.db.4', (db) =>
-      db.query.ai_batches.findFirst({
-        where: and(eq(ai_batches.batch_id, batch_id), eq(ai_batches.type, 'object')),
-        columns: { batch_id: true },
-        with: { responses: { columns: { custom_id: true } } }
+  .mutation(({ input: { batch_id } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const batch = yield* dbRun('batch_ai_text.db.4', (db) =>
+          db.query.ai_batches.findFirst({
+            where: and(eq(ai_batches.batch_id, batch_id), eq(ai_batches.type, 'object')),
+            columns: { batch_id: true },
+            with: { responses: { columns: { custom_id: true } } }
+          })
+        );
+        if (!batch) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'batch', message: 'Batch not found' })
+          );
+        }
+        const discarded = yield* discardAiBatchEntirely(batch_id);
+        if (!discarded) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'batch', message: 'Batch not found' })
+          );
+        }
+        return {
+          success: true as const,
+          deleted_response_count: batch.responses.length
+        };
       })
-    );
-    if (!batch) {
-      throw new TRPCError({ code: 'NOT_FOUND', message: 'Batch not found' });
-    }
-    const discarded = await runTrpcEffect(discardAiBatchEntirely(batch_id));
-    if (!discarded) {
-      throw new TRPCError({ code: 'NOT_FOUND', message: 'Batch not found' });
-    }
-    return {
-      success: true as const,
-      deleted_response_count: batch.responses.length
-    };
-  });
+    )
+  );
 
 type EnrichedTranslationBatchItem = {
   batch_type: 'text-translation';
@@ -939,7 +1068,7 @@ type EnrichedTranslationBatchItem = {
   openai_batch_url: string;
 };
 
-async function enrichTranslationBatchRows(
+const enrichTranslationBatchRows = Effect.fn('batch_ai_text.enrichTranslationBatchRows')(function* (
   rows: {
     batch_id: string;
     custom_id: string;
@@ -947,7 +1076,7 @@ async function enrichTranslationBatchRows(
     auto_approved: boolean;
     metadata: TextTranslationBatchMetadata;
   }[]
-): Promise<EnrichedTranslationBatchItem[]> {
+) {
   const project_ids = new Set<number>();
   const path_ids = new Set<number>();
   for (const row of rows) {
@@ -955,38 +1084,48 @@ async function enrichTranslationBatchRows(
     path_ids.add(row.metadata.project_path_id);
   }
 
-  const [project_rows, path_rows, text_rows] = await Promise.all([
-    project_ids.size
-      ? runDb('batch_ai_text.bare.1', (db) =>
-          db.query.projects.findMany({
-            columns: { id: true, key: true, name: true },
-            where: inArray(projects.id, [...project_ids])
-          })
-        )
-      : Promise.resolve([]),
-    path_ids.size
-      ? runDb('batch_ai_text.bare.2', (db) =>
-          db.query.project_paths.findMany({
-            columns: { id: true, path: true },
-            where: inArray(project_paths.id, [...path_ids])
-          })
-        )
-      : Promise.resolve([]),
-    path_ids.size
-      ? runDb('batch_ai_text.ternary.1', (db) =>
-          db
-            .select({
-              project_path_id: texts.project_path_id,
-              index: texts.index,
-              text: texts.text,
-              shloka_num: texts.shloka_num
+  const [project_rows, path_rows, text_rows] = yield* Effect.all(
+    [
+      project_ids.size
+        ? dbRun('batch_ai_text.bare.1', (db) =>
+            db.query.projects.findMany({
+              columns: { id: true, key: true, name: true },
+              where: inArray(projects.id, [...project_ids])
             })
-            .from(texts)
-            .where(inArray(texts.project_path_id, [...path_ids]))
-            .orderBy(texts.project_path_id, texts.index)
-        )
-      : Promise.resolve([])
-  ]);
+          )
+        : Effect.succeed<{ id: number; key: string; name: string }[]>([]),
+      path_ids.size
+        ? dbRun('batch_ai_text.bare.2', (db) =>
+            db.query.project_paths.findMany({
+              columns: { id: true, path: true },
+              where: inArray(project_paths.id, [...path_ids])
+            })
+          )
+        : Effect.succeed<{ id: number; path: string }[]>([]),
+      path_ids.size
+        ? dbRun('batch_ai_text.ternary.1', (db) =>
+            db
+              .select({
+                project_path_id: texts.project_path_id,
+                index: texts.index,
+                text: texts.text,
+                shloka_num: texts.shloka_num
+              })
+              .from(texts)
+              .where(inArray(texts.project_path_id, [...path_ids]))
+              .orderBy(texts.project_path_id, texts.index)
+          )
+        : Effect.succeed<
+            {
+              project_path_id: number;
+              index: number;
+              text: string;
+              shloka_num: number | null;
+            }[]
+          >([])
+    ],
+    { concurrency: 'unbounded' }
+  );
 
   const project_by_id = new Map(project_rows.map((p) => [p.id, p]));
   const path_by_id = new Map(path_rows.map((p) => [p.id, p]));
@@ -1032,9 +1171,9 @@ async function enrichTranslationBatchRows(
       translated_data: metadata.translated_data,
       status: deriveTranslationBatchUiStatus(row.output_resolved, metadata, row.auto_approved),
       openai_batch_url: `https://platform.openai.com/batches/${row.batch_id}`
-    };
+    } satisfies EnrichedTranslationBatchItem;
   });
-}
+});
 
 const get_text_translation_batch_status_route = protectedAdminProcedure
   .input(
@@ -1044,63 +1183,69 @@ const get_text_translation_batch_status_route = protectedAdminProcedure
       selected_text_levels: z.array(z.int().nullable())
     })
   )
-  .query(async ({ input }) => {
-    const { levels } = await runTrpcEffect(get_project_info_by_id(input.project_id));
-    const path_params = get_path_params(input.selected_text_levels, levels);
-    if (levels > 1 && path_params.length === 0) return null;
-    const projectPath = await runDb('batch_ai_text.path.2', (db) =>
-      requireProjectPath(db, input.project_id, path_params.join(':'))
-    );
+  .query(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const { levels } = yield* get_project_info_by_id(input.project_id);
+        const path_params = get_path_params(input.selected_text_levels, levels);
+        if (levels > 1 && path_params.length === 0) return null;
+        const projectPath = yield* require_project_path_row(
+          input.project_id,
+          path_params.join(':'),
+          'batch_ai_text.path.2'
+        );
 
-    const rows = await runDb('batch_ai_text.ml.2', (db) =>
-      db
-        .select({
-          batch_id: ai_batch_responses.batch_id,
-          custom_id: ai_batch_responses.custom_id,
-          output_resolved: ai_batches.output_resolved,
-          auto_approved: ai_batch_responses.auto_approved,
-          metadata: ai_batch_responses.metadata
-        })
-        .from(ai_batch_responses)
-        .innerJoin(ai_batches, eq(ai_batch_responses.batch_id, ai_batches.batch_id))
-        .where(
-          and(
-            eq(ai_batches.type, 'object'),
-            sql`(${ai_batch_responses.metadata}->>'type') = 'text-translation'`,
-            sql`(${ai_batch_responses.metadata}->>'project_path_id')::int = ${projectPath.id}`,
-            sql`(${ai_batch_responses.metadata}->>'lang_id')::int = ${input.lang_id}`
-          )
-        )
-    );
+        const rows = yield* dbRun('batch_ai_text.ml.2', (db) =>
+          db
+            .select({
+              batch_id: ai_batch_responses.batch_id,
+              custom_id: ai_batch_responses.custom_id,
+              output_resolved: ai_batches.output_resolved,
+              auto_approved: ai_batch_responses.auto_approved,
+              metadata: ai_batch_responses.metadata
+            })
+            .from(ai_batch_responses)
+            .innerJoin(ai_batches, eq(ai_batch_responses.batch_id, ai_batches.batch_id))
+            .where(
+              and(
+                eq(ai_batches.type, 'object'),
+                sql`(${ai_batch_responses.metadata}->>'type') = 'text-translation'`,
+                sql`(${ai_batch_responses.metadata}->>'project_path_id')::int = ${projectPath.id}`,
+                sql`(${ai_batch_responses.metadata}->>'lang_id')::int = ${input.lang_id}`
+              )
+            )
+        );
 
-    if (rows.length === 0) return null;
+        if (rows.length === 0) return null;
 
-    const parsed_rows = rows.map((row) => ({
-      ...row,
-      metadata: text_translation_batch_metadata_schema.parse(row.metadata)
-    }));
+        const parsed_rows = rows.map((row) => ({
+          ...row,
+          metadata: text_translation_batch_metadata_schema.parse(row.metadata)
+        }));
 
-    const active_row =
-      parsed_rows.find((row) => !row.output_resolved) ??
-      parsed_rows.find(
-        (row) =>
-          row.output_resolved &&
-          row.metadata.success === true &&
-          row.metadata.translated_data !== undefined &&
-          row.auto_approved
-      ) ??
-      parsed_rows.find(
-        (row) =>
-          row.output_resolved &&
-          row.metadata.success === true &&
-          row.metadata.translated_data !== undefined &&
-          !row.auto_approved
-      ) ??
-      parsed_rows[parsed_rows.length - 1]!;
+        const active_row =
+          parsed_rows.find((row) => !row.output_resolved) ??
+          parsed_rows.find(
+            (row) =>
+              row.output_resolved &&
+              row.metadata.success === true &&
+              row.metadata.translated_data !== undefined &&
+              row.auto_approved
+          ) ??
+          parsed_rows.find(
+            (row) =>
+              row.output_resolved &&
+              row.metadata.success === true &&
+              row.metadata.translated_data !== undefined &&
+              !row.auto_approved
+          ) ??
+          parsed_rows[parsed_rows.length - 1]!;
 
-    const [enriched] = await enrichTranslationBatchRows([active_row]);
-    return enriched ?? null;
-  });
+        const [enriched] = yield* enrichTranslationBatchRows([active_row]);
+        return enriched ?? null;
+      })
+    )
+  );
 
 function collect_leaf_siblings(
   map: recursive_list_type,
@@ -1138,97 +1283,99 @@ const list_batch_translation_targets_route = protectedAdminProcedure
       selected_text_levels: z.array(z.int().nullable())
     })
   )
-  .query(async ({ input }) => {
-    const { levels } = await runTrpcEffect(get_project_info_by_id(input.project_id));
-    const map = await runTrpcEffect(get_project_map_by_id(input.project_id));
+  .query(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const { levels } = yield* get_project_info_by_id(input.project_id);
+        const map = yield* get_project_map_by_id(input.project_id);
 
-    // Second-to-last selector is at selected_text_levels[1] when levels > 2,
-    // or root children when levels === 2. Parent path omits the leaf segment.
-    const full_path = get_path_params(input.selected_text_levels, levels);
-    if (levels <= 1) {
-      // Single-level project: only the root leaf
-      const root = map;
-      if (root.info.type !== 'shloka') return { leaves: [], current_value: null };
-      const has_existing = (
-        await runDb('batch_ai_text.ml.3', (db) =>
-          db
-            .select({ index: translations.index })
-            .from(translations)
-            .innerJoin(project_paths, eq(translations.project_path_id, project_paths.id))
-            .where(
-              and(
-                eq(project_paths.project_id, input.project_id),
-                eq(project_paths.path, ''),
-                eq(translations.lang_id, input.lang_id)
+        // Second-to-last selector is at selected_text_levels[1] when levels > 2,
+        // or root children when levels === 2. Parent path omits the leaf segment.
+        const full_path = get_path_params(input.selected_text_levels, levels);
+        if (levels <= 1) {
+          // Single-level project: only the root leaf
+          const root = map;
+          if (root.info.type !== 'shloka') return { leaves: [], current_value: null };
+          const has_existing = (yield* dbRun('batch_ai_text.ml.3', (db) =>
+            db
+              .select({ index: translations.index })
+              .from(translations)
+              .innerJoin(project_paths, eq(translations.project_path_id, project_paths.id))
+              .where(
+                and(
+                  eq(project_paths.project_id, input.project_id),
+                  eq(project_paths.path, ''),
+                  eq(translations.lang_id, input.lang_id)
+                )
               )
-            )
-            .limit(1)
-        )
-      ).length;
-      return {
-        leaves: [
-          {
-            // SAFETY: the single root leaf has no path segments, so the empty array is a
-            // valid number[] path_params value.
-            path_params: [] as number[],
-            value: 0,
-            name_dev: root.name_dev,
-            text_count: root.info.total,
-            has_existing_translations: has_existing > 0
-          }
-        ],
-        current_value: 0
-      };
-    }
-
-    const parent_path_params = full_path.slice(0, -1);
-    const current_value = full_path[full_path.length - 1] ?? null;
-    const leaves = collect_leaf_siblings(map, parent_path_params);
-
-    const path_strings = leaves.map((leaf) => leaf.path_params.join(':'));
-    const existing_paths = new Set<string>();
-    if (path_strings.length > 0) {
-      const path_rows = await runDb('batch_ai_text.db.5', (db) =>
-        db.query.project_paths.findMany({
-          columns: { id: true, path: true },
-          where: and(
-            eq(project_paths.project_id, input.project_id),
-            inArray(project_paths.path, path_strings)
-          )
-        })
-      );
-      if (path_rows.length > 0) {
-        const path_id_to_path = new Map(path_rows.map((p) => [p.id, p.path]));
-        const existing = await runDb('batch_ai_text.ml.4', (db) =>
-          db
-            .selectDistinct({ project_path_id: translations.project_path_id })
-            .from(translations)
-            .where(
-              and(
-                eq(translations.lang_id, input.lang_id),
-                inArray(
-                  translations.project_path_id,
-                  path_rows.map((p) => p.id)
-                ),
-                sql`${translations.text} != ''`
-              )
-            )
-        );
-        for (const row of existing) {
-          const path = path_id_to_path.get(row.project_path_id);
-          if (path !== undefined) existing_paths.add(path);
+              .limit(1)
+          )).length;
+          return {
+            leaves: [
+              {
+                // SAFETY: the single root leaf has no path segments, so the empty array is a
+                // valid number[] path_params value.
+                path_params: [] as number[],
+                value: 0,
+                name_dev: root.name_dev,
+                text_count: root.info.total,
+                has_existing_translations: has_existing > 0
+              }
+            ],
+            current_value: 0
+          };
         }
-      }
-    }
 
-    return {
-      leaves: leaves.map((leaf) => ({
-        ...leaf,
-        has_existing_translations: existing_paths.has(leaf.path_params.join(':'))
-      })),
-      current_value
-    };
-  });
+        const parent_path_params = full_path.slice(0, -1);
+        const current_value = full_path[full_path.length - 1] ?? null;
+        const leaves = collect_leaf_siblings(map, parent_path_params);
+
+        const path_strings = leaves.map((leaf) => leaf.path_params.join(':'));
+        const existing_paths = new Set<string>();
+        if (path_strings.length > 0) {
+          const path_rows = yield* dbRun('batch_ai_text.db.5', (db) =>
+            db.query.project_paths.findMany({
+              columns: { id: true, path: true },
+              where: and(
+                eq(project_paths.project_id, input.project_id),
+                inArray(project_paths.path, path_strings)
+              )
+            })
+          );
+          if (path_rows.length > 0) {
+            const path_id_to_path = new Map(path_rows.map((p) => [p.id, p.path]));
+            const existing = yield* dbRun('batch_ai_text.ml.4', (db) =>
+              db
+                .selectDistinct({ project_path_id: translations.project_path_id })
+                .from(translations)
+                .where(
+                  and(
+                    eq(translations.lang_id, input.lang_id),
+                    inArray(
+                      translations.project_path_id,
+                      path_rows.map((p) => p.id)
+                    ),
+                    sql`${translations.text} != ''`
+                  )
+                )
+            );
+            for (const row of existing) {
+              const path = path_id_to_path.get(row.project_path_id);
+              if (path !== undefined) existing_paths.add(path);
+            }
+          }
+        }
+
+        return {
+          leaves: leaves.map((leaf) => ({
+            ...leaf,
+            has_existing_translations: existing_paths.has(leaf.path_params.join(':'))
+          })),
+          current_value
+        };
+      })
+    )
+  );
 
 const get_text_translation_batch_manager_groups_route = protectedAdminProcedure
   .input(
@@ -1239,71 +1386,75 @@ const get_text_translation_batch_manager_groups_route = protectedAdminProcedure
       })
       .optional()
   )
-  .query(async ({ input }) => {
-    const batches = await runDb('batch_ai_text.db.6', (db) =>
-      db.query.ai_batches.findMany({
-        where: eq(ai_batches.type, 'object'),
-        orderBy: [desc(ai_batches.batch_id)],
-        with: { responses: true }
-      })
-    );
+  .query(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const batches = yield* dbRun('batch_ai_text.db.6', (db) =>
+          db.query.ai_batches.findMany({
+            where: eq(ai_batches.type, 'object'),
+            orderBy: [desc(ai_batches.batch_id)],
+            with: { responses: true }
+          })
+        );
 
-    let rows = batches.flatMap((batch) =>
-      batch.responses
-        .map((response) => {
-          const parsed = text_translation_batch_metadata_schema.safeParse(response.metadata);
-          if (!parsed.success) return null;
+        let rows = batches.flatMap((batch) =>
+          batch.responses
+            .map((response) => {
+              const parsed = text_translation_batch_metadata_schema.safeParse(response.metadata);
+              if (!parsed.success) return null;
+              return {
+                batch_id: batch.batch_id,
+                custom_id: response.custom_id,
+                output_resolved: batch.output_resolved,
+                auto_approved: response.auto_approved,
+                metadata: parsed.data
+              };
+            })
+            .filter((row): row is NonNullable<typeof row> => row !== null)
+        );
+
+        if (input?.project_id !== undefined) {
+          rows = rows.filter((row) => row.metadata.project_id === input.project_id);
+        }
+        if (input?.project_path_id !== undefined) {
+          rows = rows.filter((row) => row.metadata.project_path_id === input.project_path_id);
+        }
+
+        const enriched = yield* enrichTranslationBatchRows(rows);
+        const groups = new Map<
+          string,
+          { batch_id: string; output_resolved: boolean; items: EnrichedTranslationBatchItem[] }
+        >();
+        for (const item of enriched) {
+          const existing = groups.get(item.batch_id);
+          if (existing) existing.items.push(item);
+          else
+            groups.set(item.batch_id, {
+              batch_id: item.batch_id,
+              output_resolved: item.output_resolved,
+              items: [item]
+            });
+        }
+
+        return [...groups.values()].map((group) => {
+          const counts = { pending: 0, ready: 0, failed: 0, auto_approved: 0 };
+          for (const item of group.items) {
+            if (item.status === 'processing') counts.pending++;
+            else if (item.status === 'ready_for_review' || item.status === 'auto_applying')
+              counts.ready++;
+            else if (item.status === 'failed') counts.failed++;
+            if (item.auto_approved) counts.auto_approved++;
+          }
           return {
-            batch_id: batch.batch_id,
-            custom_id: response.custom_id,
-            output_resolved: batch.output_resolved,
-            auto_approved: response.auto_approved,
-            metadata: parsed.data
+            batch_type: 'text-translation' as const,
+            ...group,
+            counts,
+            openai_batch_url: `https://platform.openai.com/batches/${group.batch_id}`
           };
-        })
-        .filter((row): row is NonNullable<typeof row> => row !== null)
-    );
-
-    if (input?.project_id !== undefined) {
-      rows = rows.filter((row) => row.metadata.project_id === input.project_id);
-    }
-    if (input?.project_path_id !== undefined) {
-      rows = rows.filter((row) => row.metadata.project_path_id === input.project_path_id);
-    }
-
-    const enriched = await enrichTranslationBatchRows(rows);
-    const groups = new Map<
-      string,
-      { batch_id: string; output_resolved: boolean; items: EnrichedTranslationBatchItem[] }
-    >();
-    for (const item of enriched) {
-      const existing = groups.get(item.batch_id);
-      if (existing) existing.items.push(item);
-      else
-        groups.set(item.batch_id, {
-          batch_id: item.batch_id,
-          output_resolved: item.output_resolved,
-          items: [item]
         });
-    }
-
-    return [...groups.values()].map((group) => {
-      const counts = { pending: 0, ready: 0, failed: 0, auto_approved: 0 };
-      for (const item of group.items) {
-        if (item.status === 'processing') counts.pending++;
-        else if (item.status === 'ready_for_review' || item.status === 'auto_applying')
-          counts.ready++;
-        else if (item.status === 'failed') counts.failed++;
-        if (item.auto_approved) counts.auto_approved++;
-      }
-      return {
-        batch_type: 'text-translation' as const,
-        ...group,
-        counts,
-        openai_batch_url: `https://platform.openai.com/batches/${group.batch_id}`
-      };
-    });
-  });
+      })
+    )
+  );
 
 export const trigger_batch_text_translation = trigger_batch_text_translation_route;
 export const poll_batch_text_translation = poll_batch_text_translation_route;

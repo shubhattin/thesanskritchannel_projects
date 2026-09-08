@@ -1,22 +1,17 @@
-import { dbRun, dbTransaction } from '~/effect/database';
-import { TRPCError } from '@trpc/server';
+import { Effect } from 'effect';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAppScopeProcedure_ProjectsPortal, publicProcedure, t } from '~/api/trpc_init';
 import { texts, translations } from '~/db/schema';
+import { dbRun, dbTransaction, type TxOrDb } from '~/effect/database';
+import { BadRequestError, NotFoundError } from '~/effect/errors';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
 import { delay_dev } from '~/tools/delay';
 import { get_project_by_key, get_project_info_by_id } from '~/utils/project/list.server';
 import { get_languages_for_project_user } from './project/project';
 import { get_path_params } from '~/state/project_list';
 import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
-import { requireProjectPath } from '~/utils/project/paths_db.server';
 import { TEXT_EDIT_LOCK_NAMESPACE } from '~/utils/text/row_edit.server';
-import { runTrpcEffect } from '~/effect/app_runtime.server';
-
-const runDb = <A>(operation: string, run: Parameters<typeof dbRun<A>>[1]) =>
-  runTrpcEffect(dbRun(operation, run));
-const runTx = <A>(operation: string, run: Parameters<typeof dbTransaction<A>>[1]) =>
-  runTrpcEffect(dbTransaction(operation, run));
 
 const edit_translation_input = z
   .object({
@@ -39,11 +34,7 @@ export const path_params_to_selected_text_levels = (
   levels: number
 ): (number | null)[] => path_params.slice(0, levels - 1).reverse();
 
-/**
- * Persist translation rows for a project path.
- * Overwrites existing non-null values; null deletes the row.
- */
-export async function persist_translations_for_path(args: {
+type PersistTranslationsArgs = {
   project_id: number;
   lang_id: number;
   project_path_id: number;
@@ -52,7 +43,110 @@ export async function persist_translations_for_path(args: {
   data: (string | null)[];
   /** When true, caller must invalidate caches (e.g. batched auto-approve). */
   skip_cache_invalidation?: boolean;
-}) {
+};
+
+/**
+ * DB writes for translation rows on a project path.
+ * Overwrites existing non-null values; null deletes the row.
+ * Returns a domain failure reason instead of throwing so callers can map to Effect errors.
+ */
+export const persistTranslationsRows = async (
+  tx: TxOrDb,
+  args: Pick<
+    PersistTranslationsArgs,
+    'project_id' | 'lang_id' | 'project_path_id' | 'indexes' | 'data'
+  >
+): Promise<{ ok: true } | { ok: false; reason: 'missing_text'; index: number }> => {
+  const { project_id, lang_id, project_path_id, indexes, data } = args;
+  const indexed_indexes = indexes.map((v, i) => [v, i] as const);
+
+  await tx.execute(sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`);
+
+  const current_text_indexes = new Set(
+    (
+      await tx
+        .select({ index: texts.index })
+        .from(texts)
+        .where(and(eq(texts.project_path_id, project_path_id), inArray(texts.index, indexes)))
+    ).map((v) => v.index)
+  );
+  const missing_text_index = indexed_indexes.find(
+    ([index, i]) => data[i] !== null && !current_text_indexes.has(index)
+  );
+  if (missing_text_index) {
+    return { ok: false, reason: 'missing_text', index: missing_text_index[0] };
+  }
+
+  const existing_indexes = new Set(
+    (
+      await tx
+        .select({ index: translations.index })
+        .from(translations)
+        .where(
+          and(
+            eq(translations.project_path_id, project_path_id),
+            eq(translations.lang_id, lang_id),
+            inArray(translations.index, indexes)
+          )
+        )
+    ).map((v) => v.index)
+  );
+
+  const delete_entries = indexed_indexes.filter(([, i]) => data[i] === null);
+  const add_entries = indexed_indexes.filter(
+    ([index, i]) => data[i] !== null && !existing_indexes.has(index)
+  );
+  const update_entries = indexed_indexes.filter(
+    ([index, i]) => data[i] !== null && existing_indexes.has(index)
+  );
+
+  if (delete_entries.length > 0) {
+    await tx.delete(translations).where(
+      and(
+        eq(translations.project_path_id, project_path_id),
+        eq(translations.lang_id, lang_id),
+        inArray(
+          translations.index,
+          delete_entries.map(([index]) => index)
+        )
+      )
+    );
+  }
+  if (add_entries.length > 0) {
+    await tx.insert(translations).values(
+      add_entries.map(([index, i]) => ({
+        project_path_id,
+        lang_id,
+        index,
+        text: data[i] ?? ''
+      }))
+    );
+  }
+  if (update_entries.length > 0) {
+    // Single statement — do not Promise.all on the same tx connection (neon/postgres-js).
+    const value_rows = update_entries.map(
+      ([index, dataIndex]) => sql`(${index}::int, ${data[dataIndex] ?? ''}::text)`
+    );
+    await tx.execute(sql`
+      UPDATE ${translations} AS t
+      SET text = v.text, updated_at = now()
+      FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(index, text)
+      WHERE t.project_path_id = ${project_path_id}
+        AND t.lang_id = ${lang_id}
+        AND t.index = v.index
+    `);
+  }
+
+  return { ok: true };
+};
+
+/**
+ * Persist translation rows for a project path.
+ * Overwrites existing non-null values; null deletes the row.
+ */
+export const persist_translations_for_path = Effect.fn('persist_translations_for_path')(function* (
+  args: PersistTranslationsArgs
+) {
   const {
     project_id,
     lang_id,
@@ -62,126 +156,82 @@ export async function persist_translations_for_path(args: {
     data,
     skip_cache_invalidation = false
   } = args;
+
   if (indexes.length !== data.length) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: 'data and indexes must have the same length'
-    });
+    return yield* Effect.fail(
+      BadRequestError.make({ message: 'data and indexes must have the same length' })
+    );
   }
   if (new Set(indexes).size !== indexes.length) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'indexes must be unique' });
+    return yield* Effect.fail(BadRequestError.make({ message: 'indexes must be unique' }));
   }
   if (indexes.length === 0) {
     // SAFETY: no indexes to persist — the empty array is a valid (number | null)[] selection.
     return { success: true as const, selected_text_levels: [] as (number | null)[] };
   }
 
-  const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
+  const { levels } = yield* get_project_info_by_id(project_id);
   const selected_text_levels = path_params_to_selected_text_levels(path_params, levels);
-  const indexed_indexes = indexes.map((v, i) => [v, i] as const);
 
-  await runTx('translation.tx.1', async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(${TEXT_EDIT_LOCK_NAMESPACE}, ${project_id})`);
+  const outcome = yield* dbTransaction('translation.tx.1', (tx) =>
+    persistTranslationsRows(tx, {
+      project_id,
+      lang_id,
+      project_path_id,
+      indexes,
+      data
+    })
+  );
 
-    const current_text_indexes = new Set(
-      (
-        await tx
-          .select({ index: texts.index })
-          .from(texts)
-          .where(and(eq(texts.project_path_id, project_path_id), inArray(texts.index, indexes)))
-      ).map((v) => v.index)
+  if (!outcome.ok) {
+    return yield* Effect.fail(
+      BadRequestError.make({
+        message: `Translation index has no matching text row: ${outcome.index}`
+      })
     );
-    const missing_text_index = indexed_indexes.find(
-      ([index, i]) => data[i] !== null && !current_text_indexes.has(index)
-    );
-    if (missing_text_index) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Translation index has no matching text row: ${missing_text_index[0]}`
-      });
-    }
-
-    const existing_indexes = new Set(
-      (
-        await tx
-          .select({ index: translations.index })
-          .from(translations)
-          .where(
-            and(
-              eq(translations.project_path_id, project_path_id),
-              eq(translations.lang_id, lang_id),
-              inArray(translations.index, indexes)
-            )
-          )
-      ).map((v) => v.index)
-    );
-
-    const delete_entries = indexed_indexes.filter(([, i]) => data[i] === null);
-    const add_entries = indexed_indexes.filter(
-      ([index, i]) => data[i] !== null && !existing_indexes.has(index)
-    );
-    const update_entries = indexed_indexes.filter(
-      ([index, i]) => data[i] !== null && existing_indexes.has(index)
-    );
-
-    if (delete_entries.length > 0) {
-      await tx.delete(translations).where(
-        and(
-          eq(translations.project_path_id, project_path_id),
-          eq(translations.lang_id, lang_id),
-          inArray(
-            translations.index,
-            delete_entries.map(([index]) => index)
-          )
-        )
-      );
-    }
-    if (add_entries.length > 0) {
-      await tx.insert(translations).values(
-        add_entries.map(([index, i]) => ({
-          project_path_id,
-          lang_id,
-          index,
-          text: data[i] ?? ''
-        }))
-      );
-    }
-    if (update_entries.length > 0) {
-      // Single statement — do not Promise.all on the same tx connection (neon/postgres-js).
-      const value_rows = update_entries.map(
-        ([index, dataIndex]) => sql`(${index}::int, ${data[dataIndex] ?? ''}::text)`
-      );
-      await tx.execute(sql`
-        UPDATE ${translations} AS t
-        SET text = v.text, updated_at = now()
-        FROM (VALUES ${sql.join(value_rows, sql`, `)}) AS v(index, text)
-        WHERE t.project_path_id = ${project_path_id}
-          AND t.lang_id = ${lang_id}
-          AND t.index = v.index
-      `);
-    }
-  });
+  }
 
   if (!skip_cache_invalidation) {
-    await Promise.all([
-      runTrpcEffect(
+    yield* Effect.all(
+      [
         invalidate_and_refresh_cached(CACHE.translation, {
           project_id,
           lang_id,
           selected_text_levels
-        })
-      ),
-      runTrpcEffect(
+        }),
         invalidate_and_refresh_cached(CACHE.available_translation_langs, {
           project_id,
           path_params
         })
-      )
-    ]);
+      ],
+      { concurrency: 'unbounded' }
+    );
   }
 
   return { success: true as const, selected_text_levels };
-}
+});
+
+const require_project_path = Effect.fn('require_project_path')(function* (
+  project_id: number,
+  path: string
+) {
+  const row = yield* dbRun('translation.require_path', (db) =>
+    db.query.project_paths.findFirst({
+      where: (tbl, { and: andOp, eq: eqOp }) =>
+        andOp(eqOp(tbl.project_id, project_id), eqOp(tbl.path, path)),
+      columns: { id: true, project_id: true, path: true }
+    })
+  );
+  if (!row) {
+    return yield* Effect.fail(
+      NotFoundError.make({
+        resource: 'project_path',
+        message: `Project path not found: ${path}`
+      })
+    );
+  }
+  return row;
+});
 
 const get_translation_route = publicProcedure
   .input(
@@ -191,43 +241,41 @@ const get_translation_route = publicProcedure
       selected_text_levels: z.array(z.int().nullable())
     })
   )
-  .query(async ({ input: { project_id, lang_id, selected_text_levels } }) => {
-    return runTrpcEffect(CACHE.translation.get({ project_id, lang_id, selected_text_levels }));
-  });
+  .query(({ input: { project_id, lang_id, selected_text_levels } }) =>
+    runTrpcEffect(CACHE.translation.get({ project_id, lang_id, selected_text_levels }))
+  );
 
 const edit_translation_route = protectedAppScopeProcedure_ProjectsPortal
   .input(edit_translation_input)
-  .mutation(
-    async ({
-      ctx: { user },
-      input: { project_id, lang_id, selected_text_levels, data, indexes }
-    }) => {
-      const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
-      const path_params = get_path_params(selected_text_levels, levels);
-      if (levels > 1 && path_params.length === 0) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });
-      }
-      const path = path_params.join(':');
-      const projectPath = await runDb('translation.path.1', (db) =>
-        requireProjectPath(db, project_id, path)
-      );
+  .mutation(({ ctx: { user }, input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const { project_id, lang_id, selected_text_levels, data, indexes } = input;
+        const { levels } = yield* get_project_info_by_id(project_id);
+        const path_params = get_path_params(selected_text_levels, levels);
+        if (levels > 1 && path_params.length === 0) {
+          return yield* Effect.fail(
+            BadRequestError.make({ message: 'Invalid text path selection' })
+          );
+        }
+        const projectPath = yield* require_project_path(project_id, path_params.join(':'));
 
-      // authorization check to edit or add lang records
-      if (user.role !== 'admin') {
-        const languages = await runTrpcEffect(get_languages_for_project_user(user.id, project_id));
-        const allowed_langs = languages.map((lang) => lang.lang_id);
-        if (!allowed_langs || !allowed_langs.includes(lang_id)) return { success: false };
-      }
+        if (user.role !== 'admin') {
+          const languages = yield* get_languages_for_project_user(user.id, project_id);
+          const allowed_langs = languages.map((lang) => lang.lang_id);
+          if (!allowed_langs.includes(lang_id)) return { success: false as const };
+        }
 
-      return persist_translations_for_path({
-        project_id,
-        lang_id,
-        project_path_id: projectPath.id,
-        path_params,
-        indexes,
-        data
-      });
-    }
+        return yield* persist_translations_for_path({
+          project_id,
+          lang_id,
+          project_path_id: projectPath.id,
+          path_params,
+          indexes,
+          data
+        });
+      })
+    )
   );
 
 const get_langs_with_translations_route = protectedAppScopeProcedure_ProjectsPortal
@@ -237,16 +285,25 @@ const get_langs_with_translations_route = protectedAppScopeProcedure_ProjectsPor
       path_params: z.int().array()
     })
   )
-  .query(async ({ input: { project_key, path_params } }) => {
-    const project = await runTrpcEffect(get_project_by_key(project_key));
-    if (!project) {
-      throw new TRPCError({ code: 'NOT_FOUND', message: `Project not found: ${project_key}` });
-    }
-
-    return runTrpcEffect(
-      CACHE.available_translation_langs.get({ project_id: project.id, path_params })
-    );
-  });
+  .query(({ input: { project_key, path_params } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        const project = yield* get_project_by_key(project_key);
+        if (!project) {
+          return yield* Effect.fail(
+            NotFoundError.make({
+              resource: 'project',
+              message: `Project not found: ${project_key}`
+            })
+          );
+        }
+        return yield* CACHE.available_translation_langs.get({
+          project_id: project.id,
+          path_params
+        });
+      })
+    )
+  );
 
 const get_all_langs_translation_route = protectedAppScopeProcedure_ProjectsPortal
   .input(
@@ -255,36 +312,41 @@ const get_all_langs_translation_route = protectedAppScopeProcedure_ProjectsPorta
       selected_text_levels: z.int().nullable().array()
     })
   )
-  .query(async ({ input: { project_id, selected_text_levels } }) => {
-    await delay_dev(400);
+  .query(({ input: { project_id, selected_text_levels } }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        yield* Effect.promise(async () => {
+          await delay_dev(400);
+        });
 
-    const { levels } = await runTrpcEffect(get_project_info_by_id(project_id));
-    const path_params = get_path_params(selected_text_levels, levels);
-    if (levels > 1 && path_params.length === 0) {
-      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid text path selection' });
-    }
-    const path = path_params.join(':');
-    const projectPath = await runDb('translation.path.2', (db) =>
-      requireProjectPath(db, project_id, path)
-    );
-    const data = await runDb('translation.ml.1', (db) =>
-      db
-        .select({
-          index: translations.index,
-          text: translations.text,
-          lang_id: translations.lang_id
-        })
-        .from(translations)
-        .where(eq(translations.project_path_id, projectPath.id))
-        .orderBy(translations.lang_id, translations.index)
-    );
-    const data_map = new Map<number, Map<number, string>>();
-    for (let i = 0; i < data.length; i++) {
-      if (!data_map.has(data[i].lang_id)) data_map.set(data[i].lang_id, new Map());
-      data_map.get(data[i].lang_id)!.set(data[i].index, data[i].text);
-    }
-    return data_map;
-  });
+        const { levels } = yield* get_project_info_by_id(project_id);
+        const path_params = get_path_params(selected_text_levels, levels);
+        if (levels > 1 && path_params.length === 0) {
+          return yield* Effect.fail(
+            BadRequestError.make({ message: 'Invalid text path selection' })
+          );
+        }
+        const projectPath = yield* require_project_path(project_id, path_params.join(':'));
+        const data = yield* dbRun('translation.ml.1', (db) =>
+          db
+            .select({
+              index: translations.index,
+              text: translations.text,
+              lang_id: translations.lang_id
+            })
+            .from(translations)
+            .where(eq(translations.project_path_id, projectPath.id))
+            .orderBy(translations.lang_id, translations.index)
+        );
+        const data_map = new Map<number, Map<number, string>>();
+        for (let i = 0; i < data.length; i++) {
+          if (!data_map.has(data[i].lang_id)) data_map.set(data[i].lang_id, new Map());
+          data_map.get(data[i].lang_id)!.set(data[i].index, data[i].text);
+        }
+        return data_map;
+      })
+    )
+  );
 
 export const translation_router = t.router({
   get_translation: get_translation_route,

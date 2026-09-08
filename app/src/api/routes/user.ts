@@ -1,10 +1,9 @@
 import { Effect } from 'effect';
 import { z } from 'zod';
-import { protectedAdminProcedure, protectedProcedure } from '../trpc_init';
+import { protectedAdminProcedure, protectedProcedure, t } from '../trpc_init';
 import { delay_dev } from '~/tools/delay';
 import { user_project_join, user_project_language_join } from '~/db/schema';
 import { eq } from 'drizzle-orm';
-import { t } from '../trpc_init';
 import { get_languages_for_project_user } from './project/project';
 import { fetch_get, fetch_post } from '~/tools/fetch';
 import {
@@ -13,14 +12,14 @@ import {
   type AppScopeEnum
 } from '~/state/data_types';
 import { get_user_app_scope_status } from '~/utils/auth/app_scope_utils.server';
+import { runTrpcEffect } from '~/effect/app_runtime.server';
+import { AppConfig } from '~/effect/config';
+import { dbRun, dbTransaction } from '~/effect/database';
 
 type UserScopes = { scopes: AppScopeEnum[] };
 
 /** Empty scope list for callers without admin rights / failed lookups. */
 const noScopes = (): UserScopes => ({ scopes: [] });
-import { runTrpcEffect } from '~/effect/app_runtime.server';
-import { AppConfig } from '~/effect/config';
-import { dbRun, dbTransaction } from '~/effect/database';
 
 const get_user_info_route = protectedProcedure
   .input(z.object({ user_id: z.string() }))
@@ -44,18 +43,20 @@ const get_user_info_route = protectedProcedure
             .where(eq(user_project_join.user_id, user_id))
         );
 
-        const projects = yield* Effect.tryPromise(async () =>
-          Promise.all(
-            projects_info.map(async (project_info) => {
-              const languages = await runTrpcEffect(
-                get_languages_for_project_user(user_id, project_info.project_id)
+        const projects = yield* Effect.forEach(
+          projects_info,
+          (project_info) =>
+            Effect.gen(function* () {
+              const languages = yield* get_languages_for_project_user(
+                user_id,
+                project_info.project_id
               );
               return {
                 ...project_info,
                 langugae_ids: languages.map((lang) => lang.lang_id)
               };
-            })
-          )
+            }),
+          { concurrency: 'unbounded' }
         ).pipe(Effect.orElseSucceed(() => []));
 
         return { projects };

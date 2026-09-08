@@ -7,7 +7,7 @@ import { BATCH_POLLING_INTERVAL_S, MAX_BATCH_POLL_ATTEMPTS } from '~/utils/types
 import { ai_batches } from '~/db/schema';
 import { runQstashEffect } from '~/effect/app_runtime.server';
 import { dbRun } from '~/effect/database';
-import { BatchError, ValidationError } from '~/effect/errors';
+import { ValidationError } from '~/effect/errors';
 import {
   QStashPublisher,
   aiBatchResultsPayloadSchema,
@@ -53,14 +53,10 @@ export const POST: RequestHandler = async ({ request }) => {
         return `Batch ${batch_id} already resolved or cleaned up`;
       }
 
-      const result = yield* Effect.tryPromise({
-        try: () =>
-          batch_row.type === 'object'
-            ? poll_batch_text_translation_func(batch_id)
-            : poll_batch_shloka_image_gen_func(batch_id),
-        catch: (cause) =>
-          BatchError.make({ operation: 'qstash.poll_batch', batchId: batch_id, cause })
-      });
+      const result =
+        batch_row.type === 'object'
+          ? yield* poll_batch_text_translation_func(batch_id)
+          : yield* poll_batch_shloka_image_gen_func(batch_id);
 
       if (result.status === 'already_resolved') {
         return `Batch ${batch_id} already resolved`;
@@ -79,8 +75,10 @@ export const POST: RequestHandler = async ({ request }) => {
         return `Batch ${batch_id} failed with status ${result.openai_status}`;
       }
 
-      const succeeded = result.items.filter((item) => item.success).length;
-      return `Batch ${batch_id} processed: ${succeeded}/${result.items.length} items succeeded`;
+      // status === 'processed'
+      const items = result.items ?? [];
+      const succeeded = items.filter((item) => item.success).length;
+      return `Batch ${batch_id} processed: ${succeeded}/${items.length} items succeeded`;
     }),
     {
       onSuccess: (message) => new Response(message, { status: 200 })

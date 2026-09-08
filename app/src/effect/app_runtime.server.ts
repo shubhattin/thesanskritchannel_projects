@@ -5,7 +5,8 @@
  * One ManagedRuntime per Worker request (AsyncLocalStorage via `hooks.server.ts`).
  * Do not keep a process-wide runtime: Effect fibers/latches are isolate-global
  * and workerd drops continuations that settle in a different request.
- * waitUntil cache writes capture Redis/Database services, not this runtime.
+ * `CfEnv` is bound from `event.platform` so `waitUntil` / Images use the same
+ * path in `vite dev` and on workerd.
  */
 import { env } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
@@ -98,14 +99,16 @@ type AppScope = { runtime: AppRuntime; runners: AppRunners };
 
 const appScope = new AsyncLocalStorage<AppScope>();
 
-const createAppScope = (): AppScope => {
-  const runtime = makeAppRuntime(...loadRuntimeInputs());
+const createAppScope = (platform?: App.Platform): AppScope => {
+  const runtime = makeAppRuntime(...loadRuntimeInputs(), platform);
   return { runtime, runners: createRunners(runtime) };
 };
 
 /** Bind one Effect runtime to the current Worker request (see `hooks.server.ts`). */
-export const runWithAppRuntime = <T>(fn: () => Promise<T>): Promise<T> =>
-  appScope.run(createAppScope(), fn);
+export const runWithAppRuntime = <T>(
+  platform: App.Platform | undefined,
+  fn: () => Promise<T>
+): Promise<T> => appScope.run(createAppScope(platform), fn);
 
 const getCached = (): AppScope => appScope.getStore() ?? createAppScope();
 

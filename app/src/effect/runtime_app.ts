@@ -10,7 +10,8 @@ import { Database } from './database';
 import { RedisClient } from './redis';
 import { ObjectStorage } from './storage';
 import { AiProvider, OpenAiBatchClient } from './ai';
-import { BackgroundWorkLive } from './live/background';
+import { BackgroundWork } from './background';
+import { CfEnv } from './cf_env';
 import { QStashPublisher } from './qstash';
 import { isCloudflareWorker } from './platform';
 
@@ -38,13 +39,17 @@ const imageProcessorLive = Layer.unwrap(
  * Database uses the Workers-safe per-query driver: workerd isolates I/O to
  * the creating request, so no pooled client may outlive it.
  */
-export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigInput) => {
+export const makeAppLayer = (
+  app: AppConfigInput,
+  publicConfig: AppPublicConfigInput,
+  platform?: App.Platform
+) => {
   const appConfigLayer = AppConfig.layer(app);
   const publicConfigLayer = AppPublicConfig.layer(publicConfig);
 
   return Layer.mergeAll(
     imageProcessorLive,
-    BackgroundWorkLive,
+    BackgroundWork.Live,
     Database.WorkersLive,
     RedisClient.Live,
     ObjectStorage.Live,
@@ -52,10 +57,17 @@ export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigI
     OpenAiBatchClient.Live,
     QStashPublisher.Live,
     publicConfigLayer
-  ).pipe(Layer.provideMerge(SharedConfigFromAppConfigLayer), Layer.provideMerge(appConfigLayer));
+  ).pipe(
+    Layer.provideMerge(platform ? CfEnv.layer(platform) : CfEnv.Test),
+    Layer.provideMerge(SharedConfigFromAppConfigLayer),
+    Layer.provideMerge(appConfigLayer)
+  );
 };
 
-export const makeAppRuntime = (app: AppConfigInput, publicConfig: AppPublicConfigInput) =>
-  ManagedRuntime.make(makeAppLayer(app, publicConfig));
+export const makeAppRuntime = (
+  app: AppConfigInput,
+  publicConfig: AppPublicConfigInput,
+  platform?: App.Platform
+) => ManagedRuntime.make(makeAppLayer(app, publicConfig, platform));
 
 export type AppRuntime = ReturnType<typeof makeAppRuntime>;

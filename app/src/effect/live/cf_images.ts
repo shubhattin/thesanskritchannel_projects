@@ -1,4 +1,5 @@
 import { Effect, Layer } from 'effect';
+import { CfEnv } from '../cf_env';
 import { ImageProcessor, type CompressedImageResult } from '../image';
 import { ImageProcessingError } from '../errors';
 
@@ -99,47 +100,61 @@ const toBytes = (input: Buffer | Uint8Array | string): Uint8Array => {
 
 /**
  * Workers ImageProcessor live via the `IMAGES` binding
- * (see `wrangler.toml [images]`).
+ * (see `wrangler.toml [images]`), read from `CfEnv` / `event.platform.env`.
  *
  * Sharp mapping: dimensions are preserved via a same-size `scale-down`
  * transform (never upscales); only `quality` is honoured (default 87),
  * encoder-only knobs (`effort`, `nearLossless`, …) have no Images equivalent
  * and output is always lossy WebP.
  */
-export const ImageProcessorLive = Layer.succeed(ImageProcessor)({
-  compressToWebp: (input, webp_options) =>
-    Effect.tryPromise({
-      try: async (): Promise<CompressedImageResult> => {
-        const bytes = toBytes(input);
-        const dims = readImageDimensions(bytes);
-        if (!dims || !dims.width || !dims.height) {
-          throw new Error('Unsupported image or missing dimensions (expected PNG/JPEG/WebP)');
-        }
-        const { env } = await import('cloudflare:workers');
-        const stream = new ReadableStream<Uint8Array>({
-          start(controller) {
-            controller.enqueue(bytes);
-            controller.close();
-          }
-        });
-        const output = await env.IMAGES.input(stream)
-          .transform({ width: dims.width, height: dims.height, fit: 'scale-down' })
-          .output({
-            format: 'image/webp',
-            quality: webp_options?.quality ?? DEFAULT_QUALITY
-          });
-        const response = output.response();
-        if (!response.ok) {
-          throw new Error(
-            `CF Images output ${response.status}: ${(await response.text()).slice(0, 500)}`
-          );
-        }
-        return {
-          buffer: Buffer.from(await response.arrayBuffer()),
-          width: dims.width,
-          height: dims.height
-        };
-      },
-      catch: (cause) => ImageProcessingError.make({ operation: 'compressToWebp', cause })
-    }).pipe(Effect.annotateLogs({ category: 'image', operation: 'compressToWebp' }))
-});
+export const ImageProcessorLive = Layer.effect(ImageProcessor)(
+  Effect.gen(function* () {
+    const cf = yield* CfEnv;
+    const images = cf.env.IMAGES;
+    if (!images) {
+      return yield* Effect.fail(
+        ImageProcessingError.make({
+          operation: 'compressToWebp',
+          cause: new Error('IMAGES binding is not available on this request')
+        })
+      );
+    }
+    return {
+      compressToWebp: (input, webp_options) =>
+        Effect.tryPromise({
+          try: async (): Promise<CompressedImageResult> => {
+            const bytes = toBytes(input);
+            const dims = readImageDimensions(bytes);
+            if (!dims || !dims.width || !dims.height) {
+              throw new Error('Unsupported image or missing dimensions (expected PNG/JPEG/WebP)');
+            }
+            const stream = new ReadableStream<Uint8Array>({
+              start(controller) {
+                controller.enqueue(bytes);
+                controller.close();
+              }
+            });
+            const output = await images
+              .input(stream)
+              .transform({ width: dims.width, height: dims.height, fit: 'scale-down' })
+              .output({
+                format: 'image/webp',
+                quality: webp_options?.quality ?? DEFAULT_QUALITY
+              });
+            const response = output.response();
+            if (!response.ok) {
+              throw new Error(
+                `CF Images output ${response.status}: ${(await response.text()).slice(0, 500)}`
+              );
+            }
+            return {
+              buffer: Buffer.from(await response.arrayBuffer()),
+              width: dims.width,
+              height: dims.height
+            };
+          },
+          catch: (cause) => ImageProcessingError.make({ operation: 'compressToWebp', cause })
+        }).pipe(Effect.annotateLogs({ category: 'image', operation: 'compressToWebp' }))
+    };
+  })
+);

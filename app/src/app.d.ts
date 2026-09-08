@@ -1,12 +1,18 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
-// for information about these interfaces
+// Env / ExecutionContext / CfProperties come from wrangler-generated
+// `worker-configuration.d.ts` (loaded via tsconfig `compilerOptions.types`).
 declare global {
   namespace App {
     // interface Error {}
     // interface Locals {}
     // interface PageData {}
     // interface PageState {}
-    // interface Platform {}
+    interface Platform {
+      env: Env;
+      cf: CfProperties;
+      ctx: ExecutionContext;
+      caches: CacheStorage & { default: Cache };
+    }
   }
 
   interface Window {

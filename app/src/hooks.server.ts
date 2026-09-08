@@ -6,4 +6,5 @@ import { runWithAppRuntime } from '~/effect/app_runtime.server';
  * lets fibers settle after the creating request finished, which Cloudflare
  * cancels — and can hang the next request.
  */
-export const handle: Handle = ({ event, resolve }) => runWithAppRuntime(async () => resolve(event));
+export const handle: Handle = ({ event, resolve }) =>
+  runWithAppRuntime(event.platform, async () => resolve(event));

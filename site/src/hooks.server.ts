@@ -7,4 +7,4 @@ import { runWithSiteRuntime } from '~/effect/site_runtime';
  * cancels — and can hang the next request.
  */
 export const handle: Handle = ({ event, resolve }) =>
-  runWithSiteRuntime(async () => resolve(event));
+  runWithSiteRuntime(event.platform, async () => resolve(event));

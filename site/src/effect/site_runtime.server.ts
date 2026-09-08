@@ -5,7 +5,8 @@
  * One ManagedRuntime per Worker request (AsyncLocalStorage via `hooks.server.ts`).
  * Do not keep a process-wide runtime: Effect fibers/latches are isolate-global
  * and workerd drops continuations that settle in a different request.
- * waitUntil cache writes capture Redis/Database services, not this runtime.
+ * `CfEnv` is bound from `event.platform` so `waitUntil` uses the same path in
+ * `vite dev` and on workerd.
  *
  * Site-only layer (DB + Redis + background) — importing the app runtime would
  * drag `sharp` / S3 / AI into the Worker graph.
@@ -16,22 +17,28 @@ import { Cause, Effect, Exit, Layer, ManagedRuntime } from 'effect';
 import { resolveDbUrl, SharedConfig, type SharedConfigInput } from '@app/effect/config';
 import { envBagFromUnknown, pickEnv } from '@app/effect/env';
 import { BackgroundWork } from '@app/effect/background';
+import { CfEnv } from '@app/effect/cf_env';
 import { Database } from '@app/effect/database';
 import { RedisClient } from '@app/effect/redis';
 import { createRunners, type EffectRunners } from '@app/effect/run';
-import { BackgroundWorkLive } from './live/background';
 
-const makeSiteLayer = (shared: SharedConfigInput, backgroundLayer: Layer.Layer<BackgroundWork>) => {
+const makeSiteLayer = (
+  shared: SharedConfigInput,
+  backgroundLayer: Layer.Layer<BackgroundWork, never, CfEnv> | Layer.Layer<BackgroundWork>,
+  platform?: App.Platform
+) => {
   const sharedConfigLayer = SharedConfig.layer(shared);
   return Layer.mergeAll(Database.WorkersLive, RedisClient.Live, backgroundLayer).pipe(
+    Layer.provideMerge(platform ? CfEnv.layer(platform) : CfEnv.Test),
     Layer.provideMerge(sharedConfigLayer)
   );
 };
 
 export const makeSiteRuntime = (
   shared: SharedConfigInput,
-  backgroundLayer: Layer.Layer<BackgroundWork>
-) => ManagedRuntime.make(makeSiteLayer(shared, backgroundLayer));
+  backgroundLayer: Layer.Layer<BackgroundWork, never, CfEnv> | Layer.Layer<BackgroundWork>,
+  platform?: App.Platform
+) => ManagedRuntime.make(makeSiteLayer(shared, backgroundLayer, platform));
 
 export type SiteRuntime = ReturnType<typeof makeSiteRuntime>;
 
@@ -75,14 +82,16 @@ export const loadSiteConfigInput = (): SharedConfigInput => {
   };
 };
 
-const createSiteScope = (): SiteScope => {
-  const runtime = makeSiteRuntime(loadSiteConfigInput(), BackgroundWorkLive);
+const createSiteScope = (platform?: App.Platform): SiteScope => {
+  const runtime = makeSiteRuntime(loadSiteConfigInput(), BackgroundWork.Live, platform);
   return { runtime, runners: createRunners(runtime) };
 };
 
 /** Bind one Effect runtime to the current Worker request (see `hooks.server.ts`). */
-export const runWithSiteRuntime = <T>(fn: () => Promise<T>): Promise<T> =>
-  siteScope.run(createSiteScope(), fn);
+export const runWithSiteRuntime = <T>(
+  platform: App.Platform | undefined,
+  fn: () => Promise<T>
+): Promise<T> => siteScope.run(createSiteScope(platform), fn);
 
 const getCached = (): SiteScope => siteScope.getStore() ?? createSiteScope();
 

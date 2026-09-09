@@ -82,11 +82,11 @@ Node / Vitest → share in-flight fibers as today. workerd → fetch independent
 
 ## Background work (`waitUntil`)
 
-Do not fire a naked Promise after the response. Use the platform `waitUntil` (Cloudflare: `import { waitUntil } from 'cloudflare:workers'`).
+Do not fire a naked Promise after the response. Use the platform `waitUntil`.
 
-> SvelteKit warning: a *static* `cloudflare:workers` import in server code
-> breaks `vite build` (build-time route analysis executes the server bundle in
-> Node). Import it lazily — see
+> SvelteKit: do not `import { waitUntil } from 'cloudflare:workers'` — a static
+> import breaks `vite build` (route analysis runs the server bundle in Node).
+> Use `CfEnv.waitUntil` from `event.platform` instead — see
 > [SvelteKit on workerd: `cloudflare:*` imports](./workerd-sveltekit-cloudflare-imports.md).
 
 The thunk should `Effect.runPromise` with **captured services** (`provideService(RedisClient, redis)`, same for `Database`), not the request `ManagedRuntime`. The runtime may already be gone; the HTTP Redis client and a *new* per-query DB client are still valid if `waitUntil` kept the IoContext alive.

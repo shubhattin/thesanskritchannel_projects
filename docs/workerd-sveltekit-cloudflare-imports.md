@@ -1,4 +1,4 @@
-# SvelteKit on workerd: `cloudflare:*` imports break the build
+# SvelteKit on workerd: use `event.platform`, not `cloudflare:*` imports
 
 `cloudflare:workers` (and any `cloudflare:*` specifier) only exists inside
 workerd. Node has no loader for the `cloudflare:` scheme, so any code Node
@@ -9,38 +9,133 @@ Error [ERR_UNSUPPORTED_ESM_URL_SCHEME]: Only URLs with a scheme in: file, data,
 and node are supported by the default ESM loader. Received protocol 'cloudflare:'
 ```
 
-On Astro / TanStack Start this never bites: neither framework executes the
-server bundle in Node during `vite build`. **SvelteKit does** — postbuild route
-analysis imports the built server modules in plain Node
-(`@sveltejs/kit/src/exports/vite/index.js` → `core/postbuild/analyse.js`,
-which `import()`s `output/server/internal.js`, pulling in `hooks.server` and
-everything it transitively imports). A static `cloudflare:workers` import
-anywhere reachable from hooks or a server route therefore kills `vite build`,
-and it would equally kill local `vite dev` when the chunk loads.
-
-Verified in this repo: reverting `site/src/effect/live/background.ts` to a
-static `import { waitUntil } from 'cloudflare:workers'` fails the site build
-with exactly the error above (exit 1); the lazy form below builds clean.
+**SvelteKit runs server code in Node** during `vite dev` and during postbuild
+route analysis (`@sveltejs/kit` → `core/postbuild/analyse.js` imports
+`output/server/internal.js`, pulling in `hooks.server` and everything it
+transitively imports). A static `cloudflare:workers` import anywhere reachable
+from hooks or a server route therefore kills `vite build`, and it would equally
+kill local `vite dev` when the chunk loads.
 
 ---
 
-## Why the frameworks differ (dev runtimes, verified)
+## How other frameworks differ (context only)
 
-`cloudflare:workers` resolves **only** where modules execute inside workerd:
+Some stacks run server code inside workerd during dev, so `cloudflare:*`
+imports work there without extra plumbing:
 
-| Framework | `vite dev` executes server code in… | `cloudflare:workers` in dev? |
+| Framework | Dev server runtime | `cloudflare:workers` in dev? |
 | --- | --- | --- |
-| TanStack Start + `@cloudflare/vite-plugin` | **workerd** (Vite Environment API; the plugin's README: *"Your Worker code runs inside workerd"*) | Yes, native |
-| Astro + `@astrojs/cloudflare` | **Node** (docs' local story is `astro build && wrangler dev`, i.e. real workerd on a prod build) | Only on workerd |
-| SvelteKit + `adapter-cloudflare` (v7, Kit 2.x) | **Node**; the adapter emulates **only `event.platform`** via `getPlatformProxy` (verified in adapter source: `emulate()` returns `{ env, ctx, caches, cf }`, no module shimming) | No |
+| Astro + `@astrojs/cloudflare` | Full workerd emulation via the adapter | Yes |
+| TanStack Start + `@cloudflare/vite-plugin` | Full workerd emulation (Vite Environment API) | Yes |
+| SvelteKit + `adapter-cloudflare` (v7, Kit 2.x) | **Node**; adapter emulates **only `event.platform`** via `getPlatformProxy` (`{ env, ctx, caches, cf }` — no `cloudflare:*` module shimming) | No |
 
-Upstream knows the gap: SvelteKit PR #16754 (*"remove cloudflare `platform`, emulate the `cloudflare:workers` module instead"*, merged Aug 2026 into the **v3 prerelease** line) adds a `virtual-cloudflare-workers.js` module for dev — not available on the stable v2 line this repo runs. Until that lands stable, SvelteKit code must run in three contexts (Node dev, Node build-analysis, workerd prod) and pick implementations at runtime.
+On SvelteKit, Cloudflare bindings and APIs are exposed **only** through
+`event.platform` in `hooks.server.ts`, `+server.ts`, `+page.server.ts`, and
+other server handlers — not via `import … from 'cloudflare:workers'`.
 
-Related, from the Cloudflare skill references: **Miniflare does not emulate Cloudflare Images** (nor Stream / Browser Rendering), and the wrangler skill lists Images as remote-only for local dev. So even a full-workerd dev loop cannot transform images locally — the local image path must be `sharp` on Node.
+Upstream is closing the gap (SvelteKit PR #16754 adds a virtual
+`cloudflare:workers` module for dev in the v3 prerelease line). This repo runs
+the stable v2 line, so server code must work in three contexts: Node dev, Node
+build-analysis, and workerd production.
+
+Related: Miniflare does not emulate Cloudflare Images (nor Stream / Browser
+Rendering). Even a full-workerd dev loop cannot transform images locally — the
+local image path must be `sharp` on Node.
 
 ---
 
-## Pattern: runtime live selection (images)
+## Pattern: `CfEnv` Effect service (this repo)
+
+Do **not** import `cloudflare:workers`. Bind Cloudflare from SvelteKit's
+platform object once per request and consume it through Effect layers anywhere
+the app runtime is available.
+
+### 1. Request hook wires `event.platform` into the runtime
+
+```ts
+// app/src/hooks.server.ts
+export const handle: Handle = ({ event, resolve }) =>
+  runWithAppRuntime(event.platform, async () => resolve(event));
+```
+
+`runWithAppRuntime` (`app/src/effect/app_runtime.server.ts`) creates one
+`ManagedRuntime` per request (via `AsyncLocalStorage`) and passes
+`event.platform` into `makeAppRuntime`.
+
+### 2. `CfEnv` reads bindings and `waitUntil` from the platform
+
+```ts
+// app/src/effect/cf_env.ts
+export class CfEnv extends Context.Service<CfEnv, CfEnvValue>()('CfEnv') {
+  static layer(platform: App.Platform) {
+    return Layer.effect(CfEnv)(
+      Effect.gen(function* () {
+        const env = platform.env;
+        const ctx = platform.ctx;
+        if (!env) return yield* Effect.fail(missingPlatform);
+        return {
+          env,
+          waitUntil: ctx
+            ? ctx.waitUntil
+            : (promise) => { void promise; }
+        };
+      })
+    );
+  }
+}
+```
+
+- `env` — wrangler bindings (`IMAGES`, KV, R2, …) typed via `App.Platform` in
+  `app.d.ts`.
+- `waitUntil` — from `platform.ctx`; falls back to fire-and-forget on Node when
+  `ctx` is absent (tests, some dev paths).
+
+`CfEnv.Test` is provided when no platform is available (Vitest, scripts).
+
+### 3. App layer merges `CfEnv` at the composition root
+
+```ts
+// app/src/effect/runtime_app.ts
+export const makeAppLayer = (app, publicConfig, platform?: App.Platform) =>
+  Layer.mergeAll(/* …services… */).pipe(
+    Layer.provideMerge(platform ? CfEnv.layer(platform) : CfEnv.Test),
+    /* … */
+  );
+```
+
+### 4. Services yield `CfEnv` instead of importing workerd modules
+
+**Background work** (`app/src/effect/background.ts`):
+
+```ts
+static readonly Live = Layer.effect(BackgroundWork)(
+  Effect.gen(function* () {
+    const cf = yield* CfEnv;
+    return {
+      enqueue: (work) =>
+        Effect.sync(() => {
+          const promise = Promise.resolve().then(work).catch(/* … */);
+          cf.waitUntil(promise);
+        })
+    };
+  })
+);
+```
+
+**Cloudflare Images** (`app/src/effect/live/cf_images.ts`) reads the Images
+binding from `yield* CfEnv` → `cf.env.IMAGES`.
+
+From route handlers, tRPC, or `+server.ts`, use the existing runners
+(`runServerEffect`, `runTrpcEffect`, …) — they resolve against the request
+runtime that already has `CfEnv` in scope. No need to thread `event.platform`
+through every call site.
+
+The `site/` app uses the same `CfEnv` service via `site/src/hooks.server.ts` →
+`runWithSiteRuntime(event.platform, …)`.
+
+---
+
+## Runtime live selection (images)
 
 `app/src/effect/runtime_app.ts` picks the image live by runtime, keeping both
 implementations dynamically imported so neither breaks the other's bundle —
@@ -58,54 +153,26 @@ const imageProcessorLive = Layer.unwrap(
 );
 ```
 
-- workerd → Cloudflare Images binding (dimensions via a pure-JS
+- workerd → Cloudflare Images binding via `CfEnv` (dimensions via a pure-JS
   PNG/JPEG/WebP parser — Images converts but never reports metadata).
 - Node (`vite dev`, `vite preview`, Vitest) → sharp, full fidelity.
-- Neither module is ever *loaded* in the wrong runtime: build analysis only
-  loads the selector, and each branch's chunk loads on first use.
+- Neither module is ever *loaded* in the wrong runtime.
+
+`isCloudflareWorker()` (`app/src/effect/platform.ts`) checks
+`navigator.userAgent === 'Cloudflare-Workers'`.
 
 ---
 
-## Rule
+## Rules
 
-Never statically import a workerd-only specifier from SvelteKit server code.
-Use a lazy `import()` that is never executed during build analysis, with a
-fire-and-forget fallback for Node (local `vite dev`, Vitest):
-
-```ts
-export const BackgroundWorkLive = Layer.succeed(BackgroundWork)({
-  enqueue: (work) =>
-    Effect.sync(() => {
-      const promise = Promise.resolve()
-        .then(work)
-        .catch((error) => {
-          console.error('[background] work failed', error);
-        });
-      import('cloudflare:workers').then(
-        ({ waitUntil }) => waitUntil(promise),
-        () => {
-          void promise;
-        }
-      );
-    })
-});
-```
-
-On workerd the dynamic import resolves the real `waitUntil` (verified:
-`{"resolved":true,"waitUntil":"function"}` against local workerd). Outside
-workerd the rejection branch runs the work inline without blocking.
-
-Two build-config companions, both required:
-
-1. `build.rolldownOptions.external: ['cloudflare:workers']` in
-   `site/vite.config.ts` — otherwise Vite fails the build at resolution time
-   with *"Rolldown failed to resolve import … add it to
-   `build.rolldownOptions.external`"*. (The alternative, `event.platform.ctx`,
-   avoids the specifier entirely but threads request context through layers;
-   the lazy import keeps the layer static and matches the Astro implementation.)
-2. A local ambient declaration (`site/src/cloudflare-workers.d.ts`), because
-   TypeScript resolves `@cloudflare/workers-types` to `index.ts`, never loading
-   the `declare module "cloudflare:workers"` block that lives in `index.d.ts`.
+1. **Never** statically import a workerd-only specifier from SvelteKit server
+   code. Use `event.platform` → `CfEnv` (or pass `platform` explicitly in hooks
+   / server routes only).
+2. Access bindings through `yield* CfEnv` inside Effect layers that are provided
+   by the per-request runtime — not via top-level `cloudflare:*` imports.
+3. For capabilities Miniflare does not emulate (Images), branch at runtime
+   (`isCloudflareWorker()` + dynamic `import()`) and use a Node implementation
+   locally.
 
 ---
 
@@ -113,9 +180,7 @@ Two build-config companions, both required:
 
 `import ws from 'ws'` (CJS-only) makes the bundler emit a
 `createRequire(import.meta.url)` interop helper at module scope — and
-`import.meta.url` is `undefined` on workerd, so the Worker fails to start
-(verified with a minimal worker: `createRequire(import.meta.url)` alone
-reproduces it; the proven TanStack app avoids `ws` entirely). Prefer the
-native `WebSocket` (Node 22+, Bun, workerd all have it) over the `ws` package
-in any module that ships to the Worker. Check the built bundle:
+`import.meta.url` is `undefined` on workerd, so the Worker fails to start.
+Prefer the native `WebSocket` (Node 22+, Bun, workerd all have it) over the
+`ws` package in any module that ships to the Worker. Check the built bundle:
 `createRequire` must not appear outside comments.

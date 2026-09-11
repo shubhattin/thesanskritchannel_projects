@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createCache } from '../cache';
 import { BackgroundWork } from '../background';
 import { SharedConfig } from '../config';
-import { Database } from '../database';
+import { DatabaseHttp } from '../database';
 import { RedisClient } from '../redis';
 import { CacheError } from '../errors';
 
@@ -54,11 +54,9 @@ const makeMemoryRedis = () => {
   });
 };
 
-const databaseLayer = Layer.succeed(Database)({
+const databaseLayer = Layer.succeed(DatabaseHttp)({
   run: (_operation, _run) =>
-    Effect.die(new Error('Database.run should not be called in cache unit test')),
-  transaction: (_operation, _run) =>
-    Effect.die(new Error('Database.transaction should not be called in cache unit test'))
+    Effect.die(new Error('DatabaseHttp.run should not be called in cache unit test'))
 });
 
 describe('createCache', () => {

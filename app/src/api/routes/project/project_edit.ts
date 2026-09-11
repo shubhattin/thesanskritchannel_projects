@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { dbRun, dbTransaction, type TxOrDb } from '~/effect/database';
+import { dbRunHttp, dbTransaction, type TxOrDb } from '~/effect/database';
 import { and, count, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
@@ -47,7 +47,7 @@ const find_project = (tx: TxOrDb, project_id: number) =>
 
 /** Ensures `project_id` exists; fails with NotFoundError otherwise. */
 const require_project = Effect.fn('require_project')(function* (project_id: number) {
-  const project = yield* dbRun('project_edit.require', (db) => find_project(db, project_id));
+  const project = yield* dbRunHttp('project_edit.require', (db) => find_project(db, project_id));
   if (!project) {
     return yield* Effect.fail(
       NotFoundError.make({ resource: 'project', message: 'Project not found' })
@@ -79,17 +79,17 @@ export const update_project_name_description_route = protectedAdminProcedure
           await delay_dev(400);
         });
 
-        const outcome = yield* dbTransaction('project_edit.tx.1', async (tx) => {
-          const project = await find_project(tx, input.project_id);
+        const outcome = yield* dbRunHttp('project_edit.update_meta', async (db) => {
+          const project = await find_project(db, input.project_id);
           if (!project) return { ok: false as const, reason: 'not_found' as const };
 
-          const { map: project_map } = (await tx.query.projects.findFirst({
+          const { map: project_map } = (await db.query.projects.findFirst({
             where: ({ id }, { eq }) => eq(id, input.project_id),
             columns: { map: true }
           }))!;
           // update top level name as it same as name_dev
           project_map.name_dev = input.name_dev;
-          await tx
+          await db
             .update(projects)
             .set({
               name: input.name,
@@ -214,7 +214,7 @@ export const list_project_redirects_route = protectedAdminProcedure
           await delay_dev(200);
         });
         yield* require_project(input.project_id);
-        return yield* dbRun('project_edit.db.1', (db) =>
+        return yield* dbRunHttp('project_edit.db.1', (db) =>
           db.query.project_redirects.findMany({
             where: (tbl, { eq: eqId }) => eqId(tbl.project_id, input.project_id),
             columns: { id: true, key: true, created_at: true },
@@ -238,11 +238,11 @@ export const delete_project_redirect_route = protectedAdminProcedure
           await delay_dev(300);
         });
 
-        const outcome = yield* dbTransaction('project_edit.tx.3', async (tx) => {
-          const project = await find_project(tx, input.project_id);
+        const outcome = yield* dbRunHttp('project_edit.delete_redirect', async (db) => {
+          const project = await find_project(db, input.project_id);
           if (!project) return { ok: false as const, reason: 'not_found' as const };
 
-          const deleted = await tx
+          const deleted = await db
             .delete(project_redirects)
             .where(
               and(
@@ -290,11 +290,11 @@ export const update_project_listed_route = protectedAdminProcedure
           await delay_dev(400);
         });
 
-        const outcome = yield* dbTransaction('project_edit.tx.4', async (tx) => {
-          const project = await find_project(tx, input.project_id);
+        const outcome = yield* dbRunHttp('project_edit.update_listed', async (db) => {
+          const project = await find_project(db, input.project_id);
           if (!project) return { ok: false as const, reason: 'not_found' as const };
 
-          await tx
+          await db
             .update(projects)
             .set({ listed: input.listed })
             .where(eq(projects.id, input.project_id));
@@ -365,7 +365,7 @@ export const get_delete_resource_counts_route = protectedAdminProcedure
         yield* Effect.promise(async () => {
           await delay_dev(300);
         });
-        const counts = yield* dbRun('project_edit.delete_counts', async (db) => {
+        const counts = yield* dbRunHttp('project_edit.delete_counts', async (db) => {
           const project = await find_project(db, input.project_id);
           if (!project) return null;
           return get_delete_resource_counts_for_project(db, input.project_id);
@@ -448,7 +448,7 @@ export const check_project_slug_route = protectedAdminProcedure
           return { available: false, key, replaces_redirect: false as const };
         }
 
-        const conflict = yield* dbRun('project_edit.db.2', (db) =>
+        const conflict = yield* dbRunHttp('project_edit.db.2', (db) =>
           db.query.projects.findFirst({
             where: (tbl, { eq: eqId }) => eqId(tbl.key, key),
             columns: { id: true }
@@ -458,7 +458,7 @@ export const check_project_slug_route = protectedAdminProcedure
           !!conflict &&
           (input.exclude_project_id === undefined || conflict.id !== input.exclude_project_id);
 
-        const redirect = yield* dbRun('project_edit.db.3', (db) =>
+        const redirect = yield* dbRunHttp('project_edit.db.3', (db) =>
           db.query.project_redirects.findFirst({
             where: (tbl, { eq: eqKey }) => eqKey(tbl.key, key),
             columns: { id: true, project_id: true, key: true }

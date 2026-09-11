@@ -3,6 +3,9 @@ dist/
 # generated types
 .astro/
 .svelte-kit/
+worker-configuration.d.ts
+# wrangler local state
+.wrangler/
 
 # dependencies
 node_modules/
@@ -17,6 +20,7 @@ pnpm-debug.log*
 # environment variables
 .env
 .env.production
+.dev.vars
 
 # macOS-specific files
 .DS_Store

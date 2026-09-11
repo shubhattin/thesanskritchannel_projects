@@ -12,6 +12,10 @@ vite.config.ts.timestamp-*
 
 .vercel
 .netlify
+# wrangler local state + generated Worker types
+.wrangler/
+worker-configuration.d.ts
+.dev.vars
 .venv
 
 src/db/scripts/out/
@@ -22,4 +26,3 @@ src/db/scripts/backup/
 src/components/pages/main_app/local_config.yaml
 
 .trigger
-

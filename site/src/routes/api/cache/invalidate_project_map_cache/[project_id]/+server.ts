@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 import type { RequestHandler } from './$types';
 import { projects } from '@app/db/schema';
-import { dbRun } from '@app/effect/database';
+import { dbRunHttp } from '@app/effect/database';
 import {
   clearServerProjectInfoCache,
   clearServerProjectMapCache
@@ -25,7 +25,7 @@ export const GET: RequestHandler = async ({ request, params }) =>
         return yield* Effect.fail(BadRequestError.make({ message: 'Invalid project id' }));
       }
 
-      const project = yield* dbRun('cache.invalidate_project_map.lookup', (db) =>
+      const project = yield* dbRunHttp('cache.invalidate_project_map.lookup', (db) =>
         db.query.projects.findFirst({
           where: eq(projects.id, project_id),
           columns: { key: true }

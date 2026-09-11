@@ -14,12 +14,12 @@ import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
 import { createCache, NO_CACHE_PARAMS, type NoCacheParams } from './cache';
 import { BackgroundWork } from './background';
 import { SharedConfig } from './config';
-import { Database, dbRun } from './database';
+import { DatabaseHttp, dbRunHttp } from './database';
 import { CacheError, NotFoundError } from './errors';
 import { RedisClient } from './redis';
 
 /** Same env as createCache — site-safe (no AiProvider / ObjectStorage). */
-type ProjectCacheEnv = RedisClient | BackgroundWork | SharedConfig | Database;
+type ProjectCacheEnv = RedisClient | BackgroundWork | SharedConfig | DatabaseHttp;
 
 const projectTypeSchema = z.object({
   id: z.number(),
@@ -51,7 +51,7 @@ export const projectListCache = createCache<NoCacheParams, project_type[]>({
   getKey: () => REDIS_CACHE_KEYS_CLIENT.project_list(),
   schema: projectTypeSchema.array(),
   fetch: Effect.fn('project_list.fetch')(function* (_params) {
-    return yield* dbRun('project_list.fetch', (db) =>
+    return yield* dbRunHttp('project_list.fetch', (db) =>
       db.query.projects.findMany({
         columns: {
           id: true,
@@ -71,7 +71,7 @@ export const projectMapCache = createCache<{ project_id: number }, recursive_lis
   getKey: ({ project_id }) => REDIS_CACHE_KEYS_CLIENT.project_map(project_id),
   schema: recursive_list_schema,
   fetch: Effect.fn('project_map.fetch')(function* ({ project_id }) {
-    const data = yield* dbRun('project_map.fetch', (db) =>
+    const data = yield* dbRunHttp('project_map.fetch', (db) =>
       db.query.projects.findFirst({
         where: (tbl, { eq }) => eq(tbl.id, project_id),
         columns: {
@@ -291,7 +291,7 @@ export const resolveProjectByKey = Effect.fn('resolveProjectByKey')(function* (
     } satisfies ResolvedProjectByKey;
   }
 
-  const redirect = yield* dbRun('resolveProjectByKey.redirect', (db) =>
+  const redirect = yield* dbRunHttp('resolveProjectByKey.redirect', (db) =>
     db.query.project_redirects.findFirst({
       where: (tbl, { eq: eqKey }) => eqKey(tbl.key, key),
       columns: { project_id: true }

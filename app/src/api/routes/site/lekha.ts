@@ -17,7 +17,7 @@ import {
 } from '~/lib/carta_markdown/markdown';
 import { runServerEffect, runTrpcEffect } from '~/effect/app_runtime.server';
 import { enqueueBackground } from '~/effect/background';
-import { dbRun } from '~/effect/database';
+import { dbRunHttp } from '~/effect/database';
 import { BadRequestError, NotFoundError } from '~/effect/errors';
 
 const lekha_post_input = SiteLekhaSchemaZod.omit({
@@ -75,7 +75,7 @@ const add_lekha_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const normalized = yield* normalizeLekhaPost({ ...post_data, draft: true });
-        const lekha = yield* dbRun('lekha.add', (db) =>
+        const lekha = yield* dbRunHttp('lekha.add', (db) =>
           db.insert(site_lekhas).values(normalized).returning()
         );
         const created = lekha[0];
@@ -103,7 +103,7 @@ const edit_lekha_route = protectedAdminProcedure
         yield* Effect.promise(async () => {
           await delay_dev(1000);
         });
-        const existing = yield* dbRun('lekha.edit.lookup', (db) =>
+        const existing = yield* dbRunHttp('lekha.edit.lookup', (db) =>
           db.query.site_lekhas.findFirst({
             where: (tbl, { eq: eqId }) => eqId(tbl.id, id)
           })
@@ -115,7 +115,7 @@ const edit_lekha_route = protectedAdminProcedure
         }
         const normalized = yield* normalizeLekhaPost(post_data);
         const setPublishedNow = existing.draft === true && post_data.draft === false;
-        const lekha = yield* dbRun('lekha.edit.update', (db) =>
+        const lekha = yield* dbRunHttp('lekha.edit.update', (db) =>
           db
             .update(site_lekhas)
             .set(setPublishedNow ? { ...normalized, published_at: new Date() } : normalized)
@@ -146,7 +146,7 @@ const delete_lekha_route = protectedAdminProcedure
         yield* Effect.promise(async () => {
           await delay_dev(1000);
         });
-        const prev_data = yield* dbRun('lekha.delete.lookup', (db) =>
+        const prev_data = yield* dbRunHttp('lekha.delete.lookup', (db) =>
           db.query.site_lekhas.findFirst({
             where: (tbl, { eq: eqId }) => eqId(tbl.id, id),
             columns: { url_slug: true }
@@ -157,7 +157,7 @@ const delete_lekha_route = protectedAdminProcedure
             NotFoundError.make({ resource: 'lekha', message: 'Lekha not found' })
           );
         }
-        yield* dbRun('lekha.delete', async (db) => {
+        yield* dbRunHttp('lekha.delete', async (db) => {
           await db.delete(site_lekhas).where(eq(site_lekhas.id, id));
         });
         yield* invalidate_lekha_caches(prev_data.url_slug);
@@ -197,7 +197,7 @@ const list_lekhas_route = protectedAdminProcedure.input(list_lekhas_input).query
         input.sort_by === 'updated_at' ? site_lekhas.updated_at : site_lekhas.published_at;
       const orderFn = input.order_by === 'asc' ? asc : desc;
 
-      const [countResult, list] = yield* dbRun('lekha.list', async (db) =>
+      const [countResult, list] = yield* dbRunHttp('lekha.list', async (db) =>
         Promise.all([
           db.select({ count: count() }).from(site_lekhas).where(whereClause),
           db
@@ -246,7 +246,7 @@ const check_url_slug_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const normalized = lekhaUrlSlugify(url_slug);
-        const lekha = yield* dbRun('lekha.check_slug', (db) =>
+        const lekha = yield* dbRunHttp('lekha.check_slug', (db) =>
           db.query.site_lekhas.findFirst({
             where: (tbl, { eq, ne }) =>
               exclude_id != null

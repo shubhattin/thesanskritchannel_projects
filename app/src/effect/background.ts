@@ -14,13 +14,18 @@ export class BackgroundWork extends Context.Service<
   static readonly Live = Layer.succeed(BackgroundWork)({
     enqueue: (work) =>
       Effect.sync(() => {
-        waitUntil(
-          Promise.resolve()
-            .then(work)
-            .catch((error) => {
-              console.error('[background] work failed', error);
-            })
-        );
+        const promise = Promise.resolve()
+          .then(work)
+          .catch((error) => {
+            console.error('[background] work failed', error);
+          });
+        try {
+          waitUntil(promise);
+        } catch (error) {
+          // Scheduling must never fail the foreground read (e.g. waitUntil
+          // outside request scope during prerender): the write is best-effort.
+          console.error('[background] enqueue failed', error);
+        }
       })
   });
 

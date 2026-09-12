@@ -6,7 +6,7 @@ import { RedisClient, type RedisJsonValue } from './redis';
 import { CacheError } from './errors';
 import { BackgroundWork } from './background';
 import { SharedConfig } from './config';
-import { Database } from './database';
+import { DatabaseHttp } from './database';
 import { canShareInFlightFibers, isCloudflareWorker } from './platform';
 
 const DEFAULT_TTL_S = ms('60days') / 1000;
@@ -15,11 +15,11 @@ const SINGLE_FLIGHT_LOCK_TTL_MS = ms('5m');
 const SINGLE_FLIGHT_POLL = Duration.millis(250);
 const SINGLE_FLIGHT_MAX_POLLS = 120;
 
-/** Shared by app + site — do not require app-only services like AiProvider. */
-type CacheServices = RedisClient | BackgroundWork | SharedConfig | Database;
+/** Shared by app + site — do not require app-only services like AiProvider / Database. */
+type CacheServices = RedisClient | BackgroundWork | SharedConfig | DatabaseHttp;
 
 /** Services a cache `fetch` may require (subset of runtime services). */
-type CacheFetchServices = Database;
+type CacheFetchServices = DatabaseHttp;
 
 export type CacheRefreshOptions = {
   /** Delete the redis key before fetching fresh data. Default true. */
@@ -272,12 +272,12 @@ export function createCache<TParams, TCached, TData = TCached>(
           yield* write;
         } else {
           const redis = yield* RedisClient;
-          const database = yield* Database;
+          const database = yield* DatabaseHttp;
           yield* background.enqueue(() =>
             Effect.runPromise(
               write.pipe(
                 Effect.provideService(RedisClient, redis),
-                Effect.provideService(Database, database),
+                Effect.provideService(DatabaseHttp, database),
                 Effect.provideService(SharedConfig, sharedConfig),
                 Effect.catch((error) =>
                   Effect.logWarning('cache set failed', { key: cacheKey, error }).pipe(
@@ -429,7 +429,7 @@ export function createCache<TParams, TCached, TData = TCached>(
     const cacheKey = config.getKey(params);
     const genSnapshot = yield* snapshotGeneration(cacheKey);
     const redis = yield* RedisClient;
-    const database = yield* Database;
+    const database = yield* DatabaseHttp;
     const background = yield* BackgroundWork;
 
     const repopulate = Effect.gen(function* () {
@@ -458,7 +458,7 @@ export function createCache<TParams, TCached, TData = TCached>(
       Effect.runPromise(
         repopulate.pipe(
           Effect.provideService(RedisClient, redis),
-          Effect.provideService(Database, database),
+          Effect.provideService(DatabaseHttp, database),
           Effect.provideService(SharedConfig, sharedConfig),
           Effect.provideService(BackgroundWork, background),
           Effect.catch((error) =>

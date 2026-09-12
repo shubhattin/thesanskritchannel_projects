@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
 import { projects } from '@app/db/schema';
 import { CACHE } from '@app/effect/cache_loaders';
-import { dbRun } from '@app/effect/database';
+import { dbRunHttp } from '@app/effect/database';
 import { getProjectInfoByKey } from '@app/effect/project_registry';
 import { NONE_LANG_ID } from '$lib/cookies';
 import { get_selected_text_levels_from_path_params } from '~/utils/text-routes';
@@ -38,7 +38,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
   const translation = await runServerEffect(
     Effect.gen(function* () {
-      const row = yield* dbRun('get_trans.project', (db) =>
+      const row = yield* dbRunHttp('get_trans.project', (db) =>
         db.query.projects.findFirst({
           where: eq(projects.id, project_id),
           columns: { key: true }

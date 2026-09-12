@@ -6,7 +6,7 @@ import {
   type AppConfigInput,
   type AppPublicConfigInput
 } from './config';
-import { Database } from './database';
+import { Database, DatabaseHttp } from './database';
 import { RedisClient } from './redis';
 import { ObjectStorage } from './storage';
 import { AiProvider, OpenAiBatchClient } from './ai';
@@ -32,12 +32,14 @@ const imageProcessorLive = Layer.unwrap(
 );
 
 /**
- * Full app layer: shared infra + S3, AI, images, QStash, public config.
+ * Full app layer: shared infra + session DB + HTTP DB, S3, AI, images, QStash, public config.
  * SharedConfig is derived from AppConfig so Database/Redis stay
  * SharedConfig-only.
  *
- * Database uses the Workers-safe per-query driver: workerd isolates I/O to
- * the creating request, so no pooled client may outlive it.
+ * Both DB drivers use the Workers-safe per-query layers: workerd isolates I/O to
+ * the creating request, so no pooled client may outlive it. `Database` stays for
+ * interactive transactions / advisory locks; one-shot reads/writes go through
+ * `DatabaseHttp` (Neon fetch in prod).
  */
 export const makeAppLayer = (
   app: AppConfigInput,
@@ -51,6 +53,7 @@ export const makeAppLayer = (
     imageProcessorLive,
     BackgroundWork.Live,
     Database.WorkersLive,
+    DatabaseHttp.WorkersLive,
     RedisClient.Live,
     ObjectStorage.Live,
     AiProvider.Live,

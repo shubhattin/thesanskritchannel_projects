@@ -8,8 +8,9 @@
  * `CfEnv` is bound from `event.platform` so `waitUntil` uses the same path in
  * `vite dev` and on workerd.
  *
- * Site-only layer (DB + Redis + background) — importing the app runtime would
- * drag `sharp` / S3 / AI into the Worker graph.
+ * Site-only layer (HTTP DB + Redis + background) — importing the app runtime would
+ * drag `sharp` / S3 / AI into the Worker graph. Session `Database` (WS/TCP)
+ * stays off this layer so site cannot take a session connection.
  */
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { env } from '$env/dynamic/private';
@@ -18,7 +19,7 @@ import { resolveDbUrl, SharedConfig, type SharedConfigInput } from '@app/effect/
 import { envBagFromUnknown, pickEnv } from '@app/effect/env';
 import { BackgroundWork } from '@app/effect/background';
 import { CfEnv } from '@app/effect/cf_env';
-import { Database } from '@app/effect/database';
+import { DatabaseHttp } from '@app/effect/database';
 import { RedisClient } from '@app/effect/redis';
 import { createRunners, type EffectRunners } from '@app/effect/run';
 
@@ -28,7 +29,7 @@ const makeSiteLayer = (
   platform?: App.Platform
 ) => {
   const sharedConfigLayer = SharedConfig.layer(shared);
-  return Layer.mergeAll(Database.WorkersLive, RedisClient.Live, backgroundLayer).pipe(
+  return Layer.mergeAll(DatabaseHttp.WorkersLive, RedisClient.Live, backgroundLayer).pipe(
     Layer.provideMerge(platform ? CfEnv.layer(platform) : CfEnv.Test),
     Layer.provideMerge(sharedConfigLayer)
   );

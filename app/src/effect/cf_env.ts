@@ -28,8 +28,12 @@ export class CfEnv extends Context.Service<CfEnv, CfEnvValue>()('CfEnv') {
         }
         return {
           env,
+          // IMPORTANT: call as a method on ctx. Storing the bare reference
+          // (`waitUntil: ctx.waitUntil`) loses `this` and workerd throws
+          // "TypeError: Illegal invocation" on the first background call
+          // (e.g. async cache write-back after a Redis miss).
           waitUntil: ctx
-            ? ctx.waitUntil
+            ? (promise: Promise<unknown>) => ctx.waitUntil(promise)
             : (promise: Promise<unknown>) => {
                 void promise;
               }

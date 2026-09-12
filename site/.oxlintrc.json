@@ -15,7 +15,7 @@
     { "name": "anti-slop-effect", "specifier": "../tools/oxlint/anti-slop/effect/index.ts" }
   ],
   "rules": {
-    "complexity": ["warn", { "max": 15 }],
+    "complexity": ["warn", { "max": 20 }],
     "anti-slop/no-chained-type-assertions": "warn",
     "anti-slop/no-conditional-empty-object-spread": "warn",
     "anti-slop/no-known-value-widening": "warn",

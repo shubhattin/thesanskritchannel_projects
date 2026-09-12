@@ -23,6 +23,14 @@ region = 'aws:ap-southeast-1'
 [assets]
 binding = 'ASSETS'
 directory = './.svelte-kit/cloudflare'
+# SSR app: every non-file request must reach _worker.js so SvelteKit renders
+# +error.svelte. Default asset-first routing intermittently serves the edge's
+# plaintext 9-byte `Not found` without ever invoking the Worker (invisible in
+# Observability). `run_worker_first` forces all requests through the Worker,
+# which cheaply delegates real files to ASSETS itself. `not_found_handling`
+# stays `none` so no edge 404.html/index.html fallback can short-circuit SSR.
+not_found_handling = 'none'
+run_worker_first = true
 
 # Cloudflare Images binding for server-side image processing
 # (see src/effect/live/cf_images.ts). No dashboard setup needed beyond deploy.
@@ -59,7 +67,7 @@ binding = 'IMAGES'
 #   Non-prod:       bunx wrangler versions upload --keep-vars
 
 [observability]
-enabled = false
+enabled = true
 head_sampling_rate = 1
 
 [observability.logs]
@@ -69,6 +77,6 @@ persist = true
 invocation_logs = true
 
 [observability.traces]
-enabled = false
+enabled = true
 persist = true
 head_sampling_rate = 1

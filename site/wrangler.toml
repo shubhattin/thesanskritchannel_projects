@@ -22,6 +22,14 @@ region = 'aws:ap-south-1'
 [assets]
 binding = 'ASSETS'
 directory = './.svelte-kit/cloudflare'
+# SSR app: every non-file request must reach _worker.js so SvelteKit renders
+# +error.svelte. Default asset-first routing intermittently serves the edge's
+# plaintext 9-byte `Not found` without ever invoking the Worker (invisible in
+# Observability). `run_worker_first` forces all requests through the Worker,
+# which cheaply delegates real files to ASSETS itself. `not_found_handling`
+# stays `none` so no edge 404.html/index.html fallback can short-circuit SSR.
+not_found_handling = 'none'
+run_worker_first = true
 
 # Runtime env vars live in the Cloudflare dashboard only (Settings → Variables and Secrets).
 # Do NOT put [vars] here — even with keep_vars, keys present in [vars] overwrite dashboard.
@@ -49,7 +57,7 @@ directory = './.svelte-kit/cloudflare'
 # PUBLIC_POSTHOG_URL="https://us.i.posthog.com"
 
 [observability]
-enabled = false
+enabled = true
 head_sampling_rate = 1
 
 [observability.logs]
@@ -59,6 +67,6 @@ persist = true
 invocation_logs = true
 
 [observability.traces]
-enabled = false
+enabled = true
 persist = true
 head_sampling_rate = 1

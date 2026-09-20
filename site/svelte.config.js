@@ -30,9 +30,6 @@ const config = {
       '~/tools': '../app/src/tools',
       '~/api': '../app/src/api',
       '~/constants': '../app/src/constants.ts'
-    },
-    files: {
-      assets: 'public'
     }
   }
 };

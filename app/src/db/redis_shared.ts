@@ -21,6 +21,8 @@ export const REDIS_CACHE_KEYS_CLIENT = {
   site_lekha_list: () => `site_lekha_list`,
   project_list: () => `project_list`,
   project_map: (project_id: number) => `project_map:${project_id}`,
+  /** Public site sitemap chunks (sitemap-1.xml onward). */
+  sitemap: () => `sitemap`,
   /** Available Language Translaton Langs */
   available_translation_langs: (project_id: number, path_params: (number | null)[] | string) => {
     let key = `available_translation_langs:${project_id}:`;
@@ -41,5 +43,6 @@ export const REDIS_CACHES_ARGUMENTS_LIST: RedisCacheArguments = {
   site_lekha_list: [],
   project_list: [],
   project_map: ['project_id'],
+  sitemap: [],
   available_translation_langs: ['project_id', 'path_params']
 };

@@ -11,6 +11,7 @@ describe('REDIS_CACHE_KEYS_CLIENT', () => {
     expect(REDIS_CACHE_KEYS_CLIENT.translation(5, 2, [0, 1])).toBe('trans_data:5:2:0/1');
     expect(REDIS_CACHE_KEYS_CLIENT.project_map(9)).toBe('project_map:9');
     expect(REDIS_CACHE_KEYS_CLIENT.project_list()).toBe('project_list');
+    expect(REDIS_CACHE_KEYS_CLIENT.sitemap()).toBe('sitemap');
   });
 
   it('keeps argument lists aligned with key builders', () => {

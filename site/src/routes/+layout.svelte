@@ -7,6 +7,7 @@
   import type { LayoutData } from './$types';
   import Header from '$components/Header.svelte';
   import Footer from '$components/Footer.svelte';
+  import RouteProgress from '$components/RouteProgress.svelte';
   import Posthog from '$components/Posthog.svelte';
   import { site_prefs } from '$lib/main_text/site-prefs.svelte';
   import { bootTheme } from '$lib/theme-runtime';
@@ -49,6 +50,8 @@
     fetchpriority="high"
   />
 </svelte:head>
+
+<RouteProgress />
 
 <a href="#main-content" class="skip-link">Skip to Main Content</a>
 

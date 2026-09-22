@@ -3,6 +3,7 @@
   import MetaTags from '$components/tags/MetaTags.svelte';
   import LekhaCodeBlockCopy from '$components/lekha/LekhaCodeBlockCopy.svelte';
   import MainTextScriptSelector from '$components/main_text/MainTextScriptSelector.svelte';
+  import { Badge } from '$lib/components/ui/badge';
   import { getFontClass } from '~/components/utils/font_list';
   import { get_display_script_from_id } from '$lib/main_text/display-script';
   import { site_prefs } from '$lib/main_text/site-prefs.svelte';
@@ -51,7 +52,11 @@
   }
 </script>
 
-<MetaTags title={`${data.entry.title} — Lekha`} description={data.entry.description} />
+<MetaTags
+  title={`${data.entry.title} — Lekha`}
+  description={data.entry.description}
+  keywords={data.entry.tags}
+/>
 
 <article class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
   <p class="mb-8 text-sm text-muted-foreground">
@@ -88,6 +93,18 @@
     {@html display_html}
   </div>
   <LekhaCodeBlockCopy />
+  {#if data.entry.tags.length > 0}
+    <footer class="mt-10 border-t border-border pt-6">
+      <h2 class="mb-3 text-sm font-medium text-muted-foreground">Tags</h2>
+      <ul class="flex flex-wrap gap-2">
+        {#each data.entry.tags as tag (tag)}
+          <li>
+            <Badge variant="secondary" class="font-normal">{tag}</Badge>
+          </li>
+        {/each}
+      </ul>
+    </footer>
+  {/if}
   <p class="mt-12 text-sm text-muted-foreground">
     <a
       href="/lekha"

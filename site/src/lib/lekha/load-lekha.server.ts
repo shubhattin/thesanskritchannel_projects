@@ -21,6 +21,7 @@ export type LekhaEntryPayload = {
   description: string | null;
   published_at: Date | string | null;
   content: string;
+  tags: string[];
   has_script_indicator: boolean;
   /** HTML for current script (SSR). */
   html: string;
@@ -61,6 +62,7 @@ export async function load_lekha_entry(
     description: row.description ?? null,
     published_at: row.published_at ?? null,
     content: row.content,
+    tags: row.tags ?? [],
     has_script_indicator,
     html,
     html_base

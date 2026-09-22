@@ -5,7 +5,7 @@
   import '$lib/carta_markdown/code/shiki-theme.css';
   import '$lib/carta_markdown/video/video-container.css';
   import { browser } from '$app/environment';
-  import { goto } from '$app/navigation';
+  import { beforeNavigate, goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
   import { useTRPC } from '~/api/client';
@@ -64,8 +64,14 @@
   } = $props();
   const trpc = useTRPC();
 
-  const ctx = createTypingContext('Devanagari');
-  let typing_enabled = $state(false);
+  /** Content editor LipiLekhika context (separate from title/description). */
+  const content_typing_ctx = createTypingContext('Devanagari');
+  let content_typing_enabled = $state(false);
+
+  /** Shared on/off for title + description; each field keeps its own typing context. */
+  const title_typing_ctx = createTypingContext('Devanagari');
+  const description_typing_ctx = createTypingContext('Devanagari');
+  let meta_typing_enabled = $state(false);
 
   // In the new svelte versions, we can use $derived for value updating too
   // this works till the prop values does not chnage so we can do this here
@@ -77,6 +83,7 @@
   let is_draft = $derived(initial?.draft ?? true);
   let published_at_shown = $derived(initial?.published_at ?? null);
   let listed = $state(true);
+  /** Kept in form state / DB default; UI control is hidden for now. */
   let search_indexed = $state(true);
   /** When true, slug is derived from title and the slug field is read-only. */
   let slug_auto = $derived(initial?.url_slug ? false : true);
@@ -97,32 +104,41 @@
   let format_busy = $state(false);
   /** Last session synced from `initial` (`'new'` or lekha id); avoids re-sync on referential re-renders. */
   let last_seeded = $state<'new' | number | null>(null);
+  /** Snapshot of last saved / seeded form values for dirty detection. */
+  let saved_snapshot = $state<{
+    title: string;
+    description: string;
+    content: string;
+    tags_key: string;
+    listed: boolean;
+    search_indexed: boolean;
+    url_slug: string;
+  } | null>(null);
+  let leave_confirmed = false;
 
   let slug_section_unlocked = $derived(mode === 'create' || slug_edit_unlocked);
 
-  $effect(() => {
-    if (mode === 'create') {
-      published_at_shown = null;
-      if (last_seeded !== 'new') {
-        last_seeded = 'new';
-      }
-      return;
-    }
-    if (mode === 'edit' && lekha_id != null && initial) {
-      if (last_seeded !== lekha_id) {
-        last_seeded = lekha_id;
-        published_at_shown = initial.published_at ? new Date(initial.published_at) : null;
-      }
-    }
-  });
+  function tagsKey(list: string[]) {
+    return JSON.stringify(list);
+  }
+
+  function toggleMetaTypingFromKeyboard(e: KeyboardEvent) {
+    if (!(e.altKey && (e.key === 'x' || e.key === 'X'))) return false;
+    e.preventDefault();
+    meta_typing_enabled = !meta_typing_enabled;
+    return true;
+  }
+
+  function toggleContentTypingFromKeyboard(e: KeyboardEvent) {
+    if (!(e.altKey && (e.key === 'x' || e.key === 'X'))) return false;
+    e.preventDefault();
+    content_typing_enabled = !content_typing_enabled;
+    return true;
+  }
 
   function formatPublishedDate(d: Date) {
     return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
   }
-
-  onMount(() => {
-    editor_ready = true;
-  });
 
   let slug_locked = $derived(mode === 'edit' && !slug_edit_unlocked);
 
@@ -133,6 +149,80 @@
         ? lekhaUrlSlugify(title)
         : lekhaUrlSlugify(url_slug_manual)
   );
+
+  function captureSavedSnapshot() {
+    saved_snapshot = {
+      title,
+      description,
+      content,
+      tags_key: tagsKey(tags),
+      listed,
+      search_indexed,
+      url_slug: slug_effective
+    };
+  }
+
+  let is_dirty = $derived.by(() => {
+    const snap = saved_snapshot;
+    if (!snap) return false;
+    return (
+      title !== snap.title ||
+      description !== snap.description ||
+      content !== snap.content ||
+      tagsKey(tags) !== snap.tags_key ||
+      listed !== snap.listed ||
+      search_indexed !== snap.search_indexed ||
+      slug_effective !== snap.url_slug
+    );
+  });
+
+  $effect(() => {
+    if (mode === 'create') {
+      published_at_shown = null;
+      if (last_seeded !== 'new') {
+        last_seeded = 'new';
+        listed = true;
+        search_indexed = true;
+        queueMicrotask(() => captureSavedSnapshot());
+      }
+      return;
+    }
+    if (mode === 'edit' && lekha_id != null && initial) {
+      if (last_seeded !== lekha_id) {
+        last_seeded = lekha_id;
+        published_at_shown = initial.published_at ? new Date(initial.published_at) : null;
+        listed = initial.listed;
+        search_indexed = initial.search_indexed;
+        queueMicrotask(() => captureSavedSnapshot());
+      }
+    }
+  });
+
+  onMount(() => {
+    editor_ready = true;
+    // Tab close / refresh guard only in production — local HMR reloads would be noisy in DEV.
+    if (!browser || import.meta.env.DEV) return;
+    const on_beforeunload = (e: BeforeUnloadEvent) => {
+      if (!is_dirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', on_beforeunload);
+    return () => window.removeEventListener('beforeunload', on_beforeunload);
+  });
+
+  beforeNavigate(({ cancel }) => {
+    if (import.meta.env.DEV || !is_dirty || leave_confirmed) return;
+    const ok = confirm('You have unsaved lekha edits. Leave and discard them?');
+    if (!ok) {
+      cancel();
+      return;
+    }
+    leave_confirmed = true;
+    queueMicrotask(() => {
+      leave_confirmed = false;
+    });
+  });
 
   const debounced_for_slug = new Debounced(
     () =>
@@ -221,6 +311,7 @@
   const add_mut = createMutation(() =>
     trpc.site.lekha.add_lekha.mutationOptions({
       onSuccess: async ({ id }) => {
+        leave_confirmed = true;
         await invalidateLekhaList();
         await goto(`/lekha/edit/${id}`);
       }
@@ -238,6 +329,9 @@
         description = normalized.description;
         tags = normalized.tags;
         content = await sanitizeAndFormatLekhaMarkdownForStorage(normalized.content);
+        listed = vars.post_data.listed;
+        search_indexed = vars.post_data.search_indexed;
+        captureSavedSnapshot();
         toast.success('Lekha updated successfully');
       }
     })
@@ -246,6 +340,7 @@
   const delete_mut = createMutation(() =>
     trpc.site.lekha.delete_lekha.mutationOptions({
       onSuccess: async () => {
+        leave_confirmed = true;
         await invalidateLekhaList();
         await goto('/lekha');
       }
@@ -521,8 +616,7 @@
             <AlertDialog.Header>
               <AlertDialog.Title>Publish this lekha?</AlertDialog.Title>
               <AlertDialog.Description class="text-sm text-muted-foreground">
-                This will go live per your Listed and Search indexed choices. You can still edit the
-                post afterwards.
+                This will go live per your Listed choice. You can still edit the post afterwards.
               </AlertDialog.Description>
             </AlertDialog.Header>
             <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
@@ -569,14 +663,49 @@
 
   <div class="grid gap-3 sm:grid-cols-1">
     <div class="space-y-1.5">
-      <Label for="lekha-title">Title</Label>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <Label for="lekha-title">Title</Label>
+        <div class="flex items-center gap-2">
+          <Icon src={LanguageIcon} outerClass="shrink-0 text-muted-foreground" class="size-4" />
+          <Label
+            for="lekha-meta-typing-enabled"
+            class="cursor-pointer text-xs font-normal text-muted-foreground select-none"
+            >Typing</Label
+          >
+          <Switch
+            id="lekha-meta-typing-enabled"
+            bind:checked={meta_typing_enabled}
+            disabled={add_mut.isPending || edit_mut.isPending}
+            title="Devanagari transliteration for title and description (Alt+X)"
+          />
+        </div>
+      </div>
       <Input
         id="lekha-title"
         class="font-semibold"
         bind:value={title}
         required
         autocomplete="off"
+        onbeforeinput={(e) =>
+          handleTypingBeforeInputEvent(
+            title_typing_ctx,
+            e,
+            (v) => (title = v),
+            meta_typing_enabled
+          )}
+        onblur={() => title_typing_ctx.clearContext()}
+        onkeydown={(e) => {
+          if (toggleMetaTypingFromKeyboard(e)) return;
+          clearTypingContextOnKeyDown(e, title_typing_ctx);
+        }}
       />
+      <p class="text-xs text-muted-foreground">
+        Shared with description — toggle with
+        <kbd
+          class="rounded border border-border bg-background px-1 font-mono text-[10px] shadow-sm"
+          >Alt+X</kbd
+        >
+      </p>
     </div>
     <div class="space-y-1.5">
       <Label for="lekha-description">Description</Label>
@@ -586,6 +715,18 @@
         required
         rows={3}
         class="min-h-20"
+        onbeforeinput={(e) =>
+          handleTypingBeforeInputEvent(
+            description_typing_ctx,
+            e,
+            (v) => (description = v),
+            meta_typing_enabled
+          )}
+        onblur={() => description_typing_ctx.clearContext()}
+        onkeydown={(e) => {
+          if (toggleMetaTypingFromKeyboard(e)) return;
+          clearTypingContextOnKeyDown(e, description_typing_ctx);
+        }}
       />
     </div>
     <div class="space-y-1.5">
@@ -720,6 +861,7 @@
         </Popover.Content>
       </Popover.Root>
     </div>
+    <!-- Search indexed UI hidden for now; column stays default-on in DB / form state.
     <div class="flex items-center gap-1.5">
       <Checkbox
         id="cb-search"
@@ -744,6 +886,7 @@
         </Popover.Content>
       </Popover.Root>
     </div>
+    -->
   </div>
 
   <div class="space-y-1.5">
@@ -764,9 +907,9 @@
             >
             <Switch
               id="lekha-typing-enabled"
-              bind:checked={typing_enabled}
+              bind:checked={content_typing_enabled}
               disabled={add_mut.isPending || edit_mut.isPending}
-              title="Transliteration typing (Alt+X)"
+              title="Transliteration typing for content (Alt+X)"
             />
           </div>
           <Button
@@ -803,16 +946,16 @@
               selectedTab="write"
               textarea={{
                 onbeforeinput: (e: Event) =>
-                  handleTypingBeforeInputEvent(ctx, e, (v) => (content = v), typing_enabled),
-                onblur: () => ctx.clearContext(),
+                  handleTypingBeforeInputEvent(
+                    content_typing_ctx,
+                    e,
+                    (v) => (content = v),
+                    content_typing_enabled
+                  ),
+                onblur: () => content_typing_ctx.clearContext(),
                 onkeydown: (e: KeyboardEvent) => {
-                  // Toggle typing on Alt+X
-                  if (e.altKey && (e.key === 'x' || e.key === 'X')) {
-                    e.preventDefault();
-                    typing_enabled = !typing_enabled;
-                    return;
-                  }
-                  clearTypingContextOnKeyDown(e, ctx);
+                  if (toggleContentTypingFromKeyboard(e)) return;
+                  clearTypingContextOnKeyDown(e, content_typing_ctx);
                 }
               }}
             />

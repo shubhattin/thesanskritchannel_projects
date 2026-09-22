@@ -7,7 +7,7 @@
 - Use command in form `bun x shadcn-svelte@latest add <component-list>` to add components.
 - Both the `site` (Astro) and `app/` (Sveltekit) have their different shadcnui/svelte configurations and installed components
 
-# General 
+# General
 
 - Never start the dev server, as it would be already running on the provisioned port.
 - The project is a monorepo with two seperate apps
@@ -21,6 +21,7 @@
 # AI
 
 - Before making any new chnages always read te current contens of file as soemtimes there might be manually done changes which might overwrite.
+- Never make git commits or push unless explicitly requested.
 
 # Cursor harness specifc instructions
 

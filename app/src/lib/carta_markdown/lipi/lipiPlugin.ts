@@ -12,5 +12,5 @@ export const lipiToolbarIcon: Icon = createWrapTagIcon({
   openTag: '<lipi>',
   closeTag: '</lipi>',
   /** Used as the button `title` and accessible name in Carta. */
-  label: 'Write in Devanagari Lipi'
+  label: 'Write in Devanagari Lipi (Ctrl+J)'
 });

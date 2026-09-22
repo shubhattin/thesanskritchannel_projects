@@ -35,13 +35,30 @@ function lekhaOrderedBaseIcons(): Icon[] {
 }
 
 /**
+ * Same wrap actions as the toolbar buttons. Carta calls `preventDefault` on match, so these
+ * override browser defaults (e.g. Ctrl+L location bar, Ctrl+J downloads) while the editor is focused.
+ */
+const LEKHA_LIPI_SHORTCUTS: NonNullable<Plugin['shortcuts']> = [
+  {
+    id: 'lipi',
+    combination: new Set(['control', 'j']),
+    action: lipiToolbarIcon.action
+  },
+  {
+    id: 'lipi-shloka',
+    combination: new Set(['control', 'l']),
+    action: lipiShlokaToolbarIcon.action
+  }
+];
+
+/**
  * Lekha editor Carta extensions: Shiki code blocks + full toolbar + underline + GFM table + YouTube; Lipi/Shloka after Italic.
  */
 export function getLekhaCartaExtensions(): Plugin[] {
   return [
     { grammarRules: LEKHA_CARTA_GRAMMAR_RULES },
     code({ theme: LEKHA_SHIKI_DUAL }),
-    { icons: lekhaOrderedBaseIcons() },
+    { icons: lekhaOrderedBaseIcons(), shortcuts: LEKHA_LIPI_SHORTCUTS },
     lekhaUnderlinePlugin(),
     lekhaTableToolbarPlugin(),
     lekhaVideoToolbarPlugin()

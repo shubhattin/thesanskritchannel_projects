@@ -16,7 +16,7 @@ function toggleLipiShlokaWrap(input: InputEnhancer) {
  */
 export const lipiShlokaToolbarIcon: Icon = {
   id: 'lipi-shloka',
-  label: 'lipi + shloka block',
+  label: 'lipi + shloka block (Ctrl+L)',
   component: LipiShlokaToolbarIcon,
   action: (input) => toggleLipiShlokaWrap(input)
 };

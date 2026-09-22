@@ -701,8 +701,7 @@
       />
       <p class="text-xs text-muted-foreground">
         Shared with description — toggle with
-        <kbd
-          class="rounded border border-border bg-background px-1 font-mono text-[10px] shadow-sm"
+        <kbd class="rounded border border-border bg-background px-1 font-mono text-[10px] shadow-sm"
           >Alt+X</kbd
         >
       </p>

@@ -149,7 +149,7 @@ export const site_lekhas = pgTable(
     draft: boolean('draft').notNull().default(true),
     /** listed on site */
     listed: boolean('listed').notNull().default(true),
-    /** search index, indexed by search engine */
+    /** search index, indexed by search engine, for now using `listed` itself as a indicator to index */
     search_indexed: boolean('search_indexed').notNull().default(true)
   },
   (table) => [index().on(table.published_at)]

@@ -48,32 +48,107 @@ describe('isolateLipiShlokaBlocksForRemarkFormat / restore', () => {
 स्तanza३ line</lipi-shloka>`;
     const { text, blocks } = isolateLipiShlokaBlocksForRemarkFormat(original);
     expect(blocks).toHaveLength(1);
-    expect(blocks[0]).toBe(original);
-    expect(text).toContain('<!--lekha-fmt-lipi-shloka:0-->');
+    expect(blocks[0]?.html).toBe(original);
+    expect(blocks[0]?.leadingNewlines).toBe('');
+    expect(blocks[0]?.trailingNewlines).toBe('');
+    expect(text).toBe('<lekha-fmt-lipi-shloka-0/>');
     expect(text).not.toContain('<lipi-shloka>');
     expect(restoreLipiShlokaBlocksAfterRemarkFormat(text, blocks)).toBe(original);
   });
 
-  it('isolates multiple blocks with stable ids', () => {
+  it('isolates multiple blocks with stable ids and peels inter-block newlines', () => {
     const a = `<lipi-shloka>a</lipi-shloka>`;
     const b = `<lipi-shloka>b\n\nb</lipi-shloka>`;
     const md = `# x\n\n${a}\n\n${b}`;
     const { text, blocks } = isolateLipiShlokaBlocksForRemarkFormat(md);
-    expect(blocks).toEqual([a, b]);
-    expect(text).toContain('<!--lekha-fmt-lipi-shloka:0-->');
-    expect(text).toContain('<!--lekha-fmt-lipi-shloka:1-->');
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0]?.html).toBe(a);
+    expect(blocks[0]?.leadingNewlines).toBe('\n\n');
+    expect(blocks[0]?.trailingNewlines).toBe('\n\n');
+    expect(blocks[1]?.html).toBe(b);
+    expect(blocks[1]?.leadingNewlines).toBe('');
+    expect(blocks[1]?.trailingNewlines).toBe('');
+    expect(text).toBe('# x<lekha-fmt-lipi-shloka-0/>\n<lekha-fmt-lipi-shloka-1/>');
     expect(restoreLipiShlokaBlocksAfterRemarkFormat(text, blocks)).toBe(md);
   });
 
-  it('allows spaces inside HTML comment sentinel on restore', () => {
-    const blocks = [`<lipi-shloka>x</lipi-shloka>`];
+  it('peels a single trailing newline so remark cannot invent a paragraph break', () => {
+    const block = `<lipi-shloka>\nएकं काव्यम् अस्ति।\n</lipi-shloka>`;
+    const md = `${block}\nekaṃ kāvyam asti.`;
+    const { text, blocks } = isolateLipiShlokaBlocksForRemarkFormat(md);
+    expect(text).toBe('<lekha-fmt-lipi-shloka-0/>\nekaṃ kāvyam asti.');
+    expect(blocks[0]?.trailingNewlines).toBe('\n');
+    expect(restoreLipiShlokaBlocksAfterRemarkFormat(text, blocks)).toBe(md);
+  });
+
+  it('allows optional whitespace before self-closing slash on restore', () => {
+    const blocks = [
+      {
+        html: `<lipi-shloka>x</lipi-shloka>`,
+        leadingNewlines: '',
+        trailingNewlines: ''
+      }
+    ];
+    expect(restoreLipiShlokaBlocksAfterRemarkFormat('<lekha-fmt-lipi-shloka-0 />', blocks)).toBe(
+      blocks[0]?.html
+    );
+  });
+
+  it('restore strips remark-injected blank lines after the sentinel', () => {
+    const blocks = [
+      {
+        html: `<lipi-shloka>x</lipi-shloka>`,
+        leadingNewlines: '',
+        trailingNewlines: '\n'
+      }
+    ];
     expect(
-      restoreLipiShlokaBlocksAfterRemarkFormat('<!--  lekha-fmt-lipi-shloka:0  -->', blocks)
-    ).toBe(blocks[0]);
+      restoreLipiShlokaBlocksAfterRemarkFormat('<lekha-fmt-lipi-shloka-0/>\n\nekaṃ.', blocks)
+    ).toBe(`<lipi-shloka>x</lipi-shloka>\nekaṃ.`);
   });
 });
 
 describe('formatMarkdownSource + lipi-shloka', () => {
+  it('does not insert a blank line between lipi-shloka and the following line', async () => {
+    const md = `<lipi-shloka>
+एकं काव्यम् अस्ति। तस्य नाम "राघवयादवीयम्"।
+</lipi-shloka>
+ekaṃ kāvyam asti. tasya nāma "rāghava-yādavīyam".
+(There is a poem. Its name is Rāghava-Yādavīyam.)`;
+
+    const out = await formatMarkdownSource(md);
+    expect(out).toBe(md);
+    expect(out).toContain('</lipi-shloka>\nekaṃ');
+    expect(out).not.toContain('</lipi-shloka>\n\nekaṃ');
+  });
+
+  it('preserves an intentional blank line after lipi-shloka', async () => {
+    const md = `<lipi-shloka>
+एकं काव्यम् अस्ति।
+</lipi-shloka>
+
+ekaṃ kāvyam asti.`;
+
+    const out = await formatMarkdownSource(md);
+    expect(out).toContain('</lipi-shloka>\n\nekaṃ');
+    expect(out).toBe(md);
+  });
+
+  it('matches shloka adjacency: single newline after block stays single', async () => {
+    const body = `एकं काव्यम् अस्ति। तस्य नाम "राघवयादवीयम्"।`;
+    const after = `ekaṃ kāvyam asti. tasya nāma "rāghava-yādavīyam".`;
+    const lipiShloka = `<lipi-shloka>\n${body}\n</lipi-shloka>\n${after}`;
+    const shloka = `<shloka>\n${body}\n</shloka>\n${after}`;
+
+    const lipiOut = await formatMarkdownSource(lipiShloka);
+    const shlokaOut = await formatMarkdownSource(shloka);
+
+    expect(lipiOut).toContain(`</lipi-shloka>\n${after}`);
+    expect(lipiOut).not.toContain(`</lipi-shloka>\n\n${after}`);
+    expect(shlokaOut).toContain(`</shloka>\n${after}`);
+    expect(shlokaOut).not.toContain(`</shloka>\n\n${after}`);
+  });
+
   it('keeps closing tag contiguous with inner content (multi-blank-line regression)', async () => {
     const md = `# Section
 
@@ -101,6 +176,21 @@ describe('formatMarkdownSource + lipi-shloka', () => {
     expect(inner).toContain('दूसरा');
     expect(inner).toContain('तीसरा श्लोक');
     expect(inner.match(/<\/lipi-shloka>/g)?.length).toBe(1);
+    expect(out).toContain('</lipi-shloka>\n\n## Next');
+  });
+
+  it('preserves single newline between preceding prose and lipi-shloka', async () => {
+    const md = `Intro line.
+<lipi-shloka>
+श्लोकः
+</lipi-shloka>
+Follow-up.`;
+
+    const out = await formatMarkdownSource(md);
+    expect(out).toContain('Intro line.\n<lipi-shloka>');
+    expect(out).not.toContain('Intro line.\n\n<lipi-shloka>');
+    expect(out).toContain('</lipi-shloka>\nFollow-up.');
+    expect(out).not.toContain('</lipi-shloka>\n\nFollow-up.');
   });
 
   it('single-par lipi-shloka still formats safely', async () => {

@@ -3,7 +3,8 @@
  * Sanitize dangerous constructs, normalize markdown, transliterate <lipi>, expand <shloka>, render HTML.
  * Fenced code blocks use Shiki dual themes (`./code/`) in `renderLekhaMarkdownToHtml`, matching the Carta editor.
  * `<lipi-shloka>` is expanded only in `renderLekhaMarkdownToHtml`. For save/format,
- * `formatMarkdownSource` isolates intact `<lipi-shloka>` blocks before remark-stringify so inner blank lines are not corrupted.
+ * `formatMarkdownSource` isolates intact `<lipi-shloka>` blocks (and their adjacent newlines)
+ * before remark-stringify so inner blank lines and following-line adjacency are not corrupted.
  *
  * Uses `dompurify` + `linkedom` on the server (not `isomorphic-dompurify` / jsdom) so Vercel's NFT
  * bundler does not follow jsdom's optional `canvas` peer, which is often missing and breaks `realpath`.
@@ -44,6 +45,7 @@ export {
   restoreLipiShlokaBlocksAfterRemarkFormat,
   LIPI_SHLOKA_BLOCK_RE
 } from './lipi_shloka/lipiShlokaMarkdown';
+export type { LipiShlokaFormatBlock } from './lipi_shloka/lipiShlokaMarkdown';
 
 /**
  * Best-effort cleanup of raw markdown source (nested tags and parser quirks can bypass this).
@@ -170,11 +172,13 @@ export async function renderLekhaMarkdownToHtml(
 
 /**
  * Normalize markdown (GFM) for consistent storage: list style, fences, line endings.
- * `<lipi-shloka>…</lipi-shloka>` spans are swapped for HTML-comment sentinels before remark,
- * then restored verbatim so verse spacing survives CommonMark HTML-block quirks.
+ * `<lipi-shloka>…</lipi-shloka>` spans are swapped for void HTML sentinels before remark,
+ * then restored verbatim (including original adjacent newlines) so verse spacing survives
+ * CommonMark HTML-block quirks and remark does not inject a blank line after the block.
  */
 export async function formatMarkdownSource(markdown: string): Promise<string> {
-  const { text: protectedMd, blocks } = isolateLipiShlokaBlocksForRemarkFormat(markdown);
+  const normalized = markdown.replace(/\r\n/g, '\n');
+  const { text: protectedMd, blocks } = isolateLipiShlokaBlocksForRemarkFormat(normalized);
   const file = await unified()
     .use(remarkParse)
     .use(remarkGfm)

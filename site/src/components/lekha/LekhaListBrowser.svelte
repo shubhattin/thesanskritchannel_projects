@@ -446,12 +446,12 @@
   {/if}
 
   {#if paginated_posts.length > 0}
-    <ul class="flex flex-col gap-4" bind:this={list_el}>
+    <ul class="grid grid-cols-1 gap-4 lg:grid-cols-2" bind:this={list_el}>
       {#each paginated_posts as post (post.id)}
-        <li>
+        <li class="min-w-0">
           <a
             href={`/lekha/${post.url_slug}`}
-            class="group block rounded-lg border border-border/60 bg-card/40 px-5 py-4 transition-colors hover:border-primary/40 hover:bg-accent/30"
+            class="group flex h-full flex-col rounded-lg border border-border/60 bg-card/40 px-5 py-4 transition-colors hover:border-primary/40 hover:bg-accent/30"
           >
             <h2 class="text-lg font-semibold tracking-tight group-hover:text-primary">
               {post.title}
@@ -483,7 +483,7 @@
               </div>
             {/if}
             <time
-              class="mt-3 block text-xs text-muted-foreground"
+              class="mt-auto block pt-3 text-xs text-muted-foreground"
               datetime={toIso(post.published_at)}
             >
               {formatDate(post.published_at)}

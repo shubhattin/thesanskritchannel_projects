@@ -15,10 +15,10 @@
   keywords={['Lekha', 'Sanskrit articles', 'Sanskrit notes', 'The Sanskrit Channel']}
 />
 
-<div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+<div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
   <header class="mb-10 border-b border-border pb-8">
     <h1 class="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Lekha</h1>
-    <p class="mt-3 text-muted-foreground">{description}</p>
+    <p class="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">{description}</p>
   </header>
 
   <LekhaListBrowser posts={data.posts} />

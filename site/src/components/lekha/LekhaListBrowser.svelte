@@ -133,7 +133,7 @@
     return `${n} tags selected`;
   });
 
-  const sort_label = $derived(sort_order === 'newest' ? 'Newest first' : 'Oldest first');
+  const sort_label = $derived(sort_order === 'newest' ? 'Latest' : 'Oldest');
 
   $effect(() => {
     if (page > total_pages) page = total_pages;
@@ -218,181 +218,191 @@
 </script>
 
 <div class="flex flex-col gap-6">
-  <InputGroup.Root class="h-10 w-full">
-    <InputGroup.Addon align="inline-start" class="pl-2.5">
-      <SearchIcon class="size-4 text-muted-foreground" aria-hidden="true" />
-    </InputGroup.Addon>
-    <InputGroup.Input
-      placeholder="Search titles, descriptions, and tags…"
-      bind:value={search_text}
-      oninput={reset_page}
-      onbeforeinput={(e) =>
-        handleTypingBeforeInputEvent(
-          ctx,
-          e,
-          (newValue) => {
-            search_text = newValue;
-            reset_page();
-          },
-          typing_enabled
-        )}
-      onblur={() => ctx.clearContext()}
-      onkeydown={(e) => {
-        if (toggle_typing_from_keyboard(e)) return;
-        clearTypingContextOnKeyDown(e, ctx);
-      }}
-      aria-label="Search lekha posts"
-    />
-    <InputGroup.Addon
-      align="inline-end"
-      class="cursor-default gap-2 border-s border-border/50 ps-3 pe-2.5"
-    >
-      <Label
-        for="lekha-list-typing-switch"
-        class="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground select-none"
-      >
-        <KeyboardIcon class="size-3.5" aria-hidden="true" />
-        Typing
-      </Label>
-      <Switch
-        id="lekha-list-typing-switch"
-        bind:checked={typing_enabled}
-        title="Devanagari transliteration typing (Alt+X)"
+  <div class="flex flex-col gap-3 sm:gap-4">
+    <InputGroup.Root class="h-10 w-full">
+      <InputGroup.Addon align="inline-start" class="pl-2.5">
+        <SearchIcon class="size-4 text-muted-foreground" aria-hidden="true" />
+      </InputGroup.Addon>
+      <InputGroup.Input
+        placeholder="Search titles, descriptions, and tags…"
+        bind:value={search_text}
+        oninput={reset_page}
+        onbeforeinput={(e) =>
+          handleTypingBeforeInputEvent(
+            ctx,
+            e,
+            (newValue) => {
+              search_text = newValue;
+              reset_page();
+            },
+            typing_enabled
+          )}
+        onblur={() => ctx.clearContext()}
+        onkeydown={(e) => {
+          if (toggle_typing_from_keyboard(e)) return;
+          clearTypingContextOnKeyDown(e, ctx);
+        }}
+        aria-label="Search lekha posts"
       />
-    </InputGroup.Addon>
-  </InputGroup.Root>
-
-  <div
-    class="grid grid-cols-1 gap-3 rounded-xl border border-border/60 bg-muted/15 p-3 sm:grid-cols-2 sm:items-end sm:gap-4 sm:p-4"
-  >
-    <div class="flex min-w-0 flex-col gap-1.5">
-      <Label for="lekha-sort-order" class="text-xs font-medium text-muted-foreground">
-        Sort by date
-      </Label>
-      <Select.Root type="single" value={sort_order} onValueChange={set_sort_order}>
-        <Select.Trigger id="lekha-sort-order" class="h-8 w-full">
-          <span class="flex min-w-0 items-center gap-2">
-            {#if sort_order === 'newest'}
-              <ArrowDownWideNarrow class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-            {:else}
-              <ArrowUpNarrowWide class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-            {/if}
-            <span class="truncate">{sort_label}</span>
-          </span>
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Item value="newest" label="Newest first">
-            <span class="flex items-center gap-2">
-              <ArrowDownWideNarrow class="size-3.5 text-muted-foreground" aria-hidden="true" />
-              Newest first
-            </span>
-          </Select.Item>
-          <Select.Item value="oldest" label="Oldest first">
-            <span class="flex items-center gap-2">
-              <ArrowUpNarrowWide class="size-3.5 text-muted-foreground" aria-hidden="true" />
-              Oldest first
-            </span>
-          </Select.Item>
-        </Select.Content>
-      </Select.Root>
-    </div>
-
-    {#if available_tags.length > 0}
-      <div class="flex min-w-0 flex-col gap-1.5">
-        <Label for="lekha-tag-filter" class="text-xs font-medium text-muted-foreground">
-          Filter by tags
+      <InputGroup.Addon
+        align="inline-end"
+        class="cursor-default gap-2 border-s border-border/50 ps-3 pe-2.5"
+      >
+        <Label
+          for="lekha-list-typing-switch"
+          class="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground select-none"
+        >
+          <KeyboardIcon class="size-3.5" aria-hidden="true" />
+          Typing
         </Label>
-        <div class="flex h-8 items-center gap-2">
-          <Popover.Root bind:open={tag_popover_open}>
-            <Popover.Trigger>
-              {#snippet child({ props })}
-                <Button
-                  {...props}
-                  id="lekha-tag-filter"
-                  variant="outline"
-                  size="sm"
-                  class="h-8 min-w-0 flex-1 justify-between gap-2 font-normal"
-                  aria-label="Filter by tags"
-                >
-                  <span class="flex min-w-0 items-center gap-2">
-                    <Tags class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                    <span class="truncate">{tag_trigger_label}</span>
-                  </span>
-                  <ChevronDown class="size-4 shrink-0 opacity-50" aria-hidden="true" />
-                </Button>
-              {/snippet}
-            </Popover.Trigger>
-            <Popover.Content
-              class="w-(--bits-popover-anchor-width) border-border bg-card p-2 text-card-foreground shadow-md"
-              align="start"
-            >
-              <div class="relative mb-2">
-                <SearchIcon
-                  class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+        <Switch
+          id="lekha-list-typing-switch"
+          bind:checked={typing_enabled}
+          title="Devanagari transliteration typing (Alt+X)"
+        />
+      </InputGroup.Addon>
+    </InputGroup.Root>
+
+    <div
+      class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-center sm:gap-4"
+    >
+      <div class="flex w-full flex-col gap-1.5 sm:w-40">
+        <Label for="lekha-sort-order" class="text-xs font-medium text-muted-foreground">
+          Sort by date
+        </Label>
+        <Select.Root type="single" value={sort_order} onValueChange={set_sort_order}>
+          <Select.Trigger id="lekha-sort-order" class="h-8 w-full">
+            <span class="flex min-w-0 items-center gap-2">
+              {#if sort_order === 'newest'}
+                <ArrowDownWideNarrow
+                  class="size-3.5 shrink-0 text-muted-foreground"
                   aria-hidden="true"
                 />
-                <Input
-                  bind:ref={tag_filter_input}
-                  bind:value={tag_query}
-                  placeholder="Search tags…"
-                  class="h-8 pl-8"
-                  aria-label="Search tags"
-                  onkeydown={(e) => e.stopPropagation()}
+              {:else}
+                <ArrowUpNarrowWide
+                  class="size-3.5 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
                 />
-              </div>
-              <div class="max-h-64 overflow-y-auto">
-                {#if filtered_available_tags.length === 0}
-                  <p class="px-2 py-3 text-center text-sm text-muted-foreground">No matching tags</p>
-                {:else}
-                  <ul class="flex flex-col gap-0.5">
-                    {#each filtered_available_tags as { tag, count } (tag)}
-                      <li>
-                        <label
-                          class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent"
-                        >
-                          <Checkbox
-                            checked={is_tag_selected(tag)}
-                            onCheckedChange={(v) => toggle_tag(tag, v === true)}
-                          />
-                          <span class="min-w-0 flex-1 truncate text-sm">{tag}</span>
-                          <span class="text-xs text-muted-foreground tabular-nums">{count}</span>
-                        </label>
-                      </li>
-                    {/each}
-                  </ul>
-                {/if}
-              </div>
-              {#if selected_tags.length > 0}
-                <div class="mt-2 border-t border-border/60 pt-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    class="h-7 w-full text-xs"
-                    onclick={clear_tags}
-                  >
-                    Clear selection
-                  </Button>
-                </div>
               {/if}
-            </Popover.Content>
-          </Popover.Root>
-          {#if selected_tags.length > 0}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              class="size-8 shrink-0"
-              onclick={clear_tags}
-              aria-label="Clear tag filters"
-              title="Clear tag filters"
-            >
-              <X aria-hidden="true" />
-            </Button>
-          {/if}
-        </div>
+              <span class="truncate">{sort_label}</span>
+            </span>
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Item value="newest" label="Latest">
+              <span class="flex items-center gap-2">
+                <ArrowDownWideNarrow class="size-3.5 text-muted-foreground" aria-hidden="true" />
+                Latest
+              </span>
+            </Select.Item>
+            <Select.Item value="oldest" label="Oldest">
+              <span class="flex items-center gap-2">
+                <ArrowUpNarrowWide class="size-3.5 text-muted-foreground" aria-hidden="true" />
+                Oldest
+              </span>
+            </Select.Item>
+          </Select.Content>
+        </Select.Root>
       </div>
-    {/if}
+
+      {#if available_tags.length > 0}
+        <div class="flex w-full min-w-0 flex-col gap-1.5 sm:w-56">
+          <Label for="lekha-tag-filter" class="text-xs font-medium text-muted-foreground">
+            Filter by tags
+          </Label>
+          <div class="flex h-8 items-center gap-2">
+            <Popover.Root bind:open={tag_popover_open}>
+              <Popover.Trigger>
+                {#snippet child({ props })}
+                  <Button
+                    {...props}
+                    id="lekha-tag-filter"
+                    variant="outline"
+                    size="sm"
+                    class="h-8 min-w-0 flex-1 justify-between gap-2 font-normal"
+                    aria-label="Filter by tags"
+                  >
+                    <span class="flex min-w-0 items-center gap-2">
+                      <Tags class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      <span class="truncate">{tag_trigger_label}</span>
+                    </span>
+                    <ChevronDown class="size-4 shrink-0 opacity-50" aria-hidden="true" />
+                  </Button>
+                {/snippet}
+              </Popover.Trigger>
+              <Popover.Content
+                class="w-(--bits-popover-anchor-width) border-border bg-card p-2 text-card-foreground shadow-md"
+                align="start"
+              >
+                <div class="relative mb-2">
+                  <SearchIcon
+                    class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    bind:ref={tag_filter_input}
+                    bind:value={tag_query}
+                    placeholder="Search tags…"
+                    class="h-8 pl-8"
+                    aria-label="Search tags"
+                    onkeydown={(e) => e.stopPropagation()}
+                  />
+                </div>
+                <div class="max-h-64 overflow-y-auto">
+                  {#if filtered_available_tags.length === 0}
+                    <p class="px-2 py-3 text-center text-sm text-muted-foreground">
+                      No matching tags
+                    </p>
+                  {:else}
+                    <ul class="flex flex-col gap-0.5">
+                      {#each filtered_available_tags as { tag, count } (tag)}
+                        <li>
+                          <label
+                            class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent"
+                          >
+                            <Checkbox
+                              checked={is_tag_selected(tag)}
+                              onCheckedChange={(v) => toggle_tag(tag, v === true)}
+                            />
+                            <span class="min-w-0 flex-1 truncate text-sm">{tag}</span>
+                            <span class="text-xs text-muted-foreground tabular-nums">{count}</span>
+                          </label>
+                        </li>
+                      {/each}
+                    </ul>
+                  {/if}
+                </div>
+                {#if selected_tags.length > 0}
+                  <div class="mt-2 border-t border-border/60 pt-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      class="h-7 w-full text-xs"
+                      onclick={clear_tags}
+                    >
+                      Clear selection
+                    </Button>
+                  </div>
+                {/if}
+              </Popover.Content>
+            </Popover.Root>
+            {#if selected_tags.length > 0}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                class="size-8 shrink-0"
+                onclick={clear_tags}
+                aria-label="Clear tag filters"
+                title="Clear tag filters"
+              >
+                <X aria-hidden="true" />
+              </Button>
+            {/if}
+          </div>
+        </div>
+      {/if}
+    </div>
   </div>
 
   {#if selected_tags.length > 0}

@@ -16,7 +16,7 @@
   import { create_project_name_dev_normal_cache } from '@app/utils/search/project_name_dev_normal_cache';
   import { filter_lekhas_by_search } from '$lib/lekha/lekha_list_search';
 
-  const PAGE_SIZE = 15;
+  const PAGE_SIZE = 10;
 
   type LekhaListPost = {
     id: number;

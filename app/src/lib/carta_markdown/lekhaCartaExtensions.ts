@@ -12,6 +12,21 @@ import { LEKHA_CARTA_GRAMMAR_RULES } from './lekhaCartaGrammarRules';
 
 const DISABLED_DEFAULT_ICONS = new Set(['strikethrough', 'taskList']);
 
+/** Hover `title` hints for Carta default shortcuts that have toolbar buttons. */
+const DEFAULT_ICON_SHORTCUT_HINTS: Readonly<Record<string, string>> = {
+  bold: 'Ctrl+B',
+  italic: 'Ctrl+I',
+  code: 'Ctrl+E',
+  link: 'Ctrl+K',
+  quote: 'Ctrl+Shift+,'
+};
+
+function withShortcutHint(icon: Icon): Icon {
+  const hint = DEFAULT_ICON_SHORTCUT_HINTS[icon.id];
+  if (!hint) return icon;
+  return { ...icon, label: `${icon.label} (${hint})` };
+}
+
 /**
  * Rebuilds the base Carta icons (with some disabled), inserts **Lipi** immediately after **Italic**,
  * then appends **Underline** and **video** (YouTube snippet) controls. **`code`** highlighting comes from
@@ -24,7 +39,7 @@ function lekhaOrderedBaseIcons(): Icon[] {
     if (DISABLED_DEFAULT_ICONS.has(icon.id)) {
       continue;
     }
-    out.push(icon);
+    out.push(withShortcutHint(icon));
     if (icon.id === 'italic') {
       out.push(lipiToolbarIcon);
       out.push(shlokaToolbarIcon);

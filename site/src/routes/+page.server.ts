@@ -12,6 +12,6 @@ export const load: PageServerLoad = async () => {
   return {
     projects,
     featured_projects: projects.slice(0, 10),
-    latest_lekhas
+    latest_lekhas: latest_lekhas.slice(0, 5)
   };
 };

@@ -16,6 +16,7 @@
   } from 'lipilekhika/typing';
   import { filter_projects_by_search } from '@app/utils/search/project_list_search';
   import { create_project_name_dev_normal_cache } from '@app/utils/search/project_name_dev_normal_cache';
+  import { withPaginationListScroll } from '@app/lib/pagination-scroll';
 
   const PAGE_SIZE = 16;
 
@@ -56,9 +57,20 @@
   const showing_start = $derived(total_count === 0 ? 0 : (current_page - 1) * PAGE_SIZE + 1);
   const showing_end = $derived(Math.min(current_page * PAGE_SIZE, total_count));
 
+  let list_el = $state<HTMLElement | null>(null);
+
   function reset_page() {
     page = 1;
   }
+
+  const list_ref = {
+    get current() {
+      return list_el;
+    }
+  };
+  const change_page = withPaginationListScroll((next) => {
+    page = next;
+  }, list_ref);
 
   function toggle_typing_from_keyboard(e: KeyboardEvent) {
     if (!e.altKey) return false;
@@ -121,7 +133,7 @@
   {/if}
 
   {#if paginated_projects.length > 0}
-    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" bind:this={list_el}>
       {#each paginated_projects as project (project.id)}
         <a
           href={`/${project.key}`}
@@ -176,6 +188,7 @@
       count={total_count}
       perPage={PAGE_SIZE}
       bind:page
+      onPageChange={change_page}
       class="border-t border-border/60 pt-3"
     >
       {#snippet children({ pages, currentPage })}

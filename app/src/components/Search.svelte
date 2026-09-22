@@ -14,6 +14,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as Pagination from '$lib/components/ui/pagination';
+  import { withPaginationListScroll } from '$lib/pagination-scroll';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { Switch } from '$lib/components/ui/switch';
   import * as RadioGroup from '$lib/components/ui/radio-group';
@@ -56,6 +57,15 @@
 
   const LIMIT = 20;
   let page = $state(1);
+  let list_el = $state<HTMLElement | null>(null);
+  const list_ref = {
+    get current() {
+      return list_el;
+    }
+  };
+  const change_page = withPaginationListScroll((next) => {
+    page = next;
+  }, list_ref);
   const offset = $derived((page - 1) * LIMIT);
 
   const project_list_q = createQuery(() => project_list_q_options());
@@ -322,7 +332,7 @@
           {/if}
         </div>
         {#if totalCount > LIMIT}
-          <Pagination.Root count={totalCount} perPage={LIMIT} bind:page>
+          <Pagination.Root count={totalCount} perPage={LIMIT} bind:page onPageChange={change_page}>
             {#snippet children({ pages, currentPage })}
               <Pagination.Content>
                 <Pagination.Item>
@@ -387,7 +397,7 @@
               </div>
             </div>
           {:else}
-            <div class="space-y-3">
+            <div class="space-y-3" bind:this={list_el}>
               {#each search_q.data.items as row (row.project_id + ':' + row.path + ':' + (row.index ?? 'name'))}
                 {@const project_key = get_project_key_from_id(row.project_id)}
                 {@const is_name_mode = submitted_search_mode === 'name'}

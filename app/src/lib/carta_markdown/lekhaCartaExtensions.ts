@@ -13,16 +13,29 @@ import { LEKHA_CARTA_GRAMMAR_RULES } from './lekhaCartaGrammarRules';
 const DISABLED_DEFAULT_ICONS = new Set(['strikethrough', 'taskList']);
 
 /** Hover `title` hints for Carta default shortcuts that have toolbar buttons. */
-const DEFAULT_ICON_SHORTCUT_HINTS: Readonly<Record<string, string>> = {
+const DEFAULT_ICON_SHORTCUT_HINTS = {
   bold: 'Ctrl+B',
   italic: 'Ctrl+I',
   code: 'Ctrl+E',
   link: 'Ctrl+K',
   quote: 'Ctrl+Shift+,'
-};
+} as const;
+
+function shortcutHint(id: string): string | undefined {
+  switch (id) {
+    case 'bold':
+    case 'italic':
+    case 'code':
+    case 'link':
+    case 'quote':
+      return DEFAULT_ICON_SHORTCUT_HINTS[id];
+    default:
+      return undefined;
+  }
+}
 
 function withShortcutHint(icon: Icon): Icon {
-  const hint = DEFAULT_ICON_SHORTCUT_HINTS[icon.id];
+  const hint = shortcutHint(icon.id);
   if (!hint) return icon;
   return { ...icon, label: `${icon.label} (${hint})` };
 }

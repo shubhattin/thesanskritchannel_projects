@@ -11,11 +11,21 @@
   import ListX from '@lucide/svelte/icons/list-x';
   import SearchCheck from '@lucide/svelte/icons/search-check';
   import SearchX from '@lucide/svelte/icons/search-x';
+  import { withPaginationListScroll } from '$lib/pagination-scroll';
 
   let { draft }: { draft: boolean } = $props();
   const trpc = useTRPC();
 
   let page = $state(1);
+  let list_el = $state<HTMLElement | null>(null);
+  const list_ref = {
+    get current() {
+      return list_el;
+    }
+  };
+  const change_page = withPaginationListScroll((next) => {
+    page = next;
+  }, list_ref);
   let submitted_search = $state('');
   let sort_by = $state<'published_at' | 'updated_at'>('published_at');
   let order_by = $state<'asc' | 'desc'>('desc');
@@ -125,7 +135,7 @@
       {list_q.data.total} post{list_q.data.total !== 1 ? 's' : ''} · Page {list_q.data.page} of
       {list_q.data.pageCount}
     </p>
-    <ul class="flex flex-col gap-1.5">
+    <ul class="flex flex-col gap-1.5" bind:this={list_el}>
       {#each list_q.data.list as row (row.id)}
         <li
           class="flex flex-col gap-2 rounded-md border border-border/80 bg-card p-3 sm:flex-row sm:items-start sm:justify-between"
@@ -209,7 +219,7 @@
         variant="outline"
         size="sm"
         disabled={!list_q.data.hasPrev}
-        onclick={() => (page = list_q.data!.page - 1)}
+        onclick={() => change_page(list_q.data!.page - 1)}
       >
         Previous
       </Button>
@@ -221,7 +231,7 @@
         variant="outline"
         size="sm"
         disabled={!list_q.data.hasNext}
-        onclick={() => (page = list_q.data!.page + 1)}
+        onclick={() => change_page(list_q.data!.page + 1)}
       >
         Next
       </Button>

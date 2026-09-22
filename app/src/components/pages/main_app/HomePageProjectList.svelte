@@ -15,6 +15,7 @@
   import { useSession } from '~/lib/auth-client';
   import { filter_projects_by_search } from '~/utils/search/project_list_search';
   import { create_project_name_dev_normal_cache } from '~/utils/search/project_name_dev_normal_cache';
+  import { withPaginationListScroll } from '$lib/pagination-scroll';
 
   const session = useSession();
 
@@ -63,9 +64,20 @@
   const showing_start = $derived(total_count === 0 ? 0 : (current_page - 1) * PAGE_SIZE + 1);
   const showing_end = $derived(Math.min(current_page * PAGE_SIZE, total_count));
 
+  let list_el = $state<HTMLElement | null>(null);
+
   function reset_page() {
     page = 1;
   }
+
+  const list_ref = {
+    get current() {
+      return list_el;
+    }
+  };
+  const change_page = withPaginationListScroll((next) => {
+    page = next;
+  }, list_ref);
 </script>
 
 <div class="flex flex-col gap-3">
@@ -148,7 +160,10 @@
     {#if paginated_projects.length === 0}
       <p class="py-8 text-center text-sm text-muted-foreground">No projects match your filters.</p>
     {:else}
-      <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4">
+      <div
+        class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4"
+        bind:this={list_el}
+      >
         {#each paginated_projects as project (project.id)}
           <a
             href={'/' + project.key}
@@ -197,6 +212,7 @@
         count={total_count}
         perPage={PAGE_SIZE}
         bind:page
+        onPageChange={change_page}
         class="border-t border-border/60 pt-3"
       >
         {#snippet children({ pages, currentPage })}

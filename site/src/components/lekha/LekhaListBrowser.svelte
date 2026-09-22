@@ -26,6 +26,7 @@
   } from 'lipilekhika/typing';
   import { create_project_name_dev_normal_cache } from '@app/utils/search/project_name_dev_normal_cache';
   import { filter_lekhas_by_search } from '$lib/lekha/lekha_list_search';
+  import { withPaginationListScroll } from '@app/lib/pagination-scroll';
 
   const PAGE_SIZE = 10;
 
@@ -145,9 +146,20 @@
     return Number.isNaN(t) ? 0 : t;
   }
 
+  let list_el = $state<HTMLElement | null>(null);
+
   function reset_page() {
     page = 1;
   }
+
+  const list_ref = {
+    get current() {
+      return list_el;
+    }
+  };
+  const change_page = withPaginationListScroll((next) => {
+    page = next;
+  }, list_ref);
 
   function set_sort_order(value: string | undefined) {
     if (value === 'newest' || value === 'oldest') {
@@ -434,7 +446,7 @@
   {/if}
 
   {#if paginated_posts.length > 0}
-    <ul class="flex flex-col gap-4">
+    <ul class="flex flex-col gap-4" bind:this={list_el}>
       {#each paginated_posts as post (post.id)}
         <li>
           <a
@@ -512,6 +524,7 @@
       count={total_count}
       perPage={PAGE_SIZE}
       bind:page
+      onPageChange={change_page}
       class="border-t border-border/60 pt-3"
     >
       {#snippet children({ pages, currentPage })}

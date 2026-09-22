@@ -5,6 +5,7 @@
   import * as Tabs from '$lib/components/ui/tabs';
   import * as Select from '$lib/components/ui/select';
   import * as Pagination from '$lib/components/ui/pagination';
+  import { withPaginationListScroll } from '$lib/pagination-scroll';
   import { Button } from '$lib/components/ui/button';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Skeleton } from '$lib/components/ui/skeleton';
@@ -37,6 +38,15 @@
   let selected_index = $state(0);
   let deleting_id = $state<number | null>(null);
   let page = $state(1);
+  let list_el = $state<HTMLElement | null>(null);
+  const list_ref = {
+    get current() {
+      return list_el;
+    }
+  };
+  const change_page = withPaginationListScroll((next) => {
+    page = next;
+  }, list_ref);
 
   $effect(() => {
     if (open) {
@@ -157,7 +167,7 @@
         </div>
       {/if}
 
-      <ScrollArea class="h-[min(70vh,36rem)] rounded-md border p-3">
+      <ScrollArea class="h-[min(70vh,36rem)] rounded-md border p-3" bind:viewportRef={list_el}>
         {#if images_q.isLoading}
           <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {#each Array(PAGE_SIZE) as _}
@@ -193,7 +203,12 @@
       </ScrollArea>
 
       {#if total_count > PAGE_SIZE}
-        <Pagination.Root count={total_count} perPage={PAGE_SIZE} bind:page>
+        <Pagination.Root
+          count={total_count}
+          perPage={PAGE_SIZE}
+          bind:page
+          onPageChange={change_page}
+        >
           {#snippet children({ pages, currentPage })}
             <Pagination.Content>
               <Pagination.Item>

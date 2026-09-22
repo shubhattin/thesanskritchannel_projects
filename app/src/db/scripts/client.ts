@@ -3,11 +3,13 @@ import * as schema from '../schema';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { resolveDbUrl } from '../../effect/config';
+import { dbMode } from '../../tools/kry.server';
 
 dotenv.config({ path: '../../../.env' });
 
+/** `--prod` / `--preview` select the matching URL; otherwise the local URL. */
 const DB_URL = resolveDbUrl({
-  DB_MODE: process.env.DB_MODE,
+  DB_MODE: dbMode === 'LOCAL' ? undefined : dbMode,
   PG_DATABASE_URL: process.env.PG_DATABASE_URL,
   PG_DATABASE_URL1: process.env.PG_DATABASE_URL1,
   PG_DATABASE_URL2: process.env.PG_DATABASE_URL2

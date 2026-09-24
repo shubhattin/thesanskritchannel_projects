@@ -27,6 +27,9 @@
   import { create_project_name_dev_normal_cache } from '@app/utils/search/project_name_dev_normal_cache';
   import { filter_lekhas_by_search } from '$lib/lekha/lekha_list_search';
   import { withPaginationListScroll } from '@app/lib/pagination-scroll';
+  import { getFontClass } from '~/components/utils/font_list';
+  import { get_display_script_from_id } from '$lib/main_text/display-script';
+  import { site_prefs } from '$lib/main_text/site-prefs.svelte';
 
   const PAGE_SIZE = 10;
 
@@ -35,13 +38,19 @@
   type LekhaListPost = {
     id: number;
     title: string;
+    title_transliterated?: string | null;
     description: string | null;
+    description_transliterated?: string | null;
     tags: string[];
     url_slug: string;
     published_at?: Date | string | null;
   };
 
   let { posts }: { posts: readonly LekhaListPost[] } = $props();
+
+  const scriptFontClass = $derived(
+    getFontClass(get_display_script_from_id(site_prefs.script_id)) ?? 'font-normal'
+  );
 
   let search_text = $state('');
   let typing_enabled = $state(false);
@@ -453,12 +462,16 @@
             href={`/lekha/${post.url_slug}`}
             class="group flex h-full flex-col rounded-lg border border-border/60 bg-card/40 px-5 py-4 transition-colors hover:border-primary/40 hover:bg-accent/30"
           >
-            <h2 class="text-lg font-semibold tracking-tight group-hover:text-primary">
-              {post.title}
+            <h2
+              class={`text-lg font-semibold tracking-tight group-hover:text-primary ${post.title_transliterated ? scriptFontClass : ''}`}
+            >
+              {post.title_transliterated ?? post.title}
             </h2>
-            {#if post.description}
-              <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-                {post.description}
+            {#if post.description_transliterated ?? post.description}
+              <p
+                class={`mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground ${post.description_transliterated ? scriptFontClass : ''}`}
+              >
+                {post.description_transliterated ?? post.description}
               </p>
             {/if}
             {#if post.tags.length > 0}

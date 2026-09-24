@@ -38,8 +38,10 @@ async function normalizeLekhaPostForStorage(post_data: z.infer<typeof lekha_post
     content,
     draft: post_data.draft,
     listed: post_data.listed,
-    search_indexed: post_data.search_indexed,
-    url_slug: trimmed.url_slug
+    url_slug: trimmed.url_slug,
+    auto_transliterate_title: post_data.auto_transliterate_title,
+    auto_transliterate_description: post_data.auto_transliterate_description,
+    auto_transliterate_content: post_data.auto_transliterate_content
   };
 }
 
@@ -210,7 +212,6 @@ const list_lekhas_route = protectedAdminProcedure.input(list_lekhas_input).query
               updated_at: site_lekhas.updated_at,
               draft: site_lekhas.draft,
               listed: site_lekhas.listed,
-              search_indexed: site_lekhas.search_indexed,
               url_slug: site_lekhas.url_slug
             })
             .from(site_lekhas)

@@ -8,6 +8,8 @@
   import { Textarea } from '$lib/components/ui/textarea';
   import { Switch } from '$lib/components/ui/switch';
   import * as Dialog from '$lib/components/ui/dialog';
+  import * as Popover from '$lib/components/ui/popover';
+  import Info from '@lucide/svelte/icons/info';
   import { lekhaUrlSlugify } from '~/lib/carta_markdown/markdown';
   import Plus from '@lucide/svelte/icons/plus';
   import {
@@ -27,6 +29,8 @@
   let description = $state('');
   let form_error = $state<string | null>(null);
   let meta_typing_enabled = $state(false);
+  let auto_transliterate_title = $state(true);
+  let auto_transliterate_description = $state(true);
 
   const title_typing_ctx = createTypingContext('Devanagari');
   const description_typing_ctx = createTypingContext('Devanagari');
@@ -50,6 +54,8 @@
     description = '';
     form_error = null;
     meta_typing_enabled = false;
+    auto_transliterate_title = true;
+    auto_transliterate_description = true;
     title_typing_ctx.clearContext();
     description_typing_ctx.clearContext();
   }
@@ -92,7 +98,9 @@
         tags: [],
         url_slug,
         listed: true,
-        search_indexed: true
+        auto_transliterate_title,
+        auto_transliterate_description,
+        auto_transliterate_content: true
       }
     });
   }
@@ -131,7 +139,26 @@
         />
       </div>
       <div class="flex flex-col gap-1.5">
-        <Label for="lekha-create-title">Title</Label>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <Label for="lekha-create-title">Title</Label>
+          <div class="flex items-center gap-2">
+            <Label
+              for="lekha-create-auto-transliterate-title"
+              class="cursor-pointer text-xs font-normal text-muted-foreground select-none"
+            >
+              Auto transliterate
+            </Label>
+            <Switch
+              id="lekha-create-auto-transliterate-title"
+              bind:checked={auto_transliterate_title}
+              disabled={add_mut.isPending}
+            />
+            {@render auto_transliterate_info(
+              'What title auto transliterate does',
+              'Transliterates the whole title from Devanagari into the reader’s script.'
+            )}
+          </div>
+        </div>
         <Input
           id="lekha-create-title"
           bind:value={title}
@@ -154,10 +181,29 @@
         />
       </div>
       <div class="flex flex-col gap-1.5">
-        <Label for="lekha-create-description">
-          Description
-          <span class="font-normal text-muted-foreground">(optional)</span>
-        </Label>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <Label for="lekha-create-description">
+            Description
+            <span class="font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <div class="flex items-center gap-2">
+            <Label
+              for="lekha-create-auto-transliterate-description"
+              class="cursor-pointer text-xs font-normal text-muted-foreground select-none"
+            >
+              Auto transliterate
+            </Label>
+            <Switch
+              id="lekha-create-auto-transliterate-description"
+              bind:checked={auto_transliterate_description}
+              disabled={add_mut.isPending}
+            />
+            {@render auto_transliterate_info(
+              'What description auto transliterate does',
+              'Transliterates the whole description from Devanagari into the reader’s script.'
+            )}
+          </div>
+        </div>
         <Textarea
           id="lekha-create-description"
           bind:value={description}
@@ -200,3 +246,18 @@
     </form>
   </Dialog.Content>
 </Dialog.Root>
+
+{#snippet auto_transliterate_info(label: string, text: string)}
+  <Popover.Root>
+    <Popover.Trigger
+      class="inline-flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      type="button"
+      aria-label={label}
+    >
+      <Info class="size-3.5" aria-hidden="true" />
+    </Popover.Trigger>
+    <Popover.Content side="top" class="w-auto max-w-xs p-3 text-pretty" sideOffset={4}>
+      <p class="text-sm leading-snug">{text}</p>
+    </Popover.Content>
+  </Popover.Root>
+{/snippet}

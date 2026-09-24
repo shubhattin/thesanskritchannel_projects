@@ -147,10 +147,14 @@ export const site_lekhas = pgTable(
     published_at: timestamp('published_at', { withTimezone: true }),
     updated_at: timestamp('updated_at', { withTimezone: true }).$onUpdate(() => new Date()),
     draft: boolean('draft').notNull().default(true),
-    /** listed on site */
+    /** listed on site (also controls search indexing via sitemaps) */
     listed: boolean('listed').notNull().default(true),
-    /** search index, indexed by search engine, for now using `listed` itself as a indicator to index */
-    search_indexed: boolean('search_indexed').notNull().default(true)
+    // # Auto Transliteration flags
+    auto_transliterate_title: boolean('auto_transliterate_title').notNull().default(true),
+    auto_transliterate_description: boolean('auto_transliterate_description')
+      .notNull()
+      .default(true),
+    auto_transliterate_content: boolean('auto_transliterate_content').notNull().default(true)
   },
   (table) => [index().on(table.published_at)]
 );

@@ -28,7 +28,11 @@ import {
   isolateLipiShlokaBlocksForRemarkFormat,
   restoreLipiShlokaBlocksAfterRemarkFormat
 } from './lipi_shloka/lipiShlokaMarkdown';
-import { stripLipiTagsFromHtml, transliterateLipiSpansInMarkdown } from './lipi/lipiMarkdown';
+import {
+  stripLipiTagsFromHtml,
+  transliterateLipiSpansInMarkdown,
+  transliterateWholeMarkdown
+} from './lipi/lipiMarkdown';
 import { getLekhaShikiHighlighter } from './code/lekhaShikiHighlighter';
 import { LEKHA_SHIKI_DUAL } from './code/lekhaShikiThemes';
 
@@ -118,7 +122,10 @@ export function cartaHtmlSanitizer(dirty: string) {
 
 /**
  * Render markdown to HTML (for admin preview or site).
- * When `script` is set, transliterates `<lipi>` inner text to that script before render.
+ * When `script` is set, transliterates Devanagari to that script before render.
+ * `autoTransliterateContent` (default false) drops `<lipi>` wrappers and transliterates the
+ * whole document as one string. Otherwise only each `<lipi>` inner span is transliterated.
+ * `<lipi-shloka>` is expanded first either way; `<shloka>` expansion is unchanged.
  * Pass `lipiTransliterator` (e.g. `transliterate_node` from `lipilekhika/node`) on the server for faster batch transliteration.
  * This intentionally avoids Astro-specific server helpers so it can run in browser too.
  *
@@ -132,6 +139,11 @@ export async function renderLekhaMarkdownToHtml(
     script: script_list_type;
     lipiTransliterator?: typeof transliterate;
     skipSourceSanitization?: boolean;
+    /**
+     * When true, strip `<lipi>` wrappers and transliterate the whole markdown as one block.
+     * When false (default), transliterate each `<lipi>` inner span on its own.
+     */
+    autoTransliterateContent?: boolean;
   }
 ) {
   const normalized = markdown.replace(/\r\n/g, '\n');
@@ -141,12 +153,18 @@ export async function renderLekhaMarkdownToHtml(
       : removeDangerousTagsFromMarkdownSource(normalized);
   // lipi-shloka shorthand → nested tags (preview/render only; storage keeps `<lipi-shloka>` as authored)
   const after_lipi_shloka = expandLipiShlokaCompoundTags(md);
-  // lipi plugin (1st then shloka plugin later)
-  const after_lipi = await transliterateLipiSpansInMarkdown(
-    after_lipi_shloka,
-    options.script,
-    options.lipiTransliterator
-  );
+  // lipi: per-span extraction, or one whole-document pass when auto-transliterate is on
+  const after_lipi = options.autoTransliterateContent
+    ? await transliterateWholeMarkdown(
+        after_lipi_shloka,
+        options.script,
+        options.lipiTransliterator
+      )
+    : await transliterateLipiSpansInMarkdown(
+        after_lipi_shloka,
+        options.script,
+        options.lipiTransliterator
+      );
   // shloka plugin
   const with_shloka = expandShlokaSpansInMarkdown(after_lipi);
   // video plugin

@@ -330,8 +330,10 @@ export const siteLekhaListCache = createCache<NoCacheParams, lekhaListType>({
           updated_at: true,
           draft: true,
           listed: true,
-          search_indexed: true,
-          url_slug: true
+          url_slug: true,
+          auto_transliterate_title: true,
+          auto_transliterate_description: true,
+          auto_transliterate_content: true
         },
         orderBy: ({ published_at }, { desc }) => desc(published_at),
         where: (tbl, { eq: eqCol, and: andOp }) =>

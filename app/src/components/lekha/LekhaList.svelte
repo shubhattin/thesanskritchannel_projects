@@ -12,8 +12,6 @@
   import Pencil from '@lucide/svelte/icons/pencil';
   import ListChecks from '@lucide/svelte/icons/list-checks';
   import ListX from '@lucide/svelte/icons/list-x';
-  import SearchCheck from '@lucide/svelte/icons/search-check';
-  import SearchX from '@lucide/svelte/icons/search-x';
   import Rows3 from '@lucide/svelte/icons/rows-3';
   import Calendar from '@lucide/svelte/icons/calendar';
   import CalendarClock from '@lucide/svelte/icons/calendar-clock';
@@ -312,7 +310,7 @@
               <h3 class="min-w-0 flex-1 truncate leading-tight font-medium">{row.title}</h3>
               <div
                 class="flex shrink-0 items-center gap-0.5 text-muted-foreground sm:gap-1"
-                aria-label="Site visibility and search index"
+                aria-label="Site visibility"
               >
                 {#if row.listed}
                   <span
@@ -331,25 +329,6 @@
                     aria-label="Not listed on the site"
                   >
                     <ListX class="size-4" aria-hidden="true" />
-                  </span>
-                {/if}
-                {#if row.search_indexed}
-                  <span
-                    class="inline-flex rounded-md p-0.5 text-primary"
-                    title="Included in search engine index"
-                    role="img"
-                    aria-label="Included in search engine index"
-                  >
-                    <SearchCheck class="size-4" aria-hidden="true" />
-                  </span>
-                {:else}
-                  <span
-                    class="inline-flex rounded-md p-0.5 opacity-80"
-                    title="Excluded from search engine index"
-                    role="img"
-                    aria-label="Excluded from search engine index"
-                  >
-                    <SearchX class="size-4" aria-hidden="true" />
                   </span>
                 {/if}
               </div>

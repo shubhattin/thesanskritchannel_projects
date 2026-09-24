@@ -171,6 +171,22 @@ export async function renderLekhaMarkdownToHtml(
 }
 
 /**
+ * remark-stringify escapes line-leading `---` / `***` / `___` inside paragraphs
+ * (e.g. `--- Section`) as `\---`. Undo that when the rest of the line has non-whitespace
+ * so save/format does not inject backslashes the author did not type.
+ * Bare `\---` lines (intentional thematic-break escapes) are left alone.
+ */
+export function unescapeRemarkNonThematicBreakMarkers(markdown: string): string {
+  return markdown.replace(
+    /(^|\n)\\(-{3,}|\*{3,}|_{3,})([^\n]*)/g,
+    (full, lead: string, run: string, rest: string) => {
+      if (/\S/.test(rest)) return `${lead}${run}${rest}`;
+      return full;
+    }
+  );
+}
+
+/**
  * Normalize markdown (GFM) for consistent storage: list style, fences, line endings.
  * `<lipi-shloka>…</lipi-shloka>` spans are swapped for void HTML sentinels before remark,
  * then restored verbatim (including original adjacent newlines) so verse spacing survives
@@ -196,7 +212,7 @@ export async function formatMarkdownSource(markdown: string): Promise<string> {
   if (blocks.length > 0) {
     out = restoreLipiShlokaBlocksAfterRemarkFormat(out, blocks);
   }
-  return out;
+  return unescapeRemarkNonThematicBreakMarkers(out);
 }
 
 export function normalizeTagsForStorage(tags: string[]): string[] {

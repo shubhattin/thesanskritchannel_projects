@@ -68,7 +68,7 @@ describe('isolateLipiShlokaBlocksForRemarkFormat / restore', () => {
     expect(blocks[1]?.html).toBe(b);
     expect(blocks[1]?.leadingNewlines).toBe('');
     expect(blocks[1]?.trailingNewlines).toBe('');
-    expect(text).toBe('# x<lekha-fmt-lipi-shloka-0/>\n<lekha-fmt-lipi-shloka-1/>');
+    expect(text).toBe('# x<lekha-fmt-lipi-shloka-0/>\n\n<lekha-fmt-lipi-shloka-1/>');
     expect(restoreLipiShlokaBlocksAfterRemarkFormat(text, blocks)).toBe(md);
   });
 
@@ -76,7 +76,7 @@ describe('isolateLipiShlokaBlocksForRemarkFormat / restore', () => {
     const block = `<lipi-shloka>\nएकं काव्यम् अस्ति।\n</lipi-shloka>`;
     const md = `${block}\nekaṃ kāvyam asti.`;
     const { text, blocks } = isolateLipiShlokaBlocksForRemarkFormat(md);
-    expect(text).toBe('<lekha-fmt-lipi-shloka-0/>\nekaṃ kāvyam asti.');
+    expect(text).toBe('<lekha-fmt-lipi-shloka-0/>\n\nekaṃ kāvyam asti.');
     expect(blocks[0]?.trailingNewlines).toBe('\n');
     expect(restoreLipiShlokaBlocksAfterRemarkFormat(text, blocks)).toBe(md);
   });
@@ -208,6 +208,52 @@ Follow-up.`;
     expect(out).toContain('S1');
     expect(out).toContain('S2');
     expect(out.match(/<\s*\/\s*lipi-shloka\s*>/gi)?.length).toBe(1);
+  });
+
+  it('preserves thematic break --- after lipi-shloka (no setext / no \\---)', async () => {
+    const md = `Intro text here.
+
+<lipi-shloka>
+verse
+</lipi-shloka>
+
+---
+
+More`;
+    const out = await formatMarkdownSource(md);
+    expect(out).toBe(md);
+    expect(out).toContain('\n---\n');
+    expect(out).not.toContain('\\---');
+    expect(out).not.toMatch(/^## Intro/m);
+  });
+
+  it('does not escape --- with trailing text after lipi-shloka', async () => {
+    const md = `Intro.
+
+<lipi-shloka>
+v
+</lipi-shloka>
+
+--- Section
+
+More`;
+    const out = await formatMarkdownSource(md);
+    expect(out).toContain('\n--- Section\n');
+    expect(out).not.toContain('\\---');
+    expect(out).toBe(md);
+  });
+
+  it('does not escape --- with trailing text in plain markdown either', async () => {
+    const md = `Hello\n\n--- Section\n\nWorld`;
+    const out = await formatMarkdownSource(md);
+    expect(out).toBe(md);
+    expect(out).not.toContain('\\---');
+  });
+
+  it('keeps intentional bare \\--- escape (thematic-break escape)', async () => {
+    const md = `Hello\n\n\\---\n\nWorld`;
+    const out = await formatMarkdownSource(md);
+    expect(out).toContain('\\---');
   });
 });
 

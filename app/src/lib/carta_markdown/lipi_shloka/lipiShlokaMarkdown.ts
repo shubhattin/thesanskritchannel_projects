@@ -35,9 +35,11 @@ const SENTINEL_RESTORE_RE = /<lekha-fmt-lipi-shloka-(\d+)\s*\/>\n*/g;
  * HTML sentinel before `remark-stringify`, then restore verbatim afterward.
  *
  * Leading/trailing newline runs around the block are peeled into metadata and reapplied on
- * restore. HTML-comment sentinels made remark inject a blank line after the block
- * (`</lipi-shloka>\npara` → `</lipi-shloka>\n\npara`); void tags avoid that, and peeling keeps
- * intentional single vs double newlines exact.
+ * restore. A blank line is inserted after each sentinel before following content so a
+ * glued `prose<sentinel>\n---` cannot become a setext heading. Restore strips those
+ * temporary newlines. HTML-comment sentinels made remark inject a blank line after the
+ * block (`</lipi-shloka>\npara` → `</lipi-shloka>\n\npara`); void tags plus peel/restore
+ * keep intentional single vs double newlines exact.
  */
 export function isolateLipiShlokaBlocksForRemarkFormat(markdown: string) {
   LIPI_SHLOKA_BLOCK_RE.lastIndex = 0;
@@ -66,11 +68,13 @@ export function isolateLipiShlokaBlocksForRemarkFormat(markdown: string) {
     const idx = blocks.length;
     blocks.push({ html, leadingNewlines, trailingNewlines });
     out += lipiShlokaFormatSentinel(idx);
-    // Keep a single newline before following content so remark does not glue the next line
-    // onto the void tag (which would HTML-block-absorb it and blank-line the line after).
+    // Use a blank line before following content. A single `\n` after a sentinel glued to
+    // preceding prose makes a following `---` parse as a setext underline (eating the HR
+    // or escaping `\---`). Restore strips these temporary newlines and reapplies the
+    // original trailing run, so `</lipi-shloka>\npara` adjacency stays exact.
     last = trailEnd;
     if (last < markdown.length) {
-      out += '\n';
+      out += '\n\n';
     }
   }
   out += markdown.slice(last);

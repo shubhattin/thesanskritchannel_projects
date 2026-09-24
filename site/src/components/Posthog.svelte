@@ -4,6 +4,7 @@
 
   onMount(async () => {
     const key = import.meta.env.PUBLIC_POSTHOG_KEY;
+    console.log('onMount Posthog', key);
     if (!import.meta.env.PROD || !key) return;
 
     const posthog = (await import('posthog-js')).default;

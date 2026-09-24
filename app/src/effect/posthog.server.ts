@@ -52,13 +52,10 @@ const trimmed = (value: string | undefined): string | undefined => {
   return text ? text : undefined;
 };
 
-const posthogKey = (): string | undefined =>
-  trimmed(import.meta.env.VITE_POSTHOG_KEY) ?? trimmed(import.meta.env.PUBLIC_POSTHOG_KEY);
+const posthogKey = (): string | undefined => trimmed(import.meta.env.VITE_POSTHOG_KEY);
 
 const posthogHost = (): string =>
-  trimmed(import.meta.env.VITE_POSTHOG_URL) ??
-  trimmed(import.meta.env.PUBLIC_POSTHOG_URL) ??
-  'https://us.i.posthog.com';
+  trimmed(import.meta.env.VITE_POSTHOG_URL) ?? 'https://us.i.posthog.com';
 
 const trackingEnabled = (): boolean => import.meta.env.PROD && posthogKey() !== undefined;
 

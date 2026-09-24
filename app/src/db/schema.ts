@@ -147,7 +147,7 @@ export const site_lekhas = pgTable(
     published_at: timestamp('published_at', { withTimezone: true }),
     updated_at: timestamp('updated_at', { withTimezone: true }).$onUpdate(() => new Date()),
     draft: boolean('draft').notNull().default(true),
-    /** listed on site */
+    /** listed on site (also controls search indexing via sitemaps) */
     listed: boolean('listed').notNull().default(true),
     // # Auto Transliteration flags
     auto_transliterate_title: boolean('auto_transliterate_title').notNull().default(true),

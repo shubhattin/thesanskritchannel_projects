@@ -13,6 +13,8 @@
   let { data }: { data: PageData } = $props();
 
   let display_html = $derived(data.entry.html);
+  let title_text = $derived(data.entry.title_transliterated ?? data.entry.title);
+  let description_text = $derived(data.entry.description_transliterated ?? data.entry.description);
 
   const scriptFontClass = $derived(
     getFontClass(get_display_script_from_id(site_prefs.script_id)) ?? 'font-normal'
@@ -53,8 +55,8 @@
 </script>
 
 <MetaTags
-  title={`${data.entry.title} — Lekha`}
-  description={data.entry.description}
+  title={`${title_text} — Lekha`}
+  description={description_text}
   keywords={data.entry.tags}
 />
 
@@ -69,11 +71,17 @@
     </a>
   </p>
   <header class="mb-10 border-b border-border pb-8">
-    <h1 class="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-      {data.entry.title}
+    <h1
+      class={`text-3xl font-semibold tracking-tight text-balance sm:text-4xl ${data.entry.title_transliterated ? scriptFontClass : ''}`}
+    >
+      {title_text}
     </h1>
-    {#if data.entry.description}
-      <p class="mt-4 text-lg text-muted-foreground">{data.entry.description}</p>
+    {#if description_text}
+      <p
+        class={`mt-4 text-lg text-muted-foreground ${data.entry.description_transliterated ? scriptFontClass : ''}`}
+      >
+        {description_text}
+      </p>
     {/if}
     <div class="mt-4 flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
       <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">

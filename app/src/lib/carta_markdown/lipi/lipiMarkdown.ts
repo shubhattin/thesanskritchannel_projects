@@ -5,6 +5,13 @@ import { transliterate_custom } from '../../../tools/converter';
 /** `<lipi>…</lipi>` wraps Devanagari source; inner text is transliterated for preview. */
 export const LIPI_TAG_RE = /<\s*lipi\b[^>]*>([\s\S]*?)<\/\s*lipi\s*>/gi;
 
+/**
+ * Opening or closing `<lipi>` only. Negative lookahead keeps `<lipi-shloka>` intact —
+ * that compound tag is expanded before this runs.
+ */
+const LIPI_OPEN_TAG_RE = /<\s*lipi(?![\w-])[^>]*>/gi;
+const LIPI_CLOSE_TAG_RE = /<\/\s*lipi(?![\w-])\s*>/gi;
+
 export const LIPI_SPAN_CLASS = 'site_lipi_text_md';
 
 function wrapLipiHtml(text: string) {
@@ -21,6 +28,33 @@ function wrapLipiHtml(text: string) {
 /** Remove stray `<lipi>` wrappers that survived markdown/HTML parsing. */
 export function stripLipiTagsFromHtml(html: string) {
   return html.replace(/<\s*lipi\b[^>]*\s*\/?>/gi, '').replace(/<\/\s*lipi\s*>/gi, '');
+}
+
+/** Drop `<lipi>` / `</lipi>` wrappers from markdown source. Does not touch `<lipi-shloka>`. */
+export function stripLipiTagsFromMarkdown(markdown: string) {
+  LIPI_OPEN_TAG_RE.lastIndex = 0;
+  LIPI_CLOSE_TAG_RE.lastIndex = 0;
+  return markdown.replace(LIPI_OPEN_TAG_RE, '').replace(LIPI_CLOSE_TAG_RE, '');
+}
+
+/**
+ * Auto-transliterate mode: one Devanagari → target pass over the whole document.
+ * Call this only after `<lipi-shloka>` has been expanded. `<shloka>` tags stay in place
+ * so verse expansion still runs afterward.
+ */
+export async function transliterateWholeMarkdown(
+  markdown: string,
+  script: script_list_type,
+  lipilekhika_func: typeof transliterate | undefined = undefined
+) {
+  const stripped = stripLipiTagsFromMarkdown(markdown);
+  return transliterate_custom(
+    stripped,
+    'Devanagari',
+    script,
+    undefined,
+    lipilekhika_func ?? transliterate
+  );
 }
 
 export async function transliterateLipiSpansInMarkdown(

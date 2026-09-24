@@ -7,8 +7,15 @@
   import Calendar from '@lucide/svelte/icons/calendar';
   // Outline YouTube (removed from @lucide/svelte v1); same icon Astro used.
   import Youtube from 'lucide-svelte/icons/youtube';
+  import { getFontClass } from '~/components/utils/font_list';
+  import { get_display_script_from_id } from '$lib/main_text/display-script';
+  import { site_prefs } from '$lib/main_text/site-prefs.svelte';
 
   let { data }: { data: PageData } = $props();
+
+  const scriptFontClass = $derived(
+    getFontClass(get_display_script_from_id(site_prefs.script_id)) ?? 'font-normal'
+  );
 
   function formatDate(value: Date | string | null | undefined): string | null {
     if (!value) return null;
@@ -417,13 +424,15 @@
               ></div>
               <div class="relative">
                 <h3
-                  class="font-heading text-lg font-semibold tracking-tight text-foreground transition-colors duration-300 group-hover:text-primary"
+                  class={`font-heading text-lg font-semibold tracking-tight text-foreground transition-colors duration-300 group-hover:text-primary ${post.title_transliterated ? scriptFontClass : ''}`}
                 >
-                  {post.title}
+                  {post.title_transliterated ?? post.title}
                 </h3>
-                {#if post.description}
-                  <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-                    {post.description}
+                {#if post.description_transliterated ?? post.description}
+                  <p
+                    class={`mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground ${post.description_transliterated ? scriptFontClass : ''}`}
+                  >
+                    {post.description_transliterated ?? post.description}
                   </p>
                 {/if}
                 {#if post.published_at}

@@ -24,11 +24,7 @@ const lekha_post_input = SiteLekhaSchemaZod.omit({
   id: true,
   created_at: true,
   published_at: true,
-  updated_at: true,
-  // Managed separately / DB defaults — not edited via the post form yet.
-  auto_transliterate_title: true,
-  auto_transliterate_description: true,
-  auto_transliterate_content: true
+  updated_at: true
 });
 
 async function normalizeLekhaPostForStorage(post_data: z.infer<typeof lekha_post_input>) {
@@ -42,7 +38,10 @@ async function normalizeLekhaPostForStorage(post_data: z.infer<typeof lekha_post
     content,
     draft: post_data.draft,
     listed: post_data.listed,
-    url_slug: trimmed.url_slug
+    url_slug: trimmed.url_slug,
+    auto_transliterate_title: post_data.auto_transliterate_title,
+    auto_transliterate_description: post_data.auto_transliterate_description,
+    auto_transliterate_content: post_data.auto_transliterate_content
   };
 }
 

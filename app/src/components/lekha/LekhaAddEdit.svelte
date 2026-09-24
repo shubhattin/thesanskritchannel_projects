@@ -83,6 +83,9 @@
   let is_draft = $derived(initial?.draft ?? true);
   let published_at_shown = $derived(initial?.published_at ?? null);
   let listed = $state(true);
+  let auto_transliterate_title = $state(true);
+  let auto_transliterate_description = $state(true);
+  let auto_transliterate_content = $state(true);
   /** When true, slug is derived from title and the slug field is read-only. */
   let slug_auto = $derived(initial?.url_slug ? false : true);
   let url_slug_manual = $derived(initial?.url_slug ?? '');
@@ -111,6 +114,9 @@
     tags_key: string;
     listed: boolean;
     url_slug: string;
+    auto_transliterate_title: boolean;
+    auto_transliterate_description: boolean;
+    auto_transliterate_content: boolean;
   } | null>(null);
   let leave_confirmed = false;
 
@@ -159,7 +165,10 @@
       content,
       tags_key: tagsKey(tags),
       listed,
-      url_slug: slug_effective
+      url_slug: slug_effective,
+      auto_transliterate_title,
+      auto_transliterate_description,
+      auto_transliterate_content
     };
   }
 
@@ -172,7 +181,10 @@
       content !== snap.content ||
       tagsKey(tags) !== snap.tags_key ||
       listed !== snap.listed ||
-      slug_effective !== snap.url_slug
+      slug_effective !== snap.url_slug ||
+      auto_transliterate_title !== snap.auto_transliterate_title ||
+      auto_transliterate_description !== snap.auto_transliterate_description ||
+      auto_transliterate_content !== snap.auto_transliterate_content
     );
   });
 
@@ -182,6 +194,9 @@
         last_seeded = lekha_id;
         published_at_shown = initial.published_at ? new Date(initial.published_at) : null;
         listed = initial.listed;
+        auto_transliterate_title = initial.auto_transliterate_title;
+        auto_transliterate_description = initial.auto_transliterate_description;
+        auto_transliterate_content = initial.auto_transliterate_content;
         queueMicrotask(() => captureSavedSnapshot());
       }
     }
@@ -329,13 +344,15 @@
   $effect(() => {
     if (!browser || editor_section !== 'preview') return;
     const md = content;
+    const transliterate_content = auto_transliterate_content;
     preview_loading = true;
     preview_error = null;
     let cancelled = false;
     (async () => {
       try {
         const html = await renderLekhaMarkdownToHtml(md, {
-          script: get_script_from_id(preview_script_id)
+          script: get_script_from_id(preview_script_id),
+          autoTransliterateContent: transliterate_content
         });
         if (!cancelled) {
           preview_html = html;
@@ -363,7 +380,10 @@
       tags,
       url_slug: urlSlugForNormalize(),
       draft: draft_for_request,
-      listed
+      listed,
+      auto_transliterate_title,
+      auto_transliterate_description,
+      auto_transliterate_content
     };
   }
 
@@ -689,19 +709,38 @@
     <div class="space-y-1.5">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <Label for="lekha-title">Title</Label>
-        <div class="flex items-center gap-2">
-          <Icon src={LanguageIcon} outerClass="shrink-0 text-muted-foreground" class="size-4" />
-          <Label
-            for="lekha-meta-typing-enabled"
-            class="cursor-pointer text-xs font-normal text-muted-foreground select-none"
-            >Typing</Label
-          >
-          <Switch
-            id="lekha-meta-typing-enabled"
-            bind:checked={meta_typing_enabled}
-            disabled={edit_mut.isPending}
-            title="Devanagari transliteration for title and description (Alt+X)"
-          />
+        <div class="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+          <div class="flex items-center gap-2">
+            <Label
+              for="lekha-auto-transliterate-title"
+              class="cursor-pointer text-xs font-normal text-muted-foreground select-none"
+            >
+              Auto transliterate
+            </Label>
+            <Switch
+              id="lekha-auto-transliterate-title"
+              bind:checked={auto_transliterate_title}
+              disabled={edit_mut.isPending}
+            />
+            {@render auto_transliterate_info(
+              'What title auto transliterate does',
+              'Transliterates the whole title from Devanagari into the reader’s script.'
+            )}
+          </div>
+          <div class="flex items-center gap-2">
+            <Icon src={LanguageIcon} outerClass="shrink-0 text-muted-foreground" class="size-4" />
+            <Label
+              for="lekha-meta-typing-enabled"
+              class="cursor-pointer text-xs font-normal text-muted-foreground select-none"
+              >Typing</Label
+            >
+            <Switch
+              id="lekha-meta-typing-enabled"
+              bind:checked={meta_typing_enabled}
+              disabled={edit_mut.isPending}
+              title="Devanagari transliteration for title and description (Alt+X)"
+            />
+          </div>
         </div>
       </div>
       <Input
@@ -731,10 +770,29 @@
       </p>
     </div>
     <div class="space-y-1.5">
-      <Label for="lekha-description">
-        Description
-        <span class="font-normal text-muted-foreground">(optional)</span>
-      </Label>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <Label for="lekha-description">
+          Description
+          <span class="font-normal text-muted-foreground">(optional)</span>
+        </Label>
+        <div class="flex items-center gap-2">
+          <Label
+            for="lekha-auto-transliterate-description"
+            class="cursor-pointer text-xs font-normal text-muted-foreground select-none"
+          >
+            Auto transliterate
+          </Label>
+          <Switch
+            id="lekha-auto-transliterate-description"
+            bind:checked={auto_transliterate_description}
+            disabled={edit_mut.isPending}
+          />
+          {@render auto_transliterate_info(
+            'What description auto transliterate does',
+            'Transliterates the whole description from Devanagari into the reader’s script.'
+          )}
+        </div>
+      </div>
       <Textarea
         id="lekha-description"
         bind:value={description}
@@ -863,7 +921,7 @@
 
   <LekhaTagsInput bind:tags />
 
-  <div class="flex flex-col gap-1.5">
+  <div class="flex flex-col gap-3">
     <div class="flex items-center gap-1.5">
       <Checkbox id="cb-listed" bind:checked={listed} disabled={edit_mut.isPending} />
       <Label for="cb-listed" class="cursor-pointer text-sm leading-none font-normal">Listed</Label>
@@ -881,6 +939,23 @@
           </p>
         </Popover.Content>
       </Popover.Root>
+    </div>
+    <div class="flex items-center gap-2">
+      <Label
+        for="lekha-auto-transliterate-content"
+        class="cursor-pointer text-sm leading-none font-normal"
+      >
+        Auto transliterate content
+      </Label>
+      <Switch
+        id="lekha-auto-transliterate-content"
+        bind:checked={auto_transliterate_content}
+        disabled={edit_mut.isPending}
+      />
+      {@render auto_transliterate_info(
+        'What content auto transliterate does',
+        'Transliterates the whole post from Devanagari. When off, only text inside <lipi> tags is transliterated.'
+      )}
     </div>
   </div>
 
@@ -999,6 +1074,21 @@
     </Tabs.Root>
   </div>
 </form>
+
+{#snippet auto_transliterate_info(label: string, text: string)}
+  <Popover.Root>
+    <Popover.Trigger
+      class="inline-flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      type="button"
+      aria-label={label}
+    >
+      <Info class="size-3.5" aria-hidden="true" />
+    </Popover.Trigger>
+    <Popover.Content side="top" class="w-auto max-w-xs p-3 text-pretty" sideOffset={4}>
+      <p class="text-sm leading-snug">{text}</p>
+    </Popover.Content>
+  </Popover.Root>
+{/snippet}
 
 <style>
   :global(.lekha-carta .carta-theme__default) {

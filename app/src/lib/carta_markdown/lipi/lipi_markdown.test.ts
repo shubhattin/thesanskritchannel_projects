@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { transliterate } from 'lipilekhika';
 import {
   stripLipiTagsFromHtml,
+  stripLipiTagsFromMarkdown,
   transliterateLipiSpansInMarkdown,
+  transliterateWholeMarkdown,
   LIPI_SPAN_CLASS
 } from './lipiMarkdown';
 import { renderLekhaMarkdownToHtml } from '~/lib/carta_markdown/markdown';
@@ -78,6 +80,41 @@ describe('stripLipiTagsFromHtml', () => {
   });
 });
 
+describe('stripLipiTagsFromMarkdown', () => {
+  it('removes lipi wrappers and leaves lipi-shloka tags alone', () => {
+    expect(stripLipiTagsFromMarkdown('<lipi>अ</lipi> <lipi-shloka>ब</lipi-shloka>')).toBe(
+      'अ <lipi-shloka>ब</lipi-shloka>'
+    );
+    expect(stripLipiTagsFromMarkdown('<LiPi class="x">क</LiPi>')).toBe('क');
+  });
+});
+
+/** Records the exact payload handed to lipilekhika and rewrites two letters. */
+function recordingTransliterate() {
+  const calls: Array<string | string[]> = [];
+  const map = (text: string) => text.replaceAll('अ', 'A').replaceAll('क', 'K');
+  // SAFETY: test stub matches transliterate's call shape — string in, string out, or string[] in, string[] out.
+  const fn = (async (text: string | string[]) => {
+    calls.push(text);
+    return Array.isArray(text) ? text.map(map) : map(text);
+  }) as typeof transliterate;
+  return { fn, calls };
+}
+
+describe('transliterateWholeMarkdown', () => {
+  it('strips lipi tags and transliterates the remaining markdown as one string', async () => {
+    const { fn, calls } = recordingTransliterate();
+    const out = await transliterateWholeMarkdown(
+      'outside अ <lipi>क</lipi> <shloka>अ</shloka>',
+      script,
+      fn
+    );
+    expect(calls).toEqual(['outside अ क <shloka>अ</shloka>']);
+    expect(out).toBe('outside A K <shloka>A</shloka>');
+    expect(out).not.toContain('<lipi');
+  });
+});
+
 describe('renderLekhaMarkdownToHtml (lipi)', () => {
   it('does not lump following headings into the first lipi block when multiple shloka blocks nest inside lipi', async () => {
     const md = `## Vyasa section
@@ -111,5 +148,60 @@ line c
 
     const markerCount = (html.match(new RegExp(LIPI_SPAN_CLASS, 'g')) ?? []).length;
     expect(markerCount).toBeGreaterThanOrEqual(2);
+  });
+
+  it('with auto transliterate off, only lipi inners are sent to the transliterator', async () => {
+    const { fn, calls } = recordingTransliterate();
+    const md = ['outside अ', '', '<lipi>क</lipi>', '', '<lipi>अ</lipi>'].join('\n');
+    const html = await renderLekhaMarkdownToHtml(md, {
+      script,
+      lipiTransliterator: fn,
+      skipSourceSanitization: true,
+      autoTransliterateContent: false
+    });
+    expect(calls).toEqual([['क', 'अ']]);
+    expect(html).toContain('outside अ');
+    expect(html).not.toContain('outside A');
+    expect(html).toContain('K');
+    expect(html).toContain(`class="${LIPI_SPAN_CLASS}"`);
+  });
+
+  it('with auto transliterate on, transliterates one block after lipi-shloka expand and lipi strip', async () => {
+    const { fn, calls } = recordingTransliterate();
+    const md = [
+      'outside अ',
+      '',
+      '<lipi>क</lipi>',
+      '',
+      '<lipi-shloka>',
+      'अ',
+      'ब',
+      '</lipi-shloka>'
+    ].join('\n');
+    const html = await renderLekhaMarkdownToHtml(md, {
+      script,
+      lipiTransliterator: fn,
+      skipSourceSanitization: true,
+      autoTransliterateContent: true
+    });
+
+    expect(calls).toHaveLength(1);
+    const passed = calls[0];
+    if (passed == null || Array.isArray(passed)) {
+      throw new Error('expected one markdown string');
+    }
+    expect(passed).toContain('outside अ');
+    expect(passed).toContain('क');
+    expect(passed).toContain('<shloka>');
+    expect(passed).not.toContain('<lipi-shloka>');
+    expect(passed).not.toMatch(/<\s*\/?\s*lipi(?![\w-])/i);
+
+    expect(html).toContain('outside A');
+    expect(html).toContain('K');
+    expect(html).toContain('A<br');
+    expect(html).toContain('ब');
+    expect(html).not.toContain('<lipi');
+    expect(html).not.toContain('site_lipi_text_md');
+    expect(html).not.toContain('<shloka');
   });
 });

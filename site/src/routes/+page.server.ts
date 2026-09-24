@@ -1,12 +1,13 @@
 import { getProjectList } from '@app/effect/project_registry';
-import { CACHE, NO_CACHE_PARAMS } from '@app/effect/cache_loaders';
 import { runServerEffectOr } from '~/effect/site_runtime';
+import { load_latest_lekhas } from '$lib/lekha/load-lekha.server';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ parent }) => {
+  const { script_id } = await parent();
   const [projects, latest_lekhas] = await Promise.all([
     runServerEffectOr(getProjectList({ listed_only: true }), []),
-    runServerEffectOr(CACHE.site_lekha_list.get(NO_CACHE_PARAMS), [])
+    load_latest_lekhas(script_id)
   ]);
 
   return {

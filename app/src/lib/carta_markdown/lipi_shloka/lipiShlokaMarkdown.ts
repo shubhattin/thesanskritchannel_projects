@@ -27,7 +27,8 @@ function lipiShlokaFormatSentinel(index: number) {
   return `<lekha-fmt-lipi-shloka-${index}/>`;
 }
 
-const SENTINEL_RESTORE_RE = /<lekha-fmt-lipi-shloka-(\d+)\s*\/>\n*/g;
+/** Consumes remark-injected blanks around the sentinel; original runs come from metadata. */
+const SENTINEL_RESTORE_RE = /\n*<lekha-fmt-lipi-shloka-(\d+)\s*\/>\n*/g;
 
 /**
  * remark-parse treats raw HTML blocks as ending at a blank line, so verse spacing inside
@@ -36,10 +37,10 @@ const SENTINEL_RESTORE_RE = /<lekha-fmt-lipi-shloka-(\d+)\s*\/>\n*/g;
  *
  * Leading/trailing newline runs around the block are peeled into metadata and reapplied on
  * restore. A blank line is inserted after each sentinel before following content so a
- * glued `prose<sentinel>\n---` cannot become a setext heading. Restore strips those
- * temporary newlines. HTML-comment sentinels made remark inject a blank line after the
- * block (`</lipi-shloka>\npara` → `</lipi-shloka>\n\npara`); void tags plus peel/restore
- * keep intentional single vs double newlines exact.
+ * glued `prose<sentinel>\n---` cannot become a setext heading. If peeling would glue a
+ * thematic-break line (`---`) onto the sentinel (`---<sentinel/>`), insert a newline first
+ * so remark keeps it as an HR instead of escaping `\---`. Restore drops whatever blanks
+ * remark left around the sentinel and reapplies the peeled runs exactly.
  */
 export function isolateLipiShlokaBlocksForRemarkFormat(markdown: string) {
   LIPI_SHLOKA_BLOCK_RE.lastIndex = 0;
@@ -65,6 +66,17 @@ export function isolateLipiShlokaBlocksForRemarkFormat(markdown: string) {
     const trailingNewlines = markdown.slice(blockEnd, trailEnd);
 
     out += markdown.slice(last, leadStart);
+    // Peeling leading newlines can leave `---` as the last line with no trailing `\n`,
+    // which glues into `---<sentinel/>` and remark-stringify escapes it as `\---`.
+    // Keep a structural `\n` here; keep full `leadingNewlines` so restore can rebuild the
+    // original gap after remark may expand `---\n` → `---\n\n` before the sentinel.
+    if (
+      out.length > 0 &&
+      !out.endsWith('\n') &&
+      /(?:^|\n)[ \t]*(-{3,}|\*{3,}|_{3,})[ \t]*$/.test(out)
+    ) {
+      out += '\n';
+    }
     const idx = blocks.length;
     blocks.push({ html, leadingNewlines, trailingNewlines });
     out += lipiShlokaFormatSentinel(idx);
@@ -82,8 +94,8 @@ export function isolateLipiShlokaBlocksForRemarkFormat(markdown: string) {
 }
 
 /**
- * Restore isolated blocks. Strips the temporary / remark-injected newlines after each
- * sentinel and reapplies the original leading/trailing runs from {@link LipiShlokaFormatBlock}.
+ * Restore isolated blocks. Drops blanks remark left around each sentinel and reapplies the
+ * original leading/trailing runs from {@link LipiShlokaFormatBlock}.
  */
 export function restoreLipiShlokaBlocksAfterRemarkFormat(
   markdown: string,

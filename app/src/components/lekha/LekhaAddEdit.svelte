@@ -431,8 +431,15 @@
     save_dialog_open = true;
   }
 
+  function onSaveDialogOpenChange(next: boolean) {
+    // Keep the dialog open while the save request is in flight.
+    // if (!next && edit_mut.isPending) return;
+    save_dialog_open = next;
+  }
+
   function confirmSave() {
     form_error = null;
+    if (edit_mut.isPending) return;
     const err = validateLekhaForm();
     if (err) {
       form_error = err;
@@ -445,6 +452,7 @@
 
   function confirmPublish() {
     form_error = null;
+    if (edit_mut.isPending) return;
     const err = validateLekhaForm();
     if (err) {
       form_error = err;
@@ -459,6 +467,11 @@
         }
       }
     );
+  }
+
+  function onPublishDialogOpenChange(next: boolean) {
+    if (!next && edit_mut.isPending) return;
+    publish_dialog_open = next;
   }
 </script>
 
@@ -541,7 +554,7 @@
           </AlertDialog.Footer>
         </AlertDialog.Content>
       </AlertDialog.Root>
-      <AlertDialog.Root bind:open={save_dialog_open}>
+      <AlertDialog.Root open={save_dialog_open} onOpenChange={onSaveDialogOpenChange}>
         <Button
           type="submit"
           disabled={edit_mut.isPending ||
@@ -557,7 +570,11 @@
         >
           {edit_mut.isPending ? 'Saving…' : 'Save'}
         </Button>
-        <AlertDialog.Content class="max-w-md">
+        <AlertDialog.Content
+          class="max-w-md"
+          interactOutsideBehavior="ignore"
+          escapeKeydownBehavior={edit_mut.isPending ? 'ignore' : 'close'}
+        >
           <AlertDialog.Header>
             <AlertDialog.Title>Save changes?</AlertDialog.Title>
             <AlertDialog.Description class="text-sm text-muted-foreground">
@@ -590,7 +607,7 @@
       class="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 text-sm"
     >
       <span class="text-muted-foreground">This lekha is a draft.</span>
-      <AlertDialog.Root bind:open={publish_dialog_open}>
+      <AlertDialog.Root open={publish_dialog_open} onOpenChange={onPublishDialogOpenChange}>
         <AlertDialog.Trigger>
           {#snippet child({ props })}
             <Button
@@ -606,7 +623,11 @@
             </Button>
           {/snippet}
         </AlertDialog.Trigger>
-        <AlertDialog.Content class="max-w-md">
+        <AlertDialog.Content
+          class="max-w-md"
+          interactOutsideBehavior="ignore"
+          escapeKeydownBehavior={edit_mut.isPending ? 'ignore' : 'close'}
+        >
           <AlertDialog.Header>
             <AlertDialog.Title>Publish this lekha?</AlertDialog.Title>
             <AlertDialog.Description class="text-sm text-muted-foreground">

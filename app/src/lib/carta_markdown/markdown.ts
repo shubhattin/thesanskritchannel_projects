@@ -187,6 +187,14 @@ export function unescapeRemarkNonThematicBreakMarkers(markdown: string): string 
 }
 
 /**
+ * If isolate peeled newlines and glued `---` onto a sentinel, remark may emit `\---<sentinel/>`.
+ * Undo that escape before restore so the HR survives as `---`.
+ */
+export function unescapeThematicBreakGluedToLipiShlokaSentinel(markdown: string): string {
+  return markdown.replace(/\\(-{3,}|\*{3,}|_{3,})(<lekha-fmt-lipi-shloka-\d+\s*\/>)/g, '$1$2');
+}
+
+/**
  * Normalize markdown (GFM) for consistent storage: list style, fences, line endings.
  * `<lipi-shloka>…</lipi-shloka>` spans are swapped for void HTML sentinels before remark,
  * then restored verbatim (including original adjacent newlines) so verse spacing survives
@@ -210,9 +218,11 @@ export async function formatMarkdownSource(markdown: string): Promise<string> {
     .process(protectedMd);
   let out = String(file).replace(/\r\n/g, '\n').trimEnd();
   if (blocks.length > 0) {
+    out = unescapeThematicBreakGluedToLipiShlokaSentinel(out);
     out = restoreLipiShlokaBlocksAfterRemarkFormat(out, blocks);
   }
-  return unescapeRemarkNonThematicBreakMarkers(out);
+  // Restore may reattach EOF trailing newlines peeled from the source; keep storage trim-stable.
+  return unescapeRemarkNonThematicBreakMarkers(out).trimEnd();
 }
 
 export function normalizeTagsForStorage(tags: string[]): string[] {

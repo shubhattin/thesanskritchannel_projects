@@ -255,6 +255,23 @@ More`;
     const out = await formatMarkdownSource(md);
     expect(out).toContain('\\---');
   });
+
+  it('preserves thematic break --- immediately before lipi-shloka (no \\---)', async () => {
+    const md = `Find Harsha on [Instagram](https://www.instagram.com/harshamkrishna/), [X](https://x.com/harshamkrishna), [LinkedIn](https://www.linkedin.com/in/harsha-m-krishna/), [About](https://about.me/harshamkrishna)
+
+---
+
+<lipi-shloka>
+चतुरङ्गं भारते जातम्। तत् अद्य "चेस्" इति विश्वे प्रसिद्धम्। ♟️
+</lipi-shloka>
+`;
+    const out = await formatMarkdownSource(md);
+    expect(out).not.toContain('\\---');
+    expect(out).toContain('\n---\n');
+    expect(out).toContain('<lipi-shloka>');
+    expect(out).toContain('चतुरङ्गं');
+    expect(out).toBe(md.trimEnd());
+  });
 });
 
 describe('renderLekhaMarkdownToHtml + lipi-shloka formatting', () => {

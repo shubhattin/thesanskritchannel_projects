@@ -63,11 +63,11 @@ export const isReportableCause = (cause: Cause.Cause<unknown>): boolean => {
 export const asError = (cause: unknown): Error | undefined =>
   cause instanceof Error ? cause : undefined;
 
-const clip = (value: string): string =>
-  value.length > CAUSE_TEXT_LIMIT ? `${value.slice(0, CAUSE_TEXT_LIMIT)}…` : value;
-
 const isNonEmptyString = (cause: unknown): cause is string =>
   typeof cause === 'string' && cause.length > 0;
+
+const clip = (value: string): string =>
+  value.length > CAUSE_TEXT_LIMIT ? `${value.slice(0, CAUSE_TEXT_LIMIT)}…` : value;
 
 const nestedCauseMessage = (cause: unknown): string | undefined => {
   if (cause instanceof Error && cause.message) return cause.message;

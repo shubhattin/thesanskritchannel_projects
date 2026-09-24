@@ -2,7 +2,13 @@
 export const posthogErrorTrackingConfig = () => {
   const hostname = globalThis.location?.hostname;
   if (hostname) {
-    return { capture_exceptions: true, tracing_headers: [hostname] };
+    return {
+      capture_exceptions: true,
+      tracing_headers: [hostname],
+      session_recording: {
+        maskAllInputs: true // for privacy
+      }
+    };
   }
   return { capture_exceptions: true };
 };

@@ -1,6 +1,8 @@
 import { Cause, Effect, Exit, Option, type ManagedRuntime } from 'effect';
 import { TRPCError } from '@trpc/server';
 import { isKnownError, type KnownError } from './errors';
+import { asError, isServerKnownError } from './exception_report';
+import { trackEffectFailure } from './posthog.server';
 
 /** Domain / config errors with distinct tRPC codes; infra errors share the default. */
 type TrpcCodeByTag = { [T in KnownError['_tag']]?: TRPCError['code'] };
@@ -79,26 +81,23 @@ export const createRunners = <R, E>(runtime: ManagedRuntime.ManagedRuntime<R, E>
       const err = failure.value;
       // Known domain errors: log as warn so prod log drains catch 5xx vs 4xx split
       // 5xx-like (CacheError/DatabaseError/RedisError/StorageError/ConfigError/BatchError) -> error
-      const is5xx = ![
-        'NotFoundError',
-        'BadRequestError',
-        'ValidationError',
-        'UnauthorizedError',
-        'ForbiddenError',
-        'ConflictError'
-      ].includes(err._tag);
+      const is5xx = isServerKnownError(err);
       const msg = `[trpc] known error ${err._tag}: ${toTrpcMessage(err)}`;
       if (is5xx) console.error(msg, { tag: err._tag, cause: Cause.pretty(exit.cause) });
       else console.warn(msg, { tag: err._tag, cause: Cause.pretty(exit.cause) });
-      throw toTrpcError(failure.value);
+      const trpcError = toTrpcError(failure.value);
+      await trackEffectFailure(exit.cause, trpcError, 'trpc', httpStatusForError(err));
+      throw trpcError;
     }
 
     console.error('[trpc] unexpected effect defect', Cause.pretty(exit.cause));
-    throw new TRPCError({
+    const defect = new TRPCError({
       code: 'INTERNAL_SERVER_ERROR',
       message: 'Unexpected server error',
       cause: exit.cause
     });
+    await trackEffectFailure(exit.cause, defect, 'trpc', 500);
+    throw defect;
   };
 
   const runServerEffect = async <A, EX, RQ extends R>(
@@ -117,8 +116,11 @@ export const createRunners = <R, E>(runtime: ManagedRuntime.ManagedRuntime<R, E>
     } else {
       console.error('[server] unexpected defect', Cause.pretty(exit.cause));
     }
-    // Re-throw as original cause so SvelteKit/Astro error handler sees it
-    throw Cause.squash(exit.cause);
+    // Re-throw the original failure so SvelteKit's handleError sees it, with the
+    // full Effect cause attached for PostHog.
+    const thrown = Cause.squash(exit.cause);
+    await trackEffectFailure(exit.cause, asError(thrown), 'server', 500);
+    throw thrown;
   };
 
   const runRouteEffect = async <A, EX, RQ extends R>(
@@ -146,10 +148,12 @@ export const createRunners = <R, E>(runtime: ManagedRuntime.ManagedRuntime<R, E>
         status,
         cause: Cause.pretty(exit.cause)
       });
+      await trackEffectFailure(exit.cause, undefined, 'route', status);
       return Response.json({ error: toTrpcMessage(err), tag: err._tag }, { status });
     }
 
     console.error('[route] unexpected effect defect', Cause.pretty(exit.cause));
+    await trackEffectFailure(exit.cause, undefined, 'route', 500);
     return Response.json({ error: 'Unexpected server error' }, { status: 500 });
   };
 
@@ -178,10 +182,12 @@ export const createRunners = <R, E>(runtime: ManagedRuntime.ManagedRuntime<R, E>
         status,
         cause: Cause.pretty(exit.cause)
       });
+      await trackEffectFailure(exit.cause, undefined, 'qstash', status);
       return Response.json({ error: toTrpcMessage(err), tag: err._tag }, { status });
     }
 
     console.error('[qstash] unexpected effect defect', Cause.pretty(exit.cause));
+    await trackEffectFailure(exit.cause, undefined, 'qstash', 500);
     return Response.json({ error: 'Unexpected server error' }, { status: 500 });
   };
 

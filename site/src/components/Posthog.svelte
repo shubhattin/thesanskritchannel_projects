@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { posthogErrorTrackingConfig } from '@app/lib/posthog_client';
 
   onMount(async () => {
     const key = import.meta.env.PUBLIC_POSTHOG_KEY;
@@ -9,7 +10,8 @@
     posthog.init(key, {
       api_host: import.meta.env.PUBLIC_POSTHOG_URL ?? 'https://us.i.posthog.com',
       defaults: '2025-11-30',
-      person_profiles: 'identified_only'
+      person_profiles: 'identified_only',
+      ...posthogErrorTrackingConfig()
     });
   });
 </script>

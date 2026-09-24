@@ -51,6 +51,7 @@
     "lucide-svelte": "^0.563.0",
     "postgres": "^3.4.9",
     "posthog-js": "^1.388.0",
+    "posthog-node": "^5.53.0",
     "rehype-stringify": "^10.0.1",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",

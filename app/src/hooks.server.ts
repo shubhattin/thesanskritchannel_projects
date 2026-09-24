@@ -1,8 +1,16 @@
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, HandleServerError } from '@sveltejs/kit';
+import { captureRequestError, withPosthogRequest } from '~/effect/posthog.server';
 
-export const handle: Handle = async ({ event, resolve }) => {
-  return await resolve(event);
-};
+export const handle: Handle = ({ event, resolve }) =>
+  withPosthogRequest(event.request, 'admin', () => resolve(event));
+
+export const handleError: HandleServerError = ({ error, status, event }) =>
+  captureRequestError(error, {
+    status,
+    request: event.request,
+    source: 'handle',
+    app: 'admin'
+  });
 
 // buffer pollyfill for netlify
 import { Buffer } from 'buffer';

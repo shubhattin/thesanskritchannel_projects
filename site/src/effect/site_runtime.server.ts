@@ -10,6 +10,7 @@ import { env } from '$env/dynamic/private';
 import { Cause, Effect, Exit, type ManagedRuntime } from 'effect';
 import { resolveDbUrl, SharedConfig, type SharedConfigInput } from '@app/effect/config';
 import { envBagFromUnknown, pickEnv } from '@app/effect/env';
+import { trackEffectFailure } from '@app/effect/posthog.server';
 import { createRunners, type EffectRunners } from '@app/effect/run';
 import { siteRuntime, type SiteRuntime } from '@app/effect/runtime';
 
@@ -91,6 +92,7 @@ export const runServerEffectOr = async <A, E, R extends SiteRuntimeServices>(
     cause: pretty,
     fallbackPreview: String(JSON.stringify(fallback)).slice(0, 500)
   });
+  await trackEffectFailure(exit.cause, undefined, 'server-fallback', 500);
   return fallback;
 };
 
@@ -111,6 +113,7 @@ export const runServerEffectNullable = async <A, E, R extends SiteRuntimeService
     // output only — absence safely yields `undefined`.
     stack: (exit.cause as { stack?: string }).stack
   });
+  await trackEffectFailure(exit.cause, undefined, 'server-nullable', 500);
   return null;
 };
 

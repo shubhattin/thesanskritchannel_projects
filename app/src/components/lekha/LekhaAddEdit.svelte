@@ -54,13 +54,11 @@
   import { LanguageIcon } from '~/components/icons';
 
   let {
-    mode,
     lekha_id,
     initial
   }: {
-    mode: 'edit' | 'create';
-    lekha_id?: number;
-    initial?: Omit<SiteLekha, 'id'>;
+    lekha_id: number;
+    initial: Omit<SiteLekha, 'id'>;
   } = $props();
   const trpc = useTRPC();
 
@@ -96,14 +94,15 @@
   let preview_error = $state<string | null>(null);
   let form_error = $state<string | null>(null);
   let editor_ready = $state(false);
-  /** Edit only: set true after the user confirms the unlock dialog. */
+  /** After the user confirms the unlock dialog. */
   let slug_edit_unlocked = $state(false);
   let delete_dialog_open = $state(false);
   let publish_dialog_open = $state(false);
+  let save_dialog_open = $state(false);
   /** Remark-format pipeline matching DB storage (manual format / post-save sync). */
   let format_busy = $state(false);
-  /** Last session synced from `initial` (`'new'` or lekha id); avoids re-sync on referential re-renders. */
-  let last_seeded = $state<'new' | number | null>(null);
+  /** Last session synced from `initial` (lekha id); avoids re-sync on referential re-renders. */
+  let last_seeded = $state<number | null>(null);
   /** Snapshot of last saved / seeded form values for dirty detection. */
   let saved_snapshot = $state<{
     title: string;
@@ -116,7 +115,7 @@
   } | null>(null);
   let leave_confirmed = false;
 
-  let slug_section_unlocked = $derived(mode === 'create' || slug_edit_unlocked);
+  let slug_section_unlocked = $derived(slug_edit_unlocked);
 
   function tagsKey(list: string[]) {
     return JSON.stringify(list);
@@ -140,7 +139,7 @@
     return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
-  let slug_locked = $derived(mode === 'edit' && !slug_edit_unlocked);
+  let slug_locked = $derived(!slug_edit_unlocked);
 
   let slug_effective = $derived(
     slug_locked
@@ -177,17 +176,7 @@
   });
 
   $effect(() => {
-    if (mode === 'create') {
-      published_at_shown = null;
-      if (last_seeded !== 'new') {
-        last_seeded = 'new';
-        listed = true;
-        search_indexed = true;
-        queueMicrotask(() => captureSavedSnapshot());
-      }
-      return;
-    }
-    if (mode === 'edit' && lekha_id != null && initial) {
+    if (lekha_id != null && initial) {
       if (last_seeded !== lekha_id) {
         last_seeded = lekha_id;
         published_at_shown = initial.published_at ? new Date(initial.published_at) : null;
@@ -245,7 +234,7 @@
   $effect(() => {
     const debounced_slug = debounced_for_slug.current;
     const debounced_slug_pending = debounced_for_slug.pending;
-    const exclude_id_for_edit = mode === 'edit' && lekha_id != null ? lekha_id : undefined;
+    const exclude_id_for_edit = lekha_id;
     debounced_val = debounced_slug;
     debounced_pend = debounced_slug_pending;
     slug_check_inputs = { url_slug: debounced_slug, exclude_id: exclude_id_for_edit };
@@ -308,16 +297,6 @@
     });
   }
 
-  const add_mut = createMutation(() =>
-    trpc.site.lekha.add_lekha.mutationOptions({
-      onSuccess: async ({ id }) => {
-        leave_confirmed = true;
-        await invalidateLekhaList();
-        await goto(`/lekha/edit/${id}`);
-      }
-    })
-  );
-
   const edit_mut = createMutation(() =>
     trpc.site.lekha.edit_lekha.mutationOptions({
       onSuccess: async (res, vars) => {
@@ -332,6 +311,7 @@
         listed = vars.post_data.listed;
         search_indexed = vars.post_data.search_indexed;
         captureSavedSnapshot();
+        save_dialog_open = false;
         toast.success('Lekha updated successfully');
       }
     })
@@ -398,7 +378,7 @@
   }
 
   async function formatMarkdown() {
-    if (format_busy || add_mut.isPending || edit_mut.isPending) return;
+    if (format_busy || edit_mut.isPending) return;
     form_error = null;
     format_busy = true;
     try {
@@ -421,8 +401,8 @@
   }
 
   function validateLekhaForm(): string | null {
-    if (!title.trim() || !description.trim() || !content.trim()) {
-      return 'Title, description, and content are required.';
+    if (!title.trim() || !content.trim()) {
+      return 'Title and content are required.';
     }
     const url_slug = slug_auto ? lekhaUrlSlugify(title) : lekhaUrlSlugify(url_slug_manual);
     if (!url_slug && !slug_locked) {
@@ -440,32 +420,31 @@
     return null;
   }
 
-  const save = (e: Event) => {
-    e.preventDefault();
+  function requestSave(e?: Event) {
+    e?.preventDefault();
     form_error = null;
     const err = validateLekhaForm();
     if (err) {
       form_error = err;
       return;
     }
-    const post_data = buildPostData(mode === 'create' || is_draft);
-    if (mode === 'create') {
-      add_mut.mutate({ post_data });
-    } else {
-      if (lekha_id == null) {
-        form_error = 'Missing post id.';
-        return;
-      }
-      edit_mut.mutate({ id: lekha_id, post_data });
+    save_dialog_open = true;
+  }
+
+  function confirmSave() {
+    form_error = null;
+    const err = validateLekhaForm();
+    if (err) {
+      form_error = err;
+      save_dialog_open = false;
+      return;
     }
-  };
+    const post_data = buildPostData(is_draft);
+    edit_mut.mutate({ id: lekha_id, post_data });
+  }
 
   function confirmPublish() {
     form_error = null;
-    if (lekha_id == null) {
-      form_error = 'Missing post id.';
-      return;
-    }
     const err = validateLekhaForm();
     if (err) {
       form_error = err;
@@ -505,156 +484,167 @@
   {/if}
 {/snippet}
 
-<form class="mx-auto w-full max-w-3xl space-y-4 pb-8" onsubmit={save}>
+<form class="mx-auto w-full max-w-3xl space-y-4 pb-8" onsubmit={requestSave}>
   <div class="flex flex-wrap items-center justify-between gap-2">
     <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
-      {#if mode === 'edit'}
-        <a
-          href="/lekha"
-          class="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft class="size-4 shrink-0" aria-hidden="true" />
-          Lekha List
-        </a>
-      {/if}
+      <a
+        href="/lekha"
+        class="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft class="size-4 shrink-0" aria-hidden="true" />
+        Lekha List
+      </a>
     </div>
     <div class="flex items-center gap-2">
-      {#if mode === 'edit' && lekha_id != null}
-        <AlertDialog.Root bind:open={delete_dialog_open}>
-          <AlertDialog.Trigger>
-            {#snippet child({ props })}
-              <Button
-                {...props}
-                type="button"
-                variant="destructive"
-                class="shrink-0"
-                data-testid="lekha-delete"
-                disabled={delete_mut.isPending}
-              >
-                Delete
-              </Button>
-            {/snippet}
-          </AlertDialog.Trigger>
-          <AlertDialog.Content class="max-w-md">
-            <AlertDialog.Header>
-              <AlertDialog.Title>Delete this lekha?</AlertDialog.Title>
-              <AlertDialog.Description class="text-sm text-muted-foreground">
-                This will permanently remove the post, including its content and URL. This action
-                <strong>cannot be undone</strong> and the post cannot be restored. Any links to this lekha
-                will stop working.
-              </AlertDialog.Description>
-            </AlertDialog.Header>
-            {#if delete_mut.isError}
-              <p class="px-6 text-sm text-destructive" role="alert">
-                {String(delete_mut.error)}
-              </p>
-            {/if}
-            <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
-              <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-              <Button
-                type="button"
-                variant="destructive"
-                class="shrink-0"
-                disabled={delete_mut.isPending}
-                onclick={() => {
-                  if (lekha_id != null) {
-                    delete_mut.mutate({ id: lekha_id });
-                  }
-                }}
-              >
-                {delete_mut.isPending ? 'Deleting…' : 'Delete permanently'}
-              </Button>
-            </AlertDialog.Footer>
-          </AlertDialog.Content>
-        </AlertDialog.Root>
-      {/if}
-      {#if mode === 'create'}
-        <Button type="button" variant="outline" href="/lekha">Cancel</Button>
-      {/if}
-      <Button
-        type="submit"
-        disabled={add_mut.isPending ||
-          edit_mut.isPending ||
-          delete_mut.isPending ||
-          (browser &&
-            !!slug_effective &&
-            (!slug_in_sync ||
-              slug_check_q.isError ||
-              slug_check_q.isPending ||
-              slug_check_q.isFetching ||
-              slug_check_q.data?.exists !== false))}
-        data-testid="lekha-save"
-      >
-        {add_mut.isPending || edit_mut.isPending ? 'Saving…' : 'Save'}
-      </Button>
+      <AlertDialog.Root bind:open={delete_dialog_open}>
+        <AlertDialog.Trigger>
+          {#snippet child({ props })}
+            <Button
+              {...props}
+              type="button"
+              variant="destructive"
+              class="shrink-0"
+              data-testid="lekha-delete"
+              disabled={delete_mut.isPending}
+            >
+              Delete
+            </Button>
+          {/snippet}
+        </AlertDialog.Trigger>
+        <AlertDialog.Content class="max-w-md">
+          <AlertDialog.Header>
+            <AlertDialog.Title>Delete this lekha?</AlertDialog.Title>
+            <AlertDialog.Description class="text-sm text-muted-foreground">
+              This will permanently remove the post, including its content and URL. This action
+              <strong>cannot be undone</strong> and the post cannot be restored. Any links to this lekha
+              will stop working.
+            </AlertDialog.Description>
+          </AlertDialog.Header>
+          {#if delete_mut.isError}
+            <p class="px-6 text-sm text-destructive" role="alert">
+              {String(delete_mut.error)}
+            </p>
+          {/if}
+          <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
+            <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+            <Button
+              type="button"
+              variant="destructive"
+              class="shrink-0"
+              disabled={delete_mut.isPending}
+              onclick={() => {
+                delete_mut.mutate({ id: lekha_id });
+              }}
+            >
+              {delete_mut.isPending ? 'Deleting…' : 'Delete permanently'}
+            </Button>
+          </AlertDialog.Footer>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
+      <AlertDialog.Root bind:open={save_dialog_open}>
+        <Button
+          type="submit"
+          disabled={edit_mut.isPending ||
+            delete_mut.isPending ||
+            (browser &&
+              !!slug_effective &&
+              (!slug_in_sync ||
+                slug_check_q.isError ||
+                slug_check_q.isPending ||
+                slug_check_q.isFetching ||
+                slug_check_q.data?.exists !== false))}
+          data-testid="lekha-save"
+        >
+          {edit_mut.isPending ? 'Saving…' : 'Save'}
+        </Button>
+        <AlertDialog.Content class="max-w-md">
+          <AlertDialog.Header>
+            <AlertDialog.Title>Save changes?</AlertDialog.Title>
+            <AlertDialog.Description class="text-sm text-muted-foreground">
+              This will update the lekha with your current edits
+              {is_draft ? ' (still a draft)' : ' on the live post'}.
+            </AlertDialog.Description>
+          </AlertDialog.Header>
+          {#if edit_mut.isError}
+            <p class="px-6 text-sm text-destructive" role="alert">{String(edit_mut.error)}</p>
+          {/if}
+          <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
+            <AlertDialog.Cancel disabled={edit_mut.isPending}>Cancel</AlertDialog.Cancel>
+            <Button
+              type="button"
+              class="shrink-0"
+              disabled={edit_mut.isPending}
+              onclick={confirmSave}
+              data-testid="lekha-save-confirm"
+            >
+              {edit_mut.isPending ? 'Saving…' : 'Save changes'}
+            </Button>
+          </AlertDialog.Footer>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
     </div>
   </div>
 
-  {#if mode === 'edit' && lekha_id != null}
-    {#if is_draft}
-      <div
-        class="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 text-sm"
-      >
-        <span class="text-muted-foreground">This lekha is a draft.</span>
-        <AlertDialog.Root bind:open={publish_dialog_open}>
-          <AlertDialog.Trigger>
-            {#snippet child({ props })}
-              <Button
-                {...props}
-                type="button"
-                size="sm"
-                variant="secondary"
-                class="shrink-0"
-                data-testid="lekha-publish"
-                disabled={edit_mut.isPending || delete_mut.isPending}
-              >
-                Publish
-              </Button>
-            {/snippet}
-          </AlertDialog.Trigger>
-          <AlertDialog.Content class="max-w-md">
-            <AlertDialog.Header>
-              <AlertDialog.Title>Publish this lekha?</AlertDialog.Title>
-              <AlertDialog.Description class="text-sm text-muted-foreground">
-                This will go live per your Listed choice. You can still edit the post afterwards.
-              </AlertDialog.Description>
-            </AlertDialog.Header>
-            <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
-              <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-              <Button
-                type="button"
-                class="shrink-0"
-                disabled={edit_mut.isPending}
-                onclick={confirmPublish}
-                data-testid="lekha-publish-confirm"
-              >
-                {edit_mut.isPending ? 'Publishing…' : 'Publish'}
-              </Button>
-            </AlertDialog.Footer>
-          </AlertDialog.Content>
-        </AlertDialog.Root>
-      </div>
-    {:else if published_at_shown}
-      <div
-        class="flex items-center gap-2 border-b border-border/60 pb-3 text-sm text-muted-foreground"
-      >
-        <Check
-          class="size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
-          strokeWidth={2.5}
-          aria-hidden="true"
-        />
-        <span>Published {formatPublishedDate(published_at_shown)}</span>
-      </div>
-    {/if}
+  {#if is_draft}
+    <div
+      class="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 text-sm"
+    >
+      <span class="text-muted-foreground">This lekha is a draft.</span>
+      <AlertDialog.Root bind:open={publish_dialog_open}>
+        <AlertDialog.Trigger>
+          {#snippet child({ props })}
+            <Button
+              {...props}
+              type="button"
+              size="sm"
+              variant="secondary"
+              class="shrink-0"
+              data-testid="lekha-publish"
+              disabled={edit_mut.isPending || delete_mut.isPending}
+            >
+              Publish
+            </Button>
+          {/snippet}
+        </AlertDialog.Trigger>
+        <AlertDialog.Content class="max-w-md">
+          <AlertDialog.Header>
+            <AlertDialog.Title>Publish this lekha?</AlertDialog.Title>
+            <AlertDialog.Description class="text-sm text-muted-foreground">
+              This will go live per your Listed choice. You can still edit the post afterwards.
+            </AlertDialog.Description>
+          </AlertDialog.Header>
+          <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
+            <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+            <Button
+              type="button"
+              class="shrink-0"
+              disabled={edit_mut.isPending}
+              onclick={confirmPublish}
+              data-testid="lekha-publish-confirm"
+            >
+              {edit_mut.isPending ? 'Publishing…' : 'Publish'}
+            </Button>
+          </AlertDialog.Footer>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
+    </div>
+  {:else if published_at_shown}
+    <div
+      class="flex items-center gap-2 border-b border-border/60 pb-3 text-sm text-muted-foreground"
+    >
+      <Check
+        class="size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+        strokeWidth={2.5}
+        aria-hidden="true"
+      />
+      <span>Published {formatPublishedDate(published_at_shown)}</span>
+    </div>
   {/if}
 
   {#if form_error}
     <p class="text-sm text-destructive" role="alert">{form_error}</p>
   {/if}
-  {#if add_mut.isError}
-    <p class="text-sm text-destructive" role="alert">{String(add_mut.error)}</p>
-  {/if}
-  {#if edit_mut.isError}
+  {#if edit_mut.isError && !save_dialog_open && !publish_dialog_open}
     <p class="text-sm text-destructive" role="alert">{String(edit_mut.error)}</p>
   {/if}
   {#if delete_mut.isError && !delete_dialog_open}
@@ -675,7 +665,7 @@
           <Switch
             id="lekha-meta-typing-enabled"
             bind:checked={meta_typing_enabled}
-            disabled={add_mut.isPending || edit_mut.isPending}
+            disabled={edit_mut.isPending}
             title="Devanagari transliteration for title and description (Alt+X)"
           />
         </div>
@@ -707,11 +697,13 @@
       </p>
     </div>
     <div class="space-y-1.5">
-      <Label for="lekha-description">Description</Label>
+      <Label for="lekha-description">
+        Description
+        <span class="font-normal text-muted-foreground">(optional)</span>
+      </Label>
       <Textarea
         id="lekha-description"
         bind:value={description}
-        required
         rows={3}
         class="min-h-20"
         onbeforeinput={(e) =>
@@ -729,7 +721,7 @@
       />
     </div>
     <div class="space-y-1.5">
-      {#if mode === 'create' || slug_section_unlocked}
+      {#if slug_section_unlocked}
         <div class="flex flex-wrap items-center justify-between gap-3">
           <Label for="lekha-slug" class="mb-0">URL slug</Label>
           <div class="flex items-center gap-2">
@@ -839,11 +831,7 @@
 
   <div class="flex flex-col gap-1.5">
     <div class="flex items-center gap-1.5">
-      <Checkbox
-        id="cb-listed"
-        bind:checked={listed}
-        disabled={add_mut.isPending || edit_mut.isPending}
-      />
+      <Checkbox id="cb-listed" bind:checked={listed} disabled={edit_mut.isPending} />
       <Label for="cb-listed" class="cursor-pointer text-sm leading-none font-normal">Listed</Label>
       <Popover.Root>
         <Popover.Trigger
@@ -865,7 +853,7 @@
       <Checkbox
         id="cb-search"
         bind:checked={search_indexed}
-        disabled={add_mut.isPending || edit_mut.isPending}
+        disabled={edit_mut.isPending}
       />
       <Label for="cb-search" class="cursor-pointer text-sm leading-none font-normal"
         >Search indexed</Label
@@ -907,7 +895,7 @@
             <Switch
               id="lekha-typing-enabled"
               bind:checked={content_typing_enabled}
-              disabled={add_mut.isPending || edit_mut.isPending}
+              disabled={edit_mut.isPending}
               title="Transliteration typing for content (Alt+X)"
             />
           </div>
@@ -916,7 +904,7 @@
             variant="outline"
             size="sm"
             class="shrink-0 gap-1.5"
-            disabled={format_busy || add_mut.isPending || edit_mut.isPending}
+            disabled={format_busy || edit_mut.isPending}
             onclick={() => void formatMarkdown()}
           >
             {#if format_busy}
@@ -932,9 +920,9 @@
         {#if browser && editor_ready}
           <div
             class="lekha-carta"
-            class:pointer-events-none={add_mut.isPending || edit_mut.isPending}
-            class:opacity-60={add_mut.isPending || edit_mut.isPending}
-            aria-busy={add_mut.isPending || edit_mut.isPending}
+            class:pointer-events-none={edit_mut.isPending}
+            class:opacity-60={edit_mut.isPending}
+            aria-busy={edit_mut.isPending}
           >
             <MarkdownEditor
               {carta}

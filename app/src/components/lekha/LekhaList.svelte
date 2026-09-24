@@ -3,15 +3,29 @@
   import { useTRPC } from '~/api/client';
   import * as InputGroup from '$lib/components/ui/input-group';
   import { Button } from '$lib/components/ui/button';
+  import { Label } from '$lib/components/ui/label';
+  import { Switch } from '$lib/components/ui/switch';
   import * as Select from '$lib/components/ui/select';
   import { Skeleton } from '$lib/components/ui/skeleton';
   import SearchIcon from '@lucide/svelte/icons/search';
+  import KeyboardIcon from '@lucide/svelte/icons/keyboard';
   import Pencil from '@lucide/svelte/icons/pencil';
   import ListChecks from '@lucide/svelte/icons/list-checks';
   import ListX from '@lucide/svelte/icons/list-x';
   import SearchCheck from '@lucide/svelte/icons/search-check';
   import SearchX from '@lucide/svelte/icons/search-x';
+  import Rows3 from '@lucide/svelte/icons/rows-3';
+  import Calendar from '@lucide/svelte/icons/calendar';
+  import CalendarClock from '@lucide/svelte/icons/calendar-clock';
+  import ArrowDownWideNarrow from '@lucide/svelte/icons/arrow-down-wide-narrow';
+  import ArrowUpNarrowWide from '@lucide/svelte/icons/arrow-up-narrow-wide';
   import { withPaginationListScroll } from '$lib/pagination-scroll';
+  import { Debounced } from 'runed';
+  import {
+    clearTypingContextOnKeyDown,
+    createTypingContext,
+    handleTypingBeforeInputEvent
+  } from 'lipilekhika/typing';
 
   let { draft }: { draft: boolean } = $props();
   const trpc = useTRPC();
@@ -29,9 +43,25 @@
   let submitted_search = $state('');
   let sort_by = $state<'published_at' | 'updated_at'>('published_at');
   let order_by = $state<'asc' | 'desc'>('desc');
-  let limit = $state(20);
+  let limit = $state(15);
+  let typing_enabled = $state(false);
+
+  const PAGE_SIZE_OPTIONS = [15, 25, 50] as const;
 
   let search_input = $state('');
+
+  const typing_ctx = createTypingContext('Devanagari', {
+    includeInherentVowel: true
+  });
+
+  const debounced_search = new Debounced(() => search_input.trim(), 350);
+
+  $effect(() => {
+    const q = debounced_search.current;
+    if (q === submitted_search) return;
+    submitted_search = q;
+    page = 1;
+  });
 
   let list_q = createQuery(() =>
     trpc.site.lekha.list_lekhas.queryOptions({
@@ -44,10 +74,22 @@
     })
   );
 
+  /** Immediate search (Enter / Search button); debounce covers typing. */
   const apply_search = () => {
-    submitted_search = search_input.trim();
+    const q = search_input.trim();
+    if (q === submitted_search) return;
+    submitted_search = q;
     page = 1;
   };
+
+  function toggle_typing_from_keyboard(e: KeyboardEvent) {
+    if (!e.altKey) return false;
+    const key = e.key.toLowerCase();
+    if (key !== 'x' && key !== 'c') return false;
+    e.preventDefault();
+    typing_enabled = !typing_enabled;
+    return true;
+  }
 
   function formatLekhaDate(d: string | Date | null | undefined) {
     if (d == null) return '—';
@@ -60,65 +102,188 @@
 </script>
 
 <div class="flex flex-col gap-3">
-  <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
-    <InputGroup.Root class="h-9 min-w-0 flex-1 sm:max-w-md">
-      <InputGroup.Addon align="inline-start" class="pl-2">
-        <SearchIcon class="size-4 text-muted-foreground" aria-hidden="true" />
-      </InputGroup.Addon>
-      <InputGroup.Input
-        placeholder="Search title, description, tags…"
-        bind:value={search_input}
-        onkeydown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            apply_search();
-          }
-        }}
-        aria-label="Search lekha"
-      />
-    </InputGroup.Root>
-    <Button type="button" variant="secondary" class="shrink-0" onclick={apply_search}>
-      Search
-    </Button>
+  <div class="flex flex-col gap-3">
+    <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+      <InputGroup.Root class="h-10 w-full min-w-0 flex-1">
+        <InputGroup.Addon align="inline-start" class="pl-2.5">
+          <SearchIcon class="size-4 text-muted-foreground" aria-hidden="true" />
+        </InputGroup.Addon>
+        <InputGroup.Input
+          placeholder="Search titles, descriptions, and tags…"
+          bind:value={search_input}
+          onbeforeinput={(e) =>
+            handleTypingBeforeInputEvent(
+              typing_ctx,
+              e,
+              (newValue) => {
+                search_input = newValue;
+              },
+              typing_enabled
+            )}
+          onblur={() => typing_ctx.clearContext()}
+          onkeydown={(e) => {
+            if (toggle_typing_from_keyboard(e)) return;
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              apply_search();
+              return;
+            }
+            clearTypingContextOnKeyDown(e, typing_ctx);
+          }}
+          aria-label="Search lekha"
+        />
+        <InputGroup.Addon
+          align="inline-end"
+          class="cursor-default gap-2 border-s border-border/50 ps-3 pe-2.5"
+        >
+          <Label
+            for="lekha-admin-list-typing"
+            class="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground select-none"
+          >
+            <KeyboardIcon class="size-3.5" aria-hidden="true" />
+            Typing
+          </Label>
+          <Switch
+            id="lekha-admin-list-typing"
+            bind:checked={typing_enabled}
+            title="Devanagari transliteration typing (Alt+X)"
+          />
+        </InputGroup.Addon>
+      </InputGroup.Root>
+      <Button
+        type="button"
+        variant="secondary"
+        class="h-10 shrink-0 gap-1.5 sm:w-auto"
+        onclick={apply_search}
+      >
+        <SearchIcon class="size-3.5" aria-hidden="true" />
+        Search
+      </Button>
+    </div>
 
-    <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
-      <span class="text-xs text-muted-foreground">Sort</span>
-      <Select.Root
-        type="single"
-        value={sort_by}
-        onValueChange={(v) => {
-          if (v === 'published_at' || v === 'updated_at') {
-            sort_by = v;
-            page = 1;
-          }
-        }}
-      >
-        <Select.Trigger class="h-9 w-40 text-xs" aria-label="Sort by">
-          {sort_by === 'published_at' ? 'Published' : 'Updated'}
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Item value="published_at">Published</Select.Item>
-          <Select.Item value="updated_at">Updated</Select.Item>
-        </Select.Content>
-      </Select.Root>
-      <Select.Root
-        type="single"
-        value={order_by}
-        onValueChange={(v) => {
-          if (v === 'asc' || v === 'desc') {
-            order_by = v;
-            page = 1;
-          }
-        }}
-      >
-        <Select.Trigger class="h-9 w-28 text-xs" aria-label="Order">
-          {order_by === 'desc' ? 'Newest first' : 'Oldest first'}
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Item value="desc">Newest first</Select.Item>
-          <Select.Item value="asc">Oldest first</Select.Item>
-        </Select.Content>
-      </Select.Root>
+    <div class="flex flex-wrap items-end gap-3">
+      <div class="flex flex-col gap-1.5">
+        <Label for="lekha-admin-per-page" class="text-xs font-medium text-muted-foreground">
+          Per page
+        </Label>
+        <Select.Root
+          type="single"
+          value={String(limit)}
+          onValueChange={(v) => {
+            const n = Number(v);
+            if (PAGE_SIZE_OPTIONS.includes(n as (typeof PAGE_SIZE_OPTIONS)[number])) {
+              limit = n;
+              page = 1;
+            }
+          }}
+        >
+          <Select.Trigger
+            id="lekha-admin-per-page"
+            class="h-8 w-24 gap-1.5 text-xs"
+            aria-label="Posts per page"
+          >
+            <Rows3 class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            {limit}
+          </Select.Trigger>
+          <Select.Content>
+            {#each PAGE_SIZE_OPTIONS as size (size)}
+              <Select.Item value={String(size)}>{size}</Select.Item>
+            {/each}
+          </Select.Content>
+        </Select.Root>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <Label for="lekha-admin-sort-by" class="text-xs font-medium text-muted-foreground">
+          Sort by
+        </Label>
+        <Select.Root
+          type="single"
+          value={sort_by}
+          onValueChange={(v) => {
+            if (v === 'published_at' || v === 'updated_at') {
+              sort_by = v;
+              page = 1;
+            }
+          }}
+        >
+          <Select.Trigger
+            id="lekha-admin-sort-by"
+            class="h-8 w-40 gap-1.5 text-xs"
+            aria-label="Sort by"
+          >
+            {#if sort_by === 'published_at'}
+              <Calendar class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+              Published
+            {:else}
+              <CalendarClock class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+              Updated
+            {/if}
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Item value="published_at" label="Published">
+              <span class="flex items-center gap-2">
+                <Calendar class="size-3.5 text-muted-foreground" aria-hidden="true" />
+                Published
+              </span>
+            </Select.Item>
+            <Select.Item value="updated_at" label="Updated">
+              <span class="flex items-center gap-2">
+                <CalendarClock class="size-3.5 text-muted-foreground" aria-hidden="true" />
+                Updated
+              </span>
+            </Select.Item>
+          </Select.Content>
+        </Select.Root>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <Label for="lekha-admin-order" class="text-xs font-medium text-muted-foreground">
+          Order
+        </Label>
+        <Select.Root
+          type="single"
+          value={order_by}
+          onValueChange={(v) => {
+            if (v === 'asc' || v === 'desc') {
+              order_by = v;
+              page = 1;
+            }
+          }}
+        >
+          <Select.Trigger
+            id="lekha-admin-order"
+            class="h-8 w-36 gap-1.5 text-xs"
+            aria-label="Order"
+          >
+            {#if order_by === 'desc'}
+              <ArrowDownWideNarrow
+                class="size-3.5 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
+              Newest first
+            {:else}
+              <ArrowUpNarrowWide
+                class="size-3.5 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
+              Oldest first
+            {/if}
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Item value="desc" label="Newest first">
+              <span class="flex items-center gap-2">
+                <ArrowDownWideNarrow class="size-3.5 text-muted-foreground" aria-hidden="true" />
+                Newest first
+              </span>
+            </Select.Item>
+            <Select.Item value="asc" label="Oldest first">
+              <span class="flex items-center gap-2">
+                <ArrowUpNarrowWide class="size-3.5 text-muted-foreground" aria-hidden="true" />
+                Oldest first
+              </span>
+            </Select.Item>
+          </Select.Content>
+        </Select.Root>
+      </div>
     </div>
   </div>
 

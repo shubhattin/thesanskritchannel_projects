@@ -172,7 +172,7 @@ const list_lekhas_input = z.object({
   sort_by: z.enum(['published_at', 'updated_at']).default('published_at'),
   order_by: z.enum(['asc', 'desc']).default('desc'),
   page: z.int().min(1).default(1),
-  limit: z.int().min(1).max(100).default(20)
+  limit: z.int().min(1).max(100).default(15)
 });
 
 const list_lekhas_route = protectedAdminProcedure.input(list_lekhas_input).query(({ input }) =>

@@ -3,12 +3,13 @@
   import { Button } from '$lib/components/ui/button';
   import ListIcon from '@lucide/svelte/icons/list';
   import FileText from '@lucide/svelte/icons/file-text';
-  import Plus from '@lucide/svelte/icons/plus';
   import ArrowLeft from '@lucide/svelte/icons/arrow-left';
   import LekhaList from '~/components/lekha/LekhaList.svelte';
+  import LekhaCreateDialog from '~/components/lekha/LekhaCreateDialog.svelte';
   import MetaTags from '~/components/tags/MetaTags.svelte';
 
   let lekha_section: 'published' | 'draft' = $state('published');
+  let create_open = $state(false);
 </script>
 
 <MetaTags title="Lekha" description="Lekha is a platform for creating and managing lekha." />
@@ -21,10 +22,7 @@
       </Button>
       <h1 class="text-xl font-semibold tracking-tight">Lekha</h1>
     </div>
-    <Button href="/lekha/add" class="shrink-0 gap-2">
-      <Plus class="size-4" aria-hidden="true" />
-      New post
-    </Button>
+    <LekhaCreateDialog bind:open={create_open} />
   </div>
 
   <Tabs.Root
@@ -33,7 +31,7 @@
   >
     <Tabs.List
       aria-label="Lekha tools"
-      class="flex h-auto w-36 shrink-0 flex-col items-stretch gap-1 rounded-lg bg-muted p-[3px] sm:w-40"
+      class="flex h-auto w-36 shrink-0 flex-col items-stretch gap-1 rounded-lg bg-muted p-0.75 sm:w-40"
     >
       <Tabs.Trigger value="published" class="w-full flex-none justify-start gap-2 px-3 py-2.5">
         <ListIcon class="size-4 shrink-0" aria-hidden="true" />

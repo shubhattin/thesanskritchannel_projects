@@ -10,4 +10,4 @@
 
 <MetaTags title={`Edit Lekha: ${lekha.title}`} />
 
-<LekhaForm mode="edit" lekha_id={lekha.id} initial={lekha} />
+<LekhaForm lekha_id={lekha.id} initial={lekha} />

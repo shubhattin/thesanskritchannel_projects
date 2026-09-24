@@ -4,6 +4,7 @@ import { code } from '@cartamd/plugin-code';
 import { lipiToolbarIcon } from './lipi/lipiPlugin';
 import { shlokaToolbarIcon } from './shloka/shlokaPlugin';
 import { lipiShlokaToolbarIcon } from './lipi_shloka/lipiShlokaPlugin';
+import { lekhaBrToolbarIcon } from './br/lekhaBrToolbarPlugin';
 import { lekhaUnderlinePlugin } from './underline/lekhaUnderlinePlugin';
 import { lekhaTableToolbarPlugin } from './table/lekhaTableToolbarPlugin';
 import { lekhaVideoToolbarPlugin } from './video/lekhaVideoToolbarPlugin';
@@ -41,10 +42,10 @@ function withShortcutHint(icon: Icon): Icon {
 }
 
 /**
- * Rebuilds the base Carta icons (with some disabled), inserts **Lipi** immediately after **Italic**,
- * then appends **Underline** and **video** (YouTube snippet) controls. **`code`** highlighting comes from
- * `@cartamd/plugin-code` (paired with `.theme` / `shikiOptions` on `Carta`). Requires `new Carta({ disableIcons: true, … })`
- * so only this ordering is used.
+ * Rebuilds the base Carta icons (with some disabled), inserts **br** after **Bold** and **Lipi**
+ * immediately after **Italic**, then appends **Underline** and **video** (YouTube snippet) controls.
+ * **`code`** highlighting comes from `@cartamd/plugin-code` (paired with `.theme` / `shikiOptions` on
+ * `Carta`). Requires `new Carta({ disableIcons: true, … })` so only this ordering is used.
  */
 function lekhaOrderedBaseIcons(): Icon[] {
   const out: Icon[] = [];
@@ -53,6 +54,9 @@ function lekhaOrderedBaseIcons(): Icon[] {
       continue;
     }
     out.push(withShortcutHint(icon));
+    if (icon.id === 'bold') {
+      out.push(lekhaBrToolbarIcon);
+    }
     if (icon.id === 'italic') {
       out.push(lipiToolbarIcon);
       out.push(shlokaToolbarIcon);
@@ -63,10 +67,21 @@ function lekhaOrderedBaseIcons(): Icon[] {
 }
 
 /**
- * Same wrap actions as the toolbar buttons. Carta calls `preventDefault` on match, so these
+ * Same wrap/insert actions as the toolbar buttons. Carta calls `preventDefault` on match, so these
  * override browser defaults (e.g. Ctrl+L location bar, Ctrl+J downloads) while the editor is focused.
+ * Line break: Shift+Enter and Ctrl+Enter (Ctrl+N is reserved by the browser for new window).
  */
 const LEKHA_LIPI_SHORTCUTS: NonNullable<Plugin['shortcuts']> = [
+  {
+    id: 'br-shift-enter',
+    combination: new Set(['shift', 'enter']),
+    action: lekhaBrToolbarIcon.action
+  },
+  {
+    id: 'br-control-enter',
+    combination: new Set(['control', 'enter']),
+    action: lekhaBrToolbarIcon.action
+  },
   {
     id: 'lipi',
     combination: new Set(['control', 'j']),
@@ -80,7 +95,8 @@ const LEKHA_LIPI_SHORTCUTS: NonNullable<Plugin['shortcuts']> = [
 ];
 
 /**
- * Lekha editor Carta extensions: Shiki code blocks + full toolbar + underline + GFM table + YouTube; Lipi/Shloka after Italic.
+ * Lekha editor Carta extensions: Shiki code blocks + full toolbar + underline + GFM table + YouTube;
+ * `<br/>` after Bold; Lipi/Shloka after Italic.
  */
 export function getLekhaCartaExtensions(): Plugin[] {
   return [

@@ -91,8 +91,7 @@
         content: '',
         tags: [],
         url_slug,
-        listed: true,
-        search_indexed: true
+        listed: true
       }
     });
   }

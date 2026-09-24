@@ -165,11 +165,7 @@ export const sitemapCache = createCache<NoCacheParams, SitemapCacheValue>({
             created_at: true
           },
           where: (tbl, { and: andOp, eq: eqCol }) =>
-            andOp(
-              eqCol(tbl.draft, false),
-              eqCol(tbl.listed, true),
-              eqCol(tbl.search_indexed, true)
-            ),
+            andOp(eqCol(tbl.draft, false), eqCol(tbl.listed, true)),
           orderBy: ({ published_at }, { desc }) => desc(published_at)
         })
       ).pipe(Effect.mapError(toCacheError('sitemap.lekhas')))

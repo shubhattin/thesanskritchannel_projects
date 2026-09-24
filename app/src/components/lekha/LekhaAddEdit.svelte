@@ -83,8 +83,6 @@
   let is_draft = $derived(initial?.draft ?? true);
   let published_at_shown = $derived(initial?.published_at ?? null);
   let listed = $state(true);
-  /** Kept in form state / DB default; UI control is hidden for now. */
-  let search_indexed = $state(true);
   /** When true, slug is derived from title and the slug field is read-only. */
   let slug_auto = $derived(initial?.url_slug ? false : true);
   let url_slug_manual = $derived(initial?.url_slug ?? '');
@@ -112,7 +110,6 @@
     content: string;
     tags_key: string;
     listed: boolean;
-    search_indexed: boolean;
     url_slug: string;
   } | null>(null);
   let leave_confirmed = false;
@@ -162,7 +159,6 @@
       content,
       tags_key: tagsKey(tags),
       listed,
-      search_indexed,
       url_slug: slug_effective
     };
   }
@@ -176,7 +172,6 @@
       content !== snap.content ||
       tagsKey(tags) !== snap.tags_key ||
       listed !== snap.listed ||
-      search_indexed !== snap.search_indexed ||
       slug_effective !== snap.url_slug
     );
   });
@@ -187,7 +182,6 @@
         last_seeded = lekha_id;
         published_at_shown = initial.published_at ? new Date(initial.published_at) : null;
         listed = initial.listed;
-        search_indexed = initial.search_indexed;
         queueMicrotask(() => captureSavedSnapshot());
       }
     }
@@ -315,7 +309,6 @@
         tags = normalized.tags;
         content = await sanitizeAndFormatLekhaMarkdownForStorage(normalized.content);
         listed = vars.post_data.listed;
-        search_indexed = vars.post_data.search_indexed;
         captureSavedSnapshot();
         save_dialog_open = false;
         toast.success('Lekha updated successfully');
@@ -370,8 +363,7 @@
       tags,
       url_slug: urlSlugForNormalize(),
       draft: draft_for_request,
-      listed,
-      search_indexed
+      listed
     };
   }
 
@@ -890,32 +882,6 @@
         </Popover.Content>
       </Popover.Root>
     </div>
-    <!-- Search indexed UI hidden for now; column stays default-on in DB / form state.
-    <div class="flex items-center gap-1.5">
-      <Checkbox
-        id="cb-search"
-        bind:checked={search_indexed}
-        disabled={edit_mut.isPending}
-      />
-      <Label for="cb-search" class="cursor-pointer text-sm leading-none font-normal"
-        >Search indexed</Label
-      >
-      <Popover.Root>
-        <Popover.Trigger
-          class="inline-flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          type="button"
-          aria-label="What Search indexed means"
-        >
-          <Info class="size-3.5" aria-hidden="true" />
-        </Popover.Trigger>
-        <Popover.Content side="top" class="w-auto max-w-xs p-3 text-pretty" sideOffset={4}>
-          <p class="text-sm leading-snug">
-            When enabled, this post can be included in search engine (e.g. web) indexes.
-          </p>
-        </Popover.Content>
-      </Popover.Root>
-    </div>
-    -->
   </div>
 
   <div class="space-y-1.5">

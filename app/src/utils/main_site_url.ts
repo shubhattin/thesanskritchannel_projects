@@ -11,6 +11,14 @@ export const get_main_site_origin = () =>
     .trim()
     .replace(/\/+$/, '');
 
+/** Public reader URL for a lekha post, e.g. `https://example.com/lekha/my-slug`. */
+export const build_main_site_lekha_href = (url_slug: string): string | null => {
+  const origin = get_main_site_origin();
+  const slug = url_slug.trim().replace(/^\/+|\/+$/g, '');
+  if (!origin || !slug) return null;
+  return `${origin}/lekha/${encodeURIComponent(slug)}`;
+};
+
 export const build_main_site_project_link = ({
   project_key,
   map,

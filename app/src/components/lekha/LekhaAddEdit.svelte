@@ -52,6 +52,8 @@
   } from 'lipilekhika/typing';
   import Icon from '~/tools/Icon.svelte';
   import { LanguageIcon } from '~/components/icons';
+  import { build_main_site_lekha_href } from '~/utils/main_site_url';
+  import ExternalLink from '@lucide/svelte/icons/external-link';
 
   let {
     lekha_id,
@@ -147,6 +149,10 @@
       : slug_auto
         ? lekhaUrlSlugify(title)
         : lekhaUrlSlugify(url_slug_manual)
+  );
+
+  let published_main_site_href = $derived(
+    !is_draft && slug_effective ? build_main_site_lekha_href(slug_effective) : null
   );
 
   function captureSavedSnapshot() {
@@ -651,14 +657,29 @@
     </div>
   {:else if published_at_shown}
     <div
-      class="flex items-center gap-2 border-b border-border/60 pb-3 text-sm text-muted-foreground"
+      class="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 text-sm text-muted-foreground"
     >
-      <Check
-        class="size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
-        strokeWidth={2.5}
-        aria-hidden="true"
-      />
-      <span>Published {formatPublishedDate(published_at_shown)}</span>
+      <div class="flex min-w-0 items-center gap-2">
+        <Check
+          class="size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+          strokeWidth={2.5}
+          aria-hidden="true"
+        />
+        <span>Published {formatPublishedDate(published_at_shown)}</span>
+      </div>
+      {#if published_main_site_href}
+        <a
+          href={published_main_site_href}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+          data-testid="lekha-main-site-link"
+        >
+          <ExternalLink class="size-3.5 shrink-0" aria-hidden="true" />
+          View on main site
+          <span class="sr-only">(opens in a new tab)</span>
+        </a>
+      {/if}
     </div>
   {/if}
 

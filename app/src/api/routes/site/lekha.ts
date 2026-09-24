@@ -210,7 +210,8 @@ const list_lekhas_route = protectedAdminProcedure.input(list_lekhas_input).query
               updated_at: site_lekhas.updated_at,
               draft: site_lekhas.draft,
               listed: site_lekhas.listed,
-              search_indexed: site_lekhas.search_indexed
+              search_indexed: site_lekhas.search_indexed,
+              url_slug: site_lekhas.url_slug
             })
             .from(site_lekhas)
             .where(whereClause)

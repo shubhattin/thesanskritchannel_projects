@@ -19,6 +19,7 @@
   import CalendarClock from '@lucide/svelte/icons/calendar-clock';
   import ArrowDownWideNarrow from '@lucide/svelte/icons/arrow-down-wide-narrow';
   import ArrowUpNarrowWide from '@lucide/svelte/icons/arrow-up-narrow-wide';
+  import ExternalLink from '@lucide/svelte/icons/external-link';
   import { withPaginationListScroll } from '$lib/pagination-scroll';
   import { Debounced } from 'runed';
   import {
@@ -26,6 +27,7 @@
     createTypingContext,
     handleTypingBeforeInputEvent
   } from 'lipilekhika/typing';
+  import { build_main_site_lekha_href } from '~/utils/main_site_url';
 
   let { draft }: { draft: boolean } = $props();
   const trpc = useTRPC();
@@ -368,10 +370,29 @@
               )}
             </p>
           </div>
-          <Button variant="outline" size="sm" class="shrink-0 gap-1" href="/lekha/edit/{row.id}">
-            <Pencil class="size-3.5" aria-hidden="true" />
-            Edit
-          </Button>
+          <div class="flex shrink-0 flex-wrap items-center gap-2">
+            {#if !row.draft && row.url_slug}
+              {@const main_href = build_main_site_lekha_href(row.url_slug)}
+              {#if main_href}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="shrink-0 gap-1"
+                  href={main_href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink class="size-3.5" aria-hidden="true" />
+                  View
+                  <span class="sr-only">(opens on main site in a new tab)</span>
+                </Button>
+              {/if}
+            {/if}
+            <Button variant="outline" size="sm" class="shrink-0 gap-1" href="/lekha/edit/{row.id}">
+              <Pencil class="size-3.5" aria-hidden="true" />
+              Edit
+            </Button>
+          </div>
         </li>
       {/each}
     </ul>

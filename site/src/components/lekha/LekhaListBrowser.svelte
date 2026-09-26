@@ -19,13 +19,10 @@
   import Tags from '@lucide/svelte/icons/tags';
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import X from '@lucide/svelte/icons/x';
-  import {
-    clearTypingContextOnKeyDown,
-    createTypingContext,
-    handleTypingBeforeInputEvent
-  } from 'lipilekhika/typing';
+  import { clearTypingContextOnKeyDown, handleTypingBeforeInputEvent } from 'lipilekhika/typing';
   import { create_project_name_dev_normal_cache } from '@app/utils/search/project_name_dev_normal_cache';
   import { filter_lekhas_by_search } from '$lib/lekha/lekha_list_search';
+  import { use_script_query } from '$lib/search/use-script-query.svelte';
   import { withPaginationListScroll } from '@app/lib/pagination-scroll';
   import { getFontClass } from '~/components/utils/font_list';
   import { get_display_script_from_id } from '$lib/main_text/display-script';
@@ -62,9 +59,7 @@
   let tag_query = $state('');
   let tag_filter_input: HTMLInputElement | null = $state(null);
 
-  const ctx = createTypingContext('Devanagari', {
-    includeInherentVowel: true
-  });
+  const script_query = use_script_query(() => search_text);
 
   const text_normal_cache = create_project_name_dev_normal_cache();
   let text_normal_cache_version = $state(0);
@@ -112,7 +107,13 @@
 
   const filtered_posts = $derived.by(() => {
     void text_normal_cache_version;
-    let list = filter_lekhas_by_search(posts, search_text, (text) => text_normal_cache.get(text));
+    const query_normals = script_query.normals_for_text(search_text);
+    let list = filter_lekhas_by_search(
+      posts,
+      search_text,
+      (text) => text_normal_cache.get(text),
+      { normals: query_normals }
+    );
     if (selected_tag_keys.size > 0) {
       list = list.filter((post) =>
         post.tags.some((tag) => selected_tag_keys.has(tag.trim().toLowerCase()))
@@ -250,7 +251,7 @@
         oninput={reset_page}
         onbeforeinput={(e) =>
           handleTypingBeforeInputEvent(
-            ctx,
+            script_query.ctx,
             e,
             (newValue) => {
               search_text = newValue;
@@ -258,10 +259,10 @@
             },
             typing_enabled
           )}
-        onblur={() => ctx.clearContext()}
+        onblur={() => script_query.ctx.clearContext()}
         onkeydown={(e) => {
           if (toggle_typing_from_keyboard(e)) return;
-          clearTypingContextOnKeyDown(e, ctx);
+          clearTypingContextOnKeyDown(e, script_query.ctx);
         }}
         aria-label="Search lekha posts"
       />
@@ -279,7 +280,7 @@
         <Switch
           id="lekha-list-typing-switch"
           bind:checked={typing_enabled}
-          title="Devanagari transliteration typing (Alt+X)"
+          title={`${site_prefs.script} transliteration typing (Alt+X)`}
         />
       </InputGroup.Addon>
     </InputGroup.Root>
@@ -526,7 +527,7 @@
         </Empty.Media>
         <Empty.Title>No posts found</Empty.Title>
         <Empty.Description>
-          Try a different search term, clear tag filters, or turn on Typing for Devanagari.
+          Try a different search term, clear tag filters, or turn on Typing for {site_prefs.script}.
         </Empty.Description>
       </Empty.Header>
     </Empty.Root>

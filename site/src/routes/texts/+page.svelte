@@ -29,5 +29,9 @@
     </p>
   </header>
 
-  <TextsBrowser projects={data.projects} />
+  <TextsBrowser
+    projects={data.projects}
+    ssr_script_id={data.ssr_script_id}
+    name_devs_display={data.name_devs_display}
+  />
 </div>

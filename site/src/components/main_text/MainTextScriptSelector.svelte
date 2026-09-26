@@ -11,6 +11,9 @@
   import { site_prefs } from '$lib/main_text/site-prefs.svelte';
   import { type ScriptListType } from 'lipilekhika';
   import PenLineIcon from '@lucide/svelte/icons/pen-line';
+  import { preloadScriptData } from 'lipilekhika';
+
+  let { compact = false }: { compact?: boolean } = $props();
 
   function idToScript(id: number): script_list_type {
     const s = get_script_from_id(id);
@@ -21,6 +24,10 @@
 
   $effect(() => {
     script = idToScript(site_prefs.script_id);
+  });
+
+  $effect(() => {
+    void preloadScriptData(script);
   });
 
   async function handle_script_change(next: ScriptListType) {
@@ -36,10 +43,12 @@
   }
 </script>
 
-<div class="flex flex-col gap-2">
-  <div class="flex items-center gap-2">
-    <PenLineIcon class="size-4 text-muted-foreground" aria-hidden="true" />
-    <p class="text-sm text-muted-foreground">Script</p>
-  </div>
+<div class={compact ? '' : 'flex flex-col gap-2'}>
+  {#if !compact}
+    <div class="flex items-center gap-2">
+      <PenLineIcon class="size-4 text-muted-foreground" aria-hidden="true" />
+      <p class="text-sm text-muted-foreground">Script</p>
+    </div>
+  {/if}
   <ScriptSelector bind:script on_script_change={handle_script_change} />
 </div>

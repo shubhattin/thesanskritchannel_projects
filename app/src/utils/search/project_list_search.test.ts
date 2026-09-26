@@ -7,9 +7,10 @@ import {
 } from './project_list_search';
 
 describe('project_list_search', () => {
-  it('tokenizes query into lowercase words', () => {
-    expect(tokenize_search_query('  Rāma   Ayana ')).toEqual(['rāma', 'ayana']);
+  it('tokenizes query into folded words', () => {
+    expect(tokenize_search_query('  Rāma   Ayana ')).toEqual(['rama', 'ayana']);
     expect(tokenize_search_query('')).toEqual([]);
+    expect(tokenize_search_query('रामः')).toEqual(['रामः']);
   });
 
   it('matches words case-insensitively', () => {
@@ -46,5 +47,58 @@ describe('project_list_search', () => {
     expect(project_matches_search(project, tokenize_search_query('mahabharata'), undefined)).toBe(
       false
     );
+    expect(project_matches_search(project, tokenize_search_query('rāmāyaṇa'), 'rAmAyaNam')).toBe(
+      true
+    );
+    expect(project_matches_search(project, tokenize_search_query('ramayna'), 'rAmAyaNam')).toBe(
+      true
+    );
+    expect(project_matches_search(project, tokenize_search_query('xyzq'), 'rAmAyaNam')).toBe(false);
+    expect(project_matches_search(project, tokenize_search_query('epik'), undefined)).toBe(false);
+  });
+
+  it('matches a selected-script query through its normal form and through display text', () => {
+    const project = {
+      name: 'Ramayana',
+      name_dev: 'रामायणम्',
+      description: 'Epic poem'
+    };
+    const telugu = tokenize_search_query('రామాయణమ్');
+
+    expect(project_matches_search(project, telugu, 'rAmAyaNam')).toBe(false);
+    expect(
+      project_matches_search(project, telugu, 'rAmAyaNam', {
+        query_normals: ['rAmAyaNam']
+      })
+    ).toBe(true);
+    expect(
+      project_matches_search(project, telugu, undefined, {
+        name_dev_display: 'రామాయణమ్'
+      })
+    ).toBe(true);
+    expect(project_matches_search(project, tokenize_search_query('राम'), undefined)).toBe(true);
+  });
+
+  it('does not fuzzy-match a devanagari syllable onto a different word', () => {
+    const deva = { name: 'Deva', name_dev: 'देव', description: 'A deity' };
+    expect(
+      project_matches_search(deva, tokenize_search_query('केव'), 'dEva', {
+        query_normals: ['kEva']
+      })
+    ).toBe(false);
+
+    const lipi = { name: 'Lipi', name_dev: 'लिपि', description: 'eclipse of the text' };
+    expect(
+      project_matches_search(lipi, tokenize_search_query('लिप्'), 'lipi', {
+        query_normals: ['lip']
+      })
+    ).toBe(false);
+
+    const kevalam = { name: 'Kevalam', name_dev: 'केवलम्', description: null };
+    expect(
+      project_matches_search(kevalam, tokenize_search_query('केव'), 'kEvalam', {
+        query_normals: ['kEva']
+      })
+    ).toBe(true);
   });
 });

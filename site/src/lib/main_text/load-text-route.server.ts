@@ -15,8 +15,10 @@ export type { ChildRouteItem, TextRouteLoadData } from './text-route-types';
 
 function collect_nav_name_devs(resolved: resolved_text_route_type): string[] {
   const names: string[] = [];
+  // Project root name is not on the path; the breadcrumb and root header use it.
+  if (resolved.map.name_dev) names.push(resolved.map.name_dev);
   if (resolved.node.info.type !== 'shloka' || resolved.path_params.length === 0) {
-    return names;
+    return [...new Set(names)];
   }
 
   const sibling_parent_path_params = resolved.path_params.slice(0, -1);

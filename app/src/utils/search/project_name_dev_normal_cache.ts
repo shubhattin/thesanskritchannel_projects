@@ -21,10 +21,8 @@ const ensure_scripts_ready = (from: ScriptLangType): Promise<void> => {
 };
 
 /** Sync read of a finished from-script → Normal transliteration. */
-export const cached_text_normal = (
-  from: script_list_type,
-  text: string
-): string | undefined => cache.get(cache_key(from, text));
+export const cached_text_normal = (from: script_list_type, text: string): string | undefined =>
+  cache.get(cache_key(from, text));
 
 /** Shared from-script → Normal cache. Document names and query words reuse the same entries. */
 export const ensure_text_normal = (from: script_list_type, text: string): Promise<string> => {

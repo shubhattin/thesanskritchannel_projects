@@ -108,12 +108,9 @@
   const filtered_posts = $derived.by(() => {
     void text_normal_cache_version;
     const query_normals = script_query.normals_for_text(search_text);
-    let list = filter_lekhas_by_search(
-      posts,
-      search_text,
-      (text) => text_normal_cache.get(text),
-      { normals: query_normals }
-    );
+    let list = filter_lekhas_by_search(posts, search_text, (text) => text_normal_cache.get(text), {
+      normals: query_normals
+    });
     if (selected_tag_keys.size > 0) {
       list = list.filter((post) =>
         post.tags.some((tag) => selected_tag_keys.has(tag.trim().toLowerCase()))

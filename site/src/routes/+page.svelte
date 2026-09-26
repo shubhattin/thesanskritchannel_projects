@@ -8,6 +8,8 @@
   // Outline YouTube (removed from @lucide/svelte v1); same icon Astro used.
   import Youtube from 'lucide-svelte/icons/youtube';
   import { getFontClass } from '~/components/utils/font_list';
+  import { DEFAULT_SCRIPT_ID } from '$lib/cookies';
+  import { load_display_names } from '$lib/main_text/display-name-cache';
   import { get_display_script_from_id } from '$lib/main_text/display-script';
   import { site_prefs } from '$lib/main_text/site-prefs.svelte';
 
@@ -16,6 +18,36 @@
   const scriptFontClass = $derived(
     getFontClass(get_display_script_from_id(site_prefs.script_id)) ?? 'font-normal'
   );
+
+  let featured_display = $state<{ script_id: number; names: ReadonlyMap<string, string> } | null>(
+    null
+  );
+
+  $effect(() => {
+    const script_id = site_prefs.script_id;
+    if (script_id === DEFAULT_SCRIPT_ID) return;
+    if (script_id === data.ssr_script_id && data.featured_name_devs_display) return;
+
+    const name_devs = data.featured_projects.map((project) => project.name_dev);
+    let cancelled = false;
+    void load_display_names(name_devs, script_id).then((names) => {
+      if (!cancelled) featured_display = { script_id, names };
+    });
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  const featured_script_name = (name_dev: string, index: number) => {
+    if (site_prefs.script_id === DEFAULT_SCRIPT_ID) return name_dev;
+    if (featured_display?.script_id === site_prefs.script_id) {
+      return featured_display.names.get(name_dev) ?? name_dev;
+    }
+    if (site_prefs.script_id === data.ssr_script_id) {
+      return data.featured_name_devs_display?.[index] ?? name_dev;
+    }
+    return name_dev;
+  };
 
   function formatDate(value: Date | string | null | undefined): string | null {
     if (!value) return null;
@@ -350,6 +382,7 @@
 
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {#each data.featured_projects as project, index}
+      {@const script_name = featured_script_name(project.name_dev, index)}
       <a
         href="/{project.key}"
         class="group animate-fade-in-up relative flex flex-col justify-between rounded-2xl border border-border bg-card/40 p-5 shadow-2xs backdrop-blur-xs transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-card/80 hover:shadow-md stagger-{index +
@@ -360,9 +393,9 @@
         ></div>
         <div class="relative space-y-1.5">
           <p
-            class="font-devanagari text-xl font-medium tracking-wide text-foreground transition-colors duration-300 group-hover:text-primary"
+            class={`text-xl font-medium tracking-wide text-foreground transition-colors duration-300 group-hover:text-primary ${script_name === project.name_dev ? 'font-devanagari' : scriptFontClass}`}
           >
-            {project.name_dev}
+            {script_name}
           </p>
           <p class="text-sm text-muted-foreground">{project.name}</p>
         </div>

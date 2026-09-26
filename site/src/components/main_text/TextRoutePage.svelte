@@ -71,9 +71,28 @@
     pick_display(script_id, data.path_names_dev, data.transliterated_path_names, path_names_display)
   );
 
-  // H1 + <title> stay Devanagari; body/breadcrumb use display_path_names.
-  const current_title = $derived(data.path_names_dev.at(-1) ?? resolved.project_name);
-  const page_title = $derived(`${current_title} | ${resolved.project_name}`);
+  // H1 and <title> follow the viewing script. Devanagari is the smaller line under a nested heading.
+  const project_name_dev = $derived(resolved.map.name_dev);
+  const project_script_name = $derived(
+    sibling_display_name(project_name_dev) || resolved.project_name
+  );
+  const level_dev = $derived(data.path_names_dev.at(-1) ?? null);
+  const level_script = $derived(display_path_names.at(-1) ?? null);
+  const is_project_root = $derived(data.path_names_dev.length === 0);
+  const heading = $derived(
+    is_project_root ? project_script_name : (level_script ?? level_dev ?? project_script_name)
+  );
+  const heading_dev = $derived(
+    is_project_root ? project_name_dev : (level_dev ?? project_name_dev)
+  );
+  const heading_is_devanagari = $derived(
+    script_id === DEFAULT_SCRIPT_ID || heading === heading_dev
+  );
+  const page_title = $derived(
+    !is_project_root && project_script_name && heading !== project_script_name
+      ? `${heading} | ${project_script_name}`
+      : heading
+  );
   const page_description = $derived(
     data.path_names_dev.length === 0
       ? `Browse ${resolved.project_name}`
@@ -224,7 +243,14 @@
     // Map-root parent only (path depth 1); deeper parents come from display_path_names.
     const parent_dev =
       resolved.path_params.length === 1 && parent_name_dev ? parent_name_dev : null;
-    const extra = [...sibling_devs, ...(parent_dev ? [parent_dev] : [])];
+    const project_dev = resolved.map.name_dev;
+    const extra = [
+      ...new Set([
+        ...sibling_devs,
+        ...(parent_dev ? [parent_dev] : []),
+        ...(project_dev ? [project_dev] : [])
+      ])
+    ];
 
     if (sid === DEFAULT_SCRIPT_ID) {
       path_names_display = null;
@@ -278,11 +304,15 @@
 
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
   <div class="flex flex-col gap-3">
-    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{current_title}</h1>
-    {#if display_path_names.length > 0}
-      <p class={`text-sm text-muted-foreground ${scriptFontClass}`}>
-        {display_path_names.join(' / ')}
-      </p>
+    <h1
+      class={`text-3xl font-bold tracking-tight sm:text-4xl ${heading_is_devanagari ? 'font-devanagari' : scriptFontClass}`}
+    >
+      {heading}
+    </h1>
+    {#if is_project_root}
+      <p class="text-sm text-muted-foreground">{resolved.project_name}</p>
+    {:else if !heading_is_devanagari && heading_dev && heading_dev !== heading}
+      <p class="font-devanagari text-sm text-muted-foreground">{heading_dev}</p>
     {/if}
   </div>
 
@@ -304,7 +334,9 @@
       class="rounded-md px-2 py-1 transition-colors duration-150 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
       href={`/${resolved.project_key}`}
     >
-      {resolved.project_name}
+      <span class={heading_is_devanagari ? 'font-devanagari' : scriptFontClass}>
+        {project_script_name}
+      </span>
     </a>
 
     {#each breadcrumb_items as item}
@@ -348,7 +380,12 @@
               href={`/${resolved.project_key}`}
             >
               <ChevronLeftIcon class="size-3.5" />
-              Back to {resolved.project_name}
+              Back to{' '}
+              <span
+                class={`font-medium text-foreground ${heading_is_devanagari ? 'font-devanagari' : scriptFontClass}`}
+              >
+                {project_script_name}
+              </span>
             </a>
           {/if}
         </div>
@@ -440,7 +477,12 @@
               href={`/${resolved.project_key}`}
             >
               <ChevronLeftIcon class="size-3.5" />
-              Back to {resolved.project_name}
+              Back to{' '}
+              <span
+                class={`font-medium text-foreground ${heading_is_devanagari ? 'font-devanagari' : scriptFontClass}`}
+              >
+                {project_script_name}
+              </span>
             </a>
           {/if}
         </div>

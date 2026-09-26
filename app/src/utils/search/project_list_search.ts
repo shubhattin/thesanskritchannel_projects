@@ -23,7 +23,7 @@ export const word_matches_text = (word: string, text: string): boolean => {
 const folded_fields = (fields: readonly (string | null | undefined)[]): string[] => {
   const out: string[] = [];
   for (const field of fields) {
-    if (typeof field !== 'string' || field.length === 0) continue;
+    if (!field) continue;
     out.push(fold_search_text(field));
   }
   return out;

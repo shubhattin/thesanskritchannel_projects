@@ -1,5 +1,6 @@
 import { fold_search_text } from './fold_search_text';
 import { fuzzy_includes, max_fuzzy_edits } from './fuzzy_includes';
+import { order_by_relevance, type SearchRankKey } from './search_rank';
 
 export type ProjectSearchFields = {
   name: string;
@@ -152,6 +153,14 @@ export const project_matches_search = (
     }
   );
 
+const PROJECT_RANK_KEYS: readonly SearchRankKey[] = [
+  { name: 'name', weight: 0.3 },
+  { name: 'name_dev', weight: 0.25 },
+  { name: 'display', weight: 0.2 },
+  { name: 'normal', weight: 0.15 },
+  { name: 'description', weight: 0.1 }
+];
+
 export const filter_projects_by_search = <T extends ProjectSearchFields>(
   projects: readonly T[],
   search_text: string,
@@ -162,10 +171,18 @@ export const filter_projects_by_search = <T extends ProjectSearchFields>(
   }
 ): T[] => {
   const words = tokenize_search_query(search_text);
-  return projects.filter((project) =>
+  const matched = projects.filter((project) =>
     project_matches_search(project, words, get_name_dev_normal(project.name_dev), {
       query_normals: options?.query_normals,
       name_dev_display: options?.get_name_dev_display?.(project.name_dev)
     })
   );
+  if (words.length === 0) return matched;
+  return order_by_relevance(matched, search_text, PROJECT_RANK_KEYS, (project) => ({
+    name: project.name,
+    name_dev: project.name_dev,
+    description: project.description ?? '',
+    normal: get_name_dev_normal(project.name_dev) ?? '',
+    display: options?.get_name_dev_display?.(project.name_dev) ?? ''
+  }));
 };

@@ -51,6 +51,7 @@
     "drizzle-zod": "^0.8.3",
     "effect": "4.0.0-rc.111",
     "exceljs": "^4.4.0",
+    "fuse.js": "^7.5.0",
     "immer": "^11.1.8",
     "js-yaml": "^4.2.0",
     "json-2-csv": "^5.5.11",

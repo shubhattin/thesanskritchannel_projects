@@ -44,9 +44,9 @@ const levenshtein_window_within = (
 };
 
 /**
- * True when `needle` occurs in `haystack` within `max` insertions, deletions, or substitutions.
- * Both strings must already be folded. Patterns that do not fit the shared row buffers
- * fall back to a plain substring check.
+ * Latin typo check used only to decide whether a name is included.
+ * Fuse.js ranks the rows that already matched; its score is not an edit cap,
+ * so a threshold loose enough for a real typo also matches `keva` to `deva`.
  */
 export const fuzzy_includes = (haystack: string, needle: string, max: number): boolean => {
   if (needle.length === 0) return true;

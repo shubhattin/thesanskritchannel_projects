@@ -116,11 +116,14 @@
         post.tags.some((tag) => selected_tag_keys.has(tag.trim().toLowerCase()))
       );
     }
-    return [...list].sort((a, b) => {
-      const ta = publishedTime(a.published_at);
-      const tb = publishedTime(b.published_at);
-      return sort_order === 'newest' ? tb - ta : ta - tb;
-    });
+    if (!search_text.trim()) {
+      list.sort((a, b) => {
+        const ta = publishedTime(a.published_at);
+        const tb = publishedTime(b.published_at);
+        return sort_order === 'newest' ? tb - ta : ta - tb;
+      });
+    }
+    return list;
   });
 
   const total_count = $derived(filtered_posts.length);

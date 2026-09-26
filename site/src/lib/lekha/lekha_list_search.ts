@@ -3,6 +3,7 @@ import {
   tokenize_search_query,
   type ScriptSearchQuery
 } from '@app/utils/search/project_list_search';
+import { order_by_relevance, type SearchRankKey } from '@app/utils/search/search_rank';
 
 export type LekhaListSearchFields = {
   title: string;
@@ -21,8 +22,19 @@ export type LekhaListSearchFields = {
  * - the selected-script transliteration
  * A Brahmic query's Normal form is a word-prefix only, so `केव` does not hit `देव`
  * and `लिप्` does not hit `लिपि` or an English word like "eclipse".
- * Fuzzy matching is Latin typos on titles only.
+ * Fuzzy matching is Latin typos on titles only. A non-empty query is then ordered
+ * by Fuse score (title ahead of description). The article date sort applies
+ * when the query is empty.
  */
+const LEKHA_RANK_KEYS: readonly SearchRankKey[] = [
+  { name: 'title', weight: 0.35 },
+  { name: 'title_script', weight: 0.2 },
+  { name: 'title_normal', weight: 0.2 },
+  { name: 'tags', weight: 0.15 },
+  { name: 'description', weight: 0.05 },
+  { name: 'description_normal', weight: 0.05 }
+];
+
 export function filter_lekhas_by_search<T extends LekhaListSearchFields>(
   posts: readonly T[],
   search_text: string,
@@ -32,7 +44,7 @@ export function filter_lekhas_by_search<T extends LekhaListSearchFields>(
   const words = tokenize_search_query(search_text);
   if (words.length === 0) return [...posts];
 
-  return posts.filter((post) => {
+  const matched = posts.filter((post) => {
     const description = post.description?.trim() ? post.description : null;
     const tags = (post.tags ?? []).filter((tag) => tag.trim().length > 0);
     const title_normal = get_normal(post.title);
@@ -53,5 +65,18 @@ export function filter_lekhas_by_search<T extends LekhaListSearchFields>(
         fuzzy: [post.title, title_normal, post.title_transliterated]
       }
     );
+  });
+
+  return order_by_relevance(matched, search_text, LEKHA_RANK_KEYS, (post) => {
+    const description = post.description?.trim() ? post.description : '';
+    const tags = (post.tags ?? []).filter((tag) => tag.trim().length > 0);
+    return {
+      title: post.title,
+      title_script: post.title_transliterated ?? '',
+      title_normal: get_normal(post.title) ?? '',
+      tags: tags.join(' '),
+      description,
+      description_normal: description ? (get_normal(description) ?? '') : ''
+    };
   });
 }

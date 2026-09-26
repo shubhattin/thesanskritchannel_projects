@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   all_words_match_in_fields,
+  filter_projects_by_search,
   project_matches_search,
   tokenize_search_query,
   word_matches_text
@@ -100,5 +101,32 @@ describe('project_list_search', () => {
         query_normals: ['kEva']
       })
     ).toBe(true);
+  });
+
+  it('ranks a name match ahead of a description mention', () => {
+    const projects = [
+      { name: 'Other', name_dev: 'अन्य', description: 'a note that mentions ramayana' },
+      { name: 'Ramayana', name_dev: 'रामायणम्', description: 'Epic' }
+    ];
+    expect(
+      filter_projects_by_search(projects, 'ramayana', () => undefined).map(
+        (project) => project.name
+      )
+    ).toEqual(['Ramayana', 'Other']);
+  });
+
+  it('ranking does not bring a different devanagari word back in', () => {
+    const projects = [
+      { name: 'Deva', name_dev: 'देव', description: 'A deity' },
+      { name: 'Kevalam', name_dev: 'केवलम्', description: null }
+    ];
+    expect(
+      filter_projects_by_search(
+        projects,
+        'केव',
+        (name_dev) => (name_dev === 'केवलम्' ? 'kEvalam' : 'dEva'),
+        { query_normals: ['kEva'] }
+      ).map((project) => project.name)
+    ).toEqual(['Kevalam']);
   });
 });

@@ -9,6 +9,7 @@
   import { queryClient } from '~/state/queryClient';
   import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools';
   import TopAppBar from '~/components/TopAppBar.svelte';
+  import RouteProgress from '~/components/RouteProgress.svelte';
   import PostHogInit from '~/components/tags/PostHogInit.svelte';
   import { Toaster } from '$lib/components/ui/sonner/index.js';
   import CookieCacheRefresh from '$lib/CookieCacheRefresh.svelte';
@@ -26,6 +27,8 @@
     }
   });
 </script>
+
+<RouteProgress />
 
 <QueryClientProvider client={queryClient}>
   <TRPCProvider trpcClient={client} {queryClient}>

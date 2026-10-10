@@ -2,23 +2,9 @@
   import MetaTags from '$components/tags/MetaTags.svelte';
   import LekhaListBrowser from '$components/lekha/LekhaListBrowser.svelte';
   import MainTextScriptSelector from '$components/main_text/MainTextScriptSelector.svelte';
-  import { site_prefs } from '$lib/main_text/site-prefs.svelte';
-  import { invalidate } from '$app/navigation';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
-
-  let last_script_id: number | undefined = undefined;
-  $effect(() => {
-    const script_id = site_prefs.script_id;
-    if (last_script_id === undefined) {
-      last_script_id = script_id;
-      return;
-    }
-    if (last_script_id === script_id) return;
-    last_script_id = script_id;
-    void invalidate('site:prefs');
-  });
 
   const title = 'Lekha — The Sanskrit Channel';
   const description = 'Notes and articles from The Sanskrit Channel.';
@@ -41,5 +27,5 @@
     </div>
   </header>
 
-  <LekhaListBrowser posts={data.posts} />
+  <LekhaListBrowser posts={data.posts} ssr_script_id={data.ssr_script_id} />
 </div>

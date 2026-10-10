@@ -13,8 +13,8 @@
   let { data }: { data: PageData } = $props();
 
   let display_html = $derived(data.entry.html);
-  let title_text = $derived(data.entry.title_transliterated ?? data.entry.title);
-  let description_text = $derived(data.entry.description_transliterated ?? data.entry.description);
+  let title_text = $derived(data.entry.title);
+  let description_text = $derived(data.entry.description);
 
   const scriptFontClass = $derived(
     getFontClass(get_display_script_from_id(site_prefs.script_id)) ?? 'font-normal'
@@ -72,13 +72,13 @@
   </p>
   <header class="mb-10 border-b border-border pb-8">
     <h1
-      class={`text-3xl font-semibold tracking-tight text-balance sm:text-4xl ${data.entry.title_transliterated ? scriptFontClass : ''}`}
+      class={`text-3xl font-semibold tracking-tight text-balance sm:text-4xl ${data.entry.title_in_script ? scriptFontClass : ''}`}
     >
       {title_text}
     </h1>
     {#if description_text}
       <p
-        class={`mt-4 text-lg text-muted-foreground ${data.entry.description_transliterated ? scriptFontClass : ''}`}
+        class={`mt-4 text-lg text-muted-foreground ${data.entry.description_in_script ? scriptFontClass : ''}`}
       >
         {description_text}
       </p>

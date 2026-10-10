@@ -11,7 +11,7 @@
   import { build_project_path } from '@app/utils/project_site_paths';
   import { getFontClass } from '~/components/utils/font_list';
   import { get_display_script_from_id } from '$lib/main_text/display-script';
-  import { transliterate_list_for_display_client } from '$lib/main_text/script-display-client';
+  import { transliterate_for_display_client } from '$lib/main_text/script-display-client';
   import { site_prefs } from '$lib/main_text/site-prefs.svelte';
   import { NONE_LANG_ID, DEFAULT_SCRIPT_ID } from '$lib/cookies';
   import type { TextRouteLoadData } from '$lib/main_text/text-route-types';
@@ -272,16 +272,12 @@
     let cancelled = false;
     (async () => {
       const [paths, children, texts, extras] = await Promise.all([
-        path_base.length
-          ? transliterate_list_for_display_client(path_base, sid)
-          : Promise.resolve(null),
+        path_base.length ? transliterate_for_display_client(path_base, sid) : Promise.resolve(null),
         child_base.length
-          ? transliterate_list_for_display_client(child_base, sid)
+          ? transliterate_for_display_client(child_base, sid)
           : Promise.resolve(null),
-        text_base.length
-          ? transliterate_list_for_display_client(text_base, sid)
-          : Promise.resolve(null),
-        extra.length ? transliterate_list_for_display_client(extra, sid) : Promise.resolve([])
+        text_base.length ? transliterate_for_display_client(text_base, sid) : Promise.resolve(null),
+        extra.length ? transliterate_for_display_client(extra, sid) : Promise.resolve([])
       ]);
       if (cancelled) return;
       path_names_display = paths;

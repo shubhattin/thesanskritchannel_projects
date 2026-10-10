@@ -16,6 +16,15 @@ export const CUSTOM_TRANS_OPTIONS = {
  */
 export const SCRIPTS_TO_REPLACE_WITH_ANUNASIK = ['Telugu', 'Kannada'];
 
+const default_transliterate_fn = { func: transliterate };
+
+// lazily load the wasm version
+setTimeout(async () => {
+  const { transliterate_wasm, preloadWasm } = await import('lipilekhika');
+  void preloadWasm();
+  default_transliterate_fn.func = transliterate_wasm;
+}, 1400);
+
 /**
  * Custom `transliterate` function which applies the `CUSTOM_TRANS_OPTIONS`
  */
@@ -24,8 +33,9 @@ export async function transliterate_custom<T extends string | string[]>(
   from: ScriptLangType,
   to: ScriptLangType,
   trans_options?: TransliterationOptions,
-  transliterate_fn = transliterate
+  transliterate_fn?: typeof transliterate
 ): Promise<T extends string ? string : string[]> {
+  transliterate_fn = transliterate_fn ?? default_transliterate_fn.func;
   trans_options = {
     ...CUSTOM_TRANS_OPTIONS,
     ...trans_options

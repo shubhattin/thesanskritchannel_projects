@@ -25,6 +25,9 @@
   import { use_script_query } from '$lib/search/use-script-query.svelte';
   import { withPaginationListScroll } from '@app/lib/pagination-scroll';
   import { getFontClass } from '~/components/utils/font_list';
+  import { DEFAULT_SCRIPT_ID } from '$lib/cookies';
+  import type { LekhaListPost } from '$lib/lekha/lekha-list';
+  import { load_display_names } from '$lib/main_text/display-name-cache';
   import { get_display_script_from_id } from '$lib/main_text/display-script';
   import { site_prefs } from '$lib/main_text/site-prefs.svelte';
 
@@ -32,18 +35,13 @@
 
   type SortOrder = 'newest' | 'oldest';
 
-  type LekhaListPost = {
-    id: number;
-    title: string;
-    title_transliterated?: string | null;
-    description: string | null;
-    description_transliterated?: string | null;
-    tags: string[];
-    url_slug: string;
-    published_at?: Date | string | null;
-  };
-
-  let { posts }: { posts: readonly LekhaListPost[] } = $props();
+  let {
+    posts,
+    ssr_script_id
+  }: {
+    posts: readonly LekhaListPost[];
+    ssr_script_id: number;
+  } = $props();
 
   const scriptFontClass = $derived(
     getFontClass(get_display_script_from_id(site_prefs.script_id)) ?? 'font-normal'
@@ -63,6 +61,9 @@
 
   const text_normal_cache = create_project_name_dev_normal_cache();
   let text_normal_cache_version = $state(0);
+  let display_names = $state<{ script_id: number; names: ReadonlyMap<string, string> } | null>(
+    null
+  );
 
   $effect(() => {
     const texts = posts.flatMap((post) => {
@@ -74,6 +75,48 @@
       text_normal_cache_version++;
     });
   });
+
+  $effect(() => {
+    const script_id = site_prefs.script_id;
+    if (script_id === DEFAULT_SCRIPT_ID) return;
+    if (script_id === ssr_script_id) return;
+
+    const jobs = posts.flatMap((post) => {
+      const out: string[] = [];
+      if (post.auto_transliterate_title && post.title) out.push(post.title);
+      if (post.auto_transliterate_description && post.description) out.push(post.description);
+      return out;
+    });
+    if (jobs.length === 0) return;
+
+    let cancelled = false;
+    void load_display_names(jobs, script_id).then((names) => {
+      if (!cancelled) display_names = { script_id, names };
+    });
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  const shown_field = (source: string | null, auto: boolean, ssr: string | null) => {
+    if (!source) return source;
+    if (site_prefs.script_id === DEFAULT_SCRIPT_ID || !auto) return source;
+    if (display_names?.script_id === site_prefs.script_id) {
+      return display_names.names.get(source) ?? source;
+    }
+    if (site_prefs.script_id === ssr_script_id) return ssr ?? source;
+    return source;
+  };
+
+  const shown_title = (post: LekhaListPost) =>
+    shown_field(post.title, post.auto_transliterate_title, post.title_transliterated) ?? post.title;
+
+  const shown_description = (post: LekhaListPost) =>
+    shown_field(
+      post.description,
+      post.auto_transliterate_description,
+      post.description_transliterated
+    );
 
   $effect(() => {
     if (!tag_popover_open) {
@@ -107,10 +150,26 @@
 
   const filtered_posts = $derived.by(() => {
     void text_normal_cache_version;
+    void display_names;
     const query_normals = script_query.normals_for_text(search_text);
-    let list = filter_lekhas_by_search(posts, search_text, (text) => text_normal_cache.get(text), {
-      normals: query_normals
+    const searchable = posts.map((post) => {
+      const title_shown = shown_title(post);
+      const description_shown = shown_description(post);
+      return {
+        ...post,
+        title_transliterated: title_shown === post.title ? null : title_shown,
+        description_transliterated:
+          description_shown && description_shown !== post.description ? description_shown : null
+      };
     });
+    let list = filter_lekhas_by_search(
+      searchable,
+      search_text,
+      (text) => text_normal_cache.get(text),
+      {
+        normals: query_normals
+      }
+    );
     if (selected_tag_keys.size > 0) {
       list = list.filter((post) =>
         post.tags.some((tag) => selected_tag_keys.has(tag.trim().toLowerCase()))
@@ -458,21 +517,23 @@
   {#if paginated_posts.length > 0}
     <ul class="grid grid-cols-1 gap-4 lg:grid-cols-2" bind:this={list_el}>
       {#each paginated_posts as post (post.id)}
+        {@const title_shown = shown_title(post)}
+        {@const description_shown = shown_description(post)}
         <li class="min-w-0">
           <a
             href={`/lekha/${post.url_slug}`}
             class="group flex h-full flex-col rounded-lg border border-border/60 bg-card/40 px-5 py-4 transition-colors hover:border-primary/40 hover:bg-accent/30"
           >
             <h2
-              class={`text-lg font-semibold tracking-tight group-hover:text-primary ${post.title_transliterated ? scriptFontClass : ''}`}
+              class={`text-lg font-semibold tracking-tight group-hover:text-primary ${title_shown !== post.title ? scriptFontClass : ''}`}
             >
-              {post.title_transliterated ?? post.title}
+              {title_shown}
             </h2>
-            {#if post.description_transliterated ?? post.description}
+            {#if description_shown}
               <p
-                class={`mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground ${post.description_transliterated ? scriptFontClass : ''}`}
+                class={`mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground ${description_shown !== post.description ? scriptFontClass : ''}`}
               >
-                {post.description_transliterated ?? post.description}
+                {description_shown}
               </p>
             {/if}
             {#if post.tags.length > 0}

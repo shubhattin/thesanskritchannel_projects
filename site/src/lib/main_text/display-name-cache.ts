@@ -1,4 +1,4 @@
-import { transliterate_list_for_display_client } from '$lib/main_text/script-display-client';
+import { transliterate_for_display_client } from '$lib/main_text/script-display-client';
 
 const cache = new Map<string, string>();
 
@@ -15,7 +15,7 @@ export const load_display_names = async (
   const unique = [...new Set(names.filter((name) => name.length > 0))];
   const missing = unique.filter((name) => !cache.has(key_of(script_id, name)));
   if (missing.length > 0) {
-    const translated = await transliterate_list_for_display_client(missing, script_id);
+    const translated = await transliterate_for_display_client(missing, script_id);
     for (let i = 0; i < missing.length; i++) {
       const name = missing[i]!;
       cache.set(key_of(script_id, name), translated[i] ?? name);

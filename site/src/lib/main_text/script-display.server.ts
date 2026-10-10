@@ -7,26 +7,11 @@ export { get_display_script_from_id } from './display-script';
 
 const BASE_SCRIPT = 'Devanagari';
 
-/** Node/Bun only — uses lipilekhika/node. */
-export const transliterate_for_display = async (
-  text: string,
+/** Node/Bun only — uses lipilekhika/node. Accepts one string or a list. */
+export const transliterate_for_display = async <T extends string | string[]>(
+  text: T,
   script_id: number
-): Promise<string> => {
-  if (script_id === DEFAULT_SCRIPT_ID) return text;
-  return transliterate_custom(
-    text,
-    BASE_SCRIPT,
-    get_display_script_from_id(script_id),
-    undefined,
-    transliterate_node
-  );
-};
-
-/** Node/Bun only — uses lipilekhika/node. */
-export const transliterate_list_for_display = async (
-  text: string[],
-  script_id: number
-): Promise<string[]> => {
+) => {
   if (script_id === DEFAULT_SCRIPT_ID) return text;
   return transliterate_custom(
     text,
@@ -46,5 +31,5 @@ export const maybe_transliterate_list = async (
   script_id: number
 ): Promise<string[] | null> => {
   if (script_id === DEFAULT_SCRIPT_ID || text.length === 0) return null;
-  return transliterate_list_for_display(text, script_id);
+  return transliterate_for_display(text, script_id);
 };

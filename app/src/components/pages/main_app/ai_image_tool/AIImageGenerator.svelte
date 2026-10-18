@@ -45,6 +45,7 @@
   import Info from '@lucide/svelte/icons/info';
   import { toast } from 'svelte-sonner';
   import BatchImageControls from './BatchImageControls.svelte';
+  import SystemPromptPicker from '~/components/pages/system_prompts/SystemPromptPicker.svelte';
   import ViewImagesDialog from './ViewImagesDialog.svelte';
   import DownloadImagesZipDialog from './DownloadImagesZipDialog.svelte';
   import TextImageCard from './TextImageCard.svelte';
@@ -78,6 +79,7 @@
   );
 
   let selected_text_model: keyof typeof TEXT_MODEL_LIST_INFO = $state(DEFAULT_TEXT_AI_MODEL);
+  let system_prompt_template_id: number | null = $state(null);
   let view_images_open = $state(false);
   let download_images_zip_open = $state(false);
   let use_custom_instruction = $state(false);
@@ -296,7 +298,9 @@
       'shloka_text_prompt',
       ...$selected_text_levels.slice(0, ($project_state?.levels ?? 1) - 1).reverse(),
       $index,
-      effective_custom_instruction ?? null
+      selected_text_model,
+      effective_custom_instruction ?? null,
+      system_prompt_template_id ?? null
     ],
     queryFn: async () => {
       show_prompt_time_status = false;
@@ -311,7 +315,8 @@
         selected_text_levels: $selected_text_levels,
         index: $index,
         model: selected_text_model,
-        custom_instruction: effective_custom_instruction
+        custom_instruction: effective_custom_instruction,
+        system_prompt_template_id
       });
     },
     enabled: false,
@@ -455,8 +460,13 @@
   text_model={selected_text_model}
   bind:use_custom_instruction
   bind:custom_instruction
+  bind:system_prompt_template_id
   on_download_images_zip={() => (download_images_zip_open = true)}
 />
+
+<div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+  <SystemPromptPicker bind:selected_template_id={system_prompt_template_id} />
+</div>
 
 <div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
   <Button

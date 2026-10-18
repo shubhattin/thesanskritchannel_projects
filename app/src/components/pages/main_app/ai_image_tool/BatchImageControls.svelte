@@ -15,6 +15,7 @@
   import Plus from '@lucide/svelte/icons/plus';
   import Eye from '@lucide/svelte/icons/eye';
   import Languages from '@lucide/svelte/icons/languages';
+  import SystemPromptPicker from '~/components/pages/system_prompts/SystemPromptPicker.svelte';
   import { client } from '~/api/client';
   import {
     project_state,
@@ -48,6 +49,8 @@
     /** Shared with AIImageGenerator custom-instruction UI */
     use_custom_instruction?: boolean;
     custom_instruction?: string;
+    /** Shared system-prompt template selection (null = built-in default) */
+    system_prompt_template_id?: number | null;
     on_download_images_zip?: () => void;
   };
 
@@ -58,6 +61,7 @@
     text_model,
     use_custom_instruction = $bindable(false),
     custom_instruction = $bindable(''),
+    system_prompt_template_id = $bindable(null),
     on_download_images_zip
   }: Props = $props();
 
@@ -147,6 +151,7 @@
         selected_text_levels: $selected_text_levels,
         image_model,
         text_model,
+        system_prompt_template_id,
         items: args.items
       }),
     onSuccess: async (data) => {
@@ -287,6 +292,11 @@
       <a class="text-primary hover:underline" href="/batch-manager">Batch Manager</a>
     </div>
   {/if}
+  <SystemPromptPicker bind:selected_template_id={system_prompt_template_id} compact />
+  <p class="text-[11px] text-muted-foreground">
+    Shared with single generation above. Applies when the batch generates prompts server-side.
+    Already-written prompts are used as-is.
+  </p>
   {#if path_status_q.data && path_status_q.data.custom_id !== index_status_q.data?.custom_id}
     <div class="flex flex-wrap items-center gap-2 text-xs">
       <span class="text-muted-foreground">Path batch:</span>

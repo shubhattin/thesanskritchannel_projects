@@ -54,15 +54,19 @@ export function validateFullyFailedBatchForRetry(args: {
   return { ok: true };
 }
 
-/** Strip completion / error fields so a retry row starts pending. */
+import type { ImageBatchMetadata } from '~/utils/types/ai_batch_metadata';
+
+/** Strip completion / error fields so a retry row starts pending. Snapshot fields survive. */
 export function freshImageRetryMetadata(metadata: {
   project_id: number;
   project_path_id: number;
   path_params: number[];
   index: number | null;
   image_prompt: string;
+  system_prompt_template_id?: number | null;
+  system_prompt_used?: string;
 }) {
-  return {
+  const fresh: ImageBatchMetadata = {
     type: 'shloka-image' as const,
     project_id: metadata.project_id,
     project_path_id: metadata.project_path_id,
@@ -70,6 +74,13 @@ export function freshImageRetryMetadata(metadata: {
     index: metadata.index,
     image_prompt: metadata.image_prompt
   };
+  if (metadata.system_prompt_template_id != null) {
+    fresh.system_prompt_template_id = metadata.system_prompt_template_id;
+  }
+  if (metadata.system_prompt_used != null) {
+    fresh.system_prompt_used = metadata.system_prompt_used;
+  }
+  return fresh;
 }
 
 export function freshTextRetryMetadata(args: {

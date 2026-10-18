@@ -416,11 +416,11 @@
           No list data here.
         </p>
       {:else}
-        <div class="grid gap-3">
+        <div class="grid gap-3 sm:grid-cols-2">
           {#each display_child_items as item}
             {#if item.is_disabled}
               <div
-                class="group flex cursor-not-allowed items-center gap-4 rounded-xl border border-dashed bg-muted/30 p-4 opacity-70"
+                class="group flex min-w-0 cursor-not-allowed items-center gap-4 rounded-xl border border-dashed bg-muted/30 p-4 opacity-70"
                 aria-disabled="true"
                 title="No sub-sections available for this item"
               >
@@ -441,7 +441,7 @@
               </div>
             {:else}
               <a
-                class="card-hover-glow group flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors duration-150 hover:border-primary/30"
+                class="card-hover-glow group flex min-w-0 items-center gap-4 rounded-xl border bg-card p-4 transition-colors duration-150 hover:border-primary/30"
                 href={item.href}
               >
                 <span

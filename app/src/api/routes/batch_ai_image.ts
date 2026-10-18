@@ -151,6 +151,8 @@ const trigger_batch_input_schema = z.object({
   image_model: available_image_models_schema.default('gpt-image-2'),
   text_model: text_models_enum.default(DEFAULT_TEXT_AI_MODEL),
   project_key: z.string(),
+  /** DB template id; null/omitted = built-in default. */
+  system_prompt_template_id: z.int().nullable().optional(),
   items: z.array(trigger_item_schema).min(1)
 });
 
@@ -551,6 +553,7 @@ const trigger_batch_shloka_image_gen_effect = Effect.fn('trigger_batch_shloka_im
       image_model,
       text_model,
       project_key,
+      system_prompt_template_id,
       items
     } = input;
 
@@ -574,12 +577,46 @@ const trigger_batch_shloka_image_gen_effect = Effect.fn('trigger_batch_shloka_im
 
     yield* assertNoUnresolvedDuplicates(projectPath.id, indexes);
 
-    // Resolve prompts in parallel (use provided, else generate)
+    // The template id is batch-scoped: resolve once here instead of once per
+    // item inside get_image_prompt_func (fail fast before any model spend).
+    let system_prompt_override: string | undefined;
+    let system_prompt_override_title: string | null | undefined;
+    if (system_prompt_template_id != null) {
+      const template = yield* dbRun('batch_ai_image.prompt_template', (db) =>
+        db.query.image_system_prompt_templates.findFirst({
+          where: (tbl, { eq: eqOp }) => eqOp(tbl.id, system_prompt_template_id)
+        })
+      );
+      if (!template) {
+        return yield* Effect.fail(
+          NotFoundError.make({
+            resource: 'system_prompt_template',
+            message: 'System prompt template not found'
+          })
+        );
+      }
+      const trimmed = template.content.trim();
+      if (!trimmed) {
+        return yield* Effect.fail(
+          BadRequestError.make({
+            message: `System prompt template "${template.title}" is empty`
+          })
+        );
+      }
+      system_prompt_override = trimmed;
+      system_prompt_override_title = template.title;
+    }
+
+    // Resolve prompts in parallel (use provided, else generate with selected template)
     const resolved = yield* Effect.forEach(
       items,
       (item) =>
         Effect.gen(function* () {
           let image_prompt = item.image_prompt?.trim() ?? '';
+          let system_prompt_used: string | undefined;
+          // Pre-supplied prompts skip generation — no template snapshot to store.
+          const row_template_id =
+            image_prompt.length > 0 ? undefined : (system_prompt_template_id ?? undefined);
           if (!image_prompt) {
             const prompt_input: GetImagePromptInput = {
               project_key,
@@ -587,6 +624,12 @@ const trigger_batch_shloka_image_gen_effect = Effect.fn('trigger_batch_shloka_im
               index: item.index,
               model: text_model
             };
+            if (system_prompt_override !== undefined) {
+              prompt_input.system_prompt_override = system_prompt_override;
+              prompt_input.system_prompt_override_title = system_prompt_override_title;
+            } else if (system_prompt_template_id != null) {
+              prompt_input.system_prompt_template_id = system_prompt_template_id;
+            }
             const custom_instruction = item.custom_instruction?.trim();
             if (custom_instruction) prompt_input.custom_instruction = custom_instruction;
             const generated = yield* get_image_prompt_func(prompt_input);
@@ -599,10 +642,15 @@ const trigger_batch_shloka_image_gen_effect = Effect.fn('trigger_batch_shloka_im
               );
             }
             image_prompt = generated.image_prompt;
+            // Default-generated rows store no snapshot (the default lives in code);
+            // template rows keep id + text for provenance.
+            if (row_template_id != null) system_prompt_used = generated.system_prompt_used;
           }
           return {
             index: item.index,
             image_prompt,
+            system_prompt_template_id: row_template_id,
+            system_prompt_used,
             custom_id: getShlokaImageBatchCustomId(project_id, path_params, item.index)
           };
         }),
@@ -621,18 +669,23 @@ const trigger_batch_shloka_image_gen_effect = Effect.fn('trigger_batch_shloka_im
     return yield* enqueueAiBatch({
       batch_type: 'image',
       batch_requests,
-      response_rows: resolved.map((item) => ({
-        custom_id: item.custom_id,
-        auto_approved,
-        metadata: {
+      response_rows: resolved.map((item) => {
+        const metadata: ImageBatchMetadata = {
           type: 'shloka-image' as const,
           project_id,
           project_path_id: projectPath.id,
           path_params,
           index: item.index,
           image_prompt: item.image_prompt
+        };
+        if (item.system_prompt_template_id != null) {
+          metadata.system_prompt_template_id = item.system_prompt_template_id;
         }
-      }))
+        if (item.system_prompt_used != null) {
+          metadata.system_prompt_used = item.system_prompt_used;
+        }
+        return { custom_id: item.custom_id, auto_approved, metadata };
+      })
     });
   }
 );

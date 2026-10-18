@@ -2,6 +2,9 @@
   import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import BanIcon from '@lucide/svelte/icons/ban';
+  import TextSiblingJumpDialog, {
+    type SiblingJumpItem
+  } from '$components/main_text/TextSiblingJumpDialog.svelte';
 
   export type TextSiblingNavigationItem = {
     href: string;
@@ -14,20 +17,50 @@
     next_item: TextSiblingNavigationItem | null;
     script_font_class: string;
     aria_label?: string;
+    /** Full sibling list for the jump dialog; omitted to hide it. */
+    jump_items?: SiblingJumpItem[];
+    /** 1-based position of the current page within `jump_items`. */
+    jump_current_position?: number | null;
+    /** Plural sibling label, e.g. "Chapters". */
+    jump_level_label?: string;
+    /** Parent display name shown as the dialog title. */
+    jump_parent_name?: string;
+    /** When true, the jump button renders above the prev/next cards. */
+    jump_button_first?: boolean;
   };
 
   let {
     previous_item,
     next_item,
     script_font_class,
-    aria_label = 'Previous and next texts'
+    aria_label = 'Previous and next texts',
+    jump_items = [],
+    jump_current_position = null,
+    jump_level_label = 'Sections',
+    jump_parent_name = '',
+    jump_button_first = false
   }: Props = $props();
 
   const has_navigation = $derived(previous_item !== null || next_item !== null);
 </script>
 
+{#snippet jumpButton()}
+  {#if jump_items.length > 1}
+    <TextSiblingJumpDialog
+      items={jump_items}
+      current_position={jump_current_position}
+      level_label={jump_level_label}
+      parent_name={jump_parent_name}
+      {script_font_class}
+    />
+  {/if}
+{/snippet}
+
 {#if has_navigation}
-  <nav aria-label={aria_label} class="flex flex-wrap gap-3">
+  <nav aria-label={aria_label} class="flex flex-wrap items-center gap-3">
+    {#if jump_button_first}
+      {@render jumpButton()}
+    {/if}
     {#if previous_item}
       {#if previous_item.disabled}
         <div
@@ -114,6 +147,10 @@
           </div>
         </a>
       {/if}
+    {/if}
+
+    {#if !jump_button_first}
+      {@render jumpButton()}
     {/if}
   </nav>
 {/if}

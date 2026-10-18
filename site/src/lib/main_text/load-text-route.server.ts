@@ -30,6 +30,10 @@ function collect_nav_name_devs(resolved: resolved_text_route_type): string[] {
     sibling_parent_node?.info.type === 'list' ? (sibling_parent_node.list ?? []) : [];
   const current = resolved.path_params.at(-1)!;
 
+  for (const sibling of sibling_items) {
+    if (sibling.name_dev) names.push(sibling.name_dev);
+  }
+
   if (current > 1) {
     const prev = sibling_items[current - 2]?.name_dev;
     if (prev) names.push(prev);

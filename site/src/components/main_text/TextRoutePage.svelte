@@ -150,6 +150,23 @@
     sibling_parent_node?.info.type === 'list' ? (sibling_parent_node.list ?? []) : []
   );
   const current_sibling_position = $derived(resolved.path_params.at(-1) ?? null);
+  const sibling_jump_items = $derived(
+    sibling_items.map((sibling, index) => {
+      const params = [...sibling_parent_path_params, index + 1];
+      return {
+        href:
+          build_project_path(resolved.link_key, resolved.map, params) ?? resolved.canonical_path,
+        name_display: sibling_display_name(sibling.name_dev),
+        name_dev: sibling.name_dev ?? '',
+        disabled: is_sibling_nav_disabled(sibling, params, resolved.levels)
+      };
+    })
+  );
+  const sibling_level_label = $derived(
+    sibling_parent_node?.info.type === 'list' && sibling_parent_node.info.list_name
+      ? `${sibling_parent_node.info.list_name}s`
+      : 'Sections'
+  );
   const previous_sibling_source = $derived(
     current_sibling_position !== null && current_sibling_position > 1
       ? (sibling_items[current_sibling_position - 2] ?? null)
@@ -237,9 +254,9 @@
     const path_base = data.path_names_dev;
     const child_base = data.child_items.map((c) => c.name_dev);
     const text_base = (data.text ?? []).map((t) => t.text);
-    const sibling_devs = [previous_sibling_source?.name_dev, next_sibling_source?.name_dev].filter(
-      (n): n is string => !!n
-    );
+    const sibling_devs = sibling_items
+      .map((sibling) => sibling.name_dev)
+      .filter((n): n is string => !!n);
     // Map-root parent only (path depth 1); deeper parents come from display_path_names.
     const parent_dev =
       resolved.path_params.length === 1 && parent_name_dev ? parent_name_dev : null;
@@ -506,6 +523,10 @@
         previous_item={previous_sibling_item}
         next_item={next_sibling_item}
         script_font_class={scriptFontClass}
+        jump_items={sibling_jump_items}
+        jump_current_position={current_sibling_position}
+        jump_level_label={sibling_level_label}
+        jump_parent_name={parent_name_display}
       />
 
       <MultimediaAttachments
@@ -540,6 +561,11 @@
         previous_item={previous_sibling_item}
         next_item={next_sibling_item}
         script_font_class={scriptFontClass}
+        jump_items={sibling_jump_items}
+        jump_current_position={current_sibling_position}
+        jump_level_label={sibling_level_label}
+        jump_parent_name={parent_name_display}
+        jump_button_first
       />
     </section>
   {/if}

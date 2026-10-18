@@ -1206,7 +1206,7 @@
           <p class="text-sm text-destructive">{preview_error}</p>
         {/if}
         <div
-          class="lekha-markdown markdown-body prose max-w-none rounded-lg border bg-muted/20 p-4 text-foreground prose-neutral dark:prose-invert"
+          class="lekha-markdown markdown-body prose max-h-[80vh] max-w-none overflow-y-auto rounded-lg border bg-muted/20 p-4 text-foreground prose-neutral dark:prose-invert"
         >
           <!-- eslint-disable svelte/no-at-html-tags -->
           {@html preview_html || '<p class="text-muted-foreground">Nothing to preview.</p>'}

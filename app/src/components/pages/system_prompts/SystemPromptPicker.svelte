@@ -92,7 +92,7 @@
     <Popover.Content class="w-96 max-w-[min(24rem,90vw)] space-y-2 p-3" align="start">
       <p class="text-xs font-semibold">{preview_title}</p>
       <div
-        class="max-h-[50vh] overflow-y-auto rounded-md border bg-muted/20 p-3 text-sm leading-relaxed"
+        class="prose prose-sm max-w-none max-h-[50vh] overflow-y-auto rounded-md border bg-muted/20 p-3 text-sm leading-relaxed prose-neutral dark:prose-invert"
       >
         {#if selection_unavailable}
           <p class="text-xs text-muted-foreground">

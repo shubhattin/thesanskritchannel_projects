@@ -7,13 +7,13 @@
   } from '~/api/routes/ai/image_prompt_defaults';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
-  import { Textarea } from '$lib/components/ui/textarea';
   import { Badge } from '$lib/components/ui/badge';
   import * as Accordion from '$lib/components/ui/accordion';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import * as Tabs from '$lib/components/ui/tabs';
   import Markdown from 'svelte-markdown';
+  import MarkdownTextarea from './MarkdownTextarea.svelte';
   import Plus from '@lucide/svelte/icons/plus';
   import Copy from '@lucide/svelte/icons/copy';
   import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -182,7 +182,7 @@
                 </Button>
               </div>
               <div
-                class="max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed"
+                class="md-preview prose prose-sm max-w-none max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
               >
                 <Markdown source={DEFAULT_IMAGE_SYSTEM_PROMPT} />
               </div>
@@ -230,17 +230,16 @@
                       <Tabs.Trigger value="view">Preview</Tabs.Trigger>
                     </Tabs.List>
                     <Tabs.Content value="edit">
-                      <Textarea
+                      <MarkdownTextarea
                         bind:value={edit_content}
                         rows={12}
-                        spellcheck="false"
-                        class="font-mono text-xs"
+                        spellcheck={false}
                         placeholder="System prompt markdown…"
                       />
                     </Tabs.Content>
                     <Tabs.Content value="view">
                       <div
-                        class="max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed"
+                        class="md-preview prose prose-sm max-w-none max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
                       >
                         {#if edit_content.trim()}
                           <Markdown source={edit_content} />
@@ -297,7 +296,7 @@
                     </Button>
                   </div>
                   <div
-                    class="max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed"
+                    class="md-preview prose prose-sm max-w-none max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
                   >
                     {#if template.content.trim()}
                       <Markdown source={template.content} />

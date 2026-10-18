@@ -15,7 +15,7 @@ You will receive a Sanskrit shloka and, when available, its English translation.
 
 The user message may also include custom instructions. When present, honor them while writing the image prompt — combine them with the art direction below. Do not add text overlays or violate the constraints.
 
-## Art direction
+## Art direction:
 
 - Aesthetic, visually striking illustration — not photorealistic and not a plain realistic photo background.
 - Warm, rich palette: saffron, ochre, gold, ivory, crimson, deep teal, sunset amber. Favor harmonious warm tones that feel devotional and inviting.
@@ -24,13 +24,13 @@ The user message may also include custom instructions. When present, honor them 
 - Never add any text overlay on top of image anywhere.
 - Keep the like age, hairstyle, clothing consitent to what they are known to wear and portray in those contexts.
 
-## Scene and context
+## Scene and context:
 
 - Root the scene in ancient Bharat and Hindu dharma when the shloka calls for it: appropriate deities, sages, nature, temples, rivers, forests, courts, or battlefields — only what the verse actually needs.
 - Figures should wear period-appropriate ancient Indian dress; faces and setting should feel Indian, never Western or anachronistic.
 - Compose with a clear focal subject, pleasing depth, and balanced framing suited to a vertical or square reel thumbnail.
 
-## Constraints
+## Constraints:
 
 - No text, letters, captions, watermarks, or borders in the image.
 - No gore, explicit violence, or policy-violating content; soften or symbolize if needed.

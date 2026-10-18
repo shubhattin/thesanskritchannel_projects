@@ -17,7 +17,9 @@ import mime from 'mime-types';
 import {
   MediaAttachmentSchemaZod,
   ProjectPathSchemaZod,
+  ProjectRedirectSchemaZod,
   ProjectSchemaZod,
+  SiteLekhaRedirectSchemaZod,
   SiteLekhaSchemaZod,
   TextSchemaZod,
   TranslationSchemaZod
@@ -129,6 +131,14 @@ async function backup_data() {
     fs.writeFileSync(`./backup/projects.csv`, projects_csv);
     const project_paths_csv = json2csv(ProjectPathSchemaZod.array().parse(data['project_paths']));
     fs.writeFileSync(`./backup/project_paths.csv`, project_paths_csv);
+    const site_lekha_redirects_csv = json2csv(
+      SiteLekhaRedirectSchemaZod.array().parse(data['site_lekha_redirects'] ?? [])
+    );
+    fs.writeFileSync(`./backup/site_lekha_redirects.csv`, site_lekha_redirects_csv);
+    const project_redirects_csv = json2csv(
+      ProjectRedirectSchemaZod.array().parse(data['project_redirects'] ?? [])
+    );
+    fs.writeFileSync(`./backup/project_redirects.csv`, project_redirects_csv);
   }
   if (!argv.includes('--no-zip-backup')) {
     const archiveName = 'backup.7z';

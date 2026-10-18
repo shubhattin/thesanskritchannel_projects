@@ -51,6 +51,7 @@
     handleTypingBeforeInputEvent
   } from 'lipilekhika/typing';
   import Icon from '~/tools/Icon.svelte';
+  import { BsThreeDots, BsTrash } from 'svelte-icons-pack/bs';
   import { LanguageIcon } from '~/components/icons';
   import { build_main_site_lekha_href } from '~/utils/main_site_url';
   import ExternalLink from '@lucide/svelte/icons/external-link';
@@ -99,6 +100,9 @@
   let editor_ready = $state(false);
   /** After the user confirms the unlock dialog. */
   let slug_edit_unlocked = $state(false);
+  /** Keep the previous slug as a redirect when the slug changes (default true). */
+  let redirect_old_url = $state(true);
+  let open_redirect_menu_id = $state<number | null>(null);
   let delete_dialog_open = $state(false);
   let publish_dialog_open = $state(false);
   let save_dialog_open = $state(false);
@@ -145,6 +149,10 @@
   }
 
   let slug_locked = $derived(!slug_edit_unlocked);
+
+  /** Last saved slug this session (the `initial` prop is server-loaded and goes stale after a slug change). */
+  let saved_url_slug = $state<string | null>(null);
+  let canonical_slug = $derived(saved_url_slug ?? lekhaUrlSlugify(initial?.url_slug ?? ''));
 
   let slug_effective = $derived(
     slug_locked
@@ -197,6 +205,8 @@
         auto_transliterate_title = initial.auto_transliterate_title;
         auto_transliterate_description = initial.auto_transliterate_description;
         auto_transliterate_content = initial.auto_transliterate_content;
+        saved_url_slug = null;
+        redirect_old_url = true;
         queueMicrotask(() => captureSavedSnapshot());
       }
     }
@@ -280,6 +290,18 @@
     return null;
   };
 
+  const slug_changed = $derived(
+    slug_section_unlocked && slug_effective.length > 0 && slug_effective !== canonical_slug
+  );
+
+  const replaces_redirect = $derived(
+    slug_changed &&
+      slug_in_sync &&
+      !slug_check_q.isPending &&
+      !slug_check_q.isFetching &&
+      slug_check_q.data?.replaces_redirect === true
+  );
+
   const carta = new Carta({
     sanitizer: cartaHtmlSanitizer,
     /** Align Shiki with `renderLekhaMarkdownToHtml` / site (`LEKHA_SHIKI_*`). */
@@ -324,6 +346,8 @@
         tags = normalized.tags;
         content = await sanitizeAndFormatLekhaMarkdownForStorage(normalized.content);
         listed = vars.post_data.listed;
+        saved_url_slug = normalized.url_slug;
+        await redirects_q.refetch();
         captureSavedSnapshot();
         save_dialog_open = false;
         toast.success('Lekha updated successfully');
@@ -337,6 +361,25 @@
         leave_confirmed = true;
         await invalidateLekhaList();
         await goto('/lekha');
+      }
+    })
+  );
+
+  const redirects_q = createQuery(() => ({
+    ...trpc.site.lekha.list_lekha_redirects.queryOptions({ lekha_id }),
+    staleTime: 0,
+    refetchOnMount: 'always'
+  }));
+
+  const delete_redirect_mut = createMutation(() =>
+    trpc.site.lekha.delete_lekha_redirect.mutationOptions({
+      onSuccess: async () => {
+        open_redirect_menu_id = null;
+        await redirects_q.refetch();
+        toast.success('Redirect rule deleted');
+      },
+      onError: (err) => {
+        toast.error(err.message || 'Failed to delete redirect rule');
       }
     })
   );
@@ -465,7 +508,7 @@
       return;
     }
     const post_data = buildPostData(is_draft);
-    edit_mut.mutate({ id: lekha_id, post_data });
+    edit_mut.mutate({ id: lekha_id, post_data, redirect_old_url });
   }
 
   function confirmPublish() {
@@ -478,7 +521,7 @@
     }
     const post_data = buildPostData(false);
     edit_mut.mutate(
-      { id: lekha_id, post_data },
+      { id: lekha_id, post_data, redirect_old_url },
       {
         onSuccess: () => {
           publish_dialog_open = false;
@@ -595,9 +638,28 @@
         >
           <AlertDialog.Header>
             <AlertDialog.Title>Save changes?</AlertDialog.Title>
-            <AlertDialog.Description class="text-sm text-muted-foreground">
-              This will update the lekha with your current edits
-              {is_draft ? ' (still a draft)' : ' on the live post'}.
+            <AlertDialog.Description class="flex flex-col gap-2 text-sm text-muted-foreground">
+              <span>
+                This will update the lekha with your current edits
+                {is_draft ? ' (still a draft)' : ' on the live post'}.
+              </span>
+              {#if slug_changed}
+                <span>
+                  The public URL will change from
+                  <span class="font-mono">/lekha/{canonical_slug}</span> to
+                  <span class="font-mono">/lekha/{slug_effective}</span>.
+                </span>
+                {#if redirect_old_url}
+                  <span>Old links will redirect to the new slug.</span>
+                {:else}
+                  <span>The old slug will stop working. No redirect will be created.</span>
+                {/if}
+              {/if}
+              {#if replaces_redirect}
+                <span class="text-amber-700 dark:text-amber-300">
+                  An existing redirect rule for this slug will be replaced.
+                </span>
+              {/if}
             </AlertDialog.Description>
           </AlertDialog.Header>
           {#if edit_mut.isError}
@@ -866,6 +928,26 @@
           </div>
           <p class="text-xs text-muted-foreground">Lowercase, letters, digits, and hyphens only.</p>
         {/if}
+
+        {#if slug_changed}
+          <label class="flex items-start gap-2 text-sm">
+            <Checkbox bind:checked={redirect_old_url} class="mt-0.5" />
+            <span>
+              Redirect old lekha URL
+              <span class="font-mono text-xs text-muted-foreground"
+                >/lekha/{canonical_slug}</span
+              >
+              to the new slug
+            </span>
+          </label>
+        {/if}
+
+        {#if replaces_redirect}
+          <p class="text-sm text-amber-700 dark:text-amber-300" role="status">
+            This slug is currently used by an existing redirect rule. Saving will replace that
+            redirect rule.
+          </p>
+        {/if}
       {:else}
         <AlertDialog.Root>
           <div class="flex flex-wrap items-end justify-between gap-3">
@@ -882,9 +964,9 @@
             <AlertDialog.Header>
               <AlertDialog.Title>Change URL slug?</AlertDialog.Title>
               <AlertDialog.Description class="text-sm text-muted-foreground">
-                Changing the URL slug updates the post&rsquo;s public address. Old links, bookmarks,
-                and search results that used the previous slug will stop working unless you set up a
-                redirect elsewhere. Only continue if you intend to change how this post is reached.
+                Changing the URL slug updates the post&rsquo;s public address. When you save, you
+                can keep the previous slug redirecting to the new one. Only continue if you intend
+                to change how this post is reached.
               </AlertDialog.Description>
             </AlertDialog.Header>
             <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
@@ -892,6 +974,7 @@
               <AlertDialog.Action
                 onclick={() => {
                   slug_edit_unlocked = true;
+                  redirect_old_url = true;
                 }}
               >
                 Unlock and edit
@@ -918,6 +1001,63 @@
       {/if}
     </div>
   </div>
+
+  {#if (redirects_q.data?.length ?? 0) > 0}
+    <div class="flex flex-col gap-3 border-t border-border/60 pt-4">
+      <div class="flex flex-col gap-1">
+        <h3 class="text-sm font-semibold">Redirect rules</h3>
+        <p class="text-xs text-muted-foreground">
+          Old URL slugs that redirect to this lekha&rsquo;s current slug.
+        </p>
+      </div>
+
+      <ul class="flex flex-col gap-1.5">
+        {#each redirects_q.data ?? [] as rule (rule.id)}
+          <li
+            class="flex items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2"
+          >
+            <div class="flex min-w-0 flex-col gap-0.5">
+              <span class="truncate font-mono text-sm">/lekha/{rule.url_slug}</span>
+              <span class="text-xs text-muted-foreground">
+                → /lekha/{canonical_slug}
+              </span>
+            </div>
+            <Popover.Root
+              open={open_redirect_menu_id === rule.id}
+              onOpenChange={(open) => {
+                open_redirect_menu_id = open ? rule.id : null;
+              }}
+            >
+              <Popover.Trigger
+                class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground"
+                aria-label="Redirect actions"
+              >
+                <Icon src={BsThreeDots} class="text-base" />
+              </Popover.Trigger>
+              <Popover.Content class="w-36 p-1" align="end" sideOffset={6}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  class="h-8 w-full justify-start gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={delete_redirect_mut.isPending}
+                  onclick={() => {
+                    delete_redirect_mut.mutate({
+                      lekha_id,
+                      redirect_id: rule.id
+                    });
+                  }}
+                >
+                  <Icon src={BsTrash} class="text-sm" />
+                  {delete_redirect_mut.isPending ? 'Deleting…' : 'Delete'}
+                </Button>
+              </Popover.Content>
+            </Popover.Root>
+          </li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
 
   <LekhaTagsInput bind:tags />
 

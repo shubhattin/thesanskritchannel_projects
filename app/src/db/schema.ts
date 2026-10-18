@@ -159,6 +159,20 @@ export const site_lekhas = pgTable(
   (table) => [index().on(table.published_at)]
 );
 
+/**
+ * Used to redirect old lekha URLs to the new ones (like after we change the url_slug).
+ * Mirrors {@link project_redirects}.
+ */
+export const site_lekha_redirects = pgTable('site_lekha_redirects', {
+  id: serial().primaryKey(),
+  lekha_id: integer()
+    .notNull()
+    .references(() => site_lekhas.id, { onDelete: 'cascade' }),
+  /** The old url_slug from which we would redirect to the current url_slug */
+  url_slug: text().notNull().unique(),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
+});
+
 export const image_assets = pgTable(
   'image_assets',
   {
@@ -263,6 +277,17 @@ export const projectRedirectRelations = relations(project_redirects, ({ one }) =
   project: one(projects, {
     fields: [project_redirects.project_id],
     references: [projects.id]
+  })
+}));
+
+export const siteLekhaRelations = relations(site_lekhas, ({ many }) => ({
+  redirects: many(site_lekha_redirects)
+}));
+
+export const siteLekhaRedirectRelations = relations(site_lekha_redirects, ({ one }) => ({
+  lekha: one(site_lekhas, {
+    fields: [site_lekha_redirects.lekha_id],
+    references: [site_lekhas.id]
   })
 }));
 

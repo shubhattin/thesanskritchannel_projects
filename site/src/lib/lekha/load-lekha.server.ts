@@ -1,9 +1,11 @@
 import { transliterate_node } from 'lipilekhika/node';
 import { get_script_from_id, type script_list_type } from '@app/state/lang_list';
 import { CACHE, NO_CACHE_PARAMS } from '@app/effect/cache_loaders';
+import { resolveLekhaBySlug } from '@app/effect/lekha_registry';
+import type { SiteLekha } from '@app/db/schema_zod';
 import { renderLekhaMarkdownToHtml } from '@app/lib/carta_markdown/markdown';
 import { DEFAULT_SCRIPT_ID } from '$lib/cookies';
-import { runServerEffect, runServerEffectOr } from '~/effect/site_runtime';
+import { runServerEffect, runServerEffectNullable, runServerEffectOr } from '~/effect/site_runtime';
 import { maybe_transliterate_list } from '$lib/main_text/script-display.server';
 import { lekha_has_script_selector } from './lekha-script-indicator';
 import type { LekhaListPost } from './lekha-list';
@@ -75,9 +77,30 @@ export type LekhaEntryPayload = {
 export async function load_lekha_entry(
   slug: string,
   script_id: number
+): Promise<{ entry: LekhaEntryPayload; redirect_to: string | null } | null> {
+  const direct = await runServerEffect(CACHE.site_lekha_data.get({ url_slug: slug }));
+  if (direct && !direct.draft && direct.listed) {
+    const entry = await build_lekha_entry(direct, script_id);
+    if (!entry) return null;
+    return { entry, redirect_to: null };
+  }
+
+  // Not a live slug — resolve old slugs via `site_lekha_redirects` (301 to canonical).
+  const resolved = await runServerEffectNullable(resolveLekhaBySlug(slug));
+  if (!resolved || !resolved.was_redirect) return null;
+  const canonical = await runServerEffectNullable(
+    CACHE.site_lekha_data.get({ url_slug: resolved.url_slug })
+  );
+  if (!canonical || canonical.draft || !canonical.listed) return null;
+  const entry = await build_lekha_entry(canonical, script_id);
+  if (!entry) return null;
+  return { entry, redirect_to: `/lekha/${encodeURIComponent(canonical.url_slug)}` };
+}
+
+async function build_lekha_entry(
+  row: SiteLekha,
+  script_id: number
 ): Promise<LekhaEntryPayload | null> {
-  const row = await runServerEffect(CACHE.site_lekha_data.get({ url_slug: slug }));
-  if (!row || row.draft || !row.listed) return null;
 
   const script = script_from_id(script_id);
   const [fields, html] = await Promise.all([

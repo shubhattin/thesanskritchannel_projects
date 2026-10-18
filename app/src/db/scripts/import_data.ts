@@ -16,6 +16,8 @@ export const import_data = async (confirm_env = true) => {
   const other = await db.query.other.findMany();
   const media_attachment = await db.query.media_attachment.findMany();
   const site_lekhas = await db.query.site_lekhas.findMany();
+  const site_lekha_redirects = await db.query.site_lekha_redirects.findMany();
+  const project_redirects = await db.query.project_redirects.findMany();
 
   const json_data = {
     user_project_join,
@@ -26,7 +28,9 @@ export const import_data = async (confirm_env = true) => {
     texts,
     other,
     media_attachment,
-    site_lekhas
+    site_lekhas,
+    site_lekha_redirects,
+    project_redirects
   };
 
   await make_dir('./out');

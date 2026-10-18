@@ -9,7 +9,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Textarea } from '$lib/components/ui/textarea';
   import { Badge } from '$lib/components/ui/badge';
-  import * as Card from '$lib/components/ui/card';
+  import * as Accordion from '$lib/components/ui/accordion';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import * as Tabs from '$lib/components/ui/tabs';
@@ -37,23 +37,29 @@
   let edit_title = $state('');
   let edit_content = $state('');
   let delete_id = $state<number | null>(null);
-  let highlighted_id = $state<number | 'default' | null>(null);
+  /** Accordion open values; everything collapsed by default. */
+  let open_items = $state<string[]>([]);
+  let highlighted_key = $state<string | null>(null);
+
+  const item_key = (id: number) => `template-${id}`;
 
   const apply_hash = () => {
     const hash = window.location.hash;
-    if (hash === '#template-default') {
-      highlighted_id = 'default';
-    } else {
+    let key: string | null = null;
+    if (hash === '#template-default') key = 'default';
+    else {
       const match = hash.match(/^#template-(\d+)$/);
-      highlighted_id = match ? parseInt(match[1], 10) : null;
+      if (match) key = item_key(parseInt(match[1], 10));
     }
-    if (highlighted_id != null) {
-      const id = highlighted_id === 'default' ? 'template-default' : `template-${highlighted_id}`;
-      document.getElementById(id)?.scrollIntoView({ block: 'center' });
+    highlighted_key = key;
+    if (key && !open_items.includes(key)) open_items = [...open_items, key];
+    if (key) {
+      const el = document.getElementById(key === 'default' ? 'template-default' : key);
+      el?.scrollIntoView({ block: 'center' });
     }
   };
 
-  // Scroll once the list has loaded (cards render only after the query resolves).
+  // Open/scroll once the list has loaded (items render only after the query resolves).
   $effect(() => {
     if (templates_q.isSuccess) apply_hash();
   });
@@ -77,8 +83,10 @@
       toast.success(`Template “${row.title}” created`);
       new_title = '';
       add_open = false;
+      search = '';
       await invalidate();
-      highlighted_id = row.id;
+      highlighted_key = item_key(row.id);
+      open_items = [item_key(row.id)];
     },
     onError: (e) => toast.error(e.message || 'Failed to create template')
   }));
@@ -109,9 +117,12 @@
     edit_title = title;
     edit_content = content;
   };
+
+  const char_hint = (content: string) =>
+    content.trim() ? `${content.trim().length} chars` : 'empty';
 </script>
 
-<div class="mx-auto w-full max-w-4xl space-y-6 p-4 sm:p-6">
+<div class="mx-auto w-full max-w-4xl space-y-5 p-4 sm:p-6">
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div>
       <h1 class="text-xl font-bold">System Prompts</h1>
@@ -128,146 +139,181 @@
 
   <Input placeholder="Search templates…" bind:value={search} class="max-w-sm" />
 
-  <!-- Built-in default (read-only) -->
-  <Card.Root
-    id="template-default"
-    class={highlighted_id === 'default' ? 'ring-2 ring-primary' : ''}
-  >
-    <Card.Header class="flex-row items-center justify-between gap-2 space-y-0">
-      <div class="flex items-center gap-2">
-        <Card.Title class="text-base">{DEFAULT_IMAGE_SYSTEM_PROMPT_TITLE}</Card.Title>
-        <Badge variant="secondary" class="gap-1"><Lock class="size-3" />Built-in</Badge>
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onclick={() => copy_text_to_clipboard(DEFAULT_IMAGE_SYSTEM_PROMPT)}
-      >
-        <Copy class="size-3.5" />
-        Copy
-      </Button>
-    </Card.Header>
-    <Card.Content>
-      <div
-        class="max-h-96 overflow-y-auto rounded-md border bg-muted/20 p-4 text-sm leading-relaxed"
-      >
-        <Markdown source={DEFAULT_IMAGE_SYSTEM_PROMPT} />
-      </div>
-    </Card.Content>
-  </Card.Root>
-
   {#if templates_q.isPending}
     <p class="py-8 text-center text-sm text-muted-foreground">Loading templates…</p>
   {:else if templates_q.isError}
     <p class="py-8 text-center text-sm text-destructive">
       Failed to load templates. {templates_q.error.message}
     </p>
-  {:else if filtered().length === 0}
-    <p class="py-8 text-center text-sm text-muted-foreground">
-      {search ? `No templates match “${search}”.` : 'No templates yet — create one.'}
-    </p>
   {:else}
-    {#each filtered() as template (template.id)}
-      <Card.Root
-        id="template-{template.id}"
-        class={highlighted_id === template.id ? 'ring-2 ring-primary' : ''}
-      >
-        <Card.Header class="flex-row items-start justify-between gap-2 space-y-0">
-          <div>
-            <Card.Title class="text-base">{template.title}</Card.Title>
-            <Card.Description class="text-xs">id {template.id}</Card.Description>
-          </div>
-          <div class="flex shrink-0 items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onclick={() => copy_text_to_clipboard(template.content)}
+    <Accordion.Root type="multiple" bind:value={open_items} class="flex flex-col gap-2.5">
+      <div id="template-default">
+        <Accordion.Item
+          value="default"
+          class="rounded-xl border border-border px-4 {highlighted_key === 'default'
+            ? 'ring-2 ring-primary'
+            : ''}"
+        >
+          <Accordion.Trigger class="py-3.5 hover:no-underline">
+            <span
+              class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 pr-2 text-left"
             >
-              <Copy class="size-3.5" />
-              Copy
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onclick={() => start_edit(template.id, template.title, template.content)}
-            >
-              Edit
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              class="text-destructive hover:text-destructive"
-              title="Delete template"
-              onclick={() => (delete_id = template.id)}
-            >
-              <Trash2 class="size-4" />
-            </Button>
-          </div>
-        </Card.Header>
-        <Card.Content>
-          {#if editing_id === template.id}
-            <div class="space-y-3">
-              <Input bind:value={edit_title} placeholder="Title" maxlength={200} />
-              <Tabs.Root value="edit">
-                <Tabs.List>
-                  <Tabs.Trigger value="edit">Edit</Tabs.Trigger>
-                  <Tabs.Trigger value="view">Preview</Tabs.Trigger>
-                </Tabs.List>
-                <Tabs.Content value="edit">
-                  <Textarea
-                    bind:value={edit_content}
-                    rows={14}
-                    spellcheck="false"
-                    class="font-mono text-xs"
-                    placeholder="System prompt markdown…"
-                  />
-                </Tabs.Content>
-                <Tabs.Content value="view">
-                  <div
-                    class="max-h-96 overflow-y-auto rounded-md border bg-muted/20 p-4 text-sm leading-relaxed"
-                  >
-                    {#if edit_content.trim()}
-                      <Markdown source={edit_content} />
-                    {:else}
-                      <p class="text-muted-foreground">Nothing to preview.</p>
-                    {/if}
-                  </div>
-                </Tabs.Content>
-              </Tabs.Root>
-              <div class="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onclick={() => (editing_id = null)}
-                  >Cancel</Button
-                >
+              <span class="truncate text-sm font-semibold">{DEFAULT_IMAGE_SYSTEM_PROMPT_TITLE}</span
+              >
+              <Badge variant="secondary" class="gap-1">
+                <Lock class="size-3" />
+                Built-in
+              </Badge>
+              <span class="text-xs font-normal text-muted-foreground">
+                {char_hint(DEFAULT_IMAGE_SYSTEM_PROMPT)}
+              </span>
+            </span>
+          </Accordion.Trigger>
+          <Accordion.Content>
+            <div class="flex flex-col gap-2.5 pb-4">
+              <div class="flex justify-end">
                 <Button
+                  variant="ghost"
                   size="sm"
-                  disabled={update_mut.isPending}
-                  onclick={() =>
-                    update_mut.mutate({
-                      id: template.id,
-                      title: edit_title,
-                      content: edit_content
-                    })}
+                  onclick={() => copy_text_to_clipboard(DEFAULT_IMAGE_SYSTEM_PROMPT)}
                 >
-                  {update_mut.isPending ? 'Saving…' : 'Save'}
+                  <Copy class="size-3.5" />
+                  Copy
                 </Button>
               </div>
+              <div
+                class="max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed"
+              >
+                <Markdown source={DEFAULT_IMAGE_SYSTEM_PROMPT} />
+              </div>
             </div>
-          {:else}
-            <div
-              class="max-h-96 overflow-y-auto rounded-md border bg-muted/20 p-4 text-sm leading-relaxed"
-            >
-              {#if template.content.trim()}
-                <Markdown source={template.content} />
+          </Accordion.Content>
+        </Accordion.Item>
+      </div>
+
+      {#if filtered().length === 0}
+        <p class="py-8 text-center text-sm text-muted-foreground">
+          {search ? `No templates match “${search}”.` : 'No templates yet — create one.'}
+        </p>
+      {/if}
+
+      {#each filtered() as template (template.id)}
+        <div id={item_key(template.id)}>
+          <Accordion.Item
+            value={item_key(template.id)}
+            class="rounded-xl border border-border px-4 {highlighted_key === item_key(template.id)
+              ? 'ring-2 ring-primary'
+              : ''}"
+          >
+            <Accordion.Trigger class="py-3.5 hover:no-underline">
+              <span
+                class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 pr-2 text-left"
+              >
+                <span class="truncate text-sm font-semibold">{template.title}</span>
+                <span class="text-xs font-normal text-muted-foreground">id {template.id}</span>
+                {#if template.content.trim()}
+                  <span class="text-xs font-normal text-muted-foreground">
+                    {char_hint(template.content)}
+                  </span>
+                {:else}
+                  <Badge variant="outline">Empty</Badge>
+                {/if}
+              </span>
+            </Accordion.Trigger>
+            <Accordion.Content>
+              {#if editing_id === template.id}
+                <div class="flex flex-col gap-3 pb-4">
+                  <Input bind:value={edit_title} placeholder="Title" maxlength={200} />
+                  <Tabs.Root value="edit">
+                    <Tabs.List>
+                      <Tabs.Trigger value="edit">Edit</Tabs.Trigger>
+                      <Tabs.Trigger value="view">Preview</Tabs.Trigger>
+                    </Tabs.List>
+                    <Tabs.Content value="edit">
+                      <Textarea
+                        bind:value={edit_content}
+                        rows={12}
+                        spellcheck="false"
+                        class="font-mono text-xs"
+                        placeholder="System prompt markdown…"
+                      />
+                    </Tabs.Content>
+                    <Tabs.Content value="view">
+                      <div
+                        class="max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed"
+                      >
+                        {#if edit_content.trim()}
+                          <Markdown source={edit_content} />
+                        {:else}
+                          <p class="text-muted-foreground">Nothing to preview.</p>
+                        {/if}
+                      </div>
+                    </Tabs.Content>
+                  </Tabs.Root>
+                  <div class="flex justify-end gap-2">
+                    <Button variant="outline" size="sm" onclick={() => (editing_id = null)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={update_mut.isPending || !edit_title.trim()}
+                      onclick={() =>
+                        update_mut.mutate({
+                          id: template.id,
+                          title: edit_title,
+                          content: edit_content
+                        })}
+                    >
+                      {update_mut.isPending ? 'Saving…' : 'Save'}
+                    </Button>
+                  </div>
+                </div>
               {:else}
-                <p class="text-muted-foreground">
-                  Empty template — click Edit to write the prompt.
-                </p>
+                <div class="flex flex-col gap-2.5 pb-4">
+                  <div class="flex shrink-0 items-center justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onclick={() => copy_text_to_clipboard(template.content)}
+                    >
+                      <Copy class="size-3.5" />
+                      Copy
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onclick={() => start_edit(template.id, template.title, template.content)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="text-destructive hover:text-destructive"
+                      title="Delete template"
+                      onclick={() => (delete_id = template.id)}
+                    >
+                      <Trash2 class="size-4" />
+                    </Button>
+                  </div>
+                  <div
+                    class="max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed"
+                  >
+                    {#if template.content.trim()}
+                      <Markdown source={template.content} />
+                    {:else}
+                      <p class="text-muted-foreground">
+                        Empty template — click Edit to write the prompt.
+                      </p>
+                    {/if}
+                  </div>
+                </div>
               {/if}
-            </div>
-          {/if}
-        </Card.Content>
-      </Card.Root>
-    {/each}
+            </Accordion.Content>
+          </Accordion.Item>
+        </div>
+      {/each}
+    </Accordion.Root>
   {/if}
 </div>
 

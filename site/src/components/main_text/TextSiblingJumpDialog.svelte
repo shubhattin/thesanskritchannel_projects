@@ -99,7 +99,15 @@
       if (!next) search = '';
     }}
   >
-    <Dialog.Content class="flex max-h-[85vh] max-w-lg flex-col">
+    <Dialog.Content
+      class="flex max-h-[85vh] max-w-lg flex-col"
+      onOpenAutoFocus={(e) => {
+        if (typeof window === 'undefined') return;
+        const coarse = window.matchMedia('(pointer: coarse)').matches;
+        const narrow = window.innerWidth < 640;
+        if (coarse || narrow) e.preventDefault();
+      }}
+    >
       <Dialog.Header>
         <Dialog.Title class={script_font_class}>{parent_name}</Dialog.Title>
         <Dialog.Description>
@@ -135,13 +143,9 @@
           <InputGroup.Addon
             align="inline-end"
             class="cursor-default gap-2 border-s border-border/50 ps-3 pe-2.5"
+            title={`${site_prefs.script} transliteration typing (Alt+X)`}
           >
-            <span
-              class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground select-none"
-            >
-              <KeyboardIcon class="size-3.5" aria-hidden="true" />
-              Typing
-            </span>
+            <KeyboardIcon class="size-3.5 text-muted-foreground" aria-hidden="true" />
             <Switch
               bind:checked={typing_enabled}
               aria-label="Transliteration typing"
@@ -155,7 +159,7 @@
           <div class="space-y-1 py-8 text-center">
             <p class="text-sm text-muted-foreground">No matches for “{search}”.</p>
             <p class="text-xs text-muted-foreground/70">
-              Try a different term, or turn on Typing to search in {site_prefs.script}.
+              Try a different term, or enable transliteration typing to search in {site_prefs.script}.
             </p>
           </div>
         {:else}

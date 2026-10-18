@@ -5,9 +5,20 @@ import { protectedAdminProcedure, t } from '~/api/trpc_init';
 import { image_system_prompt_templates } from '~/db/schema';
 import { runTrpcEffect } from '~/effect/app_runtime.server';
 import { dbRun } from '~/effect/database';
-import { ConflictError, NotFoundError } from '~/effect/errors';
+import { ConflictError, DatabaseError, NotFoundError } from '~/effect/errors';
 
 const template_title_schema = z.string().trim().min(1).max(200);
+
+/** True for postgres unique-violations (title race between lookup and write). */
+const isUniqueViolationCause = (cause: unknown): boolean => {
+  if (cause === null || cause === undefined || typeof cause !== 'object') return false;
+  if ('code' in cause && cause.code === '23505') return true;
+  return (
+    'message' in cause &&
+    typeof cause.message === 'string' &&
+    /unique|duplicate key/i.test(cause.message)
+  );
+};
 
 const list_templates_route = protectedAdminProcedure.query(() =>
   runTrpcEffect(
@@ -68,8 +79,25 @@ const create_template_route = protectedAdminProcedure
         }
         const rows = yield* dbRun('image_system_prompts.create', (db) =>
           db.insert(image_system_prompt_templates).values({ title, content: '' }).returning()
+        ).pipe(
+          Effect.catchIf(
+            // SAFETY: predicate only matches postgres unique-violations; all other
+            // errors pass through untouched via the default orElse rethrow.
+            (err): err is DatabaseError =>
+              err instanceof DatabaseError && isUniqueViolationCause(err.cause),
+            () =>
+              Effect.fail(
+                ConflictError.make({ message: 'A template with this title already exists' })
+              )
+          )
         );
-        return rows[0]!;
+        const created = rows[0];
+        if (!created) {
+          return yield* Effect.fail(
+            ConflictError.make({ message: 'A template with this title already exists' })
+          );
+        }
+        return created;
       })
     )
   );
@@ -116,8 +144,28 @@ const update_template_route = protectedAdminProcedure
             .set({ title: title ?? existing.title, content: content ?? existing.content })
             .where(eq(image_system_prompt_templates.id, id))
             .returning()
+        ).pipe(
+          Effect.catchIf(
+            // SAFETY: predicate only matches postgres unique-violations; all other
+            // errors pass through untouched via the default orElse rethrow.
+            (err): err is DatabaseError =>
+              err instanceof DatabaseError && isUniqueViolationCause(err.cause),
+            () =>
+              Effect.fail(
+                ConflictError.make({ message: 'A template with this title already exists' })
+              )
+          )
         );
-        return rows[0]!;
+        const updated = rows[0];
+        if (!updated) {
+          return yield* Effect.fail(
+            NotFoundError.make({
+              resource: 'system_prompt_template',
+              message: 'Template not found'
+            })
+          );
+        }
+        return updated;
       })
     )
   );

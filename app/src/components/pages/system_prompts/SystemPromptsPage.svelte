@@ -4,7 +4,7 @@
   import {
     DEFAULT_IMAGE_SYSTEM_PROMPT,
     DEFAULT_IMAGE_SYSTEM_PROMPT_TITLE
-  } from '~/api/routes/ai/get_image_prompt';
+  } from '~/api/routes/ai/image_prompt_defaults';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Textarea } from '$lib/components/ui/textarea';
@@ -20,10 +20,12 @@
   import Lock from '@lucide/svelte/icons/lock';
   import { toast } from 'svelte-sonner';
   import { copy_text_to_clipboard } from '~/tools/kry';
-  import { onMount } from 'svelte';
+  import { queryClient } from '~/state/queryClient';
+
+  const TEMPLATES_QUERY_KEY = ['image_system_prompt_templates'];
 
   const templates_q = createQuery(() => ({
-    queryKey: ['image_system_prompt_templates'],
+    queryKey: TEMPLATES_QUERY_KEY,
     queryFn: () => client.ai.system_prompts.list.query(),
     staleTime: 30_000
   }));
@@ -37,14 +39,27 @@
   let delete_id = $state<number | null>(null);
   let highlighted_id = $state<number | 'default' | null>(null);
 
-  onMount(() => {
-    const hash = window.location.hash.match(/^#template-(\d+)$/);
-    if (hash) {
-      highlighted_id = parseInt(hash[1]);
-      setTimeout(() => {
-        document.getElementById(hash[0].slice(1))?.scrollIntoView({ block: 'center' });
-      }, 400);
+  const apply_hash = () => {
+    const hash = window.location.hash;
+    if (hash === '#template-default') {
+      highlighted_id = 'default';
+    } else {
+      const match = hash.match(/^#template-(\d+)$/);
+      highlighted_id = match ? parseInt(match[1], 10) : null;
     }
+    if (highlighted_id != null) {
+      const id = highlighted_id === 'default' ? 'template-default' : `template-${highlighted_id}`;
+      document.getElementById(id)?.scrollIntoView({ block: 'center' });
+    }
+  };
+
+  // Scroll once the list has loaded (cards render only after the query resolves).
+  $effect(() => {
+    if (templates_q.isSuccess) apply_hash();
+  });
+  $effect(() => {
+    window.addEventListener('hashchange', apply_hash);
+    return () => window.removeEventListener('hashchange', apply_hash);
   });
 
   const filtered = $derived(() => {
@@ -54,7 +69,7 @@
     return rows.filter((t) => t.title.toLowerCase().includes(q));
   });
 
-  const invalidate = () => templates_q.refetch();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: TEMPLATES_QUERY_KEY });
 
   const create_mut = createMutation(() => ({
     mutationFn: (title: string) => client.ai.system_prompts.create.mutate({ title }),

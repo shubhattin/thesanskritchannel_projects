@@ -294,7 +294,8 @@
   {/if}
   <SystemPromptPicker bind:selected_template_id={system_prompt_template_id} compact />
   <p class="text-[11px] text-muted-foreground">
-    Applies when the batch generates prompts server-side. Already-written prompts are used as-is.
+    Shared with single generation above. Applies when the batch generates prompts server-side.
+    Already-written prompts are used as-is.
   </p>
   {#if path_status_q.data && path_status_q.data.custom_id !== index_status_q.data?.custom_id}
     <div class="flex flex-wrap items-center gap-2 text-xs">

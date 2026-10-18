@@ -577,6 +577,36 @@ const trigger_batch_shloka_image_gen_effect = Effect.fn('trigger_batch_shloka_im
 
     yield* assertNoUnresolvedDuplicates(projectPath.id, indexes);
 
+    // The template id is batch-scoped: resolve once here instead of once per
+    // item inside get_image_prompt_func (fail fast before any model spend).
+    let system_prompt_override: string | undefined;
+    let system_prompt_override_title: string | null | undefined;
+    if (system_prompt_template_id != null) {
+      const template = yield* dbRun('batch_ai_image.prompt_template', (db) =>
+        db.query.image_system_prompt_templates.findFirst({
+          where: (tbl, { eq: eqOp }) => eqOp(tbl.id, system_prompt_template_id)
+        })
+      );
+      if (!template) {
+        return yield* Effect.fail(
+          NotFoundError.make({
+            resource: 'system_prompt_template',
+            message: 'System prompt template not found'
+          })
+        );
+      }
+      const trimmed = template.content.trim();
+      if (!trimmed) {
+        return yield* Effect.fail(
+          BadRequestError.make({
+            message: `System prompt template "${template.title}" is empty`
+          })
+        );
+      }
+      system_prompt_override = trimmed;
+      system_prompt_override_title = template.title;
+    }
+
     // Resolve prompts in parallel (use provided, else generate with selected template)
     const resolved = yield* Effect.forEach(
       items,
@@ -594,7 +624,10 @@ const trigger_batch_shloka_image_gen_effect = Effect.fn('trigger_batch_shloka_im
               index: item.index,
               model: text_model
             };
-            if (system_prompt_template_id != null) {
+            if (system_prompt_override !== undefined) {
+              prompt_input.system_prompt_override = system_prompt_override;
+              prompt_input.system_prompt_override_title = system_prompt_override_title;
+            } else if (system_prompt_template_id != null) {
               prompt_input.system_prompt_template_id = system_prompt_template_id;
             }
             const custom_instruction = item.custom_instruction?.trim();
@@ -609,7 +642,9 @@ const trigger_batch_shloka_image_gen_effect = Effect.fn('trigger_batch_shloka_im
               );
             }
             image_prompt = generated.image_prompt;
-            system_prompt_used = generated.system_prompt_used;
+            // Default-generated rows store no snapshot (the default lives in code);
+            // template rows keep id + text for provenance.
+            if (row_template_id != null) system_prompt_used = generated.system_prompt_used;
           }
           return {
             index: item.index,

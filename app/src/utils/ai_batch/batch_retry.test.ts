@@ -100,6 +100,29 @@ describe('fresh retry metadata', () => {
     expect(fresh).not.toHaveProperty('poll_claimed_at');
   });
 
+  test('image metadata preserves system prompt snapshot', () => {
+    const fresh = freshImageRetryMetadata({
+      project_id: 1,
+      project_path_id: 2,
+      path_params: [3],
+      index: 4,
+      image_prompt: 'draw this',
+      system_prompt_template_id: 7,
+      system_prompt_used: 'custom style'
+    });
+
+    expect(fresh).toEqual({
+      type: 'shloka-image',
+      project_id: 1,
+      project_path_id: 2,
+      path_params: [3],
+      index: 4,
+      image_prompt: 'draw this',
+      system_prompt_template_id: 7,
+      system_prompt_used: 'custom style'
+    });
+  });
+
   test('text metadata is rebuilt without prior failure fields', () => {
     const fresh = freshTextRetryMetadata({
       project_id: 1,

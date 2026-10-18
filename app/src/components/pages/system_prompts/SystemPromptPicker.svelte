@@ -1,7 +1,10 @@
 <script lang="ts">
   import { createQuery } from '@tanstack/svelte-query';
   import { client } from '~/api/client';
-  import { DEFAULT_IMAGE_SYSTEM_PROMPT_TITLE } from '~/api/routes/ai/get_image_prompt';
+  import {
+    DEFAULT_IMAGE_SYSTEM_PROMPT,
+    DEFAULT_IMAGE_SYSTEM_PROMPT_TITLE
+  } from '~/api/routes/ai/image_prompt_defaults';
   import { Button } from '$lib/components/ui/button';
   import * as Select from '$lib/components/ui/select';
   import * as Popover from '$lib/components/ui/popover';
@@ -34,9 +37,18 @@
     selected_template_id != null ? String(selected_template_id) : '__default__'
   );
 
+  /** Selected id missing from the list (deleted). Generation would fail — offer reset. */
+  const selection_unavailable = $derived(
+    selected_template_id != null && selected_template == null && templates_q.isSuccess
+  );
+
   const preview_content = $derived(selected_template ? selected_template.content : null);
   const preview_title = $derived(
-    selected_template ? selected_template.title : DEFAULT_IMAGE_SYSTEM_PROMPT_TITLE
+    selected_template
+      ? selected_template.title
+      : selection_unavailable
+        ? 'Template unavailable'
+        : DEFAULT_IMAGE_SYSTEM_PROMPT_TITLE
   );
 </script>
 
@@ -46,7 +58,12 @@
     type="single"
     value={selected_value}
     onValueChange={(v) => {
-      selected_template_id = v === '__default__' ? null : parseInt(v);
+      if (v === '__default__') {
+        selected_template_id = null;
+        return;
+      }
+      const n = parseInt(v, 10);
+      selected_template_id = Number.isNaN(n) ? null : n;
     }}
   >
     <Select.Trigger
@@ -77,13 +94,15 @@
       <div
         class="max-h-[50vh] overflow-y-auto rounded-md border bg-muted/20 p-3 text-sm leading-relaxed"
       >
-        {#if selected_template_id == null}
+        {#if selection_unavailable}
           <p class="text-xs text-muted-foreground">
-            Built-in default (static in code). Pick a template to customize, or
-            <a href="/system-prompts" target="_blank" rel="noopener noreferrer" class="underline"
-              >manage templates</a
-            >.
+            This template is unavailable (deleted). Generation would fail — reset to the default.
           </p>
+          <Button size="sm" variant="outline" onclick={() => (selected_template_id = null)}>
+            Reset to default
+          </Button>
+        {:else if selected_template_id == null}
+          <Markdown source={DEFAULT_IMAGE_SYSTEM_PROMPT} />
         {:else if preview_content?.trim()}
           <Markdown source={preview_content} />
         {:else}
@@ -92,7 +111,7 @@
           </p>
         {/if}
       </div>
-      {#if selected_template_id != null}
+      {#if selected_template_id != null && !selection_unavailable}
         <a
           href="/system-prompts#template-{selected_template_id}"
           target="_blank"

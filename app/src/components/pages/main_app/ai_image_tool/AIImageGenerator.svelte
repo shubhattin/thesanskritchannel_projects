@@ -298,6 +298,7 @@
       'shloka_text_prompt',
       ...$selected_text_levels.slice(0, ($project_state?.levels ?? 1) - 1).reverse(),
       $index,
+      selected_text_model,
       effective_custom_instruction ?? null,
       system_prompt_template_id ?? null
     ],

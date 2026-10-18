@@ -53,7 +53,7 @@
 </script>
 
 <div class="flex flex-wrap items-center gap-2">
-  <span class="text-xs font-semibold text-muted-foreground">System prompt</span>
+  <span class="text-xs font-semibold text-muted-foreground">Image system prompt</span>
   <Select.Root
     type="single"
     value={selected_value}
@@ -92,7 +92,7 @@
     <Popover.Content class="w-96 max-w-[min(24rem,90vw)] space-y-2 p-3" align="start">
       <p class="text-xs font-semibold">{preview_title}</p>
       <div
-        class="prose prose-sm max-w-none max-h-[50vh] overflow-y-auto rounded-md border bg-muted/20 p-3 text-sm leading-relaxed prose-neutral dark:prose-invert"
+        class="prose prose-sm max-h-[50vh] max-w-none overflow-y-auto rounded-md border bg-muted/20 p-3 text-sm leading-relaxed prose-neutral dark:prose-invert"
       >
         {#if selection_unavailable}
           <p class="text-xs text-muted-foreground">
@@ -107,7 +107,7 @@
           <Markdown source={preview_content} />
         {:else}
           <p class="text-xs text-muted-foreground">
-            This template is empty — edit it on the System Prompts page.
+            This template is empty — edit it on the Image System Prompts page.
           </p>
         {/if}
       </div>

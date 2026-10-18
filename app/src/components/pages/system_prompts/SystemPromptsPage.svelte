@@ -125,7 +125,7 @@
 <div class="mx-auto w-full max-w-4xl space-y-5 p-4 sm:p-6">
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div>
-      <h1 class="text-xl font-bold">System Prompts</h1>
+      <h1 class="text-xl font-bold">Image System Prompts</h1>
       <p class="text-sm text-muted-foreground">
         Image-prompt templates. The built-in default is static in code; templates here are
         selectable in the image tool (single + batch).
@@ -182,7 +182,7 @@
                 </Button>
               </div>
               <div
-                class="md-preview prose prose-sm max-w-none max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
+                class="md-preview prose prose-sm max-h-80 max-w-none overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
               >
                 <Markdown source={DEFAULT_IMAGE_SYSTEM_PROMPT} />
               </div>
@@ -234,12 +234,12 @@
                         bind:value={edit_content}
                         rows={12}
                         spellcheck={false}
-                        placeholder="System prompt markdown…"
+                        placeholder="Image system prompt markdown…"
                       />
                     </Tabs.Content>
                     <Tabs.Content value="view">
                       <div
-                        class="md-preview prose prose-sm max-w-none max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
+                        class="md-preview prose prose-sm max-h-80 max-w-none overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
                       >
                         {#if edit_content.trim()}
                           <Markdown source={edit_content} />
@@ -296,7 +296,7 @@
                     </Button>
                   </div>
                   <div
-                    class="md-preview prose prose-sm max-w-none max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
+                    class="md-preview prose prose-sm max-h-80 max-w-none overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
                   >
                     {#if template.content.trim()}
                       <Markdown source={template.content} />

@@ -49,7 +49,10 @@
     /** Shared with AIImageGenerator custom-instruction UI */
     use_custom_instruction?: boolean;
     custom_instruction?: string;
-    /** Shared system-prompt template selection (null = built-in default) */
+    /**
+     * External selection from single generation (null = built-in default).
+     * Used only as the initial value of the dialog-local batch selection.
+     */
     system_prompt_template_id?: number | null;
     on_download_images_zip?: () => void;
   };
@@ -61,9 +64,18 @@
     text_model,
     use_custom_instruction = $bindable(false),
     custom_instruction = $bindable(''),
-    system_prompt_template_id = $bindable(null),
+    system_prompt_template_id = null,
     on_download_images_zip
   }: Props = $props();
+
+  /** Dialog-local batch template selection, seeded from the external value on open. */
+  let dialog_system_prompt_template_id = $state<number | null>(null);
+
+  const open_single_confirm = () => {
+    dialog_system_prompt_template_id = system_prompt_template_id;
+    single_auto_approved = true;
+    single_confirm_open = true;
+  };
 
   const effective_custom_instruction = $derived(
     use_custom_instruction && custom_instruction.trim() ? custom_instruction.trim() : undefined
@@ -151,7 +163,7 @@
         selected_text_levels: $selected_text_levels,
         image_model,
         text_model,
-        system_prompt_template_id,
+        system_prompt_template_id: dialog_system_prompt_template_id,
         items: args.items
       }),
     onSuccess: async (data) => {
@@ -164,6 +176,7 @@
   }));
 
   const open_bulk = () => {
+    dialog_system_prompt_template_id = system_prompt_template_id;
     const defaults = new Set<number>();
     for (const row of text_data_q.data ?? []) {
       if (row.shloka_num != null) defaults.add(row.index);
@@ -255,10 +268,7 @@
       variant="outline"
       class="border-cyan-800/70 bg-cyan-100 font-semibold text-cyan-950 hover:bg-cyan-200 dark:border-cyan-700 dark:bg-cyan-950 dark:text-cyan-300 dark:hover:bg-cyan-900 dark:hover:text-cyan-200"
       disabled={trigger_mut.isPending}
-      onclick={() => {
-        single_auto_approved = true;
-        single_confirm_open = true;
-      }}
+      onclick={open_single_confirm}
     >
       Generate Shloka Image
     </Button>
@@ -292,11 +302,6 @@
       <a class="text-primary hover:underline" href="/batch-manager">Batch Manager</a>
     </div>
   {/if}
-  <SystemPromptPicker bind:selected_template_id={system_prompt_template_id} compact />
-  <p class="text-[11px] text-muted-foreground">
-    Shared with single generation above. Applies when the batch generates prompts server-side.
-    Already-written prompts are used as-is.
-  </p>
   {#if path_status_q.data && path_status_q.data.custom_id !== index_status_q.data?.custom_id}
     <div class="flex flex-wrap items-center gap-2 text-xs">
       <span class="text-muted-foreground">Path batch:</span>
@@ -338,6 +343,13 @@
           bind:value={custom_instruction}
         />
       {/if}
+    </div>
+    <div class="space-y-1.5">
+      <p class="text-sm font-semibold">Image system prompt</p>
+      <SystemPromptPicker bind:selected_template_id={dialog_system_prompt_template_id} compact />
+      <p class="text-xs text-muted-foreground">
+        Applies when the batch generates the prompt server-side.
+      </p>
     </div>
     <AlertDialog.Footer>
       <AlertDialog.Cancel disabled={trigger_mut.isPending}>Cancel</AlertDialog.Cancel>
@@ -390,6 +402,14 @@
       <Checkbox bind:checked={bulk_auto_approved} />
       Auto-approve when complete
     </label>
+
+    <div class="space-y-1.5">
+      <p class="text-sm font-semibold">Image system prompt</p>
+      <SystemPromptPicker bind:selected_template_id={dialog_system_prompt_template_id} compact />
+      <p class="text-xs text-muted-foreground">
+        Applies when the batch generates prompts server-side.
+      </p>
+    </div>
 
     <div class="space-y-1.5">
       <label class="flex items-center gap-2 text-sm font-semibold">

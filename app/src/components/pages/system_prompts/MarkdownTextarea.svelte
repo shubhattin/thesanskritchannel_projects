@@ -48,11 +48,11 @@
       out += remaining.slice(0, m.index);
       const token = m[0];
       if (token.startsWith('**')) {
-        out += `<span class="font-semibold text-primary">${token}</span>`;
+        out += `<span class="text-primary">${token}</span>`;
       } else if (token.startsWith('`')) {
-        out += `<span class="rounded bg-muted px-1 py-0.5 font-mono text-[0.85em] text-foreground">${token}</span>`;
+        out += `<span class="rounded-sm bg-muted text-foreground">${token}</span>`;
       } else {
-        out += `<span class="italic text-foreground">${token}</span>`;
+        out += `<span class="text-foreground/80">${token}</span>`;
       }
       remaining = remaining.slice(m.index + token.length);
     }
@@ -63,7 +63,7 @@
     const heading = HEADING_RE.exec(line);
     if (heading) {
       const [, marks, space, rest] = heading;
-      return `<span class="font-semibold text-primary">${marks}</span>${space}<span class="font-semibold text-foreground">${highlight_inline(rest ?? '')}</span>`;
+      return `<span class="text-primary">${marks}</span>${space}<span class="text-foreground">${highlight_inline(rest ?? '')}</span>`;
     }
     if (HR_RE.test(line.trim())) {
       return `<span class="text-foreground/60">${line}</span>`;
@@ -87,7 +87,7 @@
   );
 
   const layer_class =
-    'w-full px-3 py-2 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words';
+    'w-full px-3 py-2 font-mono text-xs leading-5 whitespace-pre-wrap break-words [font-variant-ligatures:none]';
 </script>
 
 <div class={cn('relative rounded-md border border-input bg-transparent', className)}>

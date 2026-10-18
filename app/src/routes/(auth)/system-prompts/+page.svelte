@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-  <title>System Prompts</title>
+  <title>Image System Prompts</title>
 </svelte:head>
 
 <SystemPromptsPage />

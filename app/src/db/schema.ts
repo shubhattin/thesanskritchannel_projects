@@ -183,6 +183,20 @@ export const site_lekha_redirects = pgTable('site_lekha_redirects', {
   created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
 });
 
+/**
+ * Editable system-prompt templates for image-prompt generation.
+ * The built-in default lives statically in code (`DEFAULT_IMAGE_SYSTEM_PROMPT`);
+ * rows here are user-created alternatives. The fixed part (structured-output
+ * schema) stays in code; the template content is the injectable part.
+ */
+export const image_system_prompt_templates = pgTable('image_system_prompt_templates', {
+  id: serial().primaryKey(),
+  title: text().notNull().unique(),
+  content: text().notNull().default(''),
+  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp({ withTimezone: true }).$onUpdate(() => new Date())
+});
+
 export const image_assets = pgTable(
   'image_assets',
   {

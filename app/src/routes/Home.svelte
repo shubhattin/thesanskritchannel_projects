@@ -108,6 +108,11 @@
             <span>Batch Manager</span>
           </Button>
         </a>
+        <a href="/system-prompts" aria-label="Open System Prompts">
+          <Button variant="outline" size="lg" class="gap-2 font-semibold">
+            <span>System Prompts</span>
+          </Button>
+        </a>
       {/if}
       {#if is_maintainer}
         <Button

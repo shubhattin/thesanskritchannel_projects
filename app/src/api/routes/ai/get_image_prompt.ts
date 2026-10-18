@@ -10,8 +10,16 @@ import { get_path_params } from '~/state/project_list';
 import { lang_list_obj } from '~/state/lang_list';
 import { text_model_custom_options, resolveOpenRouterTextModel } from './providers';
 import { runTrpcEffect } from '~/effect/app_runtime.server';
+import { dbRun } from '~/effect/database';
 
-const IMAGE_SYSTEM_PROMPT = `
+/**
+ * Built-in default system prompt for image-prompt generation.
+ * This is the editable-base equivalent of video's DEFAULT_PLANNER_SYSTEM_PROMPT —
+ * selectable as "Default (built-in)" in the picker. The fixed part (structured
+ * output schema below) always stays in code.
+ */
+export const DEFAULT_IMAGE_SYSTEM_PROMPT_TITLE = 'Default (built-in)';
+export const DEFAULT_IMAGE_SYSTEM_PROMPT = `
 You write image-generation prompts for Sanskrit scripture content meant to look beautiful.
 It will be used in multiple places like as a backgound image to shlokas on and so on.
 
@@ -54,15 +62,30 @@ export const get_image_prompt_input_schema = z.object({
   selected_text_levels: z.array(z.int().nullable()),
   index: z.int().min(0),
   model: text_models_enum.default(DEFAULT_TEXT_AI_MODEL),
-  custom_instruction: z.string().optional()
+  custom_instruction: z.string().optional(),
+  /** DB template id; null/omitted = built-in default. */
+  system_prompt_template_id: z.int().nullable().optional()
 });
 
 export type GetImagePromptInput = z.infer<typeof get_image_prompt_input_schema>;
 
+/** Resolve the injectable system-prompt base: template content or built-in default. */
+export const resolve_image_system_prompt = (template_content?: string | null) => {
+  const trimmed = template_content?.trim();
+  return trimmed ? trimmed : DEFAULT_IMAGE_SYSTEM_PROMPT;
+};
+
 /** Domain Effect — run only at a HTTP/tRPC boundary. */
 export const get_image_prompt_func = (input: GetImagePromptInput) =>
   Effect.gen(function* () {
-    const { project_key, selected_text_levels, index, model, custom_instruction } = input;
+    const {
+      project_key,
+      selected_text_levels,
+      index,
+      model,
+      custom_instruction,
+      system_prompt_template_id
+    } = input;
 
     const project = yield* get_project_by_key(project_key);
     if (!project) return { image_prompt: null, time_taken: 0 };
@@ -105,12 +128,25 @@ export const get_image_prompt_func = (input: GetImagePromptInput) =>
     }
 
     const modelInstance = yield* resolveOpenRouterTextModel(model);
+    let system_prompt = DEFAULT_IMAGE_SYSTEM_PROMPT;
+    let system_prompt_template_title: string | null = null;
+    if (system_prompt_template_id != null) {
+      const template = yield* dbRun('get_image_prompt.template', (db) =>
+        db.query.image_system_prompt_templates.findFirst({
+          where: (tbl, { eq: eqOp }) => eqOp(tbl.id, system_prompt_template_id)
+        })
+      );
+      if (template) {
+        system_prompt = resolve_image_system_prompt(template.content);
+        system_prompt_template_title = template.title;
+      }
+    }
     return yield* Effect.promise(async () => {
       try {
         const time_start = Date.now();
         const result = await generateText({
           model: modelInstance,
-          instructions: IMAGE_SYSTEM_PROMPT,
+          instructions: system_prompt,
           ...text_model_custom_options[model],
           prompt,
           output: Output.object({
@@ -121,7 +157,13 @@ export const get_image_prompt_func = (input: GetImagePromptInput) =>
             })
           })
         });
-        return { image_prompt: result.output.image_prompt, time_taken: Date.now() - time_start };
+        return {
+          image_prompt: result.output.image_prompt,
+          time_taken: Date.now() - time_start,
+          system_prompt_used: system_prompt,
+          system_prompt_template_id: system_prompt_template_id ?? null,
+          system_prompt_template_title
+        };
       } catch (e) {
         console.error(e);
         return { image_prompt: null, time_taken: 0 };

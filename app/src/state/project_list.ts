@@ -6,6 +6,8 @@ export type project_type = {
   name_dev: string;
   description?: string | null;
   key: string;
+  /** Universally unique nano-id (null until backfilled); used for shareable preview URLs. */
+  uid: string | null;
   listed: boolean;
 };
 

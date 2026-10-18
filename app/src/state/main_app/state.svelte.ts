@@ -6,6 +6,8 @@ export type ProjectState = {
   project_key: string;
   project_id: number;
   listed: boolean;
+  /** Universally unique nano-id; builds the shareable `{key}-{uid}` preview URL when unlisted. */
+  project_uid: string | null;
   levels: number;
   level_names: string[];
 };

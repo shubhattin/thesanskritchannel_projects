@@ -130,7 +130,7 @@
       href:
         index === display_path_names.length - 1
           ? null
-          : `/${resolved.project_key}/${resolved.canonical_path
+          : `/${resolved.link_key}/${resolved.canonical_path
               .split('/')
               .slice(2, index + 3)
               .join('/')}`,
@@ -177,7 +177,7 @@
     if (!previous_sibling_source || current_sibling_position === null) return null;
     return {
       href:
-        build_project_path(resolved.project_key, resolved.map, [
+        build_project_path(resolved.link_key, resolved.map, [
           ...sibling_parent_path_params,
           current_sibling_position - 1
         ]) ?? resolved.canonical_path,
@@ -194,7 +194,7 @@
     if (!next_sibling_source || current_sibling_position === null) return null;
     return {
       href:
-        build_project_path(resolved.project_key, resolved.map, [
+        build_project_path(resolved.link_key, resolved.map, [
           ...sibling_parent_path_params,
           current_sibling_position + 1
         ]) ?? resolved.canonical_path,
@@ -210,9 +210,9 @@
   const parent_path_params = $derived(resolved.path_params.slice(0, -1));
   const parent_href = $derived(
     parent_path_params.length === 0
-      ? `/${resolved.project_key}`
-      : (build_project_path(resolved.project_key, resolved.map, parent_path_params) ??
-          `/${resolved.project_key}`)
+      ? `/${resolved.link_key}`
+      : (build_project_path(resolved.link_key, resolved.map, parent_path_params) ??
+          `/${resolved.link_key}`)
   );
   const parent_name_dev = $derived(
     parent_path_params.length === 0
@@ -296,7 +296,11 @@
   });
 </script>
 
-<MetaTags title={page_title} description={page_description} />
+<MetaTags
+  title={page_title}
+  description={page_description}
+  robots={resolved.listed ? null : 'noindex'}
+/>
 
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
   <div class="flex flex-col gap-3">
@@ -328,7 +332,7 @@
 
     <a
       class="rounded-md px-2 py-1 transition-colors duration-150 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-      href={`/${resolved.project_key}`}
+      href={`/${resolved.link_key}`}
     >
       <span class={heading_is_devanagari ? 'font-devanagari' : scriptFontClass}>
         {project_script_name}
@@ -373,7 +377,7 @@
           {#if show_project_root_back_link}
             <a
               class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-              href={`/${resolved.project_key}`}
+              href={`/${resolved.link_key}`}
             >
               <ChevronLeftIcon class="size-3.5" />
               Back to{' '}
@@ -470,7 +474,7 @@
           {#if show_project_root_back_link}
             <a
               class="inline-flex items-center justify-center gap-1.5 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-              href={`/${resolved.project_key}`}
+              href={`/${resolved.link_key}`}
             >
               <ChevronLeftIcon class="size-3.5" />
               Back to{' '}

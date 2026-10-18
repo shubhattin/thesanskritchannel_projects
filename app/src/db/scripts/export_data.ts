@@ -9,8 +9,10 @@ import {
   other,
   texts,
   site_lekhas,
+  site_lekha_redirects,
   projects,
-  project_paths
+  project_paths,
+  project_redirects
 } from '~/db/schema';
 import {
   UserProjectJoinSchemaZod,
@@ -20,6 +22,8 @@ import {
   MediaAttachmentSchemaZod,
   OtherSchemaZod,
   SiteLekhaSchemaZod,
+  SiteLekhaRedirectSchemaZod,
+  ProjectRedirectSchemaZod,
   ProjectSchemaZod,
   ProjectPathSchemaZod
 } from '~/db/schema_zod';
@@ -53,20 +57,25 @@ const main = async () => {
       other: OtherSchemaZod.array(),
       media_attachment: MediaAttachmentSchemaZod.array(),
       site_lekhas: SiteLekhaSchemaZod.array(),
-      project_paths: ProjectPathSchemaZod.array()
+      project_paths: ProjectPathSchemaZod.array(),
+      // Optional so backups written before redirects existed still restore.
+      site_lekha_redirects: SiteLekhaRedirectSchemaZod.array().optional().default([]),
+      project_redirects: ProjectRedirectSchemaZod.array().optional().default([])
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
   dbClient_ext.transaction(async (tx) => {
     // deleting all the tables initially
     try {
-      // Children first (FK order: path rows → projects)
+      // Children first (FK order: path rows → projects, redirect rows → parents)
       await tx.delete(translations);
       await tx.delete(texts);
       await tx.delete(media_attachment);
       await tx.delete(user_project_join);
       await tx.delete(user_project_language_join);
       await tx.delete(project_paths);
+      await tx.delete(project_redirects);
+      await tx.delete(site_lekha_redirects);
       await tx.delete(projects);
       await tx.delete(other);
       await tx.delete(site_lekhas);
@@ -176,6 +185,32 @@ const main = async () => {
       console.log(chalk.red('✗ Error while inserting site_lekhas:'), chalk.yellow(e));
     }
 
+    // resetting site_lekha_redirects (after site_lekhas: FK lekha_id)
+    try {
+      if (data.site_lekha_redirects.length > 0) {
+        await tx.insert(site_lekha_redirects).values(data.site_lekha_redirects);
+      }
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`site_lekha_redirects`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting site_lekha_redirects:'), chalk.yellow(e));
+    }
+
+    // resetting project_redirects (after projects: FK project_id)
+    try {
+      if (data.project_redirects.length > 0) {
+        await tx.insert(project_redirects).values(data.project_redirects);
+      }
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`project_redirects`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting project_redirects:'), chalk.yellow(e));
+    }
+
     // resetting SERIAL
     try {
       await tx.execute(sql`SELECT setval('"projects_id_seq"', (select MAX(id) from "projects"))`);
@@ -187,6 +222,12 @@ const main = async () => {
       );
       await tx.execute(
         sql`SELECT setval('"site_lekhas_id_seq"', (select MAX(id) from "site_lekhas"))`
+      );
+      await tx.execute(
+        sql`SELECT setval('"site_lekha_redirects_id_seq"', (select MAX(id) from "site_lekha_redirects"))`
+      );
+      await tx.execute(
+        sql`SELECT setval('"project_redirects_id_seq"', (select MAX(id) from "project_redirects"))`
       );
       console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
     } catch (e) {

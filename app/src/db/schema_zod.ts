@@ -7,8 +7,10 @@ import {
   media_attachment,
   other,
   site_lekhas,
+  site_lekha_redirects,
   projects,
   project_paths,
+  project_redirects,
   image_assets,
   text_image_assets_join,
   ai_batches,
@@ -42,6 +44,13 @@ export const SiteLekhaSchemaZod = createSelectSchema(site_lekhas, {
 
 export type SiteLekha = z.infer<typeof SiteLekhaSchemaZod>;
 export type Project = z.infer<typeof ProjectSchemaZod>;
+
+export const SiteLekhaRedirectSchemaZod = createSelectSchema(site_lekha_redirects, {
+  created_at: z.coerce.date()
+});
+export const ProjectRedirectSchemaZod = createSelectSchema(project_redirects, {
+  created_at: z.coerce.date()
+});
 
 export const ProjectSchemaZod = createSelectSchema(projects, {
   map: recursive_list_schema,

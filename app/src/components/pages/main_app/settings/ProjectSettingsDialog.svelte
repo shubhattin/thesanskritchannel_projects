@@ -55,6 +55,9 @@
       <Dialog.Description class="text-sm text-muted-foreground">
         <span class="block">{project.name}</span>
         <span class="mt-0.5 block text-xs tabular-nums">Internal ID: {project.id}</span>
+        {#if project.uid}
+          <span class="mt-0.5 block font-mono text-xs tabular-nums">UID: {project.uid}</span>
+        {/if}
       </Dialog.Description>
     </Dialog.Header>
 

@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { protectedAdminProcedure, t } from '~/api/trpc_init';
-import { site_lekhas } from '~/db/schema';
+import { site_lekha_redirects, site_lekhas } from '~/db/schema';
 import { SiteLekhaSchemaZod } from '~/db/schema_zod';
 import { delay_dev } from '~/tools/delay';
 import {
@@ -17,14 +17,17 @@ import {
 } from '~/lib/carta_markdown/markdown';
 import { runServerEffect, runTrpcEffect } from '~/effect/app_runtime.server';
 import { enqueueBackground } from '~/effect/background';
-import { dbRunHttp } from '~/effect/database';
-import { BadRequestError, NotFoundError } from '~/effect/errors';
+import { dbRunHttp, dbTransaction } from '~/effect/database';
+import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
+import { generateUniqueUid } from '~/db/uid';
 
 const lekha_post_input = SiteLekhaSchemaZod.omit({
   id: true,
   created_at: true,
   published_at: true,
-  updated_at: true
+  updated_at: true,
+  // Server-assigned universally unique nano-id (see `~/db/uid`); never client-provided.
+  uid: true
 });
 
 async function normalizeLekhaPostForStorage(post_data: z.infer<typeof lekha_post_input>) {
@@ -54,12 +57,15 @@ const normalizeLekhaPost = (post_data: z.infer<typeof lekha_post_input>) =>
       })
   });
 
-const invalidate_lekha_caches = (url_slug: string) =>
+const invalidate_lekha_caches = (url_slugs: string | readonly (string | null | undefined)[]) =>
   enqueueBackground(() =>
     runServerEffect(
       Effect.all(
         [
-          invalidate_and_refresh_cached(CACHE.site_lekha_data, { url_slug }),
+          ...Array.from(new Set(Array.isArray(url_slugs) ? url_slugs : [url_slugs])).flatMap(
+            (url_slug) =>
+              url_slug ? [invalidate_and_refresh_cached(CACHE.site_lekha_data, { url_slug })] : []
+          ),
           invalidate_and_refresh_cached(CACHE.site_lekha_list, NO_CACHE_PARAMS)
         ],
         { concurrency: 'unbounded' }
@@ -77,10 +83,18 @@ const add_lekha_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const normalized = yield* normalizeLekhaPost({ ...post_data, draft: true });
-        const lekha = yield* dbRunHttp('lekha.add', (db) =>
-          db.insert(site_lekhas).values(normalized).returning()
-        );
-        const created = lekha[0];
+        const created = yield* dbTransaction('lekha.add.tx', async (tx) => {
+          // A new lekha claiming a former redirect slug replaces that rule.
+          await tx
+            .delete(site_lekha_redirects)
+            .where(eq(site_lekha_redirects.url_slug, normalized.url_slug));
+          const uid = await generateUniqueUid(tx);
+          const rows = await tx
+            .insert(site_lekhas)
+            .values({ ...normalized, uid })
+            .returning();
+          return rows[0];
+        });
         if (!created) {
           return yield* Effect.fail(
             NotFoundError.make({ resource: 'lekha', message: 'Lekha not created' })
@@ -96,45 +110,94 @@ const edit_lekha_route = protectedAdminProcedure
   .input(
     z.object({
       id: z.number(),
-      post_data: lekha_post_input
+      post_data: lekha_post_input,
+      /** When the url_slug changes, keep the previous slug as a redirect to this lekha. Default true. */
+      redirect_old_url: z.boolean().default(true)
     })
   )
-  .mutation(({ input: { id, post_data } }) =>
+  .mutation(({ input: { id, post_data, redirect_old_url } }) =>
     runTrpcEffect(
       Effect.gen(function* () {
         yield* Effect.promise(async () => {
           await delay_dev(1000);
         });
-        const existing = yield* dbRunHttp('lekha.edit.lookup', (db) =>
-          db.query.site_lekhas.findFirst({
-            where: (tbl, { eq: eqId }) => eqId(tbl.id, id)
-          })
-        );
-        if (!existing) {
-          return yield* Effect.fail(
-            NotFoundError.make({ resource: 'lekha', message: 'Lekha not found' })
-          );
-        }
         const normalized = yield* normalizeLekhaPost(post_data);
-        const setPublishedNow = existing.draft === true && post_data.draft === false;
-        const lekha = yield* dbRunHttp('lekha.edit.update', (db) =>
-          db
+        if (!normalized.url_slug) {
+          return yield* Effect.fail(
+            BadRequestError.make({
+              message: 'URL slug must contain at least one alphanumeric character'
+            })
+          );
+        }
+        const outcome = yield* dbTransaction('lekha.edit.tx', async (tx) => {
+          const existing = await tx.query.site_lekhas.findFirst({
+            where: (tbl, { eq: eqId }) => eqId(tbl.id, id)
+          });
+          if (!existing) return { ok: false as const, reason: 'not_found' as const };
+
+          const setPublishedNow = existing.draft === true && post_data.draft === false;
+          const values = setPublishedNow ? { ...normalized, published_at: new Date() } : normalized;
+
+          if (normalized.url_slug === existing.url_slug) {
+            const rows = await tx
+              .update(site_lekhas)
+              .set(values)
+              .where(eq(site_lekhas.id, id))
+              .returning();
+            const updated = rows[0];
+            if (!updated) return { ok: false as const, reason: 'not_found' as const };
+            return { ok: true as const, updated, previous_slug: null };
+          }
+
+          const conflict = await tx.query.site_lekhas.findFirst({
+            where: (tbl, { eq: eqSlug }) => eqSlug(tbl.url_slug, normalized.url_slug),
+            columns: { id: true }
+          });
+          if (conflict) {
+            return { ok: false as const, reason: 'conflict' as const };
+          }
+
+          // Claiming a slug that currently redirects somewhere else replaces that rule.
+          await tx
+            .delete(site_lekha_redirects)
+            .where(eq(site_lekha_redirects.url_slug, normalized.url_slug));
+
+          const rows = await tx
             .update(site_lekhas)
-            .set(setPublishedNow ? { ...normalized, published_at: new Date() } : normalized)
+            .set(values)
             .where(eq(site_lekhas.id, id))
-            .returning()
-        );
-        const updated = lekha[0];
-        if (!updated) {
+            .returning();
+          const updated = rows[0];
+          if (!updated) return { ok: false as const, reason: 'not_found' as const };
+
+          if (redirect_old_url) {
+            await tx
+              .insert(site_lekha_redirects)
+              .values({ lekha_id: id, url_slug: existing.url_slug })
+              .onConflictDoUpdate({
+                target: site_lekha_redirects.url_slug,
+                set: { lekha_id: id }
+              });
+          }
+
+          return { ok: true as const, updated, previous_slug: existing.url_slug };
+        });
+
+        if (!outcome.ok) {
+          if (outcome.reason === 'conflict') {
+            return yield* Effect.fail(
+              ConflictError.make({ message: 'This URL slug is already in use.' })
+            );
+          }
           return yield* Effect.fail(
             NotFoundError.make({ resource: 'lekha', message: 'Lekha not found' })
           );
         }
-        yield* invalidate_lekha_caches(updated.url_slug);
+        yield* invalidate_lekha_caches([outcome.updated.url_slug, outcome.previous_slug]);
         return {
-          id: updated.id,
-          published_at: updated.published_at,
-          draft: updated.draft
+          id: outcome.updated.id,
+          published_at: outcome.updated.published_at,
+          draft: outcome.updated.draft
         };
       })
     )
@@ -257,7 +320,94 @@ const check_url_slug_route = protectedAdminProcedure
             columns: { id: true }
           })
         );
-        return { exists: !!lekha };
+        const redirect = yield* dbRunHttp('lekha.check_slug.redirect', (db) =>
+          db.query.site_lekha_redirects.findFirst({
+            where: (tbl, { eq: eqSlug }) => eqSlug(tbl.url_slug, normalized),
+            columns: { id: true }
+          })
+        );
+        return { exists: !!lekha, replaces_redirect: !!redirect };
+      })
+    )
+  );
+
+const list_lekha_redirects_route = protectedAdminProcedure
+  .input(z.object({ lekha_id: z.number().int().positive() }))
+  .query(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        yield* Effect.promise(async () => {
+          await delay_dev(200);
+        });
+        const existing = yield* dbRunHttp('lekha.redirects.lookup', (db) =>
+          db.query.site_lekhas.findFirst({
+            where: (tbl, { eq: eqId }) => eqId(tbl.id, input.lekha_id),
+            columns: { id: true }
+          })
+        );
+        if (!existing) {
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'lekha', message: 'Lekha not found' })
+          );
+        }
+        return yield* dbRunHttp('lekha.redirects.list', (db) =>
+          db.query.site_lekha_redirects.findMany({
+            where: (tbl, { eq: eqId }) => eqId(tbl.lekha_id, input.lekha_id),
+            columns: { id: true, url_slug: true, created_at: true },
+            orderBy: (tbl, { desc }) => [desc(tbl.created_at)]
+          })
+        );
+      })
+    )
+  );
+
+const delete_lekha_redirect_route = protectedAdminProcedure
+  .input(
+    z.object({
+      lekha_id: z.number().int().positive(),
+      redirect_id: z.number().int().positive()
+    })
+  )
+  .mutation(({ input }) =>
+    runTrpcEffect(
+      Effect.gen(function* () {
+        yield* Effect.promise(async () => {
+          await delay_dev(300);
+        });
+        const outcome = yield* dbRunHttp('lekha.redirects.delete', async (db) => {
+          const existing = await db.query.site_lekhas.findFirst({
+            where: (tbl, { eq: eqId }) => eqId(tbl.id, input.lekha_id),
+            columns: { id: true }
+          });
+          if (!existing) return { ok: false as const, reason: 'not_found' as const };
+          const deleted = await db
+            .delete(site_lekha_redirects)
+            .where(
+              and(
+                eq(site_lekha_redirects.id, input.redirect_id),
+                eq(site_lekha_redirects.lekha_id, input.lekha_id)
+              )
+            )
+            .returning();
+          if (deleted.length === 0) {
+            return { ok: false as const, reason: 'redirect_not_found' as const };
+          }
+          return { ok: true as const };
+        });
+        if (!outcome.ok) {
+          if (outcome.reason === 'redirect_not_found') {
+            return yield* Effect.fail(
+              NotFoundError.make({
+                resource: 'lekha_redirect',
+                message: 'Redirect rule not found'
+              })
+            );
+          }
+          return yield* Effect.fail(
+            NotFoundError.make({ resource: 'lekha', message: 'Lekha not found' })
+          );
+        }
+        return { success: true as const };
       })
     )
   );
@@ -267,5 +417,7 @@ export const lekha_router = t.router({
   edit_lekha: edit_lekha_route,
   delete_lekha: delete_lekha_route,
   list_lekhas: list_lekhas_route,
-  check_url_slug: check_url_slug_route
+  check_url_slug: check_url_slug_route,
+  list_lekha_redirects: list_lekha_redirects_route,
+  delete_lekha_redirect: delete_lekha_redirect_route
 });

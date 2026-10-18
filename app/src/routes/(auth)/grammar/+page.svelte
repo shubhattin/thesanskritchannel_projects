@@ -96,6 +96,7 @@
       project_key: project.key,
       project_id: project.id,
       listed: project.listed,
+      project_uid: project.uid,
       levels: 0,
       level_names: []
     };
@@ -121,6 +122,7 @@
       project_key: project.key,
       project_id: project.id,
       listed: project.listed,
+      project_uid: project.uid,
       levels,
       level_names
     };

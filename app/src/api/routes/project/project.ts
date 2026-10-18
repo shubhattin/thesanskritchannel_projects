@@ -253,6 +253,7 @@ const get_project_list_route = protectedProcedure
                 name_dev: projects.name_dev,
                 description: projects.description,
                 key: projects.key,
+                uid: projects.uid,
                 listed: projects.listed
               })
               .from(projects)

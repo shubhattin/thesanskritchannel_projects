@@ -4,17 +4,22 @@ import {
   get_list_name_for_path_param_index,
   get_node_at_path,
   is_child_nav_disabled,
-  list_item_path_value
+  list_item_path_value,
+  type project_type
 } from '@app/state/project_list';
 import {
   build_project_path,
+  decide_text_route_redirect,
   is_numeric_route,
   normalize_level_name_for_url,
-  parse_pretty_route_segment
+  parse_pretty_route_segment,
+  resolve_text_route_link_key,
+  split_project_key_uid
 } from '@app/utils/project_site_paths';
 import {
   getProjectInfoByKey,
   getProjectMapByKey,
+  getProjectRegistry,
   resolveProjectByKey
 } from '@app/effect/project_registry';
 
@@ -42,17 +47,44 @@ export type resolved_text_route_type = {
   path_level_names: string[];
   canonical_path: string;
   redirect_to: string | null;
+  /** True when served via the `{key}-{uid}` shared-URL form (unlisted preview). */
+  preview_via_uid: boolean;
+  /** Key for building in-site links (uid-form when previewing unlisted, else canonical). */
+  link_key: string;
+  listed: boolean;
 };
 
 /** Domain Effect — run only at an Astro page/endpoint boundary. */
 export const resolve_text_route = (raw_project_key: string, raw_segments: string[]) =>
   Effect.gen(function* () {
-    const resolved_project = yield* resolveProjectByKey(raw_project_key, { listed_only: true });
-    if (!resolved_project) return null;
-
-    const project = resolved_project.project;
+    const direct = yield* resolveProjectByKey(raw_project_key, { listed_only: true });
+    let project: project_type;
+    let was_redirect = false;
+    let preview_via_uid = false;
+    if (direct) {
+      project = direct.project;
+      was_redirect = direct.was_redirect;
+    } else {
+      // `{key}-{uid}` shared-URL form: grants access to unlisted projects when the uid matches.
+      // Direct keys (and redirect rules) already won above, so this never hijacks live URLs.
+      const registry = yield* getProjectRegistry();
+      const key_uid = split_project_key_uid(
+        raw_project_key,
+        (key, uid) => registry.byKey.get(key)?.uid === uid
+      );
+      if (!key_uid) return null;
+      const candidate = registry.byKey.get(key_uid.key);
+      if (!candidate) return null;
+      project = candidate;
+      preview_via_uid = true;
+    }
     const project_key = project.key;
-    const key_changed = resolved_project.was_redirect;
+    const link_key = resolve_text_route_link_key({
+      project_key,
+      uid: project.uid,
+      preview_via_uid,
+      listed: project.listed
+    });
     const project_info = yield* getProjectInfoByKey(project_key);
     const map = yield* getProjectMapByKey(project_key);
     const segments = raw_segments.filter((segment) => segment.length > 0);
@@ -75,7 +107,16 @@ export const resolve_text_route = (raw_project_key: string, raw_segments: string
         path_names: [],
         path_level_names: [],
         canonical_path,
-        redirect_to: canonical_path
+        redirect_to: decide_text_route_redirect({
+          was_redirect,
+          preview_via_uid,
+          listed: project.listed,
+          numeric_route: true,
+          canonical_path
+        }),
+        preview_via_uid,
+        link_key,
+        listed: project.listed
       } satisfies resolved_text_route_type;
     }
 
@@ -122,7 +163,16 @@ export const resolve_text_route = (raw_project_key: string, raw_segments: string
       path_names,
       path_level_names,
       canonical_path,
-      redirect_to: key_changed ? canonical_path : null
+      redirect_to: decide_text_route_redirect({
+        was_redirect,
+        preview_via_uid,
+        listed: project.listed,
+        numeric_route: false,
+        canonical_path
+      }),
+      preview_via_uid,
+      link_key,
+      listed: project.listed
     } satisfies resolved_text_route_type;
   });
 

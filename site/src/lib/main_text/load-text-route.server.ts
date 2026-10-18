@@ -107,7 +107,7 @@ export async function load_text_route(opts: {
     : null;
 
   const child_items = get_child_route_items(
-    resolved.project_key,
+    resolved.link_key,
     resolved.map,
     resolved.path_params,
     resolved.levels

@@ -19,12 +19,15 @@ import { runServerEffect, runTrpcEffect } from '~/effect/app_runtime.server';
 import { enqueueBackground } from '~/effect/background';
 import { dbRunHttp, dbTransaction } from '~/effect/database';
 import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
+import { generateUniqueUid } from '~/db/uid';
 
 const lekha_post_input = SiteLekhaSchemaZod.omit({
   id: true,
   created_at: true,
   published_at: true,
-  updated_at: true
+  updated_at: true,
+  // Server-assigned universally unique nano-id (see `~/db/uid`); never client-provided.
+  uid: true
 });
 
 async function normalizeLekhaPostForStorage(post_data: z.infer<typeof lekha_post_input>) {
@@ -61,9 +64,7 @@ const invalidate_lekha_caches = (url_slugs: string | readonly (string | null | u
         [
           ...Array.from(new Set(Array.isArray(url_slugs) ? url_slugs : [url_slugs])).flatMap(
             (url_slug) =>
-              url_slug
-                ? [invalidate_and_refresh_cached(CACHE.site_lekha_data, { url_slug })]
-                : []
+              url_slug ? [invalidate_and_refresh_cached(CACHE.site_lekha_data, { url_slug })] : []
           ),
           invalidate_and_refresh_cached(CACHE.site_lekha_list, NO_CACHE_PARAMS)
         ],
@@ -87,7 +88,11 @@ const add_lekha_route = protectedAdminProcedure
           await tx
             .delete(site_lekha_redirects)
             .where(eq(site_lekha_redirects.url_slug, normalized.url_slug));
-          const rows = await tx.insert(site_lekhas).values(normalized).returning();
+          const uid = await generateUniqueUid(tx);
+          const rows = await tx
+            .insert(site_lekhas)
+            .values({ ...normalized, uid })
+            .returning();
           return rows[0];
         });
         if (!created) {
@@ -131,9 +136,7 @@ const edit_lekha_route = protectedAdminProcedure
           if (!existing) return { ok: false as const, reason: 'not_found' as const };
 
           const setPublishedNow = existing.draft === true && post_data.draft === false;
-          const values = setPublishedNow
-            ? { ...normalized, published_at: new Date() }
-            : normalized;
+          const values = setPublishedNow ? { ...normalized, published_at: new Date() } : normalized;
 
           if (normalized.url_slug === existing.url_slug) {
             const rows = await tx

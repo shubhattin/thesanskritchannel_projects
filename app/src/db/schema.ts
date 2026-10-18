@@ -20,6 +20,11 @@ import type { BatchMetadata } from '~/utils/types/ai_batch_metadata';
 export const projects = pgTable('projects', {
   id: serial().primaryKey(),
   key: text().notNull().unique(),
+  /**
+   * Universally unique nano-id (5 chars, URL-safe) shared across `projects` and `site_lekhas`.
+   * Auto-assigned on creation. See `~/db/uid`.
+   */
+  uid: text().notNull().unique(),
   name: text().notNull(),
   /** Sanskrit name */
   name_dev: text().notNull(),
@@ -141,6 +146,11 @@ export const site_lekhas = pgTable(
     description: text('description').notNull(),
     tags: text('tags').array().notNull().default([]),
     url_slug: text('url_slug').notNull().unique(),
+    /**
+     * Universally unique nano-id (5 chars, URL-safe) shared across `site_lekhas` and `projects`.
+     * Auto-assigned on creation. See `~/db/uid`.
+     */
+    uid: text('uid').notNull().unique(),
     /** Markdown content */
     content: text('content').notNull(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),

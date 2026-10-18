@@ -331,6 +331,7 @@ export const siteLekhaListCache = createCache<NoCacheParams, lekhaListType>({
           draft: true,
           listed: true,
           url_slug: true,
+          uid: true,
           auto_transliterate_title: true,
           auto_transliterate_description: true,
           auto_transliterate_content: true

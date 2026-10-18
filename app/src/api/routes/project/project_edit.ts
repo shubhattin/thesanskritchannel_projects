@@ -27,6 +27,7 @@ import {
   clear_server_project_info_cache
 } from '~/utils/project/list.server';
 import { notify_site_invalidate_project_list_caches } from '~/utils/cache.server/invalidate_site_project_cache.server';
+import { generateUniqueUid } from '~/db/uid';
 import { countResourcesForProject, insertProjectPaths } from '~/utils/project/paths_db.server';
 import { finalize_project_delete_resource_counts } from '~/utils/project/project_delete';
 import { ROOT_DB_PATH } from '~/utils/map_path/swap';
@@ -518,6 +519,7 @@ const add_new_project_route = protectedAdminProcedure
           // New project claiming a former redirect key replaces that rule.
           await tx.delete(project_redirects).where(eq(project_redirects.key, key));
 
+          const uid = await generateUniqueUid(tx);
           const [inserted] = await tx
             .insert(projects)
             .values({
@@ -525,6 +527,7 @@ const add_new_project_route = protectedAdminProcedure
               name_dev,
               description: description ?? null,
               key,
+              uid,
               listed: false,
               map: recursive_list_schema.parse({
                 name_dev,

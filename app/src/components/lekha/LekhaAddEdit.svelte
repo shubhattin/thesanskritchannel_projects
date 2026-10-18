@@ -934,9 +934,7 @@
             <Checkbox bind:checked={redirect_old_url} class="mt-0.5" />
             <span>
               Redirect old lekha URL
-              <span class="font-mono text-xs text-muted-foreground"
-                >/lekha/{canonical_slug}</span
-              >
+              <span class="font-mono text-xs text-muted-foreground">/lekha/{canonical_slug}</span>
               to the new slug
             </span>
           </label>

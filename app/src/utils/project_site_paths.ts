@@ -84,6 +84,23 @@ export const split_project_key_uid = (
   return { key, uid };
 };
 
+export type text_route_link_key_input = {
+  project_key: string;
+  uid: string | null;
+  /** Served via the `{key}-{uid}` shared-URL form. */
+  preview_via_uid: boolean;
+  listed: boolean;
+};
+
+/**
+ * Key to use when building in-site links: unlisted projects served via the uid form keep
+ * navigating within `{key}-{uid}` (the canonical key alone would 404); everything else
+ * links canonically.
+ */
+export const resolve_text_route_link_key = (input: text_route_link_key_input): string =>
+  input.preview_via_uid && !input.listed && input.uid
+    ? `${input.project_key}-${input.uid}`
+    : input.project_key;
 export type text_route_redirect_input = {
   /** Key resolved via `project_redirects` (old key → canonical). */
   was_redirect: boolean;
@@ -100,9 +117,7 @@ export type text_route_redirect_input = {
  * - uid-form + unlisted project → serve as-is (no redirect; this IS the share URL)
  * - numeric routes always canonicalize, except the unlisted uid-form case above
  */
-export const decide_text_route_redirect = (
-  input: text_route_redirect_input
-): string | null => {
+export const decide_text_route_redirect = (input: text_route_redirect_input): string | null => {
   if (input.numeric_route) {
     return input.preview_via_uid && !input.listed ? null : input.canonical_path;
   }

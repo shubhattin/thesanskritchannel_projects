@@ -70,6 +70,8 @@ export type LekhaEntryPayload = {
   published_at: Date | string | null;
   tags: string[];
   has_script_indicator: boolean;
+  /** False for share-URL-only posts (served but not listed, sitemapped, or indexed). */
+  listed: boolean;
   /** HTML rendered for the viewing script. */
   html: string;
 };
@@ -79,7 +81,9 @@ export async function load_lekha_entry(
   script_id: number
 ): Promise<{ entry: LekhaEntryPayload; redirect_to: string | null } | null> {
   const direct = await runServerEffect(CACHE.site_lekha_data.get({ url_slug: slug }));
-  if (direct && !direct.draft && direct.listed) {
+  // Published-but-unlisted posts stay URL-accessible (like uid-shared unlisted projects);
+  // only drafts 404. Lists and sitemaps still show listed posts alone.
+  if (direct && !direct.draft) {
     const entry = await build_lekha_entry(direct, script_id);
     if (!entry) return null;
     return { entry, redirect_to: null };
@@ -91,7 +95,7 @@ export async function load_lekha_entry(
   const canonical = await runServerEffectNullable(
     CACHE.site_lekha_data.get({ url_slug: resolved.url_slug })
   );
-  if (!canonical || canonical.draft || !canonical.listed) return null;
+  if (!canonical || canonical.draft) return null;
   const entry = await build_lekha_entry(canonical, script_id);
   if (!entry) return null;
   return { entry, redirect_to: `/lekha/${encodeURIComponent(canonical.url_slug)}` };
@@ -101,7 +105,6 @@ async function build_lekha_entry(
   row: SiteLekha,
   script_id: number
 ): Promise<LekhaEntryPayload | null> {
-
   const script = script_from_id(script_id);
   const [fields, html] = await Promise.all([
     transliterate_lekha_fields([row], script_id, maybe_transliterate_list),
@@ -122,6 +125,7 @@ async function build_lekha_entry(
     description_in_script: field.description_transliterated !== null,
     published_at: row.published_at ?? null,
     tags: row.tags ?? [],
+    listed: row.listed,
     has_script_indicator: lekha_has_script_selector({
       title: row.title,
       description: row.description,

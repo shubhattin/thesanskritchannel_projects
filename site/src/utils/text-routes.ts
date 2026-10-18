@@ -13,6 +13,7 @@ import {
   is_numeric_route,
   normalize_level_name_for_url,
   parse_pretty_route_segment,
+  resolve_text_route_link_key,
   split_project_key_uid
 } from '@app/utils/project_site_paths';
 import {
@@ -48,6 +49,9 @@ export type resolved_text_route_type = {
   redirect_to: string | null;
   /** True when served via the `{key}-{uid}` shared-URL form (unlisted preview). */
   preview_via_uid: boolean;
+  /** Key for building in-site links (uid-form when previewing unlisted, else canonical). */
+  link_key: string;
+  listed: boolean;
 };
 
 /** Domain Effect — run only at an Astro page/endpoint boundary. */
@@ -75,6 +79,12 @@ export const resolve_text_route = (raw_project_key: string, raw_segments: string
       preview_via_uid = true;
     }
     const project_key = project.key;
+    const link_key = resolve_text_route_link_key({
+      project_key,
+      uid: project.uid,
+      preview_via_uid,
+      listed: project.listed
+    });
     const project_info = yield* getProjectInfoByKey(project_key);
     const map = yield* getProjectMapByKey(project_key);
     const segments = raw_segments.filter((segment) => segment.length > 0);
@@ -104,7 +114,9 @@ export const resolve_text_route = (raw_project_key: string, raw_segments: string
           numeric_route: true,
           canonical_path
         }),
-        preview_via_uid
+        preview_via_uid,
+        link_key,
+        listed: project.listed
       } satisfies resolved_text_route_type;
     }
 
@@ -158,7 +170,9 @@ export const resolve_text_route = (raw_project_key: string, raw_segments: string
         numeric_route: false,
         canonical_path
       }),
-      preview_via_uid
+      preview_via_uid,
+      link_key,
+      listed: project.listed
     } satisfies resolved_text_route_type;
   });
 

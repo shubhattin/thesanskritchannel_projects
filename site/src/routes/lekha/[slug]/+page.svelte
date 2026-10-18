@@ -58,6 +58,7 @@
   title={`${title_text} — Lekha`}
   description={description_text}
   keywords={data.entry.tags}
+  robots={data.entry.listed ? null : 'noindex'}
 />
 
 <article class="mx-auto max-w-3xl px-4 py-12 sm:px-6">

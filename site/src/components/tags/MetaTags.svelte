@@ -5,6 +5,7 @@
     title: string;
     description?: string | null;
     keywords?: string[];
+    robots?: string | null;
     share_image_info?: {
       url: string;
       width: number;
@@ -12,7 +13,13 @@
     };
   }
 
-  let { title, description = null, keywords = [], share_image_info }: Props = $props();
+  let {
+    title,
+    description = null,
+    keywords = [],
+    robots = null,
+    share_image_info
+  }: Props = $props();
 
   /** Same default share image as `app/src/components/tags/MetaTags.svelte`. */
   const DEFAULT_SHARE_IMAGE_INFO = {
@@ -32,6 +39,9 @@
 <svelte:head>
   <title>{title}</title>
   <link rel="canonical" href={canonical_url} />
+  {#if robots}
+    <meta name="robots" content={robots} />
+  {/if}
   <meta property="og:title" content={title} />
   <meta property="og:site_name" content="The Sanskrit Channel" />
   <meta property="og:url" content={canonical_url} />

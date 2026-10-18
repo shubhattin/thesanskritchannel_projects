@@ -49,7 +49,9 @@
     )}
   >
     <ExternalLink class="size-3.5 shrink-0" aria-hidden="true" />
-    <span class="whitespace-nowrap">{link.is_preview ? 'Preview on Main Site' : 'Main Site Page'}</span>
+    <span class="whitespace-nowrap"
+      >{link.is_preview ? 'Preview on Main Site' : 'Main Site Page'}</span
+    >
     {#if link.is_preview}
       <span
         class="shrink-0 rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap text-amber-700 dark:text-amber-300"

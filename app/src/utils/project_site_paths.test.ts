@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   decide_text_route_redirect,
+  resolve_text_route_link_key,
   split_project_key_uid
 } from './project_site_paths';
 
-const match =
-  (entries: Record<string, string>) => (key: string, uid: string) =>
-    entries[key] === uid;
+const match = (entries: Record<string, string>) => (key: string, uid: string) =>
+  entries[key] === uid;
 
 describe('split_project_key_uid', () => {
   it('returns null for keys without a dash', () => {
@@ -142,5 +142,51 @@ describe('decide_text_route_redirect', () => {
         canonical_path
       })
     ).toBe(canonical_path);
+  });
+});
+
+describe('resolve_text_route_link_key', () => {
+  it('links canonically for direct routes', () => {
+    expect(
+      resolve_text_route_link_key({
+        project_key: 'gita',
+        uid: 'Ab12C',
+        preview_via_uid: false,
+        listed: true
+      })
+    ).toBe('gita');
+  });
+
+  it('links canonically for uid-form urls of listed projects', () => {
+    expect(
+      resolve_text_route_link_key({
+        project_key: 'gita',
+        uid: 'Ab12C',
+        preview_via_uid: true,
+        listed: true
+      })
+    ).toBe('gita');
+  });
+
+  it('keeps the uid form for uid-form urls of unlisted projects', () => {
+    expect(
+      resolve_text_route_link_key({
+        project_key: 'ramayanam',
+        uid: 'D7ku4',
+        preview_via_uid: true,
+        listed: false
+      })
+    ).toBe('ramayanam-D7ku4');
+  });
+
+  it('falls back to canonical when the uid is missing', () => {
+    expect(
+      resolve_text_route_link_key({
+        project_key: 'ramayanam',
+        uid: null,
+        preview_via_uid: true,
+        listed: false
+      })
+    ).toBe('ramayanam');
   });
 });

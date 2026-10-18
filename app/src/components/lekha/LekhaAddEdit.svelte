@@ -87,9 +87,6 @@
   let auto_transliterate_title = $state(true);
   let auto_transliterate_description = $state(true);
   let auto_transliterate_content = $state(true);
-  /** When true, slug is derived from title and the slug field is read-only. */
-  let slug_auto = $derived(initial?.url_slug ? false : true);
-  let url_slug_manual = $derived(initial?.url_slug ?? '');
 
   let preview_script_id = $state(get_script_id('Devanagari') ?? 1);
   let editor_section = $state<'write' | 'preview'>('write');
@@ -98,8 +95,9 @@
   let preview_error = $state<string | null>(null);
   let form_error = $state<string | null>(null);
   let editor_ready = $state(false);
-  /** After the user confirms the unlock dialog. */
-  let slug_edit_unlocked = $state(false);
+  /** Draft state for the standalone slug-edit dialog. */
+  let slug_dialog_open = $state(false);
+  let slug_dialog_draft = $state('');
   /** Keep the previous slug as a redirect when the slug changes (default true). */
   let redirect_old_url = $state(true);
   let open_redirect_menu_id = $state<number | null>(null);
@@ -124,8 +122,6 @@
   } | null>(null);
   let leave_confirmed = false;
 
-  let slug_section_unlocked = $derived(slug_edit_unlocked);
-
   function tagsKey(list: string[]) {
     return JSON.stringify(list);
   }
@@ -148,19 +144,10 @@
     return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
-  let slug_locked = $derived(!slug_edit_unlocked);
-
   /** Last saved slug this session (the `initial` prop is server-loaded and goes stale after a slug change). */
   let saved_url_slug = $state<string | null>(null);
   let canonical_slug = $derived(saved_url_slug ?? lekhaUrlSlugify(initial?.url_slug ?? ''));
-
-  let slug_effective = $derived(
-    slug_locked
-      ? lekhaUrlSlugify(initial?.url_slug ?? '')
-      : slug_auto
-        ? lekhaUrlSlugify(title)
-        : lekhaUrlSlugify(url_slug_manual)
-  );
+  let slug_effective = $derived(canonical_slug);
 
   let published_main_site_href = $derived(
     !is_draft && slug_effective ? build_main_site_lekha_href(slug_effective) : null
@@ -238,15 +225,7 @@
     });
   });
 
-  const debounced_for_slug = new Debounced(
-    () =>
-      slug_locked
-        ? lekhaUrlSlugify(initial?.url_slug ?? '')
-        : slug_auto
-          ? lekhaUrlSlugify(title)
-          : lekhaUrlSlugify(url_slug_manual),
-    500
-  );
+  const debounced_for_slug = new Debounced(() => slug_effective, 500);
 
   let slug_check_inputs = $state<{
     url_slug: string;
@@ -289,18 +268,6 @@
     }
     return null;
   };
-
-  const slug_changed = $derived(
-    slug_section_unlocked && slug_effective.length > 0 && slug_effective !== canonical_slug
-  );
-
-  const replaces_redirect = $derived(
-    slug_changed &&
-      slug_in_sync &&
-      !slug_check_q.isPending &&
-      !slug_check_q.isFetching &&
-      slug_check_q.data?.replaces_redirect === true
-  );
 
   const carta = new Carta({
     sanitizer: cartaHtmlSanitizer,
@@ -384,6 +351,84 @@
     })
   );
 
+  const slug_dialog_debounced = new Debounced(() => lekhaUrlSlugify(slug_dialog_draft), 500);
+
+  let slug_dialog_checked = $state('');
+  let slug_dialog_pending = $state(false);
+
+  $effect(() => {
+    slug_dialog_checked = slug_dialog_debounced.current;
+    slug_dialog_pending = slug_dialog_debounced.pending;
+  });
+
+  const slug_dialog_effective = $derived(lekhaUrlSlugify(slug_dialog_draft));
+  const slug_dialog_in_sync = $derived(
+    slug_dialog_effective.length > 0 &&
+      !slug_dialog_pending &&
+      slug_dialog_checked === slug_dialog_effective
+  );
+
+  const slug_dialog_check_q = createQuery(() => ({
+    ...trpc.site.lekha.check_url_slug.queryOptions({
+      url_slug: slug_dialog_checked,
+      exclude_id: lekha_id
+    }),
+    enabled: browser && slug_dialog_open && slug_dialog_checked.length > 0
+  }));
+
+  const slug_dialog_changed = $derived(
+    slug_dialog_effective.length > 0 && slug_dialog_effective !== canonical_slug
+  );
+
+  const slug_dialog_replaces = $derived(
+    slug_dialog_changed &&
+      slug_dialog_in_sync &&
+      !slug_dialog_check_q.isPending &&
+      !slug_dialog_check_q.isFetching &&
+      slug_dialog_check_q.data?.replaces_redirect === true
+  );
+
+  /** Blocker message for the slug dialog confirm, if the new slug cannot be saved yet. */
+  const slug_dialog_blocker = $derived.by((): string | null => {
+    if (!slug_dialog_effective) {
+      return 'Enter a valid slug (letters, digits, and hyphens).';
+    }
+    if (!slug_dialog_in_sync || slug_dialog_check_q.isPending || slug_dialog_check_q.isFetching) {
+      return 'Please wait for the URL slug to be verified.';
+    }
+    if (slug_dialog_check_q.isError) {
+      return 'Could not verify the URL slug. Check your connection and try again.';
+    }
+    if (slug_dialog_check_q.data?.exists) {
+      return 'This URL slug is already in use. Choose a different one.';
+    }
+    return null;
+  });
+
+  function openSlugDialog() {
+    slug_dialog_draft = canonical_slug;
+    redirect_old_url = true;
+    slug_dialog_open = true;
+  }
+
+  function confirmSlugDialog() {
+    if (edit_mut.isPending) return;
+    if (!slug_dialog_changed) {
+      slug_dialog_open = false;
+      return;
+    }
+    if (slug_dialog_blocker) return;
+    const post_data = { ...buildPostData(is_draft), url_slug: slug_dialog_effective };
+    edit_mut.mutate(
+      { id: lekha_id, post_data, redirect_old_url },
+      {
+        onSuccess: () => {
+          slug_dialog_open = false;
+        }
+      }
+    );
+  }
+
   $effect(() => {
     if (!browser || editor_section !== 'preview') return;
     const md = content;
@@ -431,11 +476,7 @@
   }
 
   function urlSlugForNormalize() {
-    return slug_locked
-      ? (initial?.url_slug ?? '').trim()
-      : slug_auto
-        ? lekhaUrlSlugify(title)
-        : url_slug_manual.trim();
+    return canonical_slug;
   }
 
   async function formatMarkdown() {
@@ -465,11 +506,8 @@
     if (!title.trim() || !content.trim()) {
       return 'Title and content are required.';
     }
-    const url_slug = slug_auto ? lekhaUrlSlugify(title) : lekhaUrlSlugify(url_slug_manual);
-    if (!url_slug && !slug_locked) {
-      return slug_auto
-        ? 'Title must include at least one letter or digit for the URL slug.'
-        : 'URL slug is required; use only letters, digits, and hyphens.';
+    if (!canonical_slug) {
+      return 'URL slug is missing. Edit the slug to set a valid one.';
     }
     if (browser && !slug_in_sync) {
       return 'Please wait for the URL slug to finish updating before saving.';
@@ -638,28 +676,9 @@
         >
           <AlertDialog.Header>
             <AlertDialog.Title>Save changes?</AlertDialog.Title>
-            <AlertDialog.Description class="flex flex-col gap-2 text-sm text-muted-foreground">
-              <span>
-                This will update the lekha with your current edits
-                {is_draft ? ' (still a draft)' : ' on the live post'}.
-              </span>
-              {#if slug_changed}
-                <span>
-                  The public URL will change from
-                  <span class="font-mono">/lekha/{canonical_slug}</span> to
-                  <span class="font-mono">/lekha/{slug_effective}</span>.
-                </span>
-                {#if redirect_old_url}
-                  <span>Old links will redirect to the new slug.</span>
-                {:else}
-                  <span>The old slug will stop working. No redirect will be created.</span>
-                {/if}
-              {/if}
-              {#if replaces_redirect}
-                <span class="text-amber-700 dark:text-amber-300">
-                  An existing redirect rule for this slug will be replaced.
-                </span>
-              {/if}
+            <AlertDialog.Description class="text-sm text-muted-foreground">
+              This will update the lekha with your current edits
+              {is_draft ? ' (still a draft)' : ' on the live post'}.
             </AlertDialog.Description>
           </AlertDialog.Header>
           {#if edit_mut.isError}
@@ -875,128 +894,112 @@
       />
     </div>
     <div class="space-y-1.5">
-      {#if slug_section_unlocked}
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <Label for="lekha-slug" class="mb-0">URL slug</Label>
-          <div class="flex items-center gap-2">
-            <span class="text-sm text-muted-foreground" id="slug-auto-hint">Auto from title</span>
-            <Switch
-              id="sw-slug-auto"
-              bind:checked={slug_auto}
-              aria-labelledby="slug-auto-hint"
-              onCheckedChange={(v) => {
-                if (!v) {
-                  const s = lekhaUrlSlugify(title);
-                  if (s && !url_slug_manual.trim()) url_slug_manual = s;
-                }
-              }}
-            />
-          </div>
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <Label for="lekha-slug-locked" class="mb-0">URL slug</Label>
+        <Button type="button" variant="outline" size="sm" class="shrink-0" onclick={openSlugDialog}>
+          Edit
+        </Button>
+      </div>
+      <div class="flex gap-2">
+        <Input
+          id="lekha-slug-locked"
+          value={canonical_slug || '—'}
+          disabled
+          class="min-w-0 flex-1 font-mono text-sm"
+          title="Use Edit to change the slug."
+        />
+        <div class="flex w-9 shrink-0 items-center justify-center self-center" aria-live="polite">
+          {@render slug_status_icon()}
         </div>
-        {#if slug_auto}
-          <div class="flex gap-2">
-            <Input
-              id="lekha-slug"
-              value={lekhaUrlSlugify(title) || '—'}
-              disabled
-              class="min-w-0 flex-1 font-mono text-sm"
-              title="Derived from the title; turn off “Auto from title” to set manually."
-            />
-            <div
-              class="flex w-9 shrink-0 items-center justify-center self-center"
-              aria-live="polite"
-            >
-              {@render slug_status_icon()}
-            </div>
-          </div>
-          <p class="text-xs text-muted-foreground">Updates when the title changes.</p>
-        {:else}
-          <div class="flex gap-2">
-            <Input
-              id="lekha-slug"
-              bind:value={url_slug_manual}
-              class="min-w-0 flex-1 font-mono text-sm"
-              placeholder="my-post-slug"
-              autocomplete="off"
-            />
-            <div
-              class="flex w-9 shrink-0 items-center justify-center self-center"
-              aria-live="polite"
-            >
-              {@render slug_status_icon()}
-            </div>
-          </div>
-          <p class="text-xs text-muted-foreground">Lowercase, letters, digits, and hyphens only.</p>
-        {/if}
+      </div>
+      <p class="text-xs text-muted-foreground">
+        Existing links keep working — changing the slug keeps the old one redirecting.
+      </p>
 
-        {#if slug_changed}
-          <label class="flex items-start gap-2 text-sm">
-            <Checkbox bind:checked={redirect_old_url} class="mt-0.5" />
-            <span>
-              Redirect old lekha URL
-              <span class="font-mono text-xs text-muted-foreground">/lekha/{canonical_slug}</span>
-              to the new slug
-            </span>
-          </label>
-        {/if}
-
-        {#if replaces_redirect}
-          <p class="text-sm text-amber-700 dark:text-amber-300" role="status">
-            This slug is currently used by an existing redirect rule. Saving will replace that
-            redirect rule.
-          </p>
-        {/if}
-      {:else}
-        <AlertDialog.Root>
-          <div class="flex flex-wrap items-end justify-between gap-3">
-            <Label for="lekha-slug-locked" class="mb-0">URL slug</Label>
-            <AlertDialog.Trigger>
-              {#snippet child({ props })}
-                <Button {...props} type="button" variant="outline" size="sm" class="shrink-0">
-                  Change URL slug
-                </Button>
-              {/snippet}
-            </AlertDialog.Trigger>
-          </div>
-          <AlertDialog.Content class="max-w-md">
-            <AlertDialog.Header>
-              <AlertDialog.Title>Change URL slug?</AlertDialog.Title>
-              <AlertDialog.Description class="text-sm text-muted-foreground">
-                Changing the URL slug updates the post&rsquo;s public address. When you save, you
-                can keep the previous slug redirecting to the new one. Only continue if you intend
-                to change how this post is reached.
-              </AlertDialog.Description>
-            </AlertDialog.Header>
-            <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
-              <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-              <AlertDialog.Action
-                onclick={() => {
-                  slug_edit_unlocked = true;
-                  redirect_old_url = true;
-                }}
+      <AlertDialog.Root bind:open={slug_dialog_open}>
+        <AlertDialog.Content class="max-w-md">
+          <AlertDialog.Header>
+            <AlertDialog.Title>Edit URL slug</AlertDialog.Title>
+            <AlertDialog.Description class="text-sm text-muted-foreground">
+              Changing the slug updates the post&rsquo;s public address.
+            </AlertDialog.Description>
+          </AlertDialog.Header>
+          <div class="space-y-2 px-6 pb-2">
+            <div class="flex gap-2">
+              <Input
+                id="lekha-slug-dialog"
+                bind:value={slug_dialog_draft}
+                class="min-w-0 flex-1 font-mono text-sm"
+                placeholder="my-post-slug"
+                autocomplete="off"
+              />
+              <div
+                class="flex w-9 shrink-0 items-center justify-center self-center"
+                aria-live="polite"
               >
-                Unlock and edit
-              </AlertDialog.Action>
-            </AlertDialog.Footer>
-          </AlertDialog.Content>
-        </AlertDialog.Root>
-        <div class="flex gap-2">
-          <Input
-            id="lekha-slug-locked"
-            value={initial?.url_slug || '—'}
-            disabled
-            class="min-w-0 flex-1 font-mono text-sm"
-            title="The URL slug is locked. Use “Change URL slug” to edit it (may break existing links)."
-          />
-          <div class="flex w-9 shrink-0 items-center justify-center self-center" aria-live="polite">
-            {@render slug_status_icon()}
+                {#if !slug_dialog_effective}
+                  <span class="sr-only">Enter a slug to check availability</span>
+                {:else if !slug_dialog_in_sync || slug_dialog_check_q.isPending || slug_dialog_check_q.isFetching}
+                  <Loader2
+                    class="size-5 shrink-0 animate-spin text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <span class="sr-only">Checking whether this URL slug is available…</span>
+                {:else if slug_dialog_check_q.isError}
+                  <CircleAlert class="size-5 shrink-0 text-destructive" aria-hidden="true" />
+                  <span class="sr-only">Could not verify URL slug</span>
+                {:else if slug_dialog_check_q.data?.exists}
+                  <CircleAlert class="size-5 shrink-0 text-destructive" aria-hidden="true" />
+                  <span class="sr-only">This URL slug is already in use</span>
+                {:else}
+                  <Check
+                    class="size-5 shrink-0 text-emerald-600 dark:text-emerald-400"
+                    aria-hidden="true"
+                    strokeWidth={2.5}
+                  />
+                  <span class="sr-only">URL slug is available</span>
+                {/if}
+              </div>
+            </div>
+            <p class="text-xs text-muted-foreground">
+              Lowercase, letters, digits, and hyphens only.
+            </p>
+            {#if slug_dialog_changed}
+              <p class="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+                {#if redirect_old_url}
+                  The old slug <span class="font-mono">/lekha/{canonical_slug}</span> will redirect
+                  to <span class="font-mono">/lekha/{slug_dialog_effective}</span>.
+                {:else}
+                  The old slug <span class="font-mono">/lekha/{canonical_slug}</span> will stop working.
+                {/if}
+              </p>
+              <label class="flex items-start gap-2 text-sm">
+                <Checkbox bind:checked={redirect_old_url} class="mt-0.5" />
+                <span>Redirect old URL to the new slug</span>
+              </label>
+            {/if}
+            {#if slug_dialog_replaces}
+              <p class="text-xs text-amber-700 dark:text-amber-300" role="status">
+                This slug is used by an existing redirect rule, which will be replaced.
+              </p>
+            {/if}
+            {#if edit_mut.isError && slug_dialog_open}
+              <p class="text-sm text-destructive" role="alert">{String(edit_mut.error)}</p>
+            {/if}
           </div>
-        </div>
-        <p class="text-xs text-muted-foreground">
-          The URL slug is locked to avoid broken links. Use “Change URL slug” to edit it; you will
-          be asked to confirm.
-        </p>
-      {/if}
+          <AlertDialog.Footer class="flex flex-wrap gap-2 sm:justify-end">
+            <AlertDialog.Cancel disabled={edit_mut.isPending}>Cancel</AlertDialog.Cancel>
+            <Button
+              type="button"
+              class="shrink-0"
+              disabled={edit_mut.isPending || !slug_dialog_changed || !!slug_dialog_blocker}
+              onclick={confirmSlugDialog}
+            >
+              {edit_mut.isPending ? 'Saving…' : 'Save slug'}
+            </Button>
+          </AlertDialog.Footer>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
     </div>
   </div>
 

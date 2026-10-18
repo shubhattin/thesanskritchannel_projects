@@ -182,7 +182,7 @@
                 </Button>
               </div>
               <div
-                class="md-preview prose prose-sm max-w-none max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
+                class="md-preview prose prose-sm max-h-80 max-w-none overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
               >
                 <Markdown source={DEFAULT_IMAGE_SYSTEM_PROMPT} />
               </div>
@@ -239,7 +239,7 @@
                     </Tabs.Content>
                     <Tabs.Content value="view">
                       <div
-                        class="md-preview prose prose-sm max-w-none max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
+                        class="md-preview prose prose-sm max-h-80 max-w-none overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
                       >
                         {#if edit_content.trim()}
                           <Markdown source={edit_content} />
@@ -296,7 +296,7 @@
                     </Button>
                   </div>
                   <div
-                    class="md-preview prose prose-sm max-w-none max-h-80 overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
+                    class="md-preview prose prose-sm max-h-80 max-w-none overflow-y-auto rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed prose-neutral dark:prose-invert"
                   >
                     {#if template.content.trim()}
                       <Markdown source={template.content} />

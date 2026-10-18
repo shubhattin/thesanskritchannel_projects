@@ -1,8 +1,18 @@
 <script lang="ts">
   import * as Dialog from '$lib/components/ui/dialog';
-  import { Input } from '$lib/components/ui/input';
-  import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
+  import * as InputGroup from '$lib/components/ui/input-group';
+  import { Switch } from '$lib/components/ui/switch';
   import SearchIcon from '@lucide/svelte/icons/search';
+  import KeyboardIcon from '@lucide/svelte/icons/keyboard';
+  import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
+  import { clearTypingContextOnKeyDown, handleTypingBeforeInputEvent } from 'lipilekhika/typing';
+  import {
+    matches_script_search,
+    tokenize_search_query
+  } from '@app/utils/search/project_list_search';
+  import { create_project_name_dev_normal_cache } from '@app/utils/search/project_name_dev_normal_cache';
+  import { use_script_query } from '$lib/search/use-script-query.svelte';
+  import { site_prefs } from '$lib/main_text/site-prefs.svelte';
 
   export type SiblingJumpItem = {
     href: string;
@@ -26,17 +36,44 @@
 
   let open = $state(false);
   let search = $state('');
+  /** LipiLekhika transliteration typing; off by default like the Texts/Lekha browsers. */
+  let typing_enabled = $state(false);
 
-  const query = $derived(search.trim().toLowerCase());
-  const filtered = $derived(
-    query.length === 0
-      ? items
-      : items.filter(
-          (item) =>
-            item.name_display.toLowerCase().includes(query) ||
-            item.name_dev.toLowerCase().includes(query)
-        )
-  );
+  const script_query = use_script_query(() => search);
+  const name_dev_normal_cache = create_project_name_dev_normal_cache();
+  let normals_version = $state(0);
+
+  $effect(() => {
+    const name_devs = items.map((item) => item.name_dev);
+    void name_dev_normal_cache.ensure_all(name_devs).then(() => {
+      normals_version++;
+    });
+  });
+
+  function toggle_typing_from_keyboard(e: KeyboardEvent) {
+    if (!e.altKey) return false;
+    const key = e.key.toLowerCase();
+    if (key !== 'x' && key !== 'c') return false;
+    e.preventDefault();
+    typing_enabled = !typing_enabled;
+    return true;
+  }
+
+  const filtered = $derived.by(() => {
+    void normals_version;
+    const words = tokenize_search_query(search);
+    if (words.length === 0) return items;
+    const query_normals = script_query.normals_for_text(search);
+    return items.filter((item) =>
+      matches_script_search(
+        { words, normals: query_normals },
+        {
+          direct: [item.name_dev, name_dev_normal_cache.get(item.name_dev), item.name_display],
+          fuzzy: [item.name_dev, name_dev_normal_cache.get(item.name_dev), item.name_display]
+        }
+      )
+    );
+  });
 </script>
 
 {#if items.length > 1}
@@ -70,21 +107,57 @@
           {level_label.toLowerCase()} — jump to any section
         </Dialog.Description>
       </Dialog.Header>
-      <div class="relative shrink-0 px-6">
-        <SearchIcon
-          class="pointer-events-none absolute top-1/2 left-9 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <Input
-          bind:value={search}
-          placeholder="Search {level_label.toLowerCase()}…"
-          autocomplete="off"
-          class="pl-9"
-        />
+      <div class="shrink-0 px-6">
+        <InputGroup.Root>
+          <InputGroup.Addon align="inline-start" class="pl-2.5">
+            <SearchIcon class="size-4 text-muted-foreground" aria-hidden="true" />
+          </InputGroup.Addon>
+          <InputGroup.Input
+            placeholder="Search {level_label.toLowerCase()}…"
+            bind:value={search}
+            onbeforeinput={(e) =>
+              handleTypingBeforeInputEvent(
+                script_query.ctx,
+                e,
+                (newValue) => {
+                  search = newValue;
+                },
+                typing_enabled
+              )}
+            onblur={() => script_query.ctx.clearContext()}
+            onkeydown={(e) => {
+              if (toggle_typing_from_keyboard(e)) return;
+              clearTypingContextOnKeyDown(e, script_query.ctx);
+            }}
+            aria-label="Search {level_label.toLowerCase()}"
+            autocomplete="off"
+          />
+          <InputGroup.Addon
+            align="inline-end"
+            class="cursor-default gap-2 border-s border-border/50 ps-3 pe-2.5"
+          >
+            <span
+              class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground select-none"
+            >
+              <KeyboardIcon class="size-3.5" aria-hidden="true" />
+              Typing
+            </span>
+            <Switch
+              bind:checked={typing_enabled}
+              aria-label="Transliteration typing"
+              title={`${site_prefs.script} transliteration typing (Alt+X)`}
+            />
+          </InputGroup.Addon>
+        </InputGroup.Root>
       </div>
       <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
         {#if filtered.length === 0}
-          <p class="py-8 text-center text-sm text-muted-foreground">No matches for “{search}”.</p>
+          <div class="space-y-1 py-8 text-center">
+            <p class="text-sm text-muted-foreground">No matches for “{search}”.</p>
+            <p class="text-xs text-muted-foreground/70">
+              Try a different term, or turn on Typing to search in {site_prefs.script}.
+            </p>
+          </div>
         {:else}
           <ul class="flex flex-col gap-1.5">
             {#each filtered as item (item.href + item.name_dev)}

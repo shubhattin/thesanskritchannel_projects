@@ -32,7 +32,8 @@
     if (
       prev?.project_key === project_key &&
       prev?.project_id === project.id &&
-      prev?.listed === project.listed
+      prev?.listed === project.listed &&
+      prev?.project_uid === project.uid
     ) {
       return;
     }
@@ -41,6 +42,7 @@
       project_key,
       project_id: project.id,
       listed: project.listed,
+      project_uid: project.uid,
       levels: prev?.levels ?? 0,
       level_names: prev?.level_names ?? []
     });

@@ -1,5 +1,6 @@
 import type { recursive_list_type } from '../state/data_types';
 import { get_list_name_for_path_param_index, get_node_at_path } from '../state/project_list';
+import { UID_LENGTH } from '../db/uid';
 
 const NUMERIC_SEGMENT_RE = /^[1-9]\d*$/;
 const PRETTY_SEGMENT_RE = /^(?<levelSlug>.+)-(?<num>[1-9]\d*)$/;
@@ -57,4 +58,55 @@ export const build_project_path = (
   const segments = get_pretty_segments_for_path_params(map, path_params);
   if (!segments) return null;
   return segments.length === 0 ? `/${project_key}` : `/${project_key}/${segments.join('/')}`;
+};
+
+/** nano-id default URL-safe alphabet (`A-Za-z0-9_-`); uids may themselves contain `-`. */
+const UID_SUFFIX_RE = /^[A-Za-z0-9_-]+$/;
+
+export type split_key_uid_result = { key: string; uid: string };
+
+/**
+ * Splits a `{project_key}-{uid}` shared-URL key. Since uids are always exactly `UID_LENGTH`
+ * chars, the uid (if present) must be the final 5 chars preceded by a dash — no ambiguity
+ * with dashes inside the key or inside the uid itself. `is_key_uid_match` must confirm the
+ * key exists AND the uid matches it (keeps this pure/testable; callers use the registry).
+ */
+export const split_project_key_uid = (
+  raw_key: string,
+  is_key_uid_match: (key: string, uid: string) => boolean
+): split_key_uid_result | null => {
+  if (raw_key.length <= UID_LENGTH + 1) return null;
+  if (raw_key[raw_key.length - UID_LENGTH - 1] !== '-') return null;
+  const uid = raw_key.slice(-UID_LENGTH);
+  if (!UID_SUFFIX_RE.test(uid)) return null;
+  const key = raw_key.slice(0, -UID_LENGTH - 1);
+  if (!key || !is_key_uid_match(key, uid)) return null;
+  return { key, uid };
+};
+
+export type text_route_redirect_input = {
+  /** Key resolved via `project_redirects` (old key → canonical). */
+  was_redirect: boolean;
+  /** Key resolved via the `{key}-{uid}` shared-URL form. */
+  preview_via_uid: boolean;
+  listed: boolean;
+  numeric_route: boolean;
+  canonical_path: string;
+};
+
+/**
+ * Decides the 301 target for a resolved text route:
+ * - uid-form + listed project → canonical (the uid form only exists for sharing unlisted work)
+ * - uid-form + unlisted project → serve as-is (no redirect; this IS the share URL)
+ * - numeric routes always canonicalize, except the unlisted uid-form case above
+ */
+export const decide_text_route_redirect = (
+  input: text_route_redirect_input
+): string | null => {
+  if (input.numeric_route) {
+    return input.preview_via_uid && !input.listed ? null : input.canonical_path;
+  }
+  if (input.was_redirect) return input.canonical_path;
+  if (input.preview_via_uid && input.listed) return input.canonical_path;
+  return null;
 };

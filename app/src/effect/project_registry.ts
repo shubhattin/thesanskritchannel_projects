@@ -27,6 +27,7 @@ const projectTypeSchema = z.object({
   name_dev: z.string(),
   description: z.string().nullable().optional(),
   key: z.string(),
+  uid: z.string().nullable(),
   listed: z.boolean()
 });
 
@@ -59,6 +60,7 @@ export const projectListCache = createCache<NoCacheParams, project_type[]>({
           name_dev: true,
           description: true,
           key: true,
+          uid: true,
           listed: true
         },
         orderBy: ({ id }, { asc }) => asc(id)
@@ -187,12 +189,13 @@ const getInternalRegistry = Effect.fn('getInternalRegistry')(function* () {
     Effect.gen(function* () {
       const sorted_source = yield* projectListCache.get(NO_CACHE_PARAMS);
       const registry = build_project_registry(
-        sorted_source.map(({ id, name, name_dev, description, key, listed }) => ({
+        sorted_source.map(({ id, name, name_dev, description, key, uid, listed }) => ({
           id,
           name,
           name_dev,
           description,
           key,
+          uid,
           listed
         }))
       );

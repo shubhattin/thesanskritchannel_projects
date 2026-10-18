@@ -56,6 +56,7 @@
       project_key,
       project_id: project.id,
       listed: project.listed,
+      project_uid: project.uid,
       levels,
       level_names
     };
@@ -64,6 +65,7 @@
       prev?.project_key === next.project_key &&
       prev?.project_id === next.project_id &&
       prev?.listed === next.listed &&
+      prev?.project_uid === next.project_uid &&
       prev?.levels === next.levels &&
       prev.level_names.length === next.level_names.length &&
       prev.level_names.every((name, i) => name === next.level_names[i])

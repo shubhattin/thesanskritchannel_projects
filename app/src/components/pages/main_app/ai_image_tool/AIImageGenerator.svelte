@@ -80,6 +80,32 @@
 
   let selected_text_model: keyof typeof TEXT_MODEL_LIST_INFO = $state(DEFAULT_TEXT_AI_MODEL);
   let system_prompt_template_id: number | null = $state(null);
+
+  const SYSTEM_PROMPT_STORAGE_KEY = 'tsc:image-system-prompt-template-id';
+
+  const load_stored_template_id = (): number | null => {
+    try {
+      const raw = localStorage.getItem(SYSTEM_PROMPT_STORAGE_KEY);
+      if (raw == null || !/^\d+$/.test(raw.trim())) return null;
+      const n = parseInt(raw.trim(), 10);
+      return Number.isSafeInteger(n) && n > 0 ? n : null;
+    } catch {
+      return null;
+    }
+  };
+
+  onMount(() => {
+    system_prompt_template_id = load_stored_template_id();
+  });
+
+  $effect(() => {
+    try {
+      if (system_prompt_template_id == null) localStorage.removeItem(SYSTEM_PROMPT_STORAGE_KEY);
+      else localStorage.setItem(SYSTEM_PROMPT_STORAGE_KEY, String(system_prompt_template_id));
+    } catch {
+      // storage unavailable — selection simply won't persist
+    }
+  });
   let view_images_open = $state(false);
   let download_images_zip_open = $state(false);
   let use_custom_instruction = $state(false);
@@ -460,7 +486,7 @@
   text_model={selected_text_model}
   bind:use_custom_instruction
   bind:custom_instruction
-  bind:system_prompt_template_id
+  {system_prompt_template_id}
   on_download_images_zip={() => (download_images_zip_open = true)}
 />
 

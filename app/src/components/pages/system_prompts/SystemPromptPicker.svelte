@@ -53,7 +53,7 @@
 </script>
 
 <div class="flex flex-wrap items-center gap-2">
-  <span class="text-xs font-semibold text-muted-foreground">System prompt</span>
+  <span class="text-xs font-semibold text-muted-foreground">Image system prompt</span>
   <Select.Root
     type="single"
     value={selected_value}
@@ -107,7 +107,7 @@
           <Markdown source={preview_content} />
         {:else}
           <p class="text-xs text-muted-foreground">
-            This template is empty — edit it on the System Prompts page.
+            This template is empty — edit it on the Image System Prompts page.
           </p>
         {/if}
       </div>

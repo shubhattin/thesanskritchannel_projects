@@ -6,6 +6,7 @@
   import Search from '@lucide/svelte/icons/search';
   import Database from '@lucide/svelte/icons/database';
   import ClipboardCheck from '@lucide/svelte/icons/clipboard-check';
+  import Wand2 from '@lucide/svelte/icons/wand-2';
   import Button from '~/lib/components/ui/button/button.svelte';
   import * as Dialog from '$lib/components/ui/dialog';
   import { useSession } from '~/lib/auth-client';
@@ -108,9 +109,13 @@
             <span>Batch Manager</span>
           </Button>
         </a>
-        <a href="/system-prompts" aria-label="Open System Prompts">
+        <a href="/system-prompts" aria-label="Open Image System Prompts">
           <Button variant="outline" size="lg" class="gap-2 font-semibold">
-            <span>System Prompts</span>
+            <Wand2
+              class="size-5 shrink-0 text-fuchsia-600 dark:text-fuchsia-400"
+              aria-hidden="true"
+            />
+            <span>Image System Prompts</span>
           </Button>
         </a>
       {/if}

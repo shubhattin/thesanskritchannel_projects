@@ -67,8 +67,7 @@ const invalidate_lekha_caches = (url_slugs: string | readonly (string | null | u
             (url_slug) =>
               url_slug ? [invalidate_and_refresh_cached(CACHE.site_lekha_data, { url_slug })] : []
           ),
-          invalidate_and_refresh_cached(CACHE.site_lekha_list, NO_CACHE_PARAMS),
-          refreshSiteLekhaSlugMap()
+          invalidate_and_refresh_cached(CACHE.site_lekha_list, NO_CACHE_PARAMS)
         ],
         { concurrency: 'unbounded' }
       )
@@ -103,6 +102,7 @@ const add_lekha_route = protectedAdminProcedure
           );
         }
         yield* invalidate_lekha_caches(created.url_slug);
+        yield* refreshSiteLekhaSlugMap();
         return { id: created.id };
       })
     )
@@ -196,6 +196,7 @@ const edit_lekha_route = protectedAdminProcedure
           );
         }
         yield* invalidate_lekha_caches([outcome.updated.url_slug, outcome.previous_slug]);
+        yield* refreshSiteLekhaSlugMap();
         return {
           id: outcome.updated.id,
           published_at: outcome.updated.published_at,
@@ -228,6 +229,7 @@ const delete_lekha_route = protectedAdminProcedure
           await db.delete(site_lekhas).where(eq(site_lekhas.id, id));
         });
         yield* invalidate_lekha_caches(prev_data.url_slug);
+        yield* refreshSiteLekhaSlugMap();
         return { id };
       })
     )

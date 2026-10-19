@@ -6,7 +6,7 @@ import {
   resolve_text_route,
   type resolved_text_route_type
 } from '~/utils/text-routes';
-import { runServerEffectNullable, runServerEffectOr } from '~/effect/site_runtime';
+import { runServerEffect, runServerEffectOr } from '~/effect/site_runtime';
 import { NONE_LANG_ID } from '$lib/cookies';
 import { maybe_transliterate_list } from './script-display.server';
 import { error, redirect } from '@sveltejs/kit';
@@ -58,7 +58,8 @@ export async function load_text_route(opts: {
   lang_id: number;
   script_id: number;
 }): Promise<TextRouteLoadData> {
-  const resolved = await runServerEffectNullable(resolve_text_route(opts.key, opts.slug));
+  // Resolution failures throw (500); only unknown keys return null (404).
+  const resolved = await runServerEffect(resolve_text_route(opts.key, opts.slug));
   if (!resolved) {
     error(404, 'Not found');
   }

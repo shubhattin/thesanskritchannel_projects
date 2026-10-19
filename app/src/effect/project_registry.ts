@@ -118,6 +118,10 @@ export const projectRedirectMapCache = createCache<
   getKey: () => REDIS_CACHE_KEYS_CLIENT.project_redirect_map(),
   schema: projectRedirectRowSchema.array(),
   transform: (rows) => new Map(rows.map((row) => [row.key, row.target] as const)),
+  // Single key + many concurrent readers: converge cold misses onto one fetch,
+  // and drop late writes from overlapping background refreshes.
+  useSingleFlight: true,
+  useGenerationGuard: true,
   fetch: Effect.fn('project_redirect_map.fetch')(function* (_params) {
     return yield* dbRunHttp('project_redirect_map.fetch', (db) =>
       db

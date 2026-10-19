@@ -347,6 +347,10 @@ export const siteLekhaSlugMapCache = createCache<
   getKey: () => REDIS_CACHE_KEYS_CLIENT.site_lekha_slug_map(),
   schema: lekhaSlugMapPayloadSchema,
   transform: toSiteLekhaSlugMap,
+  // Single key + many concurrent readers: converge cold misses onto one fetch,
+  // and drop late writes from overlapping background refreshes.
+  useSingleFlight: true,
+  useGenerationGuard: true,
   fetch: Effect.fn('site_lekha_slug_map.fetch')(function* (_params) {
     return yield* dbRunHttp('site_lekha_slug_map.fetch', async (db) => {
       const [live_rows, redirect_rows] = await Promise.all([

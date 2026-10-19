@@ -8,7 +8,8 @@ import { delay_dev } from '~/tools/delay';
 import {
   CACHE,
   invalidate_and_refresh_cached,
-  NO_CACHE_PARAMS
+  NO_CACHE_PARAMS,
+  refreshSiteLekhaSlugMap
 } from '~/utils/cache.server/cached_loader.server';
 import {
   lekhaUrlSlugify,
@@ -66,7 +67,8 @@ const invalidate_lekha_caches = (url_slugs: string | readonly (string | null | u
             (url_slug) =>
               url_slug ? [invalidate_and_refresh_cached(CACHE.site_lekha_data, { url_slug })] : []
           ),
-          invalidate_and_refresh_cached(CACHE.site_lekha_list, NO_CACHE_PARAMS)
+          invalidate_and_refresh_cached(CACHE.site_lekha_list, NO_CACHE_PARAMS),
+          refreshSiteLekhaSlugMap()
         ],
         { concurrency: 'unbounded' }
       )
@@ -407,6 +409,7 @@ const delete_lekha_redirect_route = protectedAdminProcedure
             NotFoundError.make({ resource: 'lekha', message: 'Lekha not found' })
           );
         }
+        yield* refreshSiteLekhaSlugMap();
         return { success: true as const };
       })
     )

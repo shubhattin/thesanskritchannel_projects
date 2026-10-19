@@ -19,6 +19,10 @@ export const REDIS_CACHE_KEYS_CLIENT = {
   site_lekha_data: (url_slug: string) => `site_lekha_data:${url_slug}`,
   // TODO : implement caching, paging and sorting, key will change in future, no issues
   site_lekha_list: () => `site_lekha_list`,
+  /** Old project keys → canonical keys for redirect resolution (no per-request DB). */
+  project_redirect_map: () => `project_redirect_map`,
+  /** Old lekha slugs + live slugs for redirect resolution (no per-request DB). */
+  site_lekha_slug_map: () => `site_lekha_slug_map`,
   project_list: () => `project_list`,
   project_map: (project_id: number) => `project_map:${project_id}`,
   /** Public site sitemap chunks (sitemap-1.xml onward). */
@@ -41,6 +45,8 @@ export const REDIS_CACHES_ARGUMENTS_LIST: RedisCacheArguments = {
   media_links: ['project_id', 'path_params'],
   site_lekha_data: ['url_slug'],
   site_lekha_list: [],
+  project_redirect_map: [],
+  site_lekha_slug_map: [],
   project_list: [],
   project_map: ['project_id'],
   sitemap: [],

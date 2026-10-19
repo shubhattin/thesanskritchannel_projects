@@ -64,7 +64,9 @@ const main = async () => {
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
-  dbClient_ext.transaction(async (tx) => {
+  // Awaited so the restore finishes before the client closes (and before the
+  // cache flush below runs against committed data).
+  await dbClient_ext.transaction(async (tx) => {
     // deleting all the tables initially
     try {
       // Children first (FK order: path rows → projects, redirect rows → parents)
@@ -234,6 +236,10 @@ const main = async () => {
       console.log(chalk.red('✗ Error while resetting SERIAL:'), chalk.yellow(e));
     }
   });
+
+  // The restore rewrites keys/slugs/redirects out-of-band; drop the cached
+  // redirect maps so the site rebuilds them instead of serving stale 301s.
+  await flushRedirectMapKeys(['project_redirect_map', 'site_lekha_slug_map']);
 };
 main().then(() => {
   query_client.end();
@@ -251,4 +257,33 @@ function chunkArray<T>(array: T[], chunkSize: number): T[][] {
     chunks.push(array.slice(i, i + chunkSize));
   }
   return chunks;
+}
+
+/**
+ * Best-effort Upstash REST `DEL` for cache keys the restore invalidates.
+ * Never throws — on failure the operator must flush the keys manually.
+ */
+async function flushRedirectMapKeys(keys: string[]): Promise<void> {
+  const url = process.env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, '');
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) {
+    console.log(
+      chalk.yellow('! UPSTASH_REDIS_REST_URL/TOKEN not set — flush Redis keys manually:'),
+      chalk.yellow(keys.join(', '))
+    );
+    return;
+  }
+  try {
+    const res = await fetch(`${url}/del/${keys.map(encodeURIComponent).join('/')}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    console.log(chalk.green('✓ Flushed Redis keys:'), chalk.blue(keys.join(', ')));
+  } catch (error) {
+    console.log(
+      chalk.red('✗ Redis flush failed — flush manually:'),
+      chalk.yellow(keys.join(', ')),
+      error
+    );
+  }
 }

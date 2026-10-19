@@ -1,7 +1,13 @@
 import { Effect } from 'effect';
 import { and, asc, eq, ne } from 'drizzle-orm';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
-import { media_attachment, texts, translations } from '~/db/schema';
+import {
+  media_attachment,
+  site_lekha_redirects,
+  site_lekhas,
+  texts,
+  translations
+} from '~/db/schema';
 import { SiteLekhaSchemaZod } from '~/db/schema_zod';
 import type { shloka_list_type } from '~/state/data_types';
 import { shloka_list_schema } from '~/state/data_types';
@@ -309,6 +315,60 @@ export const siteLekhaDataCache = createCache<{ url_slug: string }, lekhaType | 
   })
 });
 
+const lekhaSlugMapPayloadSchema = zod.object({
+  live: zod.string().array(),
+  redirects: zod.object({ slug: zod.string(), target: zod.string() }).array()
+});
+type LekhaSlugMapPayload = zod.infer<typeof lekhaSlugMapPayloadSchema>;
+
+export type SiteLekhaSlugMap = {
+  liveSlugs: Set<string>;
+  redirectTo: Map<string, string>;
+};
+
+const toSiteLekhaSlugMap = (payload: LekhaSlugMapPayload): SiteLekhaSlugMap => {
+  const redirectTo = new Map<string, string>();
+  for (const row of payload.redirects) {
+    if (row.slug !== row.target) redirectTo.set(row.slug, row.target);
+  }
+  return { liveSlugs: new Set(payload.live), redirectTo };
+};
+
+/**
+ * Live lekha slugs + old slugs → canonical slugs. Single NoCacheParams entry
+ * transformed to Sets/Maps for O(1) lookup so public lekha routes never hit
+ * the DB for redirects. Live slugs win over redirect rules.
+ */
+export const siteLekhaSlugMapCache = createCache<
+  NoCacheParams,
+  LekhaSlugMapPayload,
+  SiteLekhaSlugMap
+>({
+  getKey: () => REDIS_CACHE_KEYS_CLIENT.site_lekha_slug_map(),
+  schema: lekhaSlugMapPayloadSchema,
+  transform: toSiteLekhaSlugMap,
+  // Single key + many concurrent readers: converge cold misses onto one fetch,
+  // and drop late writes from overlapping background refreshes.
+  useSingleFlight: true,
+  useGenerationGuard: true,
+  fetch: Effect.fn('site_lekha_slug_map.fetch')(function* (_params) {
+    return yield* dbRunHttp('site_lekha_slug_map.fetch', async (db) => {
+      const [live_rows, redirect_rows] = await Promise.all([
+        db.select({ slug: site_lekhas.url_slug }).from(site_lekhas),
+        db
+          .select({ slug: site_lekha_redirects.url_slug, target: site_lekhas.url_slug })
+          .from(site_lekha_redirects)
+          .innerJoin(site_lekhas, eq(site_lekha_redirects.lekha_id, site_lekhas.id))
+      ]);
+      return { live: live_rows.map((row) => row.slug), redirects: redirect_rows };
+    }).pipe(Effect.mapError(toCacheError('site_lekha_slug_map.fetch')));
+  })
+});
+
+/** Invalidate + background-refresh the lekha slug map after slug/redirect mutations. */
+export const refreshSiteLekhaSlugMap = () =>
+  invalidateAndRefreshCache(siteLekhaSlugMapCache, NO_CACHE_PARAMS);
+
 /**
  * TODO : implement caching, paging and sorting
  *
@@ -354,6 +414,7 @@ export const CACHE = {
   project_map: projectMapCache,
   site_lekha_data: siteLekhaDataCache,
   site_lekha_list: siteLekhaListCache,
+  site_lekha_slug_map: siteLekhaSlugMapCache,
   text_data: textDataCache,
   translation: translationCache
 };

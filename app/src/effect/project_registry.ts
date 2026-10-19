@@ -1,4 +1,5 @@
 import { Effect } from 'effect';
+import { eq } from 'drizzle-orm';
 import ms from 'ms';
 import { z } from 'zod';
 import type { recursive_list_type } from '~/state/data_types';
@@ -10,8 +11,14 @@ import {
   type project_registry_type,
   type project_type
 } from '~/state/project_list';
+import { project_redirects, projects } from '~/db/schema';
 import { REDIS_CACHE_KEYS_CLIENT } from '~/db/redis_shared';
-import { createCache, NO_CACHE_PARAMS, type NoCacheParams } from './cache';
+import {
+  createCache,
+  invalidateAndRefreshCache,
+  NO_CACHE_PARAMS,
+  type NoCacheParams
+} from './cache';
 import { BackgroundWork } from './background';
 import { SharedConfig } from './config';
 import { DatabaseHttp, dbRunHttp } from './database';
@@ -93,6 +100,41 @@ export const projectMapCache = createCache<{ project_id: number }, recursive_lis
     return data.map;
   })
 });
+
+const projectRedirectRowSchema = z.object({
+  key: z.string(),
+  target: z.string()
+});
+
+/**
+ * Old project keys → canonical keys. Single NoCacheParams entry transformed to a
+ * Map for O(1) lookup so `resolveProjectByKey` never hits the DB for redirects.
+ */
+export const projectRedirectMapCache = createCache<
+  NoCacheParams,
+  z.infer<typeof projectRedirectRowSchema>[],
+  Map<string, string>
+>({
+  getKey: () => REDIS_CACHE_KEYS_CLIENT.project_redirect_map(),
+  schema: projectRedirectRowSchema.array(),
+  transform: (rows) => new Map(rows.map((row) => [row.key, row.target] as const)),
+  // Single key + many concurrent readers: converge cold misses onto one fetch,
+  // and drop late writes from overlapping background refreshes.
+  useSingleFlight: true,
+  useGenerationGuard: true,
+  fetch: Effect.fn('project_redirect_map.fetch')(function* (_params) {
+    return yield* dbRunHttp('project_redirect_map.fetch', (db) =>
+      db
+        .select({ key: project_redirects.key, target: projects.key })
+        .from(project_redirects)
+        .innerJoin(projects, eq(project_redirects.project_id, projects.id))
+    ).pipe(Effect.mapError(toCacheError('project_redirect_map.fetch')));
+  })
+});
+
+/** Invalidate + background-refresh the project redirect map after key/redirect mutations. */
+export const refreshProjectRedirectMap = () =>
+  invalidateAndRefreshCache(projectRedirectMapCache, NO_CACHE_PARAMS);
 
 type ProjectMapEffect = ReturnType<typeof projectMapCache.get>;
 
@@ -294,16 +336,11 @@ export const resolveProjectByKey = Effect.fn('resolveProjectByKey')(function* (
     } satisfies ResolvedProjectByKey;
   }
 
-  const redirect = yield* dbRunHttp('resolveProjectByKey.redirect', (db) =>
-    db.query.project_redirects.findFirst({
-      where: (tbl, { eq: eqKey }) => eqKey(tbl.key, key),
-      columns: { project_id: true }
-    })
-  ).pipe(Effect.mapError(toCacheError('resolveProjectByKey.redirect')));
+  const redirect_map = yield* projectRedirectMapCache.get(NO_CACHE_PARAMS);
+  const target_key = redirect_map.get(key);
+  if (!target_key || target_key === key) return undefined;
 
-  if (!redirect) return undefined;
-
-  const project = yield* getProjectById(redirect.project_id, lookup_options);
+  const project = yield* getProjectByKey(target_key, lookup_options);
   if (!project) return undefined;
 
   return {

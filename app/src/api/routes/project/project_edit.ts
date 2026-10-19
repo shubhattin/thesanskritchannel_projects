@@ -24,7 +24,8 @@ import { is_reserved_project_route_slug } from '~/utils/reserved_project_route_s
 import {
   clear_server_project_map_cache,
   clear_project_registry_cache,
-  clear_server_project_info_cache
+  clear_server_project_info_cache,
+  refreshProjectRedirectMap
 } from '~/utils/project/list.server';
 import { notify_site_invalidate_project_list_caches } from '~/utils/cache.server/invalidate_site_project_cache.server';
 import { generateUniqueUid } from '~/db/uid';
@@ -201,6 +202,7 @@ export const edit_project_slug_route = protectedAdminProcedure
           clear_server_project_info_cache(outcome.previous_key);
         }
         yield* invalidate_project_list_caches(cookie);
+        yield* refreshProjectRedirectMap();
         return { success: true };
       })
     )
@@ -273,6 +275,7 @@ export const delete_project_redirect_route = protectedAdminProcedure
         }
 
         yield* invalidate_project_list_caches(cookie);
+        yield* refreshProjectRedirectMap();
         return { success: true as const };
       })
     )
@@ -422,6 +425,7 @@ export const delete_project_route = protectedAdminProcedure
 
         clear_server_project_map_cache(input.project_id);
         yield* invalidate_project_list_caches(cookie);
+        yield* refreshProjectRedirectMap();
         return { success: true as const };
       })
     )
@@ -549,6 +553,7 @@ const add_new_project_route = protectedAdminProcedure
         }
 
         yield* invalidate_project_list_caches(cookie);
+        yield* refreshProjectRedirectMap();
         return { success: true as const, project: outcome.project };
       })
     )

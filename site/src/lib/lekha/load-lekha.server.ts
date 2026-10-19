@@ -89,8 +89,9 @@ export async function load_lekha_entry(
     return { entry, redirect_to: null };
   }
 
-  // Not a live slug — resolve old slugs via `site_lekha_redirects` (301 to canonical).
-  const resolved = await runServerEffectNullable(resolveLekhaBySlug(slug));
+  // Not a live slug — resolve old slugs via the cached redirect map (301 to
+  // canonical). Resolution failures throw (500); only unknown slugs 404.
+  const resolved = await runServerEffect(resolveLekhaBySlug(slug));
   if (!resolved || !resolved.was_redirect) return null;
   const canonical = await runServerEffectNullable(
     CACHE.site_lekha_data.get({ url_slug: resolved.url_slug })

@@ -19,6 +19,8 @@ export {
   getProjectRegistry,
   projectListCache,
   projectMapCache,
+  projectRedirectMapCache,
+  refreshProjectRedirectMap,
   resolveProjectByKey,
   type ProjectLookupOptions,
   type ResolvedProjectByKey

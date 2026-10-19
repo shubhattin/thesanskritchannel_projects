@@ -8,7 +8,8 @@ import { delay_dev } from '~/tools/delay';
 import {
   CACHE,
   invalidate_and_refresh_cached,
-  NO_CACHE_PARAMS
+  NO_CACHE_PARAMS,
+  refreshSiteLekhaSlugMap
 } from '~/utils/cache.server/cached_loader.server';
 import {
   lekhaUrlSlugify,
@@ -101,6 +102,7 @@ const add_lekha_route = protectedAdminProcedure
           );
         }
         yield* invalidate_lekha_caches(created.url_slug);
+        yield* refreshSiteLekhaSlugMap();
         return { id: created.id };
       })
     )
@@ -194,6 +196,7 @@ const edit_lekha_route = protectedAdminProcedure
           );
         }
         yield* invalidate_lekha_caches([outcome.updated.url_slug, outcome.previous_slug]);
+        yield* refreshSiteLekhaSlugMap();
         return {
           id: outcome.updated.id,
           published_at: outcome.updated.published_at,
@@ -226,6 +229,7 @@ const delete_lekha_route = protectedAdminProcedure
           await db.delete(site_lekhas).where(eq(site_lekhas.id, id));
         });
         yield* invalidate_lekha_caches(prev_data.url_slug);
+        yield* refreshSiteLekhaSlugMap();
         return { id };
       })
     )
@@ -407,6 +411,7 @@ const delete_lekha_redirect_route = protectedAdminProcedure
             NotFoundError.make({ resource: 'lekha', message: 'Lekha not found' })
           );
         }
+        yield* refreshSiteLekhaSlugMap();
         return { success: true as const };
       })
     )

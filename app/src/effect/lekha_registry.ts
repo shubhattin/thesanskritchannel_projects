@@ -1,10 +1,9 @@
 import { Effect } from 'effect';
-import { dbRunHttp } from './database';
-import { CacheError } from './errors';
+import { siteLekhaSlugMapCache } from './cache_loaders';
+import { NO_CACHE_PARAMS } from './cache';
 
 /** Same env as project_registry — site-safe (no AiProvider / ObjectStorage). */
 export type ResolvedLekhaBySlug = {
-  lekha_id: number;
   /** Canonical (current) url_slug of the lekha. */
   url_slug: string;
   /** Slug from the request URL (may be an old redirect slug). */
@@ -13,51 +12,19 @@ export type ResolvedLekhaBySlug = {
   was_redirect: boolean;
 };
 
-const toCacheError = (operation: string) => (cause: unknown) =>
-  cause instanceof CacheError ? cause : CacheError.make({ operation, key: undefined, cause });
-
 /**
- * Resolves a URL slug to a lekha. Active url_slugs always win over redirect rules.
- * Falls back to `site_lekha_redirects` when the slug is not a live lekha slug.
+ * Resolves an old lekha slug to its canonical url_slug via the cached slug map.
+ * Live url_slugs always win over redirect rules; anything else returns undefined
+ * so callers fall back to the authoritative per-slug cache / 404. No DB queries.
  */
 export const resolveLekhaBySlug = Effect.fn('resolveLekhaBySlug')(function* (slug: string) {
-  const direct = yield* dbRunHttp('resolveLekhaBySlug.direct', (db) =>
-    db.query.site_lekhas.findFirst({
-      where: (tbl, { eq: eqSlug }) => eqSlug(tbl.url_slug, slug),
-      columns: { id: true, url_slug: true }
-    })
-  ).pipe(Effect.mapError(toCacheError('resolveLekhaBySlug.direct')));
-
-  if (direct) {
-    return {
-      lekha_id: direct.id,
-      url_slug: direct.url_slug,
-      requested_slug: slug,
-      was_redirect: false
-    } satisfies ResolvedLekhaBySlug;
-  }
-
-  const redirect = yield* dbRunHttp('resolveLekhaBySlug.redirect', (db) =>
-    db.query.site_lekha_redirects.findFirst({
-      where: (tbl, { eq: eqSlug }) => eqSlug(tbl.url_slug, slug),
-      columns: { lekha_id: true }
-    })
-  ).pipe(Effect.mapError(toCacheError('resolveLekhaBySlug.redirect')));
-
-  if (!redirect) return undefined;
-
-  const target = yield* dbRunHttp('resolveLekhaBySlug.target', (db) =>
-    db.query.site_lekhas.findFirst({
-      where: (tbl, { eq: eqId }) => eqId(tbl.id, redirect.lekha_id),
-      columns: { id: true, url_slug: true }
-    })
-  ).pipe(Effect.mapError(toCacheError('resolveLekhaBySlug.target')));
-
+  const slug_map = yield* siteLekhaSlugMapCache.get(NO_CACHE_PARAMS);
+  if (slug_map.liveSlugs.has(slug)) return undefined;
+  const target = slug_map.redirectTo.get(slug);
   if (!target) return undefined;
 
   return {
-    lekha_id: target.id,
-    url_slug: target.url_slug,
+    url_slug: target,
     requested_slug: slug,
     was_redirect: true
   } satisfies ResolvedLekhaBySlug;

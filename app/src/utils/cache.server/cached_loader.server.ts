@@ -12,6 +12,8 @@ export {
   mediaLinksCache,
   siteLekhaDataCache,
   siteLekhaListCache,
+  siteLekhaSlugMapCache,
+  refreshSiteLekhaSlugMap,
   textDataCache,
   translationCache,
   type AvailableTranslationLangsParams,

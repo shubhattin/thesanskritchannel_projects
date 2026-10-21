@@ -17,3 +17,8 @@ export const { useSession, signIn, signOut, signUp } = authClient;
 
 /** Session atom for store subscribers outside Svelte components. */
 export const sessionStore = authClient.useSession();
+
+/** Re-read the session after a sign-in that did not reload the page. */
+export function refreshAuthSession() {
+  authClient.$store.notify('$sessionSignal');
+}

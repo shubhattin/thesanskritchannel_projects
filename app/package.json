@@ -42,7 +42,7 @@
     "@vercel/functions": "^3.7.1",
     "ai": "^7.0.15",
     "arktype": "^2.2.0",
-    "better-auth": "^1.6.19",
+    "better-auth": "^1.7.9",
     "buffer": "^6.0.3",
     "carta-md": "^4.11.2",
     "cn": "^0.2.4",

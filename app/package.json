@@ -22,7 +22,8 @@
     "sync": "svelte-kit sync"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^4.0.7",
+    "@ai-sdk/openai": "^4.0.102",
+    "@ai-sdk/svelte": "^5.0.153",
     "@aws-sdk/client-s3": "^3.1105.0",
     "@aws-sdk/s3-request-presigner": "^3.1105.0",
     "@cartamd/plugin-code": "^4.2.0",
@@ -40,7 +41,7 @@
     "@upstash/qstash": "^2.11.1",
     "@upstash/redis": "^1.38.0",
     "@vercel/functions": "^3.7.1",
-    "ai": "^7.0.15",
+    "ai": "^7.0.153",
     "arktype": "^2.2.0",
     "better-auth": "^1.7.9",
     "buffer": "^6.0.3",
@@ -96,7 +97,7 @@
   "devDependencies": {
     "@effect/vitest": "4.0.0",
     "@internationalized/date": "^3.12.2",
-    "@lucide/svelte": "^1.24.0",
+    "@lucide/svelte": "^1.61.0",
     "@modyfi/vite-plugin-yaml": "^1.1.1",
     "@sveltejs/adapter-auto": "^7.0.1",
     "@sveltejs/adapter-netlify": "^5.2.4",
@@ -113,7 +114,7 @@
     "@types/ms": "^2.1.0",
     "@types/qrcode": "^1.5.6",
     "@types/ws": "^8.18.1",
-    "bits-ui": "^2.19.0",
+    "bits-ui": "^2.20.0",
     "chalk": "^5.6.2",
     "dotenv": "^16.6.1",
     "drizzle-kit": "^0.31.10",

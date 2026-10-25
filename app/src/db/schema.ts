@@ -16,6 +16,8 @@ import {
 import type { recursive_list_type } from '~/state/data_types';
 import { relations } from 'drizzle-orm';
 import type { BatchMetadata } from '~/utils/types/ai_batch_metadata';
+import type { AgentModelId } from '~/agents/models';
+import type { AgentMessageMetadata, AgentUIMessage } from '~/agents/ui_message';
 
 export const projects = pgTable('projects', {
   id: serial().primaryKey(),
@@ -239,6 +241,45 @@ export const ai_batch_responses = pgTable(
   (table) => [primaryKey({ columns: [table.batch_id, table.custom_id] })]
 );
 
+/** One admin agent conversation (`/agents/[chat_id]`). */
+export const agent_chats = pgTable(
+  'agent_chats',
+  {
+    /** Same id the client `Chat` uses. */
+    id: text().primaryKey(),
+    /** Model of the latest turn; can change mid-chat. */
+    model: text().notNull().$type<AgentModelId>(),
+    title: text().notNull().default(''),
+    /** Better Auth user id of the admin who started the chat. */
+    user_id: text().notNull(),
+    /** True while a reply is streaming for this chat (possibly in the background). */
+    streaming: boolean().notNull().default(false),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    /** Bumped on every turn; sorts the sidebar. */
+    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [index('agent_chats_updated_at_idx').on(table.updated_at)]
+);
+
+/** Full UI messages: text, reasoning, and every tool call with its input and output. */
+export const agent_messages = pgTable(
+  'agent_messages',
+  {
+    id: text().primaryKey(),
+    chat_id: text()
+      .notNull()
+      .references(() => agent_chats.id, { onDelete: 'cascade' }),
+    role: text().notNull().$type<AgentUIMessage['role']>(),
+    /** `UIMessage.parts`, stored as-is (validated against the tools before every turn). */
+    parts: jsonb().notNull().$type<AgentUIMessage['parts']>(),
+    metadata: jsonb().$type<AgentMessageMetadata>(),
+    /** Order within the chat. */
+    position: integer().notNull(),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [index('agent_messages_chat_id_position_idx').on(table.chat_id, table.position)]
+);
+
 // join tables
 
 /**
@@ -389,5 +430,16 @@ export const ai_batch_responsesRelations = relations(ai_batch_responses, ({ one 
   batch: one(ai_batches, {
     fields: [ai_batch_responses.batch_id],
     references: [ai_batches.batch_id]
+  })
+}));
+
+export const agent_chatsRelations = relations(agent_chats, ({ many }) => ({
+  messages: many(agent_messages)
+}));
+
+export const agent_messagesRelations = relations(agent_messages, ({ one }) => ({
+  chat: one(agent_chats, {
+    fields: [agent_messages.chat_id],
+    references: [agent_chats.id]
   })
 }));

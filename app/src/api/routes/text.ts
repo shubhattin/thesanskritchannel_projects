@@ -7,8 +7,7 @@ import {
   texts,
   translations,
   ai_batch_responses,
-  text_image_assets_join,
-  project_paths
+  text_image_assets_join
 } from '~/db/schema';
 import { delay_dev } from '~/tools/delay';
 import { CACHE, invalidate_and_refresh_cached } from '~/utils/cache.server/cached_loader.server';
@@ -16,11 +15,10 @@ import {
   clear_server_project_info_cache,
   clear_server_project_map_cache,
   get_project_by_key,
-  get_project_info_by_id,
-  get_project_map_by_id
+  get_project_info_by_id
 } from '~/utils/project/list.server';
 import { notify_site_invalidate_project_map_cache } from '~/utils/cache.server/invalidate_site_project_cache.server';
-import { and, eq, inArray, like, or, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { get_path_params } from '~/state/project_list';
 import { SEARCH_MODE_ENUM } from '~/utils/search/search_mode';
 import { search_texts_in_projects } from '~/utils/search/search_texts.server';
@@ -35,7 +33,7 @@ import {
   TEXT_EDIT_LOCK_NAMESPACE
 } from '~/utils/text/row_edit.server';
 import { image_batch_metadata_schema } from '~/utils/types/ai_batch_metadata';
-import { dbRun, dbTransaction } from '~/effect/database';
+import { dbTransaction } from '~/effect/database';
 import { BadRequestError, NotFoundError } from '~/effect/errors';
 import { runServerEffect, runTrpcEffect } from '~/effect/app_runtime.server';
 

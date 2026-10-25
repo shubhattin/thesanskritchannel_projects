@@ -28,6 +28,11 @@ export const STATIC_PAGE_TITLES: static_page_titles_map = {
     title: '',
     classes: 'text-xl font-bold'
   },
+  '/agents': {
+    title: 'Agents',
+    startsWith: true,
+    classes: 'text-xl font-bold'
+  },
   '/grammar': {
     title: 'वैयाकरनम्',
     classes: 'text-xl font-bold'

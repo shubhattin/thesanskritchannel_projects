@@ -15,8 +15,13 @@
   import CookieCacheRefresh from '$lib/CookieCacheRefresh.svelte';
   import TRPCProvider from 'trpc-tanstack-svelte-query/TRPCContext.svelte';
   import { client } from '~/api/client';
+  import { page } from '$app/state';
+  import { cn } from '$lib/utils';
 
   let { children }: { children: Snippet } = $props();
+
+  /** The agents chat is a full-height app shell: wider, no bottom margin. */
+  const is_agents = $derived(page.url.pathname.startsWith('/agents'));
 
   onMount(() => {
     if (navigator.userAgent.toLowerCase().includes('firefox')) {
@@ -33,9 +38,9 @@
 <QueryClientProvider client={queryClient}>
   <TRPCProvider trpcClient={client} {queryClient}>
     <ModeWatcher />
-    <div class="contaiiner mx-auto mb-12 max-w-5xl">
+    <div class={cn('contaiiner mx-auto', is_agents ? 'max-w-7xl' : 'mb-12 max-w-5xl')}>
       <TopAppBar />
-      <div class="mx-2 mt-4">
+      <div class={cn('mx-2', is_agents ? 'mt-2' : 'mt-4')}>
         <CookieCacheRefresh />
         {@render children()}
       </div>

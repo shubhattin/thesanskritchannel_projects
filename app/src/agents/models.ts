@@ -48,5 +48,5 @@ export const agent_model_id_schema = z.enum(AGENT_MODEL_IDS);
 /** Model a new chat starts with. */
 export const AGENT_DEFAULT_MODEL = 'gpt-6-luna' satisfies AgentModelId;
 
-/** Cheap model for chores: chat titles. */
+/** Cheap model for chores: chat titles, web search summaries. */
 export const AGENT_UTILITY_MODEL = 'gpt-6-luna' satisfies AgentModelId;

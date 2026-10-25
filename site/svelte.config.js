@@ -29,6 +29,7 @@ const config = {
       '~/utils': '../app/src/utils',
       '~/tools': '../app/src/tools',
       '~/api': '../app/src/api',
+      '~/agents': '../app/src/agents',
       '~/constants': '../app/src/constants.ts'
     }
   }

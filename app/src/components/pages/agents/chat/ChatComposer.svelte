@@ -44,7 +44,11 @@
     submit();
   }}
 >
-  <InputGroup.Root class="rounded-2xl bg-card shadow-sm dark:bg-card">
+  <!-- Focus ring on focus-within, not the group's default focus-visible: after the autofocus,
+       Chrome only flips :focus-visible on at the first keypress, so the ring popped in mid-typing. -->
+  <InputGroup.Root
+    class="rounded-2xl bg-card shadow-sm transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-card"
+  >
     <InputGroup.Textarea
       bind:ref={textarea}
       bind:value={text}

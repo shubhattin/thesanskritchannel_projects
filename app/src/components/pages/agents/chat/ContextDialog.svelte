@@ -1,12 +1,14 @@
 <script lang="ts">
   import { createQuery } from '@tanstack/svelte-query';
-  import * as Collapsible from '$lib/components/ui/collapsible';
+  import Check from '@lucide/svelte/icons/check';
+  import Copy from '@lucide/svelte/icons/copy';
+  import { Button } from '$lib/components/ui/button';
   import * as Dialog from '$lib/components/ui/dialog';
   import { Skeleton } from '$lib/components/ui/skeleton';
-  import ChevronRight from '@lucide/svelte/icons/chevron-right';
+  import * as Tabs from '$lib/components/ui/tabs';
   import { useTRPC } from '~/api/client';
 
-  /** Everything the agent reads before the conversation. */
+  /** Everything the agent reads before the conversation, one tab per section. */
   let { open = $bindable(false) }: { open?: boolean } = $props();
 
   const trpc = useTRPC();
@@ -14,45 +16,80 @@
     ...trpc.agents.get_context.queryOptions(),
     enabled: open
   }));
+
+  let tab = $state<string | null>(null);
+  const active_tab = $derived(tab ?? context_q.data?.[0]?.id ?? 'system_prompt');
+
+  const approx_tokens = (text: string) => Math.round(text.length / 3.5);
+
+  let copied_id = $state<string | null>(null);
+  const copy = async (id: string, content: string) => {
+    await navigator.clipboard.writeText(content);
+    copied_id = id;
+    setTimeout(() => {
+      if (copied_id === id) copied_id = null;
+    }, 1_500);
+  };
 </script>
 
 <Dialog.Root bind:open>
-  <Dialog.Content class="flex max-h-[85dvh] flex-col sm:max-w-3xl">
-    <Dialog.Header>
+  <Dialog.Content class="flex h-[min(88dvh,56rem)] flex-col gap-0 p-0 sm:max-w-4xl">
+    <Dialog.Header class="gap-1 border-b border-border/70 p-4 pr-12">
       <Dialog.Title>Agent context</Dialog.Title>
       <Dialog.Description>
-        What the agent reads before every conversation: its instructions, the database schema and
-        the project catalog.
+        What the agent reads before your messages, in this order.
       </Dialog.Description>
     </Dialog.Header>
-    <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-      {#if context_q.isPending}
-        <Skeleton class="h-8 w-full" />
-        <Skeleton class="h-8 w-full" />
-        <Skeleton class="h-8 w-full" />
-      {:else if context_q.isError}
-        <p class="text-sm text-destructive">{context_q.error.message}</p>
-      {:else}
-        {#each context_q.data as section, index (section.id)}
-          <Collapsible.Root open={index === 0} class="rounded-lg border border-border/70">
-            <Collapsible.Trigger
-              class="group/section flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium"
+
+    {#if context_q.isPending}
+      <div class="flex flex-col gap-2 p-4">
+        <Skeleton class="h-8 w-80" />
+        <Skeleton class="h-96 w-full" />
+      </div>
+    {:else if context_q.isError}
+      <p class="p-4 text-sm text-destructive">{context_q.error.message}</p>
+    {:else}
+      <Tabs.Root
+        value={active_tab}
+        onValueChange={(value) => (tab = value)}
+        class="flex min-h-0 flex-1 flex-col gap-3 p-4"
+      >
+        <Tabs.List class="max-w-full justify-start overflow-x-auto">
+          {#each context_q.data as section, index (section.id)}
+            <Tabs.Trigger value={section.id} class="flex-none">
+              {index + 1}. {section.title}
+            </Tabs.Trigger>
+          {/each}
+        </Tabs.List>
+        {#each context_q.data as section (section.id)}
+          <Tabs.Content
+            value={section.id}
+            class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border/70"
+          >
+            <div
+              class="flex items-center gap-2 border-b border-border/70 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground"
             >
-              <ChevronRight
-                class="size-4 text-muted-foreground transition-transform group-data-[state=open]/section:rotate-90"
-              />
-              {section.title}
-              <span class="ml-auto text-xs font-normal text-muted-foreground tabular-nums">
-                {section.content.length.toLocaleString()} chars
+              <span class="min-w-0 flex-1 truncate">
+                {section.title} · ~{approx_tokens(section.content).toLocaleString()} tokens
               </span>
-            </Collapsible.Trigger>
-            <Collapsible.Content>
-              <pre
-                class="max-h-96 overflow-auto border-t border-border/70 bg-muted/30 px-3 py-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap">{section.content}</pre>
-            </Collapsible.Content>
-          </Collapsible.Root>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Copy section"
+                onclick={() => void copy(section.id, section.content)}
+              >
+                {#if copied_id === section.id}
+                  <Check />
+                {:else}
+                  <Copy />
+                {/if}
+              </Button>
+            </div>
+            <pre
+              class="min-h-0 flex-1 overflow-auto bg-muted/20 px-3 py-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap">{section.content}</pre>
+          </Tabs.Content>
         {/each}
-      {/if}
-    </div>
+      </Tabs.Root>
+    {/if}
   </Dialog.Content>
 </Dialog.Root>

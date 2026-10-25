@@ -23,7 +23,7 @@ export const TABLE_NOTES = new Map<string, string>([
   ],
   [
     'translations',
-    'Translation of texts line-by-line: same (project_path_id, index) as texts, per lang_id (see language ids).'
+    'Translation of texts line-by-line: same (project_path_id, index) as texts, per lang_id (ids in <languages>).'
   ],
   ['other', 'Misc key/value settings (e.g. image tool presets)'],
   [

@@ -134,6 +134,13 @@
       "when": 1792333504060,
       "tag": "0018_empty_omega_flight",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792922151561,
+      "tag": "0019_faithful_santa_claus",
+      "breakpoints": true
     }
   ]
 }

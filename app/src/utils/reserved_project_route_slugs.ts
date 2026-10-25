@@ -3,10 +3,11 @@
  * (`site/src/pages`). Project keys are the first path segment on both apps and must not
  * collide with these static routes (route groups and `[param]` segments are excluded).
  *
- * app/src/routes: api, grammar, lekha, search, user
+ * app/src/routes: agents, api, grammar, lekha, search, user
  * site/src/pages: api, lekha, support, texts
  */
 export const RESERVED_PROJECT_ROUTE_SLUGS = [
+  'agents',
   'api',
   'grammar',
   'lekha',

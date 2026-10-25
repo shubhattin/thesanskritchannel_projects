@@ -21,6 +21,8 @@ export class AiProvider extends Context.Service<
   AiProvider,
   {
     readonly openrouterModel: (modelId: string) => LanguageModel;
+    /** Direct OpenAI (Responses API) model — used by the admin agent for GPT models. */
+    readonly openaiModel: (modelId: string) => LanguageModel;
     readonly generateObject: <T>(input: {
       operation: string;
       provider: 'openrouter' | 'openai';
@@ -50,6 +52,7 @@ export class AiProvider extends Context.Service<
 
       return {
         openrouterModel: (modelId: string) => openrouter(modelId),
+        openaiModel: (modelId: string) => openai(modelId),
         openaiSdk,
         generateObject: <T>(input: {
           operation: string;

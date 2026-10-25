@@ -7,6 +7,7 @@
   import Database from '@lucide/svelte/icons/database';
   import ClipboardCheck from '@lucide/svelte/icons/clipboard-check';
   import Wand2 from '@lucide/svelte/icons/wand-2';
+  import Bot from '@lucide/svelte/icons/bot';
   import Button from '~/lib/components/ui/button/button.svelte';
   import * as Dialog from '$lib/components/ui/dialog';
   import { useSession } from '~/lib/auth-client';
@@ -137,7 +138,7 @@
   {/if}
 
   {#if is_admin}
-    <div class="mt-8 flex justify-center">
+    <div class="mt-8 flex flex-wrap justify-center gap-3">
       <a
         href="/search"
         class="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-6 py-3 text-base font-semibold tracking-wide text-primary transition hover:border-secondary hover:bg-muted/70 focus-visible:ring focus-visible:ring-ring/70 focus-visible:outline-none"
@@ -145,6 +146,14 @@
       >
         <Search class="size-5 shrink-0" aria-hidden="true" />
         <span>Search across texts</span>
+      </a>
+      <a
+        href="/agents"
+        class="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-6 py-3 text-base font-semibold tracking-wide text-primary transition hover:border-secondary hover:bg-muted/70 focus-visible:ring focus-visible:ring-ring/70 focus-visible:outline-none"
+        aria-label="Open the admin AI agent"
+      >
+        <Bot class="size-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+        <span>Ask the agent</span>
       </a>
     </div>
   {/if}

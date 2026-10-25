@@ -11,6 +11,7 @@ import { lekha_router } from './routes/site/lekha';
 import { image_tool_router } from './routes/image_tool';
 import { batch_ai_router } from './routes/batch_ai_image';
 import { batch_ai_text_router } from './routes/batch_ai_text';
+import { agents_router } from './routes/agents';
 
 export const router = t.router({
   user: user_router,
@@ -24,6 +25,7 @@ export const router = t.router({
   grammar: grammar_router,
   text: text_router,
   image_tool: image_tool_router,
+  agents: agents_router,
   site: t.router({
     lekha: lekha_router
   })

@@ -18,6 +18,7 @@
   import MobileHistoryButton from '../sidebar/MobileHistoryButton.svelte';
   import AssistantMessage from './AssistantMessage.svelte';
   import ChatComposer from './ChatComposer.svelte';
+  import ChatCost from './ChatCost.svelte';
   import ContextDialog from './ContextDialog.svelte';
   import ModelPicker from './ModelPicker.svelte';
   import ThinkingLine from './ThinkingLine.svelte';
@@ -126,6 +127,7 @@
         {data.chat.title || 'New chat'}
       </h1>
     </div>
+    <ChatCost messages={chat.messages} />
     <Button variant="outline" size="sm" onclick={() => (context_open = true)}>
       <LibraryBig />
       Context

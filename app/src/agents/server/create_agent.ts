@@ -21,10 +21,7 @@ export const resolveAgentModel = Effect.fn('agents.resolve_model')(function* (
   modelId: AgentModelId
 ) {
   const ai = yield* AiProvider;
-  const meta = AGENT_MODELS[modelId];
-  return meta.provider === 'openai'
-    ? ai.openaiModel(meta.providerModelId)
-    : ai.openrouterModel(meta.providerModelId);
+  return ai.openrouterModel(AGENT_MODELS[modelId].providerModelId);
 });
 
 /** Everything the agent reads before the conversation (also shown in the Context dialog). */
@@ -46,10 +43,7 @@ export const createAgent = Effect.fn('agents.create_agent')(function* (modelId: 
     instructions: toSystemMessages(sections),
     tools,
     stopWhen: isStepCount(MAX_STEPS),
-    providerOptions: {
-      openai: { reasoningEffort: 'medium', reasoningSummary: 'auto' },
-      openrouter: { reasoning: { effort: 'medium' } }
-    }
+    providerOptions: { openrouter: { reasoning: { effort: 'medium' } } }
   });
   return { agent, tools };
 });

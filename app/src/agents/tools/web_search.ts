@@ -1,11 +1,12 @@
-import { openai } from '@ai-sdk/openai';
 import { generateText, tool, type LanguageModel, type Tool } from 'ai';
 import { z } from 'zod';
+import { openrouterCost } from '~/agents/server/cost';
 import type { WebSearchInput, WebSearchOutput } from '~/agents/ui_message';
 
 /**
- * Web search for the agent, whatever its model. OpenAI's built-in search only works on direct
- * OpenAI models, so this tool runs it on the utility model and returns a summary with sources.
+ * Web search for the agent, whatever its model: the utility model searches through OpenRouter's
+ * web plugin (the provider's native search for OpenAI models) and returns a summary with sources,
+ * plus what the search call cost so the chat total includes it.
  */
 export function createWebSearchTool(
   searchModel: LanguageModel
@@ -22,8 +23,9 @@ export function createWebSearchTool(
         instructions:
           'Search the web and report what you find: key facts, names and dates, concisely, in Markdown. Note disagreements between sources. Do not speculate beyond the sources.',
         prompt: query,
-        tools: { web_search: openai.tools.webSearch({ searchContextSize: 'medium' }) },
-        providerOptions: { openai: { reasoningEffort: 'low' } },
+        providerOptions: {
+          openrouter: { plugins: [{ id: 'web', max_results: 6 }], reasoning: { effort: 'low' } }
+        },
         abortSignal
       });
       const seen = new Set<string>();
@@ -33,7 +35,7 @@ export function createWebSearchTool(
         seen.add(source.url);
         sources.push(source.title ? { url: source.url, title: source.title } : { url: source.url });
       }
-      return { summary: result.text, sources };
+      return { summary: result.text, sources, cost: openrouterCost(result.providerMetadata) };
     }
   });
 }

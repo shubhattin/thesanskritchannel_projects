@@ -13,8 +13,10 @@ import {
   setChatStreaming
 } from '~/agents/server/chat_store';
 import { generateChatTitle } from '~/agents/server/chat_title';
+import { withHistoryCacheBreakpoint } from '~/agents/server/chat_messages';
 import { createAgent } from '~/agents/server/create_agent';
-import type { AgentMessageMetadata, AgentUIMessage } from '~/agents/ui_message';
+import { createReplyMeter } from '~/agents/server/cost';
+import type { AgentUIMessage } from '~/agents/ui_message';
 import { enqueueBackground } from '~/effect/background';
 import { BadRequestError } from '~/effect/errors';
 import { getAppRuntime, runRouteEffect, runServerEffect } from '~/effect/app_runtime.server';
@@ -76,9 +78,15 @@ export const POST: RequestHandler = async ({ request, url }) => {
           ? runtime.runPromise(generateChatTitle(firstText(newMessage)))
           : null;
 
+      const meter = createReplyMeter(model, undefined);
+
       yield* setChatStreaming(id, true);
       const result = yield* Effect.promise(async () =>
-        agent.stream({ prompt: await convertToModelMessages(messages, { tools }) })
+        agent.stream({
+          prompt: withHistoryCacheBreakpoint(
+            await convertToModelMessages(messages, { tools })
+          )
+        })
       ).pipe(Effect.onError(() => Effect.ignore(setChatStreaming(id, false))));
 
       return result.toUIMessageStreamResponse<AgentUIMessage>({
@@ -87,21 +95,8 @@ export const POST: RequestHandler = async ({ request, url }) => {
         // Keep generating (and saving) even if the admin closes the tab mid-reply.
         consumeSseStream: ({ stream }) =>
           runtime.runSync(enqueueBackground(() => consumeStream({ stream }))),
-        messageMetadata: ({ part }): AgentMessageMetadata | undefined => {
-          if (part.type === 'start') return { model };
-          if (part.type === 'finish') {
-            return {
-              model,
-              usage: {
-                inputTokens: part.totalUsage.inputTokens,
-                outputTokens: part.totalUsage.outputTokens,
-                cachedInputTokens: part.totalUsage.inputTokenDetails?.cacheReadTokens,
-                reasoningTokens: part.totalUsage.outputTokenDetails?.reasoningTokens
-              }
-            };
-          }
-          return undefined;
-        },
+        // Actual cost and tokens, emitted after every step.
+        messageMetadata: ({ part }) => meter(part),
         onEnd: async ({ messages: finished }) => {
           try {
             const title = titlePromise ? await titlePromise : undefined;

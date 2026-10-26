@@ -5,6 +5,7 @@
   import SqlQueryStep from '../tools/SqlQueryStep.svelte';
   import WebSearchStep from '../tools/WebSearchStep.svelte';
   import AgentMarkdown from './AgentMarkdown.svelte';
+  import ReplyCost from './ReplyCost.svelte';
   import ThinkingLine from './ThinkingLine.svelte';
   import { groupParts, isWaitingForNextStep } from './message_parts';
 
@@ -37,5 +38,8 @@
   {/each}
   {#if waiting}
     <ThinkingLine />
+  {/if}
+  {#if !streaming}
+    <ReplyCost metadata={message.metadata} />
   {/if}
 </div>

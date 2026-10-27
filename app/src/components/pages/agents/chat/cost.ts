@@ -10,7 +10,11 @@ export function formatCost(usd: number): string {
 }
 
 const compact = (n: number) =>
-  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(1)}k` : String(n);
+  n >= 1_000_000
+    ? `${(n / 1_000_000).toFixed(1)}M`
+    : n >= 1_000
+      ? `${(n / 1_000).toFixed(1)}k`
+      : String(n);
 
 export function usageLine(usage: AgentMessageMetadata['usage']): string | null {
   if (!usage) return null;

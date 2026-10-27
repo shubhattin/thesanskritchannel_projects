@@ -34,10 +34,7 @@ export const AGENT_MODELS = {
     hint: 'Best quality — heavier analysis',
     providerModelId: 'anthropic/claude-opus-5.5'
   }
-} as const satisfies Record<
-  AgentModelId,
-  { label: string; hint: string; providerModelId: string }
->;
+} as const satisfies Record<AgentModelId, { label: string; hint: string; providerModelId: string }>;
 
 export const agent_model_id_schema = z.enum(AGENT_MODEL_IDS);
 

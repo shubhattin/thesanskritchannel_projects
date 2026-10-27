@@ -30,10 +30,20 @@ describe('createReplyMeter', () => {
     const meter = createReplyMeter('gpt-6-luna', undefined);
     expect(meter(part({ type: 'start' }))).toEqual({ model: 'gpt-6-luna' });
     meter(step(0.01, 1000, 800, 50));
-    meter(part({ type: 'tool-result', toolName: 'web_search', output: { summary: '', sources: [], cost: 0.02 } }));
+    meter(
+      part({
+        type: 'tool-result',
+        toolName: 'web_search',
+        output: { summary: '', sources: [], cost: 0.02 }
+      })
+    );
     const last = meter(step(0.005, 1200, 1000, 80));
     expect(last?.cost).toBeCloseTo(0.035);
-    expect(last?.usage).toMatchObject({ inputTokens: 2200, cachedInputTokens: 1800, outputTokens: 130 });
+    expect(last?.usage).toMatchObject({
+      inputTokens: 2200,
+      cachedInputTokens: 1800,
+      outputTokens: 130
+    });
   });
 
   it('continues from what a resumed reply already counted', () => {
@@ -44,6 +54,11 @@ describe('createReplyMeter', () => {
     });
     const result = meter(step(0.02, 6000, 5500, 300));
     expect(result?.cost).toBeCloseTo(0.12);
-    expect(result?.usage).toMatchObject({ inputTokens: 11000, cachedInputTokens: 9500, outputTokens: 700, reasoningTokens: 100 });
+    expect(result?.usage).toMatchObject({
+      inputTokens: 11000,
+      cachedInputTokens: 9500,
+      outputTokens: 700,
+      reasoningTokens: 100
+    });
   });
 });

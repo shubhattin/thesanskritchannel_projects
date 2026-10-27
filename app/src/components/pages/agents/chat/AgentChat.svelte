@@ -9,7 +9,7 @@
   import LibraryBig from '@lucide/svelte/icons/library-big';
   import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
   import { Button } from '$lib/components/ui/button';
-  import { useTRPC } from '~/api/client';
+  import { useTRPC, useTRPCClient } from '~/api/client';
   import type { Router } from '~/api/trpc_router';
   import type { AgentModelId } from '~/agents/models';
   import type { AgentUIMessage } from '~/agents/ui_message';
@@ -32,6 +32,7 @@
   let { data }: { data: AgentChatData } = $props();
 
   const trpc = useTRPC();
+  const trpc_client = useTRPCClient();
   const query_client = useQueryClient();
 
   // svelte-ignore state_referenced_locally
@@ -94,6 +95,9 @@
 
   const stop = () => {
     user_stopped = true;
+    // Tell the server to abort the reply for real: the local stop alone leaves it
+    // generating (and saving) in the background, where it could drop the next turn.
+    void trpc_client.agents.stop_reply.mutate({ id: chat_id }).catch(() => undefined);
     void chat.stop();
   };
 
@@ -107,6 +111,7 @@
     sent_locally = true;
     stick_to_bottom = true;
     void (async () => {
+      void trpc_client.agents.stop_reply.mutate({ id: chat_id }).catch(() => undefined);
       await chat.stop();
       send(pending.text);
     })();

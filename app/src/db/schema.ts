@@ -254,6 +254,8 @@ export const agent_chats = pgTable(
     user_id: text().notNull(),
     /** True while a reply is streaming for this chat (possibly in the background). */
     streaming: boolean().notNull().default(false),
+    /** Set by an explicit Stop; the streaming reply (on whichever instance) polls it and aborts. */
+    stop_requested_at: timestamp({ withTimezone: true }),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     /** Bumped on every turn; sorts the sidebar. */
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow()

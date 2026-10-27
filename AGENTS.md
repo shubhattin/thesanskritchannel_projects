@@ -26,3 +26,10 @@
 # Cursor harness specifc instructions
 
 - While the harness is cursor to spwan **subagents** only use cursor's composer or grok models (like grok 4.5/4.6 high).
+
+# Remote / harness
+
+- Never add `Co-authored-by` / `Made by <harness>` lines to commits or PRs, ever.
+- Node/npm are preinstalled; bun often isn't — reuse bun if present, else npm/npx.
+- Skip DB setup (Neon Postgres/Drizzle) in remote envs; validate with `check`, `lint`, `test` instead.
+- If harness supports `.worktreeinclude`, use it; else symlink each listed file from main checkout into worktree.

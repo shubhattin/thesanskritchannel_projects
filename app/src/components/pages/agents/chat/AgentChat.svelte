@@ -21,7 +21,9 @@
   import ChatCost from './ChatCost.svelte';
   import ContextDialog from './ContextDialog.svelte';
   import ModelPicker from './ModelPicker.svelte';
+  import QueuedMessages from './QueuedMessages.svelte';
   import ThinkingLine from './ThinkingLine.svelte';
+  import { MessageQueue, type QueuedMessage } from './message_queue';
   import { messageText } from './message_parts';
 
   export type AgentChatData = inferRouterOutputs<Router>['agents']['get_chat'];
@@ -69,11 +71,70 @@
   /** Set once this view sends: from then on the local conversation wins over refetches. */
   let sent_locally = false;
 
+  /**
+   * Messages typed while a reply streams. Per chat: this view mounts once per chat id
+   * (keyed by the page), so switching chats mounts a fresh queue and unmount drops it.
+   */
+  const queue = $state(new MessageQueue());
+  /** The user stopped a run: the queue waits for an explicit send. Cleared on any send. */
+  let user_stopped = $state(false);
+  let composer = $state<{ setText: (value: string) => void } | null>(null);
+
   const send = (text: string) => {
     sent_locally = true;
     stick_to_bottom = true;
+    user_stopped = false;
     void chat.sendMessage({ text }, { body: { model } });
   };
+
+  const enqueue = (text: string) => {
+    queue.enqueue(text);
+    stick_to_bottom = true;
+  };
+
+  const stop = () => {
+    user_stopped = true;
+    void chat.stop();
+  };
+
+  /** Stop the in-flight reply and send this queued message immediately. */
+  const send_now = (item: QueuedMessage) => {
+    const pending = queue.items.find((queued) => queued.id === item.id);
+    if (!pending) return;
+    queue.remove(pending.id);
+    // Suppress the auto-send while the abort lands; send() below re-arms it.
+    user_stopped = true;
+    sent_locally = true;
+    stick_to_bottom = true;
+    void (async () => {
+      await chat.stop();
+      send(pending.text);
+    })();
+  };
+
+  const edit_queued = (item: QueuedMessage) => {
+    if (!composer) return;
+    queue.remove(item.id);
+    composer.setText(item.text);
+  };
+
+  // When a run finishes normally, send the next queued message. Not after an error
+  // (status is 'error' then, and the queue waits for the user's Retry or send) and not
+  // after the user pressed Stop (user_stopped). The transition guard also makes the
+  // shift+send atomic: the effect re-runs on the queue change but status is no longer
+  // freshly 'ready', so it can't send twice. No client tools exist in this chat, so a
+  // 'ready' status means no continuation is pending — multi-step server tool calls keep
+  // the status at 'submitted'/'streaming' throughout.
+  let prev_status = chat.status;
+  $effect(() => {
+    const status = chat.status;
+    const just_finished = prev_status !== 'ready' && status === 'ready';
+    prev_status = status;
+    if (!just_finished) return;
+    if (queue.size === 0 || user_stopped || chat.error) return;
+    const next = queue.shift();
+    if (next) send(next.text);
+  });
 
   onMount(() => {
     const pending = takePendingMessage(chat_id);
@@ -237,10 +298,19 @@
   </div>
 
   <div class="mx-auto w-full max-w-3xl px-4 pb-4">
-    <ChatComposer
+    <QueuedMessages
+      items={queue.items}
       {busy}
-      onstop={() => void chat.stop()}
+      onedit={edit_queued}
+      onsendnow={send_now}
+      onremove={(item) => queue.remove(item.id)}
+    />
+    <ChatComposer
+      bind:this={composer}
+      {busy}
+      onstop={stop}
       onsend={send}
+      onqueue={enqueue}
       placeholder="Ask about texts, translations, lekhas…"
       autofocus
     >

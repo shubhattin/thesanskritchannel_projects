@@ -7,6 +7,7 @@
   /** Message field: Enter sends, Shift+Enter adds a line, Stop while the agent replies. */
   let {
     onsend,
+    onqueue,
     onstop,
     busy,
     placeholder = 'Message the agent…',
@@ -14,6 +15,11 @@
     autofocus = false
   }: {
     onsend: (text: string) => void;
+    /**
+     * Called instead of `onsend` while busy, so the message waits for the in-flight reply.
+     * Absent: the composer locks while busy (e.g. the new-chat screen).
+     */
+    onqueue?: (text: string) => void;
     onstop?: () => void;
     busy: boolean;
     placeholder?: string;
@@ -24,13 +30,25 @@
 
   let text = $state('');
   let textarea = $state<HTMLTextAreaElement | null>(null);
-  const can_send = $derived(text.trim().length > 0 && !busy);
+  const can_queue = $derived(busy && onqueue !== undefined);
+  const can_send = $derived(text.trim().length > 0 && (!busy || can_queue));
 
   const submit = () => {
-    if (!can_send) return;
-    onsend(text.trim());
+    const value = text.trim();
+    if (value.length === 0) return;
+    if (can_queue) onqueue?.(value);
+    else {
+      if (busy) return;
+      onsend(value);
+    }
     text = '';
   };
+
+  /** Put a queued message back into the composer for editing. */
+  export function setText(value: string) {
+    text = value;
+    textarea?.focus();
+  }
 
   $effect(() => {
     if (autofocus) textarea?.focus();
@@ -69,20 +87,23 @@
         <InputGroup.Button
           variant="outline"
           size="icon-sm"
-          class="ml-auto rounded-full"
+          class="rounded-full"
           aria-label="Stop"
+          title="Stop the reply"
           onclick={onstop}
         >
           <Square class="size-3 fill-current" />
         </InputGroup.Button>
-      {:else}
+      {/if}
+      {#if !busy || can_queue}
         <InputGroup.Button
           type="submit"
           variant="default"
           size="icon-sm"
           class="ml-auto rounded-full transition-opacity duration-300 disabled:opacity-70"
           disabled={!can_send}
-          aria-label="Send"
+          aria-label={busy ? 'Queue message' : 'Send'}
+          title={busy ? 'Queue — sends when the reply finishes' : 'Send'}
         >
           <ArrowUp />
         </InputGroup.Button>

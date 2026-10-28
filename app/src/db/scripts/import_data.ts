@@ -18,6 +18,13 @@ export const import_data = async (confirm_env = true) => {
   const site_lekhas = await db.query.site_lekhas.findMany();
   const site_lekha_redirects = await db.query.site_lekha_redirects.findMany();
   const project_redirects = await db.query.project_redirects.findMany();
+  const image_assets = await db.query.image_assets.findMany();
+  const image_system_prompt_templates = await db.query.image_system_prompt_templates.findMany();
+  const ai_batches = await db.query.ai_batches.findMany();
+  const ai_batch_responses = await db.query.ai_batch_responses.findMany();
+  const text_image_assets_join = await db.query.text_image_assets_join.findMany();
+  const agent_chats = await db.query.agent_chats.findMany();
+  const agent_messages = await db.query.agent_messages.findMany();
 
   const json_data = {
     user_project_join,
@@ -30,7 +37,14 @@ export const import_data = async (confirm_env = true) => {
     media_attachment,
     site_lekhas,
     site_lekha_redirects,
-    project_redirects
+    project_redirects,
+    image_assets,
+    image_system_prompt_templates,
+    ai_batches,
+    ai_batch_responses,
+    text_image_assets_join,
+    agent_chats,
+    agent_messages
   };
 
   await make_dir('./out');

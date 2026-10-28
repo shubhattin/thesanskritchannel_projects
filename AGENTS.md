@@ -27,6 +27,10 @@
 
 - While the harness is cursor to spwan **subagents** only use cursor's composer or grok models (like grok 4.5/4.6 high).
 
+# PR
+
+- Squash-merge PRs with 1-3 commits.
+
 # Remote / harness
 
 - Never add `Co-authored-by` / `Made by <harness>` lines to commits or PRs, ever.

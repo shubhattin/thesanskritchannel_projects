@@ -12,7 +12,14 @@ import {
   site_lekha_redirects,
   projects,
   project_paths,
-  project_redirects
+  project_redirects,
+  image_assets,
+  image_system_prompt_templates,
+  ai_batches,
+  ai_batch_responses,
+  text_image_assets_join,
+  agent_chats,
+  agent_messages
 } from '~/db/schema';
 import {
   UserProjectJoinSchemaZod,
@@ -25,7 +32,14 @@ import {
   SiteLekhaRedirectSchemaZod,
   ProjectRedirectSchemaZod,
   ProjectSchemaZod,
-  ProjectPathSchemaZod
+  ProjectPathSchemaZod,
+  ImageAssetSchemaZod,
+  ImageSystemPromptTemplatesSchemaZod,
+  AiBatchesSchemaZod,
+  AiBatchResponsesSchemaZod,
+  TextImageAssetsJoinSchemaZod,
+  AgentChatsSchemaZod,
+  AgentMessagesSchemaZod
 } from '~/db/schema_zod';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
@@ -60,7 +74,17 @@ const main = async () => {
       project_paths: ProjectPathSchemaZod.array(),
       // Optional so backups written before redirects existed still restore.
       site_lekha_redirects: SiteLekhaRedirectSchemaZod.array().optional().default([]),
-      project_redirects: ProjectRedirectSchemaZod.array().optional().default([])
+      project_redirects: ProjectRedirectSchemaZod.array().optional().default([]),
+      // Optional so backups written before these tables existed still restore.
+      image_assets: ImageAssetSchemaZod.array().optional().default([]),
+      image_system_prompt_templates: ImageSystemPromptTemplatesSchemaZod.array()
+        .optional()
+        .default([]),
+      ai_batches: AiBatchesSchemaZod.array().optional().default([]),
+      ai_batch_responses: AiBatchResponsesSchemaZod.array().optional().default([]),
+      text_image_assets_join: TextImageAssetsJoinSchemaZod.array().optional().default([]),
+      agent_chats: AgentChatsSchemaZod.array().optional().default([]),
+      agent_messages: AgentMessagesSchemaZod.array().optional().default([])
     })
     .parse(JSON.parse((await readFile(`./out/${in_file_name}`)).toString()));
 
@@ -70,6 +94,9 @@ const main = async () => {
     // deleting all the tables initially
     try {
       // Children first (FK order: path rows → projects, redirect rows → parents)
+      await tx.delete(agent_messages);
+      await tx.delete(ai_batch_responses);
+      await tx.delete(text_image_assets_join);
       await tx.delete(translations);
       await tx.delete(texts);
       await tx.delete(media_attachment);
@@ -81,6 +108,10 @@ const main = async () => {
       await tx.delete(projects);
       await tx.delete(other);
       await tx.delete(site_lekhas);
+      await tx.delete(image_assets);
+      await tx.delete(image_system_prompt_templates);
+      await tx.delete(agent_chats);
+      await tx.delete(ai_batches);
       console.log(chalk.green('✓ Deleted All Tables Successfully'));
     } catch (e) {
       console.log(chalk.red('✗ Error while deleting tables:'), chalk.yellow(e));
@@ -92,6 +123,58 @@ const main = async () => {
       console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`projects`'));
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting projects:'), chalk.yellow(e));
+    }
+
+    // resetting image_assets (before texts: FK texts.image_id)
+    try {
+      if (data.image_assets.length > 0) {
+        await tx.insert(image_assets).values(data.image_assets);
+      }
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`image_assets`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting image_assets:'), chalk.yellow(e));
+    }
+
+    // resetting image_system_prompt_templates
+    try {
+      if (data.image_system_prompt_templates.length > 0) {
+        await tx.insert(image_system_prompt_templates).values(data.image_system_prompt_templates);
+      }
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`image_system_prompt_templates`')
+      );
+    } catch (e) {
+      console.log(
+        chalk.red('✗ Error while inserting image_system_prompt_templates:'),
+        chalk.yellow(e)
+      );
+    }
+
+    // resetting ai_batches (before ai_batch_responses: FK batch_id)
+    try {
+      if (data.ai_batches.length > 0) {
+        await tx.insert(ai_batches).values(data.ai_batches);
+      }
+      console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`ai_batches`'));
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting ai_batches:'), chalk.yellow(e));
+    }
+
+    // resetting agent_chats (before agent_messages: FK chat_id)
+    try {
+      if (data.agent_chats.length > 0) {
+        await tx.insert(agent_chats).values(data.agent_chats);
+      }
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`agent_chats`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting agent_chats:'), chalk.yellow(e));
     }
 
     // resetting project_paths
@@ -141,6 +224,19 @@ const main = async () => {
       console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`texts`'));
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting text:'), chalk.yellow(e));
+    }
+
+    // resetting text_image_assets_join (after project_paths + image_assets)
+    try {
+      if (data.text_image_assets_join.length > 0) {
+        await tx.insert(text_image_assets_join).values(data.text_image_assets_join);
+      }
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`text_image_assets_join`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting text_image_assets_join:'), chalk.yellow(e));
     }
 
     // resetting translation
@@ -213,6 +309,35 @@ const main = async () => {
       console.log(chalk.red('✗ Error while inserting project_redirects:'), chalk.yellow(e));
     }
 
+    // resetting ai_batch_responses (after ai_batches: FK batch_id)
+    try {
+      if (data.ai_batch_responses.length > 0) {
+        await tx.insert(ai_batch_responses).values(data.ai_batch_responses);
+      }
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`ai_batch_responses`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting ai_batch_responses:'), chalk.yellow(e));
+    }
+
+    // resetting agent_messages (after agent_chats: FK chat_id)
+    try {
+      if (data.agent_messages.length > 0) {
+        const chunks = chunkArray(data.agent_messages, 5000);
+        for (const chunk of chunks) {
+          await tx.insert(agent_messages).values(chunk);
+        }
+      }
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`agent_messages`')
+      );
+    } catch (e) {
+      console.log(chalk.red('✗ Error while inserting agent_messages:'), chalk.yellow(e));
+    }
+
     // resetting SERIAL
     try {
       await tx.execute(sql`SELECT setval('"projects_id_seq"', (select MAX(id) from "projects"))`);
@@ -230,6 +355,15 @@ const main = async () => {
       );
       await tx.execute(
         sql`SELECT setval('"project_redirects_id_seq"', (select MAX(id) from "project_redirects"))`
+      );
+      await tx.execute(
+        sql`SELECT setval('"image_assets_id_seq"', (select MAX(id) from "image_assets"))`
+      );
+      await tx.execute(
+        sql`SELECT setval('"image_system_prompt_templates_id_seq"', (select MAX(id) from "image_system_prompt_templates"))`
+      );
+      await tx.execute(
+        sql`SELECT setval('"text_image_assets_join_id_seq"', (select MAX(id) from "text_image_assets_join"))`
       );
       console.log(chalk.green('✓ Successfully resetted ALL SERIAL'));
     } catch (e) {

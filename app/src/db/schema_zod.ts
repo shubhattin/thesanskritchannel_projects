@@ -14,10 +14,14 @@ import {
   image_assets,
   text_image_assets_join,
   ai_batches,
-  ai_batch_responses
+  ai_batch_responses,
+  image_system_prompt_templates,
+  agent_chats,
+  agent_messages
 } from './schema';
 import { createSelectSchema } from 'drizzle-zod';
 import { recursive_list_schema } from '../state/data_types';
+import { agent_model_id_schema } from '~/agents/models';
 
 export const UserProjectJoinSchemaZod = createSelectSchema(user_project_join);
 export const UserProjectLanguageJoinSchemaZod = createSelectSchema(user_project_language_join);
@@ -62,5 +66,24 @@ export const ImageAssetSchemaZod = createSelectSchema(image_assets, {
   created_at: z.coerce.date()
 });
 export const TextImageAssetsJoinSchemaZod = createSelectSchema(text_image_assets_join);
-export const AiBatchesSchemaZod = createSelectSchema(ai_batches);
+export const AiBatchesSchemaZod = createSelectSchema(ai_batches, {
+  type: z.enum(['image', 'text', 'object'])
+});
 export const AiBatchResponsesSchemaZod = createSelectSchema(ai_batch_responses);
+export const ImageSystemPromptTemplatesSchemaZod = createSelectSchema(
+  image_system_prompt_templates,
+  {
+    created_at: z.coerce.date(),
+    updated_at: z.coerce.date().optional().nullable()
+  }
+);
+export const AgentChatsSchemaZod = createSelectSchema(agent_chats, {
+  model: agent_model_id_schema,
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+  stop_requested_at: z.coerce.date().optional().nullable()
+});
+export const AgentMessagesSchemaZod = createSelectSchema(agent_messages, {
+  role: z.enum(['system', 'user', 'assistant']),
+  created_at: z.coerce.date()
+});

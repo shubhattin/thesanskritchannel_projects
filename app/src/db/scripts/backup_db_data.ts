@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { execFileSync } from 'child_process';
 import { import_data } from './import_data';
 import { dbClient_ext as db, query_client } from './client';
+import { dbMode } from '~/tools/kry.server';
 import * as dotenv from 'dotenv';
 import {
   S3Client,
@@ -113,7 +114,12 @@ async function backup_data() {
   }
 
   await import_data(false).then(() => {
-    fs.copyFileSync('./out/db_data.json', './backup/db_data.json');
+    const out_file_name = {
+      PROD: 'db_data_prod.json',
+      PREVIEW: 'db_data_preview.json',
+      LOCAL: 'db_data.json'
+    }[dbMode];
+    fs.copyFileSync(`./out/${out_file_name}`, './backup/db_data.json');
   });
   if (BACKUP_SQL) {
     const data = JSON.parse(fs.readFileSync('./backup/db_data.json', 'utf-8'));

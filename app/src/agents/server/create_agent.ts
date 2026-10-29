@@ -4,10 +4,12 @@ import { AiProvider } from '~/effect/ai';
 import { AGENT_MODELS, AGENT_UTILITY_MODEL, type AgentModelId } from '~/agents/models';
 import { agentInstructionSections, toSystemMessages } from '~/agents/prompts/instructions';
 import { buildProjectsContext } from '~/agents/prompts/projects_context';
+import { buildSiteContext } from '~/agents/prompts/site';
 import { searchTextsTool } from '~/agents/tools/search_texts';
 import { sqlQueryTool } from '~/agents/tools/sql_query';
 import { createWebSearchTool } from '~/agents/tools/web_search';
 import type { AgentUITools } from '~/agents/ui_message';
+import { AppPublicConfig } from '~/effect/config';
 
 /** The tools as the UI message type knows them. */
 export type AgentTools = {
@@ -26,7 +28,13 @@ export const resolveAgentModel = Effect.fn('agents.resolve_model')(function* (
 
 /** Everything the agent reads before the conversation (also shown in the Context dialog). */
 export const loadInstructionSections = Effect.fn('agents.load_instructions')(function* () {
-  return agentInstructionSections(yield* buildProjectsContext());
+  const projectsText = yield* buildProjectsContext();
+  const publicConfig = yield* AppPublicConfig;
+  const siteText = buildSiteContext({
+    adminOrigin: publicConfig.siteUrl,
+    publicOrigin: publicConfig.mainSiteUrl
+  });
+  return agentInstructionSections(projectsText, siteText);
 });
 
 export const createAgent = Effect.fn('agents.create_agent')(function* (modelId: AgentModelId) {

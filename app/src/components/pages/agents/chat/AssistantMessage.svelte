@@ -5,9 +5,10 @@
   import SqlQueryStep from '../tools/SqlQueryStep.svelte';
   import WebSearchStep from '../tools/WebSearchStep.svelte';
   import AgentMarkdown from './AgentMarkdown.svelte';
+  import CopyReplyButton from './CopyReplyButton.svelte';
   import ReplyCost from './ReplyCost.svelte';
   import ThinkingLine from './ThinkingLine.svelte';
-  import { groupParts, isWaitingForNextStep } from './message_parts';
+  import { groupParts, isWaitingForNextStep, messageText } from './message_parts';
 
   /** One agent turn: step traces and replies, in the order they happened. */
   let { message, streaming }: { message: AgentUIMessage; streaming: boolean } = $props();
@@ -40,6 +41,9 @@
     <ThinkingLine />
   {/if}
   {#if !streaming}
-    <ReplyCost metadata={message.metadata} />
+    <div class="flex items-center gap-0.5">
+      <ReplyCost metadata={message.metadata} />
+      <CopyReplyButton text={messageText(message)} />
+    </div>
   {/if}
 </div>

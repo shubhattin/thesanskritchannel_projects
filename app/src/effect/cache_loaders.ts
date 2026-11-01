@@ -124,6 +124,17 @@ export const textDataCache = {
         })
       );
     }
+    const { levels } = yield* getProjectInfoById(project.id).pipe(
+      Effect.mapError(toCacheError('text_data.resolveLevels'))
+    );
+    if (levels > 1 && params.path_params.length === 0) {
+      return yield* Effect.fail(
+        CacheError.make({
+          operation: 'text_data.path',
+          cause: new Error('Invalid text path selection')
+        })
+      );
+    }
     return yield* textDataInner.get({
       project_id: project.id,
       path_params: params.path_params

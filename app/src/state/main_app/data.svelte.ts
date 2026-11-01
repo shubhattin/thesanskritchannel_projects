@@ -24,6 +24,16 @@ export const has_translation_query_path = (
 ) =>
   project_levels === 1 || get_dynamic_path_params(selected_text_levels, project_levels).length > 0;
 
+/**
+ * Text/translation reads need a resolvable path: single-level projects always have one,
+ * multi-level projects need at least one selected level. Prevents firing requests with an
+ * empty path (e.g. before a chapter is selected), which the server rejects.
+ */
+export const has_content_query_path = (
+  selected_text_levels: (number | null)[],
+  project: ProjectState | null
+) => project !== null && has_translation_query_path(selected_text_levels, project.levels);
+
 export const pin_query_while_editing = (editing_mode_: editing_mode_type) =>
   editing_mode_ !== 'none' ? { staleTime: Infinity } : {};
 
@@ -31,11 +41,7 @@ export const translation_query_enabled = (
   text_data_present_: boolean,
   project: ProjectState | null,
   selected_text_levels: (number | null)[]
-) =>
-  browser &&
-  text_data_present_ &&
-  project !== null &&
-  has_translation_query_path(selected_text_levels, project.levels);
+) => browser && text_data_present_ && has_content_query_path(selected_text_levels, project);
 
 export const project_list_q_options = () =>
   queryOptions({
@@ -181,7 +187,7 @@ export const text_data_q_options = (
     },
     placeholderData: () =>
       project_id === last_successful_text_project_id ? last_successful_text_data : undefined,
-    enabled: project !== null
+    enabled: has_content_query_path(selected_text_levels, project)
   });
 };
 
@@ -196,7 +202,7 @@ export const active_text_data_q_options = (
   editing_mode_: editing_mode_type
 ) => ({
   ...text_data_q_options(selected_text_levels, project),
-  enabled: project !== null && text_data_present_,
+  enabled: has_content_query_path(selected_text_levels, project) && text_data_present_,
   ...pin_query_while_editing(editing_mode_)
 });
 
@@ -213,7 +219,7 @@ export const langs_with_translations_q_options = (
         path_params
       }),
     staleTime: ms('5minutes'),
-    enabled: project !== null
+    enabled: has_content_query_path(selected_text_levels, project)
   });
 };
 
@@ -234,7 +240,7 @@ export const trans_lang_data_q_options = (
   queryOptions({
     queryKey: QUERY_KEYS.trans_lang_data(lang_id, selected_text_levels, project),
     queryFn: () => get_translations(selected_text_levels, lang_id, project!),
-    enabled: project !== null
+    enabled: has_content_query_path(selected_text_levels, project)
   });
 
 export const trans_en_data_q_options = (
@@ -318,6 +324,7 @@ export const prefetch_text_data = (
   project: ProjectState
 ) => {
   if (!browser) return;
+  if (!has_content_query_path(selected_text_levels, project)) return;
   return queryClient.prefetchQuery(text_data_q_options(selected_text_levels, project));
 };
 

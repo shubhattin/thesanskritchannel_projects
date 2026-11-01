@@ -3,6 +3,7 @@ import { browser } from '$app/environment';
 import {
   trans_lang_data_q_options,
   text_data_q_options,
+  has_content_query_path,
   type ProjectState
 } from '~/state/main_app/data.svelte';
 import background_image_url from './img/background_vr.png';
@@ -87,7 +88,7 @@ export const image_text_data_q_options = (
   text_data_present_: boolean
 ) => ({
   ...text_data_q_options(image_selected_levels, project),
-  enabled: browser && text_data_present_,
+  enabled: browser && text_data_present_ && has_content_query_path(image_selected_levels, project),
   // SAFETY: shloka_list_type is an array type, and the empty array is the query's placeholder data while it loads.
   placeholderData: [] as shloka_list_type
 });
@@ -99,7 +100,7 @@ export const image_trans_data_q_options = (
   text_data_present_: boolean
 ) => ({
   ...trans_lang_data_q_options(image_lang, image_selected_levels, project),
-  enabled: browser && text_data_present_
+  enabled: browser && text_data_present_ && has_content_query_path(image_selected_levels, project)
 });
 
 // Language and Script Specific Settings

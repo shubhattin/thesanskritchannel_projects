@@ -11,6 +11,7 @@
   import {
     active_langs_with_translations_q_options,
     get_last_level_name,
+    has_content_query_path,
     project_map_q_options,
     text_data_q_options,
     trans_lang_data_q_options
@@ -56,7 +57,7 @@
 
   const text_data_q = createQuery(() => ({
     ...text_data_q_options($selected_text_levels, $project_state),
-    enabled: $text_data_present && $project_state !== null
+    enabled: $text_data_present && has_content_query_path($selected_text_levels, $project_state)
   }));
 
   const available_lang_ids = $derived(langs_with_translations_q.data ?? []);
@@ -74,7 +75,12 @@
   const translation_q = createQuery(() => ({
     ...trans_lang_data_q_options(selected_lang_id ?? -1, $selected_text_levels, $project_state),
     enabled:
-      browser && open && include_translation && selected_lang_id !== null && selected_lang_id !== 0
+      browser &&
+      open &&
+      include_translation &&
+      selected_lang_id !== null &&
+      selected_lang_id !== 0 &&
+      has_content_query_path($selected_text_levels, $project_state)
   }));
 
   const selected_lang_label = $derived(

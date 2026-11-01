@@ -130,6 +130,14 @@ const lang_enum = z.enum(LANG_LIST as [string, ...string[]]);
 export const image_tool_preset_config_schema = z.object({
   space_above_reference_line: z.number(),
   show_image_on_top_right: z.boolean(),
+  // optional + default: older presets predate the number indicator size options
+  shloka_number_scale: z
+    .object({
+      main: z.number().positive().optional().default(1),
+      normal: z.number().positive().optional().default(1)
+    })
+    .optional()
+    .default({ main: 1, normal: 1 }),
   shaded_background_image_status: z.boolean(),
   shloka_configs: shloka_configs_schema,
   translation_bounding_coords: bounding_coords_schema,

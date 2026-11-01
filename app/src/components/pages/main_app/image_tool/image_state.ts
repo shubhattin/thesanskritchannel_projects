@@ -49,6 +49,9 @@ export let image_script = writable<script_list_type>();
 export let image_lang = writable<number>(lang_list_obj.English);
 export let image_selected_levels = writable<(number | null)[]>([null, null]);
 export let show_image_on_top_right = writable(false);
+/** Size multipliers for the top-right shloka number indicators (1 = default size). */
+export type ShlokaNumberScale = { main: number; normal: number };
+export let shloka_number_scale = writable<ShlokaNumberScale>({ main: 1, normal: 1 });
 
 // ^ chapter will be inherited from the main during mount
 export let image_shloka = writable(1);

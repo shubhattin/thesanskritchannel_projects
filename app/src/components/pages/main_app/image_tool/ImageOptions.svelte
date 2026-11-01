@@ -14,6 +14,7 @@
     normal_text_font_config,
     shaded_background_image_status,
     show_image_on_top_right,
+    shloka_number_scale,
     trans_text_font_configs,
     system_font_overrides,
     image_shloka_data,
@@ -629,6 +630,38 @@
                 <Label for="show-shloka-number" class="cursor-pointer text-sm font-medium">
                   Show shloka number (top right)
                 </Label>
+              </div>
+              <div
+                class="mt-2 flex items-center justify-between gap-4 text-sm"
+                class:opacity-50={!$show_image_on_top_right}
+              >
+                <span class="text-muted-foreground">Number size</span>
+                <div class="flex shrink-0 items-center gap-2">
+                  <Input
+                    type="number"
+                    class="h-8 w-20 px-2 text-sm tabular-nums"
+                    title="Main script number size"
+                    aria-label="Main script number size"
+                    placeholder="Main"
+                    bind:value={$shloka_number_scale.main}
+                    disabled={!$show_image_on_top_right}
+                    min={0.1}
+                    max={5}
+                    step={0.05}
+                  />
+                  <Input
+                    type="number"
+                    class="h-8 w-20 px-2 text-sm tabular-nums"
+                    title="Normal (romanized) number size"
+                    aria-label="Normal (romanized) number size"
+                    placeholder="Normal"
+                    bind:value={$shloka_number_scale.normal}
+                    disabled={!$show_image_on_top_right}
+                    min={0.1}
+                    max={5}
+                    step={0.05}
+                  />
+                </div>
               </div>
             {/snippet}
             {@render option_panel(

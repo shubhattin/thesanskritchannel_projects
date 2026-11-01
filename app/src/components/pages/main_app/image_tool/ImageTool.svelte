@@ -25,6 +25,7 @@
     stage_node,
     fonts_loaded,
     show_image_on_top_right,
+    shloka_number_scale,
     translation_bounding_coords,
     image_drag_reset_nonce,
     system_font_overrides
@@ -255,6 +256,8 @@
       $image_shloka_data?.text,
       $image_trans_text,
       $show_image_on_top_right,
+      $shloka_number_scale.main,
+      $shloka_number_scale.normal,
       $shloka_configs,
       $translation_bounding_coords,
       JSON.stringify($main_text_font_configs),

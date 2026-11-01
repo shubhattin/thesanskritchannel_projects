@@ -20,6 +20,7 @@ import {
   reset_image_drag_positions,
   shaded_background_image_status,
   show_image_on_top_right,
+  shloka_number_scale,
   system_font_overrides,
   trans_text_font_configs,
   translation_bounding_coords
@@ -56,6 +57,7 @@ export function get_builtin_default_image_tool_preset(): ImageToolPresetConfig {
   return image_tool_preset_config_schema.parse({
     space_above_reference_line: DEFAULT_SHLOKA_CONFIG_SHARED.SPACE_ABOVE_REFERENCE_LINE,
     show_image_on_top_right: false, // do not show number on top by default
+    shloka_number_scale: copy_plain_object(DEFAULT_SHLOKA_CONFIG_SHARED.SHLOKA_NUMBER_SCALE),
     shaded_background_image_status: false,
     shloka_configs: shloka_configs_for_preset(copy_plain_object(DEFAULT_SHLOKA_CONFIG)),
     translation_bounding_coords: copy_plain_object(DEFAULT_TRANSLATION_BOUNDING_COORDS),
@@ -72,6 +74,7 @@ export function collect_image_tool_preset(): ImageToolPresetConfig {
   return image_tool_preset_config_schema.parse({
     space_above_reference_line: get(SPACE_ABOVE_REFERENCE_LINE),
     show_image_on_top_right: get(show_image_on_top_right),
+    shloka_number_scale: get(shloka_number_scale),
     shaded_background_image_status: get(shaded_background_image_status),
     shloka_configs: shloka_configs_for_preset(get(shloka_configs)),
     translation_bounding_coords: get(translation_bounding_coords),
@@ -99,6 +102,7 @@ export async function apply_image_tool_preset(
   };
   SPACE_ABOVE_REFERENCE_LINE.set(parsed.space_above_reference_line);
   show_image_on_top_right.set(parsed.show_image_on_top_right);
+  shloka_number_scale.set(copy_plain_object(parsed.shloka_number_scale));
   shaded_background_image_status.set(parsed.shaded_background_image_status);
   shloka_configs.set(copy_plain_object(shloka_configs_from_preset(parsed.shloka_configs)));
   translation_bounding_coords.set(copy_plain_object(parsed.translation_bounding_coords));

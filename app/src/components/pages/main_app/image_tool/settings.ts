@@ -147,7 +147,9 @@ export const DEFAULT_SHLOKA_CONFIG: shloka_configs_map_type = {
 };
 
 export const DEFAULT_SHLOKA_CONFIG_SHARED = {
-  SPACE_ABOVE_REFERENCE_LINE: 5
+  SPACE_ABOVE_REFERENCE_LINE: 5,
+  /** Size multipliers for the top-right shloka number indicators. */
+  SHLOKA_NUMBER_SCALE: { main: 1, normal: 1 }
 };
 export const SPACE_ABOVE_REFERENCE_LINE = writable(
   DEFAULT_SHLOKA_CONFIG_SHARED.SPACE_ABOVE_REFERENCE_LINE

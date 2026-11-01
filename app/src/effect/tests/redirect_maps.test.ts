@@ -3,7 +3,7 @@ import { Effect, Layer, ManagedRuntime } from 'effect';
 import { BackgroundWork } from '../background';
 import { NO_CACHE_PARAMS } from '../cache';
 import { SharedConfig } from '../config';
-import { DatabaseHttp } from '../database';
+import { Database } from '../database';
 import { RedisClient } from '../redis';
 import {
   clearProjectRegistryCache,
@@ -66,7 +66,7 @@ const makeMemoryRedis = () => {
 
 /** DB stub: serves the project list; dies on any other query to prove zero-DB paths. */
 const projectListDbLayer = (projects: unknown[]) =>
-  Layer.succeed(DatabaseHttp)({
+  Layer.succeed(Database)({
     // SAFETY: the stub only supports the project-list query shape used by
     // `projectListCache.fetch`; anything else is a loud test failure, not a cast lie.
     run: (_operation, run) =>
@@ -80,12 +80,16 @@ const projectListDbLayer = (projects: unknown[]) =>
           // SAFETY: `never` client keeps the generic `A` intact; the literal only
           // supports the project-list query shape used by `projectListCache.fetch`.
         } as never)
-      )
+      ),
+    transaction: (_operation, _run) =>
+      Effect.die(new Error('Database.transaction should not be called in redirect-map unit test'))
   });
 
-const dbDieLayer = Layer.succeed(DatabaseHttp)({
+const dbDieLayer = Layer.succeed(Database)({
   run: (_operation, _run) =>
-    Effect.die(new Error('DatabaseHttp.run should not be called in redirect-map unit test'))
+    Effect.die(new Error('Database.run should not be called in redirect-map unit test')),
+  transaction: (_operation, _run) =>
+    Effect.die(new Error('Database.transaction should not be called in redirect-map unit test'))
 });
 
 const cannedProjects = [
@@ -100,7 +104,7 @@ const cannedProjects = [
   }
 ];
 
-const makeRuntime = (dbLayer: Layer.Layer<DatabaseHttp>) => {
+const makeRuntime = (dbLayer: Layer.Layer<Database>) => {
   const redis = makeMemoryRedis();
   const runtime = ManagedRuntime.make(
     Layer.mergeAll(sharedLayer, redis.layer, BackgroundWork.Test, dbLayer)

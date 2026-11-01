@@ -19,7 +19,7 @@ const POLL_CLAIM_STALE_MS = ms('12mins');
 
 export const responseItemUnprocessed = sql`${ai_batch_responses.metadata}->>'success' IS NULL`;
 
-/** Bounded parallelism — avoids Neon/Upstash stampedes on large batches. */
+/** Bounded parallelism — avoids DB/Upstash stampedes on large batches. */
 export async function mapWithConcurrency<T, R>(
   items: readonly T[],
   concurrency: number,
@@ -398,7 +398,7 @@ export async function bulkFailUnprocessedBatchResponses(
     (row) =>
       sql`(${row.custom_id}::text, ${JSON.stringify({ ...row.metadata, success: false })}::jsonb)`
   );
-  // Single statement — do not Promise.all on the same tx connection (neon/postgres-js).
+  // Single statement — do not Promise.all on the same tx connection (postgres.js).
   await tx.execute(sql`
     UPDATE ${ai_batch_responses} AS t
     SET metadata = v.metadata

@@ -123,7 +123,7 @@ export const persistTranslationsRows = async (
     );
   }
   if (update_entries.length > 0) {
-    // Single statement — do not Promise.all on the same tx connection (neon/postgres-js).
+    // Single statement — do not Promise.all on the same tx connection (postgres.js).
     const value_rows = update_entries.map(
       ([index, dataIndex]) => sql`(${index}::int, ${data[dataIndex] ?? ''}::text)`
     );

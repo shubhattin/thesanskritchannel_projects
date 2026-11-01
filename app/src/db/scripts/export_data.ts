@@ -159,7 +159,10 @@ const main = async () => {
       if (data.ai_batches.length > 0) {
         await tx.insert(ai_batches).values(data.ai_batches);
       }
-      console.log(chalk.green('✓ Successfully added values into table'), chalk.blue('`ai_batches`'));
+      console.log(
+        chalk.green('✓ Successfully added values into table'),
+        chalk.blue('`ai_batches`')
+      );
     } catch (e) {
       console.log(chalk.red('✗ Error while inserting ai_batches:'), chalk.yellow(e));
     }

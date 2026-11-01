@@ -6,7 +6,7 @@ import type { recursive_list_type } from '~/state/data_types';
 import { is_empty_list_branch, list_item_path_value } from '~/state/project_list';
 import { build_project_path } from '~/utils/project_site_paths';
 import { createCache, NO_CACHE_PARAMS, type NoCacheParams } from './cache';
-import { dbRunHttp } from './database';
+import { dbRun } from './database';
 import { CacheError, NotFoundError } from './errors';
 
 /** Public origin written into sitemap `<loc>` and robots.txt. */
@@ -149,14 +149,14 @@ export const sitemapCache = createCache<NoCacheParams, SitemapCacheValue>({
   useSingleFlight: true,
   fetch: Effect.fn('sitemap.fetch')(function* (_params) {
     const [listed, lekhas] = yield* Effect.all([
-      dbRunHttp('sitemap.projects', (db) =>
+      dbRun('sitemap.projects', (db) =>
         db.query.projects.findMany({
           columns: { key: true, map: true },
           where: (tbl, { eq: eqCol }) => eqCol(tbl.listed, true),
           orderBy: ({ id }, { asc }) => asc(id)
         })
       ).pipe(Effect.mapError(toCacheError('sitemap.projects'))),
-      dbRunHttp('sitemap.lekhas', (db) =>
+      dbRun('sitemap.lekhas', (db) =>
         db.query.site_lekhas.findMany({
           columns: {
             url_slug: true,

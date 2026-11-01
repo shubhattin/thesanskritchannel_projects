@@ -25,23 +25,23 @@ Used for managing all content that powers the public site — texts, translation
 ### Infrastructure
 
 - **Auth** — Google OAuth via Better Auth
-- **Database** — Neon PostgreSQL with Drizzle ORM, Upstash Redis for caching
+- **Database** — PlanetScale PostgreSQL (postgres.js TCP via PgBouncer) with Drizzle ORM, Upstash Redis for caching
 - **Background jobs** — Trigger.dev for async processing
 - **API** — tRPC with TanStack Svelte Query
 
 ## Tech Stack
 
-|           |                                   |
-| --------- | --------------------------------- |
-| Framework | SvelteKit (Svelte 5)              |
-| Language  | TypeScript                        |
-| UI        | shadcn-svelte, TailwindCSS v4     |
-| Database  | Neon PostgreSQL + Drizzle ORM     |
-| Cache     | Upstash Redis                     |
-| AI        | OpenRouter, OpenAI, Vercel AI SDK |
-| Auth      | Better Auth (Google OAuth)        |
-| API       | tRPC                              |
-| Deploy    | Netlify / Vercel                  |
+|           |                                      |
+| --------- | ------------------------------------ |
+| Framework | SvelteKit (Svelte 5)                 |
+| Language  | TypeScript                           |
+| UI        | shadcn-svelte, TailwindCSS v4        |
+| Database  | PlanetScale PostgreSQL + Drizzle ORM |
+| Cache     | Upstash Redis                        |
+| AI        | OpenRouter, OpenAI, Vercel AI SDK    |
+| Auth      | Better Auth (Google OAuth)           |
+| API       | tRPC                                 |
+| Deploy    | Netlify / Vercel                     |
 
 ## Development
 

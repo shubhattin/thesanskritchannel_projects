@@ -18,7 +18,7 @@ import {
 } from '~/lib/carta_markdown/markdown';
 import { runServerEffect, runTrpcEffect } from '~/effect/app_runtime.server';
 import { enqueueBackground } from '~/effect/background';
-import { dbRunHttp, dbTransaction } from '~/effect/database';
+import { dbRun, dbTransaction } from '~/effect/database';
 import { BadRequestError, ConflictError, NotFoundError } from '~/effect/errors';
 import { generateUniqueUid } from '~/db/uid';
 
@@ -214,7 +214,7 @@ const delete_lekha_route = protectedAdminProcedure
         yield* Effect.promise(async () => {
           await delay_dev(1000);
         });
-        const prev_data = yield* dbRunHttp('lekha.delete.lookup', (db) =>
+        const prev_data = yield* dbRun('lekha.delete.lookup', (db) =>
           db.query.site_lekhas.findFirst({
             where: (tbl, { eq: eqId }) => eqId(tbl.id, id),
             columns: { url_slug: true }
@@ -225,7 +225,7 @@ const delete_lekha_route = protectedAdminProcedure
             NotFoundError.make({ resource: 'lekha', message: 'Lekha not found' })
           );
         }
-        yield* dbRunHttp('lekha.delete', async (db) => {
+        yield* dbRun('lekha.delete', async (db) => {
           await db.delete(site_lekhas).where(eq(site_lekhas.id, id));
         });
         yield* invalidate_lekha_caches(prev_data.url_slug);
@@ -266,7 +266,7 @@ const list_lekhas_route = protectedAdminProcedure.input(list_lekhas_input).query
         input.sort_by === 'updated_at' ? site_lekhas.updated_at : site_lekhas.published_at;
       const orderFn = input.order_by === 'asc' ? asc : desc;
 
-      const [countResult, list] = yield* dbRunHttp('lekha.list', async (db) =>
+      const [countResult, list] = yield* dbRun('lekha.list', async (db) =>
         Promise.all([
           db.select({ count: count() }).from(site_lekhas).where(whereClause),
           db
@@ -315,7 +315,7 @@ const check_url_slug_route = protectedAdminProcedure
     runTrpcEffect(
       Effect.gen(function* () {
         const normalized = lekhaUrlSlugify(url_slug);
-        const lekha = yield* dbRunHttp('lekha.check_slug', (db) =>
+        const lekha = yield* dbRun('lekha.check_slug', (db) =>
           db.query.site_lekhas.findFirst({
             where: (tbl, { eq, ne }) =>
               exclude_id != null
@@ -324,7 +324,7 @@ const check_url_slug_route = protectedAdminProcedure
             columns: { id: true }
           })
         );
-        const redirect = yield* dbRunHttp('lekha.check_slug.redirect', (db) =>
+        const redirect = yield* dbRun('lekha.check_slug.redirect', (db) =>
           db.query.site_lekha_redirects.findFirst({
             where: (tbl, { eq: eqSlug }) => eqSlug(tbl.url_slug, normalized),
             columns: { id: true }
@@ -343,7 +343,7 @@ const list_lekha_redirects_route = protectedAdminProcedure
         yield* Effect.promise(async () => {
           await delay_dev(200);
         });
-        const existing = yield* dbRunHttp('lekha.redirects.lookup', (db) =>
+        const existing = yield* dbRun('lekha.redirects.lookup', (db) =>
           db.query.site_lekhas.findFirst({
             where: (tbl, { eq: eqId }) => eqId(tbl.id, input.lekha_id),
             columns: { id: true }
@@ -354,7 +354,7 @@ const list_lekha_redirects_route = protectedAdminProcedure
             NotFoundError.make({ resource: 'lekha', message: 'Lekha not found' })
           );
         }
-        return yield* dbRunHttp('lekha.redirects.list', (db) =>
+        return yield* dbRun('lekha.redirects.list', (db) =>
           db.query.site_lekha_redirects.findMany({
             where: (tbl, { eq: eqId }) => eqId(tbl.lekha_id, input.lekha_id),
             columns: { id: true, url_slug: true, created_at: true },
@@ -378,7 +378,7 @@ const delete_lekha_redirect_route = protectedAdminProcedure
         yield* Effect.promise(async () => {
           await delay_dev(300);
         });
-        const outcome = yield* dbRunHttp('lekha.redirects.delete', async (db) => {
+        const outcome = yield* dbRun('lekha.redirects.delete', async (db) => {
           const existing = await db.query.site_lekhas.findFirst({
             where: (tbl, { eq: eqId }) => eqId(tbl.id, input.lekha_id),
             columns: { id: true }

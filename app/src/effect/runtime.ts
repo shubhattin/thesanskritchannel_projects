@@ -8,7 +8,7 @@ import {
   type AppPublicConfigInput,
   type SharedConfigInput
 } from './config';
-import { Database, DatabaseHttp } from './database';
+import { Database } from './database';
 import { RedisClient } from './redis';
 import { ObjectStorage } from './storage';
 import { AiProvider, OpenAiBatchClient } from './ai';
@@ -17,19 +17,18 @@ import { BackgroundWork } from './background';
 import { QStashPublisher } from './qstash';
 
 /**
- * Shared infrastructure for app + site: config, HTTP DB, Redis, background.
- * Session `Database` (WS/TCP) stays off this layer so site cannot use it.
+ * Shared infrastructure for app + site: config, DB (postgres.js TCP), Redis, background.
  * ImageProcessor stays out of the site layer so site Effects stay site-safe.
  */
 export const makeSharedInfrastructureLayer = (shared: SharedConfigInput) => {
   const sharedConfigLayer = SharedConfig.layer(shared);
-  return Layer.mergeAll(DatabaseHttp.Live, RedisClient.Live, BackgroundWork.Live).pipe(
+  return Layer.mergeAll(Database.Live, RedisClient.Live, BackgroundWork.Live).pipe(
     Layer.provideMerge(sharedConfigLayer)
   );
 };
 
 /**
- * Full app layer: shared infra + session DB, S3, AI, images, QStash, public config.
+ * Full app layer: shared infra + DB, S3, AI, images, QStash, public config.
  * SharedConfig is derived from AppConfig so Database/Redis stay SharedConfig-only.
  */
 export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigInput) => {
@@ -39,7 +38,6 @@ export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigI
   return Layer.mergeAll(
     ImageProcessor.Live,
     BackgroundWork.Live,
-    DatabaseHttp.Live,
     Database.Live,
     RedisClient.Live,
     ObjectStorage.Live,
@@ -50,7 +48,7 @@ export const makeAppLayer = (app: AppConfigInput, publicConfig: AppPublicConfigI
   ).pipe(Layer.provideMerge(SharedConfigFromAppConfigLayer), Layer.provideMerge(appConfigLayer));
 };
 
-/** Site layer — HTTP DB + Redis + background only. */
+/** Site layer — DB + Redis + background only. */
 export const makeSiteLayer = (shared: SharedConfigInput) => makeSharedInfrastructureLayer(shared);
 
 export const makeAppRuntime = (app: AppConfigInput, publicConfig: AppPublicConfigInput) =>

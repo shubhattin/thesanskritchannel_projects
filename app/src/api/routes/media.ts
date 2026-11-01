@@ -158,7 +158,7 @@ const apply_multimedia_save = async (
   }
 
   if (updates.length > 0) {
-    // Single statement — do not Promise.all on the same tx connection (neon/postgres-js).
+    // Single statement — do not Promise.all on the same tx connection (postgres.js).
     const value_rows = updates.map(
       (u) => sql`(
         ${u.id}::int,

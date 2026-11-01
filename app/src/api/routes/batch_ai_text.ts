@@ -72,7 +72,7 @@ import {
 /** Soft char budget for one leaf request (leave headroom under model context). */
 const MAX_TRANSLATION_PROMPT_CHARS = 280_000;
 
-/** Cap concurrent claim/save work so large batches don't stampede Neon. */
+/** Cap concurrent claim/save work so large batches don't stampede the DB. */
 const BATCH_ITEM_CONCURRENCY = 8;
 
 const TERMINAL_FAILURE_STATUSES: ReadonlySet<AiBatchPollingStatus> = new Set([

@@ -23,7 +23,7 @@ import {
   NO_CACHE_PARAMS,
   type NoCacheParams
 } from './cache';
-import { dbRunHttp } from './database';
+import { dbRun } from './database';
 import { CacheError } from './errors';
 import {
   getProjectByKey,
@@ -97,7 +97,7 @@ const textDataInner = createCache<TextDataInnerParams, shloka_list_type>({
     REDIS_CACHE_KEYS_CLIENT.text_data(project_id, path_params),
   schema: shloka_list_schema,
   fetch: Effect.fn('text_data.fetch')(function* ({ project_id, path_params }) {
-    return yield* dbRunHttp('text_data.fetch', async (db) => {
+    return yield* dbRun('text_data.fetch', async (db) => {
       const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
       return db
         .select({
@@ -161,7 +161,7 @@ const translationInner = createCache<TranslationInnerParams, TranslationRow[], M
       REDIS_CACHE_KEYS_CLIENT.translation(project_id, lang_id, path_params),
     schema: translationRowSchema.array(),
     fetch: Effect.fn('translation.fetch')(function* ({ project_id, lang_id, path_params }) {
-      return yield* dbRunHttp('translation.fetch', async (db) => {
+      return yield* dbRun('translation.fetch', async (db) => {
         const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
         return db
           .select({
@@ -261,7 +261,7 @@ export const availableTranslationLangsCache = createCache<
     REDIS_CACHE_KEYS_CLIENT.available_translation_langs(project_id, path_params),
   schema: zod.number().array(),
   fetch: Effect.fn('available_translation_langs.fetch')(function* ({ project_id, path_params }) {
-    return yield* dbRunHttp('available_translation_langs.fetch', async (db) => {
+    return yield* dbRun('available_translation_langs.fetch', async (db) => {
       const projectPath = await requireProjectPath(db, project_id, path_params.join(':'));
       const rows = await db
         .select({ lang_id: translations.lang_id })
@@ -278,7 +278,7 @@ export const mediaLinksCache = createCache<MediaLinksParams, MediaLinkRow[]>({
     REDIS_CACHE_KEYS_CLIENT.media_links(project_id, path_params),
   schema: mediaLinkRowSchema.array(),
   fetch: Effect.fn('media_links.fetch')(function* ({ project_id, path_params }) {
-    return yield* dbRunHttp('media_links.fetch', async (db) => {
+    return yield* dbRun('media_links.fetch', async (db) => {
       const projectPath = await db.query.project_paths.findFirst({
         where: (tbl, { and: andOp, eq: eqOp }) =>
           andOp(eqOp(tbl.project_id, project_id), eqOp(tbl.path, path_params.join(':'))),
@@ -306,7 +306,7 @@ export const siteLekhaDataCache = createCache<{ url_slug: string }, lekhaType | 
   schema: lekhaSchema,
   shouldCache: (data) => data !== null,
   fetch: Effect.fn('site_lekha_data.fetch')(function* ({ url_slug }) {
-    return yield* dbRunHttp('site_lekha_data.fetch', async (db) => {
+    return yield* dbRun('site_lekha_data.fetch', async (db) => {
       const data = await db.query.site_lekhas.findFirst({
         where: (tbl, { eq: eqSlug }) => eqSlug(tbl.url_slug, url_slug)
       });
@@ -352,7 +352,7 @@ export const siteLekhaSlugMapCache = createCache<
   useSingleFlight: true,
   useGenerationGuard: true,
   fetch: Effect.fn('site_lekha_slug_map.fetch')(function* (_params) {
-    return yield* dbRunHttp('site_lekha_slug_map.fetch', async (db) => {
+    return yield* dbRun('site_lekha_slug_map.fetch', async (db) => {
       const [live_rows, redirect_rows] = await Promise.all([
         db.select({ slug: site_lekhas.url_slug }).from(site_lekhas),
         db
@@ -378,7 +378,7 @@ export const siteLekhaListCache = createCache<NoCacheParams, lekhaListType>({
   getKey: () => REDIS_CACHE_KEYS_CLIENT.site_lekha_list(),
   schema: lekhaListSchema,
   fetch: Effect.fn('site_lekha_list.fetch')(function* (_params) {
-    return yield* dbRunHttp('site_lekha_list.fetch', (db) =>
+    return yield* dbRun('site_lekha_list.fetch', (db) =>
       db.query.site_lekhas.findMany({
         columns: {
           id: true,

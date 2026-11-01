@@ -212,7 +212,7 @@ const save_text_rows_route = protectedAdminProcedure
               (join) => join.index !== existingImageJoins.find((j) => j.id === join.id)?.index
             );
             if (changedImageJoins.length > 0) {
-              // Single statement — do not Promise.all on the same tx connection (neon/postgres-js).
+              // Single statement — do not Promise.all on the same tx connection (postgres.js).
               const value_rows = changedImageJoins.map(
                 (join) => sql`(${join.id}::int, ${join.index}::int)`
               );

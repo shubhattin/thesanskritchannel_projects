@@ -21,12 +21,12 @@ import {
 } from './cache';
 import { BackgroundWork } from './background';
 import { SharedConfig } from './config';
-import { DatabaseHttp, dbRunHttp } from './database';
+import { Database, dbRun } from './database';
 import { CacheError, NotFoundError } from './errors';
 import { RedisClient } from './redis';
 
 /** Same env as createCache — site-safe (no AiProvider / ObjectStorage). */
-type ProjectCacheEnv = RedisClient | BackgroundWork | SharedConfig | DatabaseHttp;
+type ProjectCacheEnv = RedisClient | BackgroundWork | SharedConfig | Database;
 
 const projectTypeSchema = z.object({
   id: z.number(),
@@ -59,7 +59,7 @@ export const projectListCache = createCache<NoCacheParams, project_type[]>({
   getKey: () => REDIS_CACHE_KEYS_CLIENT.project_list(),
   schema: projectTypeSchema.array(),
   fetch: Effect.fn('project_list.fetch')(function* (_params) {
-    return yield* dbRunHttp('project_list.fetch', (db) =>
+    return yield* dbRun('project_list.fetch', (db) =>
       db.query.projects.findMany({
         columns: {
           id: true,
@@ -80,7 +80,7 @@ export const projectMapCache = createCache<{ project_id: number }, recursive_lis
   getKey: ({ project_id }) => REDIS_CACHE_KEYS_CLIENT.project_map(project_id),
   schema: recursive_list_schema,
   fetch: Effect.fn('project_map.fetch')(function* ({ project_id }) {
-    const data = yield* dbRunHttp('project_map.fetch', (db) =>
+    const data = yield* dbRun('project_map.fetch', (db) =>
       db.query.projects.findFirst({
         where: (tbl, { eq }) => eq(tbl.id, project_id),
         columns: {
@@ -123,7 +123,7 @@ export const projectRedirectMapCache = createCache<
   useSingleFlight: true,
   useGenerationGuard: true,
   fetch: Effect.fn('project_redirect_map.fetch')(function* (_params) {
-    return yield* dbRunHttp('project_redirect_map.fetch', (db) =>
+    return yield* dbRun('project_redirect_map.fetch', (db) =>
       db
         .select({ key: project_redirects.key, target: projects.key })
         .from(project_redirects)

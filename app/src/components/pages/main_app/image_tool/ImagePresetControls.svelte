@@ -35,6 +35,7 @@
     system_font_overrides,
     shaded_background_image_status,
     show_image_on_top_right,
+    shloka_number_scale,
     trans_text_font_configs,
     translation_bounding_coords
   } from './image_state';
@@ -125,6 +126,7 @@
     void $number_font_config;
     void $system_font_overrides;
     void $show_image_on_top_right;
+    void $shloka_number_scale;
     void $shaded_background_image_status;
     return collect_image_tool_preset();
   });

@@ -12,6 +12,7 @@ import {
   image_render_colors,
   image_trans_text,
   show_image_on_top_right,
+  shloka_number_scale,
   translation_bounding_coords,
   system_font_overrides
 } from './image_state';
@@ -634,6 +635,10 @@ export const compute_all_layouts = async (
   if (!shloka_data) return null;
 
   const show_shloka_number = get(show_image_on_top_right);
+  const raw_number_scale = get(shloka_number_scale);
+  const safe_scale = (v: number) => (Number.isFinite(v) && v > 0 ? v : 1);
+  const number_scale_main = safe_scale(raw_number_scale.main);
+  const number_scale_norm = safe_scale(raw_number_scale.normal);
 
   const shloka_lines = split_shloka_lines(
     shloka_data.text,
@@ -772,7 +777,7 @@ export const compute_all_layouts = async (
         fontFamily: numberFonts.main,
         fontStyle: numberStyles.main,
         baseFontSize: 42,
-        fontScale: main_text_font_info.size * 0.8,
+        fontScale: main_text_font_info.size * 0.8 * number_scale_main,
         color: colors.number,
         left: shloka_config.bounding_coords.left,
         right: shloka_config.bounding_coords.right,
@@ -792,7 +797,7 @@ export const compute_all_layouts = async (
         fontFamily: numberFonts.norm,
         fontStyle: numberStyles.norm,
         baseFontSize: 28,
-        fontScale: norm_text_font_info.size * 0.98,
+        fontScale: norm_text_font_info.size * 0.98 * number_scale_norm,
         color: colors.number,
         left: shloka_config.bounding_coords.left,
         right: shloka_config.bounding_coords.right,

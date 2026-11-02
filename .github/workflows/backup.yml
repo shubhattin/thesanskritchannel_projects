@@ -5,23 +5,23 @@ on:
     - cron: '30 17 */4 * *' # 11:00 PM IST every 4th day of the month (1st, 5th, 9th, ...)
   workflow_dispatch: # Allows manual triggering of the workflow
 
+permissions:
+  contents: read
+
 jobs:
   backup_db_data:
     runs-on: ubuntu-latest
-    env:
-      PG_DATABASE_URL: ${{ secrets.PG_DATABASE_URL }}
-      # libpq (pg_dump) CA for sslmode=verify-full; env only — postgres.js rejects it in the URL
-      PGSSLROOTCERT: system
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DB_BACKUP_BUCKET_NAME: ${{ secrets.AWS_DB_BACKUP_BUCKET_NAME }}
+    environment: backup
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      # Third-party actions are pinned to full commit SHAs (tag kept in the comment) so a
+      # moved tag cannot run new code in this job. Secrets are scoped to the DB dump step only.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          bun-version: latest
+          persist-credentials: false
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.2
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -46,6 +46,14 @@ jobs:
 
       - name: Load Translations and DB Dump
         working-directory: app/src/db/scripts
+        env:
+          PG_DATABASE_URL: ${{ secrets.PG_DATABASE_URL }}
+          # libpq (pg_dump) CA for sslmode=verify-full; env only — postgres.js rejects it in the URL
+          PGSSLROOTCERT: system
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DB_BACKUP_BUCKET_NAME: ${{ secrets.AWS_DB_BACKUP_BUCKET_NAME }}
         # The secret is a bare URL: require TLS with certificate verification for both pg_dump
         # (libpq, CA from PGSSLROOTCERT) and postgres.js (Node's CA store) unless it sets sslmode.
         run: |
@@ -57,7 +65,7 @@ jobs:
           export PG_DATABASE_URL
           bun backup_db_data.ts
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: db_backup
           path: |

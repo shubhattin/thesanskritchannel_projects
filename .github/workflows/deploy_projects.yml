@@ -11,17 +11,23 @@ on:
       - '.github/workflows/deploy_projects.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: vercel_deploy
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: latest
+          bun-version: 1.4.2
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -36,7 +42,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: bunx vercel env pull .env.production.local --environment=production --token="$VERCEL_TOKEN" --yes
+        run: bunx vercel@65.9.0 env pull .env.production.local --environment=production --token="$VERCEL_TOKEN" --yes
 
       - name: Build (Vercel)
         working-directory: app
@@ -50,5 +56,5 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: bunx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" --yes
+        run: bunx vercel@65.9.0 deploy --prebuilt --prod --token="$VERCEL_TOKEN" --yes
         if: success()

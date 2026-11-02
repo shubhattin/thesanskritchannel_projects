@@ -8,6 +8,9 @@ on:
       - 'bun.lock'
       - '.github/workflows/checks.yml'
 
+permissions:
+  contents: read
+
 env:
   PUBLIC_BETTER_AUTH_URL: http://localhost:3000
   PG_DATABASE_URL: postgresql://postgres:examplepassword123abc@127.0.0.1:5432/exampledb\
@@ -23,15 +26,17 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22.12.0'
       - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: latest
+          bun-version: 1.4.2
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Sync SvelteKit
@@ -44,11 +49,13 @@ jobs:
   svelte_and_type_check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          bun-version: latest
+          persist-credentials: false
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.2
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - run: |

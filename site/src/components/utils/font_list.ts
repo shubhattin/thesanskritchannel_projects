@@ -17,6 +17,10 @@ const FONT_LIST = {
   //
   Normal: 'font-normal',
   Romanized: 'font-romanized',
+  IAST: 'font-romanized',
+  ITRANS: 'font-normal',
+  'Harvard-Kyoto': 'font-normal',
+  SLP1: 'font-normal',
   //
   Brahmi: 'font-brahmi',
   Granth: 'font-grantha',
